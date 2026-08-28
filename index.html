@@ -655,6 +655,8 @@
     section{ padding:70px 0; }
     .about-art{ height:340px; }
     .floatie.hide-mobile{ display:none; }
+    .scroll-cue{ display:none; }
+    .hero{ padding-bottom:40px; }
   }
 
   @media (max-width:480px){
@@ -711,8 +713,12 @@
       <div class="particle" style="width:4px;height:4px;top:8%;left:60%;animation-delay:.9s"></div>
     </div>
 
+    <!-- All illustrated elements live in the right-hand third of the hero
+         (roughly x: 58%–98%) or in the far top/bottom corners, so nothing
+         crosses the headline / copy column on the left. -->
+
     <!-- open journal, bottom right -->
-    <svg class="floatie hide-mobile" data-depth="0.05" style="width:220px; right:4%; bottom:6%; --rot:-4deg; animation-duration:8s" viewBox="0 0 220 150" fill="none">
+    <svg class="floatie hide-mobile" data-depth="0.05" style="width:220px; right:2%; bottom:4%; --rot:-4deg; animation-duration:8s" viewBox="0 0 220 150" fill="none">
       <path d="M10 20C10 20 45 8 108 24V132C45 116 10 128 10 128V20Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.5"/>
       <path d="M210 20C210 20 175 8 112 24V132C175 116 210 128 210 128V20Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.5"/>
       <path d="M24 38h64M24 50h58M24 62h64M24 74h48" stroke="#EADFCB" stroke-width="2.4" stroke-linecap="round"/>
@@ -720,52 +726,52 @@
       <path d="M108 24V132" stroke="#E7DCC8" stroke-width="1.5"/>
     </svg>
 
-    <!-- lightbulb idea, top right -->
-    <svg class="floatie hide-mobile" data-depth="0.09" style="width:64px; right:14%; top:16%; --rot:6deg; animation-duration:6s" viewBox="0 0 64 64" fill="none">
+    <!-- lightbulb idea, upper right -->
+    <svg class="floatie hide-mobile" data-depth="0.09" style="width:60px; right:10%; top:10%; --rot:6deg; animation-duration:6s" viewBox="0 0 64 64" fill="none">
       <circle cx="32" cy="26" r="17" fill="#FCEADC" stroke="#F1631B" stroke-width="2"/>
       <path d="M26 43h12M28 49h8" stroke="#5B5347" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M32 12v4M20 18l3 3M44 18l-3 3" stroke="#F0B429" stroke-width="2.2" stroke-linecap="round"/>
     </svg>
 
-    <!-- open book, left -->
-    <svg class="floatie hide-mobile" data-depth="0.06" style="width:100px; left:5%; top:22%; --rot:-8deg; animation-duration:9s" viewBox="0 0 100 70" fill="none">
+    <!-- open book, far right upper-mid -->
+    <svg class="floatie hide-mobile" data-depth="0.06" style="width:90px; right:26%; top:6%; --rot:-8deg; animation-duration:9s" viewBox="0 0 100 70" fill="none">
       <path d="M50 12c-10-8-30-8-42-2v46c12-6 32-6 42 2V12Z" fill="#E4F1F7" stroke="#7FB8D9" stroke-width="1.6"/>
       <path d="M50 12c10-8 30-8 42-2v46c-12-6-32-6-42 2V12Z" fill="#E4F1F7" stroke="#7FB8D9" stroke-width="1.6"/>
     </svg>
 
-    <!-- pen, mid left lower -->
-    <svg class="floatie hide-mobile" data-depth="0.1" style="width:90px; left:12%; bottom:14%; --rot:38deg; animation-duration:7s" viewBox="0 0 100 22" fill="none">
+    <!-- pen, far right, mid height -->
+    <svg class="floatie hide-mobile" data-depth="0.1" style="width:82px; right:4%; top:44%; --rot:32deg; animation-duration:7s" viewBox="0 0 100 22" fill="none">
       <rect x="6" y="7" width="76" height="9" rx="4.5" fill="#F1631B"/>
       <path d="M82 7 96 11.5 82 16Z" fill="#2B241C"/>
       <rect x="6" y="7" width="20" height="9" rx="4.5" fill="#FF8B6B"/>
     </svg>
 
-    <!-- floating page -->
-    <svg class="floatie hide-mobile" data-depth="0.12" style="width:60px; left:36%; top:10%; --rot:-10deg; animation-duration:6.4s" viewBox="0 0 60 76" fill="none">
+    <!-- floating page, right side -->
+    <svg class="floatie hide-mobile" data-depth="0.12" style="width:56px; right:34%; top:36%; --rot:-10deg; animation-duration:6.4s" viewBox="0 0 60 76" fill="none">
       <path d="M4 4h40l12 12v56H4V4Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.4"/>
       <path d="M44 4v12h12" stroke="#E7DCC8" stroke-width="1.4"/>
       <path d="M12 30h30M12 40h30M12 50h20" stroke="#EADFCB" stroke-width="2.2" stroke-linecap="round"/>
     </svg>
 
-    <!-- small plant, bottom left -->
-    <svg class="floatie hide-mobile" data-depth="0.04" style="width:60px; left:2%; bottom:2%; --rot:0deg; animation-duration:8.6s" viewBox="0 0 60 70" fill="none">
+    <!-- small plant, far bottom-left corner (below the text column) -->
+    <svg class="floatie hide-mobile" data-depth="0.04" style="width:52px; left:1.5%; bottom:1%; --rot:0deg; animation-duration:8.6s" viewBox="0 0 60 70" fill="none">
       <path d="M20 66c-2-20 4-30 10-36" stroke="#7FC8A9" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M30 30c-8-2-14-10-12-20 10 0 16 8 12 20Z" fill="#E4F4EC" stroke="#7FC8A9" stroke-width="1.6"/>
       <path d="M30 30c8 0 15-6 15-16-10-2-17 4-15 16Z" fill="#E4F4EC" stroke="#7FC8A9" stroke-width="1.6"/>
       <rect x="12" y="52" width="20" height="16" rx="2" fill="#FCEADC" stroke="#F1631B" stroke-width="1.4"/>
     </svg>
 
-    <!-- coffee cup -->
-    <svg class="floatie hide-mobile" data-depth="0.08" style="width:52px; right:8%; bottom:26%; --rot:0deg; animation-duration:7.4s" viewBox="0 0 52 46" fill="none">
+    <!-- coffee cup, right side lower -->
+    <svg class="floatie hide-mobile" data-depth="0.08" style="width:48px; right:16%; bottom:20%; --rot:0deg; animation-duration:7.4s" viewBox="0 0 52 46" fill="none">
       <path d="M6 16h30v14a10 10 0 0 1-10 10H16A10 10 0 0 1 6 30V16Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.6"/>
       <path d="M36 20h4a5 5 0 0 1 0 10h-4" stroke="#E7DCC8" stroke-width="1.6"/>
       <path d="M14 8c2 2 0 4 2 6M22 8c2 2 0 4 2 6" stroke="#D3C6AA" stroke-width="1.6" stroke-linecap="round"/>
     </svg>
 
-    <!-- floating letters -->
-    <span class="floatie hide-mobile" data-depth="0.14" style="left:48%; bottom:18%; --rot:-6deg; animation-duration:6.8s; font-family:'Fraunces',serif; font-size:2.4rem; color:#A79BD1; opacity:.55;">Aa</span>
-    <span class="floatie hide-mobile" data-depth="0.11" style="left:66%; top:14%; --rot:8deg; animation-duration:7.8s; font-family:'Fraunces',serif; font-size:1.8rem; color:#7FB8D9; opacity:.5;">?</span>
-    <span class="floatie hide-mobile" data-depth="0.13" style="left:28%; top:66%; --rot:-4deg; animation-duration:6.2s; font-family:'Fraunces',serif; font-size:2rem; color:#F0B429; opacity:.5;">✦</span>
+    <!-- floating letters / symbols, right side only -->
+    <span class="floatie hide-mobile" data-depth="0.14" style="right:6%; bottom:38%; --rot:-6deg; animation-duration:6.8s; font-family:'Fraunces',serif; font-size:2.2rem; color:#A79BD1; opacity:.55;">Aa</span>
+    <span class="floatie hide-mobile" data-depth="0.11" style="right:38%; top:16%; --rot:8deg; animation-duration:7.8s; font-family:'Fraunces',serif; font-size:1.7rem; color:#7FB8D9; opacity:.5;">?</span>
+    <span class="floatie hide-mobile" data-depth="0.13" style="right:20%; bottom:8%; --rot:-4deg; animation-duration:6.2s; font-family:'Fraunces',serif; font-size:1.8rem; color:#F0B429; opacity:.5;">✦</span>
   </div>
 
   <div class="hero-inner">
@@ -1212,7 +1218,7 @@
     { tag:'Perspectives', title:'The quiet kid theory', body:'Why the quietest person in the room usually has the most fully-formed opinion.', cat:'Perspectives', author:'Rohan V.', time:'6d ago' },
     { tag:'Story', title:'My professor was wrong', body:'And the semester I spent proving it taught me more than the class itself.', cat:'Stories', author:'Devika P.', time:'1d ago' },
     { tag:'Idea', title:'Notebooks over notes apps', body:'A small case for the friction of handwriting in a frictionless world.', cat:'Ideas', author:'Yusuf K.', time:'2w ago' },
-    { tag:'Knowledge', title:'Why we cram anyway', body:'We know spacing works better. We do it the night before regardless. Here\\'s why.', cat:'Knowledge', author:'Priya D.', time:'4d ago' }
+    { tag:'Knowledge', title:'Why we cram anyway', body:'We know spacing works better. We still cram the night before, every time.', cat:'Knowledge', author:'Priya D.', time:'4d ago' }
   ];
 
   var wallWrap = document.getElementById('wall-wrap');
