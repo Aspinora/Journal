@@ -1,13 +1,1325 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aspinora Journal</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aspinora Journal — Where Ideas Find Their Voice</title>
+<meta name="description" content="Aspinora Journal is a space for thoughts, stories, knowledge, experiences, and ideas shared by curious minds.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     ASPINORA JOURNAL — DESIGN TOKENS
+     Palette: warm study-universe, cream ground, orange anchor
+     ============================================================ */
+  :root{
+    --cream:        #FBF5EA;
+    --cream-deep:   #F4EBDA;
+    --paper:        #FFFDF8;
+    --ink:          #2B241C;
+    --ink-soft:     #5B5347;
+    --ink-faint:    #948B7C;
+
+    --orange:       #F1631B;
+    --orange-deep:  #D3510F;
+    --orange-soft:  #FCEADC;
+    --coral:        #FF8B6B;
+    --sky:          #7FB8D9;
+    --sky-soft:     #E4F1F7;
+    --lavender:     #A79BD1;
+    --lavender-soft:#EDE9F7;
+    --mint:         #7FC8A9;
+    --mint-soft:    #E4F4EC;
+    --gold:         #F0B429;
+
+    --line:         rgba(43,36,28,0.10);
+    --line-strong:  rgba(43,36,28,0.16);
+    --shadow-soft:  0 4px 24px rgba(43,36,28,0.06);
+    --shadow-mid:   0 12px 40px rgba(43,36,28,0.10);
+    --shadow-deep:  0 24px 60px rgba(43,36,28,0.14);
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono:    'Space Mono', 'SFMono-Regular', monospace;
+
+    --container: 1240px;
+    --radius-sm: 12px;
+    --radius-md: 20px;
+    --radius-lg: 28px;
+
+    --ease: cubic-bezier(.22,.9,.32,1);
+    --dur-fast: .22s;
+    --dur-med: .5s;
+    --dur-slow: .9s;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--cream);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  img,svg{ max-width:100%; display:block; }
+  a{ color:inherit; text-decoration:none; }
+  ul{ list-style:none; margin:0; padding:0; }
+  button{ font-family:inherit; cursor:pointer; }
+
+  ::selection{ background:var(--orange); color:#fff; }
+
+  :focus-visible{
+    outline:3px solid var(--orange);
+    outline-offset:3px;
+    border-radius:4px;
+  }
+
+  .container{
+    max-width:var(--container);
+    margin:0 auto;
+    padding:0 32px;
+  }
+
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--orange-deep);
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:22px; height:1.5px;
+    background:var(--orange-deep);
+    display:inline-block;
+  }
+
+  h1,h2,h3,h4{
+    font-family:var(--font-display);
+    font-weight:600;
+    line-height:1.08;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .section-head{ max-width:640px; }
+  .section-head h2{
+    font-size:clamp(2rem, 4.2vw, 3.1rem);
+    margin-top:14px;
+  }
+  .section-head p{
+    margin-top:18px;
+    color:var(--ink-soft);
+    font-size:1.05rem;
+    max-width:520px;
+  }
+
+  .btn{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:15px 28px;
+    border-radius:999px;
+    font-weight:700;
+    font-size:.95rem;
+    border:none;
+    transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+    white-space:nowrap;
+  }
+  .btn-primary{
+    background:var(--orange);
+    color:#fff;
+    box-shadow:0 8px 24px rgba(241,99,27,0.32), 0 1px 0 rgba(255,255,255,.2) inset;
+  }
+  .btn-primary:hover{
+    transform:translateY(-2px);
+    box-shadow:0 14px 32px rgba(241,99,27,0.42), 0 1px 0 rgba(255,255,255,.25) inset;
+    background:var(--orange-deep);
+  }
+  .btn-primary:active{ transform:translateY(0px) scale(.98); }
+  .btn-primary .arrow{ transition:transform var(--dur-fast) var(--ease); }
+  .btn-primary:hover .arrow{ transform:translateX(4px); }
+
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink);
+    padding:15px 6px;
+    font-weight:600;
+    border-bottom:2px solid transparent;
+  }
+  .btn-ghost .arrow{ transition:transform var(--dur-fast) var(--ease); display:inline-block; }
+  .btn-ghost:hover{ color:var(--orange-deep); }
+  .btn-ghost:hover .arrow{ transform:translateX(5px); }
+
+  /* ============ SCROLL REVEAL ============ */
+  .reveal{
+    opacity:0;
+    transform:translateY(28px);
+    transition:opacity .8s var(--ease), transform .8s var(--ease);
+  }
+  .reveal.in-view{ opacity:1; transform:translateY(0); }
+  .reveal-stagger > *{ transition-delay:calc(var(--i, 0) * 90ms); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+    .reveal{ opacity:1; transform:none; }
+  }
+
+  /* ============ NAVBAR ============ */
+  .navbar{
+    position:fixed; top:0; left:0; right:0; z-index:100;
+    padding:22px 0;
+    transition:padding var(--dur-med) var(--ease), background var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease);
+  }
+  .navbar.scrolled{
+    padding:12px 0;
+    background:rgba(251,245,234,0.78);
+    backdrop-filter:blur(14px) saturate(160%);
+    -webkit-backdrop-filter:blur(14px) saturate(160%);
+    box-shadow:0 1px 0 var(--line), 0 8px 30px rgba(43,36,28,0.06);
+  }
+  .nav-inner{
+    display:flex; align-items:center; justify-content:space-between;
+    max-width:var(--container); margin:0 auto; padding:0 32px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:11px;
+    font-family:var(--font-display); font-weight:700; font-size:1.3rem;
+    color:var(--ink);
+  }
+  .brand-mark{
+    width:34px; height:34px; border-radius:10px;
+    background:linear-gradient(135deg,var(--orange),var(--coral));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 14px rgba(241,99,27,.35);
+    flex-shrink:0;
+  }
+  .brand-mark svg{ width:19px; height:19px; }
+  .brand small{
+    display:block; font-family:var(--font-mono); font-weight:400;
+    font-size:.58rem; letter-spacing:.16em; color:var(--ink-faint); margin-top:1px;
+  }
+
+  .nav-links{ display:flex; align-items:center; gap:38px; }
+  .nav-links a{
+    font-size:.94rem; font-weight:600; color:var(--ink-soft);
+    position:relative; padding:6px 0;
+    transition:color var(--dur-fast);
+  }
+  .nav-links a::after{
+    content:''; position:absolute; left:0; right:0; bottom:0; height:2px;
+    background:var(--orange); transform:scaleX(0); transform-origin:right;
+    transition:transform var(--dur-fast) var(--ease);
+  }
+  .nav-links a:hover{ color:var(--ink); }
+  .nav-links a:hover::after{ transform:scaleX(1); transform-origin:left; }
+
+  .nav-right{ display:flex; align-items:center; gap:18px; }
+  .nav-cta{ padding:11px 22px; font-size:.88rem; }
+
+  .hamburger{
+    display:none; width:42px; height:42px; border-radius:11px;
+    border:1.5px solid var(--line-strong); background:var(--paper);
+    align-items:center; justify-content:center; flex-direction:column; gap:5px;
+  }
+  .hamburger span{
+    display:block; width:18px; height:2px; background:var(--ink);
+    transition:transform var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+  }
+  .hamburger.open span:nth-child(1){ transform:translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2){ opacity:0; }
+  .hamburger.open span:nth-child(3){ transform:translateY(-7px) rotate(-45deg); }
+
+  .mobile-menu{
+    position:fixed; inset:0; z-index:99;
+    background:var(--cream);
+    display:flex; flex-direction:column; justify-content:center; align-items:center; gap:6px;
+    opacity:0; visibility:hidden; transform:translateY(-12px);
+    transition:opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease), visibility var(--dur-med);
+  }
+  .mobile-menu.open{ opacity:1; visibility:visible; transform:translateY(0); }
+  .mobile-menu a{
+    font-family:var(--font-display); font-size:2.1rem; font-weight:600; padding:14px 0;
+  }
+  .mobile-menu .btn-primary{ margin-top:20px; }
+
+  /* ============ HERO ============ */
+  .hero{
+    position:relative;
+    min-height:100vh;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:140px 0 80px;
+    overflow:hidden;
+    background:
+      radial-gradient(ellipse 900px 560px at 82% 8%, var(--orange-soft) 0%, transparent 60%),
+      radial-gradient(ellipse 700px 500px at 10% 92%, var(--mint-soft) 0%, transparent 55%),
+      radial-gradient(ellipse 600px 500px at 8% 5%, var(--sky-soft) 0%, transparent 55%),
+      var(--cream);
+  }
+
+  #hero-scene{
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:0;
+  }
+  #hero-scene .layer{ position:absolute; inset:0; }
+
+  .hero-inner{
+    position:relative; z-index:2;
+    max-width:var(--container); margin:0 auto; padding:0 32px;
+    width:100%;
+  }
+  .hero-copy{ max-width:760px; }
+
+  .hero-copy h1{
+    font-size:clamp(2.6rem, 6.6vw, 5.4rem);
+    color:var(--ink);
+  }
+  .hero-copy h1 em{
+    font-style:italic; font-weight:500; color:var(--orange-deep);
+    position:relative; white-space:nowrap;
+  }
+  .hero-copy .lede{
+    margin-top:26px;
+    font-size:clamp(1.05rem,1.6vw,1.25rem);
+    color:var(--ink-soft);
+    max-width:520px;
+    line-height:1.65;
+  }
+  .hero-actions{
+    margin-top:40px;
+    display:flex; align-items:center; gap:30px; flex-wrap:wrap;
+  }
+
+  .hero-tags{
+    margin-top:64px;
+    display:flex; gap:28px; align-items:center; flex-wrap:wrap;
+    font-family:var(--font-mono); font-size:.78rem; letter-spacing:.1em;
+    color:var(--ink-faint); text-transform:uppercase;
+  }
+  .hero-tags span{ display:flex; align-items:center; gap:8px; }
+  .hero-tags .dot{ width:5px; height:5px; border-radius:50%; background:var(--orange); }
+
+  .scroll-cue{
+    position:absolute; bottom:34px; left:50%; transform:translateX(-50%);
+    z-index:2; display:flex; flex-direction:column; align-items:center; gap:8px;
+    color:var(--ink-faint); font-family:var(--font-mono); font-size:.68rem; letter-spacing:.14em;
+    text-transform:uppercase;
+  }
+  .scroll-cue .line{ width:1px; height:34px; background:linear-gradient(var(--ink-faint), transparent); position:relative; overflow:hidden; }
+  .scroll-cue .line::after{
+    content:''; position:absolute; top:-100%; left:0; width:100%; height:100%;
+    background:var(--orange);
+    animation:scrollcue 2.2s var(--ease) infinite;
+  }
+  @keyframes scrollcue{ 0%{top:-100%;} 60%,100%{top:100%;} }
+
+  /* floating hero illustrations */
+  .floatie{
+    position:absolute;
+    filter:drop-shadow(0 10px 18px rgba(43,36,28,.10));
+    animation:drift 7s ease-in-out infinite;
+    will-change:transform;
+  }
+  @keyframes drift{
+    0%,100%{ transform:translateY(0px) rotate(var(--rot,0deg)); }
+    50%{ transform:translateY(-16px) rotate(calc(var(--rot,0deg) + 2deg)); }
+  }
+  @keyframes driftSlow{
+    0%,100%{ transform:translateY(0px) rotate(var(--rot,0deg)); }
+    50%{ transform:translateY(-10px) rotate(calc(var(--rot,0deg) - 2deg)); }
+  }
+
+  .particle{
+    position:absolute; border-radius:50%; background:var(--gold);
+    opacity:.5; animation:twinkle 3.4s ease-in-out infinite;
+  }
+  @keyframes twinkle{ 0%,100%{ opacity:.15; transform:scale(.7);} 50%{ opacity:.7; transform:scale(1);} }
+
+  /* ============ SECTION SPACING ============ */
+  section{ position:relative; padding:120px 0; }
+  @media (max-width:768px){ section{ padding:80px 0; } }
+
+  .band-cream{ background:var(--cream); }
+  .band-paper{ background:var(--paper); }
+  .band-deep{ background:var(--cream-deep); }
+
+  /* ============ ABOUT / MORE THAN A JOURNAL ============ */
+  .about-grid{
+    display:grid; grid-template-columns:1fr 1.05fr; gap:80px; align-items:center;
+    margin-top:64px;
+  }
+  .about-art{ position:relative; height:520px; }
+  .journal-book{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:300px; height:220px;
+  }
+  .snippet-card{
+    position:absolute; background:var(--paper); border-radius:16px;
+    padding:16px 18px; box-shadow:var(--shadow-mid);
+    border:1px solid var(--line);
+    width:190px;
+    animation:driftSlow 6s ease-in-out infinite;
+  }
+  .snippet-card .tag{
+    font-family:var(--font-mono); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase;
+    padding:3px 9px; border-radius:20px; display:inline-block; margin-bottom:8px; font-weight:700;
+  }
+  .snippet-card p{ margin:0; font-size:.82rem; color:var(--ink-soft); line-height:1.5; }
+
+  .about-list{ margin-top:38px; display:grid; gap:22px; }
+  .about-list li{
+    display:flex; gap:16px; align-items:flex-start;
+    font-size:1.02rem; color:var(--ink-soft);
+  }
+  .about-list .num{
+    font-family:var(--font-mono); font-size:.78rem; color:var(--orange-deep);
+    background:var(--orange-soft); width:30px; height:30px; border-radius:9px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700;
+    margin-top:2px;
+  }
+  .about-list strong{ color:var(--ink); font-weight:700; }
+
+  /* ============ CATEGORIES ============ */
+  .cat-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-top:60px;
+  }
+  .cat-card{
+    position:relative; overflow:hidden;
+    background:var(--paper); border:1px solid var(--line);
+    border-radius:var(--radius-md); padding:32px 28px 30px;
+    transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast);
+    cursor:pointer;
+  }
+  .cat-card::before{
+    content:''; position:absolute; top:-40%; right:-30%; width:220px; height:220px;
+    border-radius:50%; opacity:0; transition:opacity var(--dur-med) var(--ease), transform var(--dur-med) var(--ease);
+    transform:scale(.7);
+  }
+  .cat-card:hover{
+    transform:translateY(-6px) rotate(-0.4deg);
+    box-shadow:var(--shadow-deep);
+    border-color:transparent;
+  }
+  .cat-card:hover::before{ opacity:1; transform:scale(1); }
+  .cat-icon{
+    width:50px; height:50px; border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:22px; position:relative; z-index:1;
+  }
+  .cat-icon svg{ width:24px; height:24px; }
+  .cat-card h3{ font-size:1.28rem; position:relative; z-index:1; }
+  .cat-card p{
+    margin-top:10px; color:var(--ink-soft); font-size:.92rem; line-height:1.6;
+    position:relative; z-index:1;
+  }
+  .cat-meta{
+    margin-top:20px; display:flex; align-items:center; justify-content:space-between;
+    position:relative; z-index:1;
+  }
+  .cat-count{ font-family:var(--font-mono); font-size:.74rem; color:var(--ink-faint); }
+  .cat-arrow{
+    width:30px; height:30px; border-radius:50%; background:var(--cream-deep);
+    display:flex; align-items:center; justify-content:center;
+    transition:transform var(--dur-fast) var(--ease), background var(--dur-fast);
+  }
+  .cat-arrow svg{ width:13px; height:13px; transition:transform var(--dur-fast) var(--ease); }
+  .cat-card:hover .cat-arrow{ background:var(--orange); }
+  .cat-card:hover .cat-arrow svg{ transform:translateX(2px); stroke:#fff; }
+
+  .cat-1{ --c1:var(--orange); --c2:var(--orange-soft); }
+  .cat-2{ --c1:var(--lavender); --c2:var(--lavender-soft); }
+  .cat-3{ --c1:var(--sky); --c2:var(--sky-soft); }
+  .cat-4{ --c1:var(--mint); --c2:var(--mint-soft); }
+  .cat-5{ --c1:var(--coral); --c2:var(--orange-soft); }
+  .cat-6{ --c1:#D4A24C; --c2:#FBF0DC; }
+  .cat-card .cat-icon{ background:var(--c2); color:var(--c1); }
+  .cat-card .cat-icon svg{ stroke:var(--c1); }
+  .cat-card::before{ background:var(--c2); }
+
+  /* ============ FEATURED JOURNALS ============ */
+  .featured-head{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap;
+  }
+  .journal-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin-top:56px;
+  }
+  .j-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md);
+    overflow:hidden; display:flex; flex-direction:column;
+    transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  }
+  .j-card:hover{ transform:translateY(-8px); box-shadow:var(--shadow-deep); }
+  .j-cover{
+    height:190px; position:relative; overflow:hidden;
+  }
+  .j-cover svg{ width:100%; height:100%; }
+  .j-cat-pill{
+    position:absolute; top:16px; left:16px;
+    font-family:var(--font-mono); font-size:.66rem; letter-spacing:.08em; text-transform:uppercase;
+    background:rgba(255,253,248,0.92); backdrop-filter:blur(6px);
+    padding:6px 12px; border-radius:20px; font-weight:700;
+  }
+  .j-body{ padding:24px 24px 22px; display:flex; flex-direction:column; gap:12px; flex:1; }
+  .j-body h3{ font-size:1.2rem; line-height:1.3; }
+  .j-excerpt{ color:var(--ink-soft); font-size:.9rem; line-height:1.6; flex:1; }
+  .j-meta{
+    display:flex; align-items:center; gap:10px; margin-top:6px;
+    padding-top:16px; border-top:1px solid var(--line);
+  }
+  .j-avatar{
+    width:34px; height:34px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:.82rem; color:#fff;
+  }
+  .j-meta-text{ flex:1; }
+  .j-meta-text .author{ font-size:.83rem; font-weight:700; color:var(--ink); display:block; }
+  .j-meta-text .sub{ font-family:var(--font-mono); font-size:.68rem; color:var(--ink-faint); }
+  .j-read{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.83rem; font-weight:700; color:var(--orange-deep);
+    margin-top:4px;
+  }
+  .j-read svg{ width:13px; height:13px; transition:transform var(--dur-fast) var(--ease); }
+  .j-card:hover .j-read svg{ transform:translateX(3px); }
+
+  /* ============ JOURNAL WALL (signature section) ============ */
+  .wall-wrap{
+    position:relative; margin-top:64px;
+    min-height:900px;
+  }
+  .wall-note{
+    position:absolute;
+    background:var(--paper);
+    border-radius:10px;
+    padding:20px 20px 18px;
+    box-shadow:0 10px 26px rgba(43,36,28,0.10);
+    border:1px solid var(--line);
+    transition:transform var(--dur-med) var(--ease), box-shadow var(--dur-med) var(--ease), filter var(--dur-med) var(--ease);
+    filter:saturate(.85);
+  }
+  .wall-note::before{
+    content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%);
+    width:26px; height:14px; border-radius:3px;
+    background:rgba(241,99,27,0.5);
+    box-shadow:0 2px 4px rgba(43,36,28,.15);
+  }
+  .wall-note:hover{
+    transform:translate(-50%,-50%) translateY(-10px) rotate(0deg) scale(1.04) !important;
+    box-shadow:0 28px 46px rgba(43,36,28,0.20);
+    filter:saturate(1);
+    z-index:20 !important;
+  }
+  .wall-note .wn-tag{
+    font-family:var(--font-mono); font-size:.62rem; text-transform:uppercase; letter-spacing:.08em;
+    font-weight:700; margin-bottom:8px; display:block;
+  }
+  .wall-note h4{ font-family:var(--font-display); font-size:1.02rem; line-height:1.3; margin-bottom:6px; }
+  .wall-note p{ font-size:.8rem; color:var(--ink-soft); line-height:1.55; margin:0; }
+  .wall-note .wn-meta{
+    margin-top:12px; display:flex; align-items:center; justify-content:space-between;
+    font-family:var(--font-mono); font-size:.64rem; color:var(--ink-faint);
+    opacity:0; transform:translateY(4px);
+    transition:opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  .wall-note:hover .wn-meta{ opacity:1; transform:translateY(0); }
+
+  /* ============ WRITE YOUR STORY (CTA) ============ */
+  .cta-section{
+    background:linear-gradient(160deg, var(--orange) 0%, var(--orange-deep) 100%);
+    border-radius:36px;
+    margin:0 32px;
+    padding:90px 60px;
+    position:relative; overflow:hidden;
+    color:#fff;
+  }
+  .cta-section .container{ padding:0; max-width:none; }
+  .cta-grid{
+    display:grid; grid-template-columns:1.1fr .9fr; gap:50px; align-items:center; position:relative; z-index:2;
+  }
+  .cta-section h2{
+    font-size:clamp(2rem,4vw,3rem); color:#fff;
+  }
+  .cta-section p{
+    margin-top:18px; font-size:1.08rem; color:rgba(255,255,255,0.88); max-width:440px; line-height:1.65;
+  }
+  .cta-section .btn-primary{
+    margin-top:34px; background:#fff; color:var(--orange-deep);
+    box-shadow:0 10px 28px rgba(0,0,0,0.18);
+  }
+  .cta-section .btn-primary:hover{ background:var(--cream); transform:translateY(-2px); }
+  .cta-art{ position:relative; height:320px; }
+  .cta-section .deco-circle{
+    position:absolute; border-radius:50%; background:rgba(255,255,255,0.08);
+  }
+
+  /* ============ WHY ASPINORA ============ */
+  .why-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
+    margin-top:60px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius-md); overflow:hidden;
+  }
+  .why-item{
+    background:var(--paper); padding:40px 34px; transition:background var(--dur-fast);
+  }
+  .why-item:hover{ background:var(--cream); }
+  .why-icon{
+    width:46px; height:46px; border-radius:13px; background:var(--orange-soft);
+    display:flex; align-items:center; justify-content:center; margin-bottom:22px;
+  }
+  .why-icon svg{ width:22px; height:22px; stroke:var(--orange-deep); }
+  .why-item h3{ font-size:1.12rem; margin-bottom:8px; }
+  .why-item p{ font-size:.88rem; color:var(--ink-soft); line-height:1.6; }
+
+  /* stats strip */
+  .stats-strip{
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:40px;
+    margin-top:70px; padding-top:50px; border-top:1px solid var(--line);
+  }
+  .stat{ text-align:left; }
+  .stat .num{
+    font-family:var(--font-display); font-size:clamp(2.1rem,4vw,3rem); font-weight:600; color:var(--orange-deep);
+    display:flex; align-items:baseline; gap:2px;
+  }
+  .stat .label{
+    font-family:var(--font-mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-faint); margin-top:6px;
+  }
+
+  /* ============ FOOTER ============ */
+  footer{
+    background:var(--ink); color:rgba(255,255,255,0.7);
+    padding:80px 0 34px;
+  }
+  .footer-top{
+    display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:50px;
+    padding-bottom:60px; border-bottom:1px solid rgba(255,255,255,0.1);
+  }
+  .footer-brand .brand{ color:#fff; }
+  .footer-brand p{ margin-top:18px; font-size:.92rem; line-height:1.7; max-width:280px; color:rgba(255,255,255,0.55); }
+  .footer-social{ display:flex; gap:12px; margin-top:24px; }
+  .footer-social a{
+    width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,0.16);
+    display:flex; align-items:center; justify-content:center;
+    transition:background var(--dur-fast), border-color var(--dur-fast), transform var(--dur-fast);
+  }
+  .footer-social a:hover{ background:var(--orange); border-color:var(--orange); transform:translateY(-3px); }
+  .footer-social svg{ width:16px; height:16px; stroke:#fff; }
+  .fcol h4{
+    font-family:var(--font-mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;
+    color:rgba(255,255,255,0.4); margin-bottom:20px; font-weight:400;
+  }
+  .fcol ul{ display:grid; gap:13px; }
+  .fcol a{ font-size:.92rem; color:rgba(255,255,255,0.75); transition:color var(--dur-fast); }
+  .fcol a:hover{ color:var(--coral); }
+  .footer-bottom{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
+    padding-top:30px; font-size:.82rem; color:rgba(255,255,255,0.4);
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width:1080px){
+    .about-grid{ grid-template-columns:1fr; gap:56px; }
+    .about-art{ height:400px; order:-1; }
+    .cat-grid{ grid-template-columns:repeat(2,1fr); }
+    .journal-grid{ grid-template-columns:repeat(2,1fr); }
+    .why-grid{ grid-template-columns:repeat(2,1fr); }
+    .cta-grid{ grid-template-columns:1fr; }
+    .cta-art{ height:180px; order:-1; }
+    .footer-top{ grid-template-columns:1fr 1fr; gap:40px; }
+  }
+
+  @media (max-width:768px){
+    .container{ padding:0 22px; }
+    .nav-links{ display:none; }
+    .nav-cta{ display:none; }
+    .hamburger{ display:flex; }
+    .hero{ padding:120px 0 60px; min-height:auto; }
+    .hero-actions{ gap:20px; }
+    .hero-tags{ margin-top:44px; gap:16px; }
+    .cat-grid{ grid-template-columns:1fr; }
+    .journal-grid{ grid-template-columns:1fr; }
+    .why-grid{ grid-template-columns:1fr; }
+    .stats-strip{ gap:28px; }
+    .cta-section{ margin:0 16px; padding:56px 26px; border-radius:24px; }
+    .footer-top{ grid-template-columns:1fr; gap:36px; }
+    .wall-wrap{ min-height:1500px; }
+    section{ padding:70px 0; }
+    .about-art{ height:340px; }
+    .floatie.hide-mobile{ display:none; }
+  }
+
+  @media (max-width:480px){
+    .hero-copy .lede{ font-size:1rem; }
+  }
+</style>
 </head>
 <body>
-  <h1>Aspinora Journal</h1>
-  <p>Articles, updates, and study resources from Aspinora.</p>
-  <p>Coming soon.</p>
+
+<!-- ============ NAVBAR ============ -->
+<header class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="#top" class="brand" aria-label="Aspinora Journal home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 4.5C4 3.67 4.67 3 5.5 3H18a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4.5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </span>
+      <span>Aspinora<br><small>READ &nbsp;•&nbsp; WRITE &nbsp;•&nbsp; DISCOVER</small></span>
+    </a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#top">Home</a>
+      <a href="#wall">Explore</a>
+      <a href="#categories">Categories</a>
+      <a href="#write">Write</a>
+      <a href="#why">About</a>
+    </nav>
+
+    <div class="nav-right">
+      <a href="#write" class="btn btn-primary nav-cta">Get Started</a>
+      <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#top">Home</a>
+  <a href="#wall">Explore</a>
+  <a href="#categories">Categories</a>
+  <a href="#write">Write</a>
+  <a href="#why">About</a>
+  <a href="#write" class="btn btn-primary">Get Started</a>
+</div>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="top">
+  <div id="hero-scene" aria-hidden="true">
+    <div class="layer" data-depth="0.02">
+      <div class="particle" style="width:6px;height:6px;top:14%;left:8%;animation-delay:.2s"></div>
+      <div class="particle" style="width:4px;height:4px;top:66%;left:6%;animation-delay:1.1s"></div>
+      <div class="particle" style="width:5px;height:5px;top:30%;left:92%;animation-delay:.6s"></div>
+      <div class="particle" style="width:7px;height:7px;top:78%;left:88%;animation-delay:1.6s"></div>
+      <div class="particle" style="width:4px;height:4px;top:8%;left:60%;animation-delay:.9s"></div>
+    </div>
+
+    <!-- open journal, bottom right -->
+    <svg class="floatie hide-mobile" data-depth="0.05" style="width:220px; right:4%; bottom:6%; --rot:-4deg; animation-duration:8s" viewBox="0 0 220 150" fill="none">
+      <path d="M10 20C10 20 45 8 108 24V132C45 116 10 128 10 128V20Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.5"/>
+      <path d="M210 20C210 20 175 8 112 24V132C175 116 210 128 210 128V20Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.5"/>
+      <path d="M24 38h64M24 50h58M24 62h64M24 74h48" stroke="#EADFCB" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M126 38h64M126 50h58M126 62h64M126 74h40" stroke="#EADFCB" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M108 24V132" stroke="#E7DCC8" stroke-width="1.5"/>
+    </svg>
+
+    <!-- lightbulb idea, top right -->
+    <svg class="floatie hide-mobile" data-depth="0.09" style="width:64px; right:14%; top:16%; --rot:6deg; animation-duration:6s" viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="26" r="17" fill="#FCEADC" stroke="#F1631B" stroke-width="2"/>
+      <path d="M26 43h12M28 49h8" stroke="#5B5347" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M32 12v4M20 18l3 3M44 18l-3 3" stroke="#F0B429" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+
+    <!-- open book, left -->
+    <svg class="floatie hide-mobile" data-depth="0.06" style="width:100px; left:5%; top:22%; --rot:-8deg; animation-duration:9s" viewBox="0 0 100 70" fill="none">
+      <path d="M50 12c-10-8-30-8-42-2v46c12-6 32-6 42 2V12Z" fill="#E4F1F7" stroke="#7FB8D9" stroke-width="1.6"/>
+      <path d="M50 12c10-8 30-8 42-2v46c-12-6-32-6-42 2V12Z" fill="#E4F1F7" stroke="#7FB8D9" stroke-width="1.6"/>
+    </svg>
+
+    <!-- pen, mid left lower -->
+    <svg class="floatie hide-mobile" data-depth="0.1" style="width:90px; left:12%; bottom:14%; --rot:38deg; animation-duration:7s" viewBox="0 0 100 22" fill="none">
+      <rect x="6" y="7" width="76" height="9" rx="4.5" fill="#F1631B"/>
+      <path d="M82 7 96 11.5 82 16Z" fill="#2B241C"/>
+      <rect x="6" y="7" width="20" height="9" rx="4.5" fill="#FF8B6B"/>
+    </svg>
+
+    <!-- floating page -->
+    <svg class="floatie hide-mobile" data-depth="0.12" style="width:60px; left:36%; top:10%; --rot:-10deg; animation-duration:6.4s" viewBox="0 0 60 76" fill="none">
+      <path d="M4 4h40l12 12v56H4V4Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.4"/>
+      <path d="M44 4v12h12" stroke="#E7DCC8" stroke-width="1.4"/>
+      <path d="M12 30h30M12 40h30M12 50h20" stroke="#EADFCB" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+
+    <!-- small plant, bottom left -->
+    <svg class="floatie hide-mobile" data-depth="0.04" style="width:60px; left:2%; bottom:2%; --rot:0deg; animation-duration:8.6s" viewBox="0 0 60 70" fill="none">
+      <path d="M20 66c-2-20 4-30 10-36" stroke="#7FC8A9" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M30 30c-8-2-14-10-12-20 10 0 16 8 12 20Z" fill="#E4F4EC" stroke="#7FC8A9" stroke-width="1.6"/>
+      <path d="M30 30c8 0 15-6 15-16-10-2-17 4-15 16Z" fill="#E4F4EC" stroke="#7FC8A9" stroke-width="1.6"/>
+      <rect x="12" y="52" width="20" height="16" rx="2" fill="#FCEADC" stroke="#F1631B" stroke-width="1.4"/>
+    </svg>
+
+    <!-- coffee cup -->
+    <svg class="floatie hide-mobile" data-depth="0.08" style="width:52px; right:8%; bottom:26%; --rot:0deg; animation-duration:7.4s" viewBox="0 0 52 46" fill="none">
+      <path d="M6 16h30v14a10 10 0 0 1-10 10H16A10 10 0 0 1 6 30V16Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="1.6"/>
+      <path d="M36 20h4a5 5 0 0 1 0 10h-4" stroke="#E7DCC8" stroke-width="1.6"/>
+      <path d="M14 8c2 2 0 4 2 6M22 8c2 2 0 4 2 6" stroke="#D3C6AA" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+
+    <!-- floating letters -->
+    <span class="floatie hide-mobile" data-depth="0.14" style="left:48%; bottom:18%; --rot:-6deg; animation-duration:6.8s; font-family:'Fraunces',serif; font-size:2.4rem; color:#A79BD1; opacity:.55;">Aa</span>
+    <span class="floatie hide-mobile" data-depth="0.11" style="left:66%; top:14%; --rot:8deg; animation-duration:7.8s; font-family:'Fraunces',serif; font-size:1.8rem; color:#7FB8D9; opacity:.5;">?</span>
+    <span class="floatie hide-mobile" data-depth="0.13" style="left:28%; top:66%; --rot:-4deg; animation-duration:6.2s; font-family:'Fraunces',serif; font-size:2rem; color:#F0B429; opacity:.5;">✦</span>
+  </div>
+
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow reveal">A JOURNAL FOR CURIOUS MINDS</p>
+      <h1 class="reveal" style="transition-delay:.08s">Where Ideas<br>Find Their <em>Voice.</em></h1>
+      <p class="lede reveal" style="transition-delay:.16s">Aspinora Journal is a space for thoughts, stories, knowledge, experiences, and ideas shared by curious minds.</p>
+
+      <div class="hero-actions reveal" style="transition-delay:.24s">
+        <a href="#write" class="btn btn-primary">
+          Get Started
+          <svg class="arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#wall" class="btn btn-ghost">
+          Explore Journal <span class="arrow">→</span>
+        </a>
+      </div>
+
+      <div class="hero-tags reveal" style="transition-delay:.32s">
+        <span><span class="dot"></span> 6 Categories</span>
+        <span><span class="dot"></span> Growing weekly</span>
+        <span><span class="dot"></span> Written by real students</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-cue" aria-hidden="true">
+    <span>Scroll</span>
+    <div class="line"></div>
+  </div>
+</section>
+
+<!-- ============ MORE THAN A JOURNAL ============ -->
+<section class="band-paper" id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div>
+        <div class="about-art" aria-hidden="true">
+          <svg class="journal-book" viewBox="0 0 300 220" fill="none">
+            <path d="M150 30C120 10 60 10 20 26v148c40-16 100-16 130 4V30Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="2"/>
+            <path d="M150 30C180 10 240 10 280 26v148c-40-16-100-16-130 4V30Z" fill="#FFFDF8" stroke="#E7DCC8" stroke-width="2"/>
+            <path d="M40 54h84M40 70h76M40 86h84M40 102h60" stroke="#EADFCB" stroke-width="3" stroke-linecap="round"/>
+            <path d="M176 54h84M176 70h76M176 86h84M176 102h50" stroke="#EADFCB" stroke-width="3" stroke-linecap="round"/>
+            <path d="M150 30v148" stroke="#E7DCC8" stroke-width="1.6"/>
+          </svg>
+          <div class="snippet-card" style="top:6%; left:0%; --rot:-6deg; transform:rotate(-6deg); animation-delay:.3s">
+            <span class="tag" style="background:var(--sky-soft); color:#3E7C9C;">Story</span>
+            <p>"The night before finals, I found my rhythm again..."</p>
+          </div>
+          <div class="snippet-card" style="bottom:4%; right:2%; --rot:5deg; transform:rotate(5deg); animation-delay:1s">
+            <span class="tag" style="background:var(--mint-soft); color:#3D8A66;">Knowledge</span>
+            <p>Why spaced repetition actually rewires memory.</p>
+          </div>
+          <div class="snippet-card" style="top:42%; right:-6%; --rot:-3deg; transform:rotate(-3deg); animation-delay:.6s">
+            <span class="tag" style="background:var(--lavender-soft); color:#5D4E9C;">Idea</span>
+            <p>What if grades measured curiosity instead?</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <p class="eyebrow">MORE THAN A JOURNAL</p>
+        <h2>A place where every<br>page becomes a voice.</h2>
+        <p style="margin-top:20px; color:var(--ink-soft); font-size:1.05rem; max-width:480px; line-height:1.7;">
+          Aspinora Journal exists so ideas don't stay stuck in notebooks. It's built for people who think out loud, question everything, and want a record of how their mind is growing.
+        </p>
+
+        <ul class="about-list">
+          <li><span class="num">01</span><span><strong>Share experiences</strong> — the small moments that taught you something big.</span></li>
+          <li><span class="num">02</span><span><strong>Publish ideas</strong> — half-formed thoughts welcome, they grow in the open.</span></li>
+          <li><span class="num">03</span><span><strong>Document your learning journey</strong> — build a trail of how far you've come.</span></li>
+          <li><span class="num">04</span><span><strong>Discover perspectives</strong> — from people who see the world differently than you.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CATEGORIES ============ -->
+<section class="band-cream" id="categories">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">FIND YOUR SHELF</p>
+      <h2>Six ways to wander.</h2>
+      <p>Every journal entry lives somewhere. Pick a shelf, or explore them all.</p>
+    </div>
+
+    <div class="cat-grid reveal-stagger">
+      <article class="cat-card reveal cat-1" style="--i:0">
+        <div class="cat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19.5V6a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H19" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Stories</h3>
+        <p>Personal stories, experiences and creative writing from real lives.</p>
+        <div class="cat-meta"><span class="cat-count">128 entries</span><span class="cat-arrow"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </article>
+
+      <article class="cat-card reveal cat-2" style="--i:1">
+        <div class="cat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v2M12 19v2M5 5l1.4 1.4M17.6 17.6 19 19M3 12h2M19 12h2M5 19l1.4-1.4M17.6 6.4 19 5" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke-width="1.8"/></svg></div>
+        <h3>Ideas</h3>
+        <p>Thoughts, opinions, concepts and interesting perspectives worth sitting with.</p>
+        <div class="cat-meta"><span class="cat-count">94 entries</span><span class="cat-arrow"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </article>
+
+      <article class="cat-card reveal cat-3" style="--i:2">
+        <div class="cat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 14a5 5 0 0 0 5-5c0-3-2-5-5-9-3 4-5 6-5 9a5 5 0 0 0 5 5Z" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 18h6M10 21h4" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Knowledge</h3>
+        <p>Interesting facts, explanations and educational discoveries, explained simply.</p>
+        <div class="cat-meta"><span class="cat-count">156 entries</span><span class="cat-arrow"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </article>
+
+      <article class="cat-card reveal cat-4" style="--i:3">
+        <div class="cat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke-width="1.8"/><path d="M8 8h8M8 12h8M8 16h5" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Student Life</h3>
+        <p>Exams, preparation, college, career and the everyday chaos in between.</p>
+        <div class="cat-meta"><span class="cat-count">201 entries</span><span class="cat-arrow"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </article>
+
+      <article class="cat-card reveal cat-5" style="--i:4">
+        <div class="cat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19 5 12l7-9 7 9-7 7Z" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 10v9" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Creativity</h3>
+        <p>Poetry, art, fiction, experiments and anything made just to make it.</p>
+        <div class="cat-meta"><span class="cat-count">87 entries</span><span class="cat-arrow"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </article>
+
+      <article class="cat-card reveal cat-6" style="--i:5">
+        <div class="cat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke-width="1.8"/><path d="M8 12a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" stroke-width="1.8"/></svg></div>
+        <h3>Perspectives</h3>
+        <p>Thought-provoking discussions and viewpoints from every angle.</p>
+        <div class="cat-meta"><span class="cat-count">73 entries</span><span class="cat-arrow"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURED JOURNALS ============ -->
+<section class="band-paper" id="featured">
+  <div class="container">
+    <div class="featured-head reveal">
+      <div class="section-head" style="max-width:560px">
+        <p class="eyebrow">HANDPICKED</p>
+        <h2>Stories worth opening.</h2>
+      </div>
+      <a href="#wall" class="btn btn-ghost">See all journals <span class="arrow">→</span></a>
+    </div>
+
+    <div class="journal-grid" id="journal-grid" role="list">
+      <!-- journal cards injected by JS from mock data (Supabase-ready) -->
+    </div>
+  </div>
+</section>
+
+<!-- ============ JOURNAL WALL ============ -->
+<section class="band-deep" id="wall">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">THE JOURNAL WALL</p>
+      <h2>Pinned thoughts, in progress.</h2>
+      <p>A living wall of fragments — quotes, half-finished ideas, and notes from the Aspinora community.</p>
+    </div>
+
+    <div class="wall-wrap" id="wall-wrap"><!-- notes injected by JS --></div>
+  </div>
+</section>
+
+<!-- ============ WRITE YOUR STORY CTA ============ -->
+<section class="band-cream" id="write">
+  <div class="container">
+    <div class="cta-section reveal">
+      <div class="deco-circle" style="width:340px;height:340px; top:-140px; right:-100px;" aria-hidden="true"></div>
+      <div class="deco-circle" style="width:200px;height:200px; bottom:-100px; left:10%;" aria-hidden="true"></div>
+
+      <div class="cta-grid">
+        <div>
+          <p class="eyebrow" style="color:rgba(255,255,255,0.85)"><span style="background:#fff"></span>YOUR TURN</p>
+          <h2>You have something<br>worth saying.</h2>
+          <p>Turn your thoughts, experiences and ideas into something others can discover.</p>
+          <a href="#" class="btn btn-primary">
+            Start Writing
+            <svg class="arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </div>
+
+        <div class="cta-art" aria-hidden="true">
+          <svg viewBox="0 0 320 260" fill="none" style="width:100%; height:100%;">
+            <g class="floatie" style="animation-duration:7s; --rot:-2deg">
+              <path d="M40 60h190l30 30v140H40V60Z" fill="rgba(255,255,255,0.14)"/>
+              <path d="M60 100h150M60 120h140M60 140h150M60 160h100" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <g class="floatie" style="animation-duration:5.5s; --rot:20deg">
+              <rect x="150" y="10" width="120" height="14" rx="7" fill="#fff" transform="rotate(28 150 10)"/>
+            </g>
+            <circle class="particle" style="background:#fff; opacity:.6" cx="0" cy="0" r="4" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHY ASPINORA ============ -->
+<section class="band-paper" id="why">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="eyebrow">WHY ASPINORA JOURNAL</p>
+      <h2>Built for minds still forming.</h2>
+    </div>
+
+    <div class="why-grid reveal-stagger">
+      <div class="why-item reveal" style="--i:0">
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke-width="1.8"/><path d="M21 21l-4.3-4.3" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Discover</h3>
+        <p>Find ideas and perspectives you wouldn't encounter anywhere else.</p>
+      </div>
+      <div class="why-item reveal" style="--i:1">
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 19c-4-3-8-6-8-11a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 5-4 8-8 11Z" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+        <h3>Express</h3>
+        <p>Turn your thoughts into something meaningful and shareable.</p>
+      </div>
+      <div class="why-item reveal" style="--i:2">
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 12h6M9 16h6" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Learn</h3>
+        <p>Discover knowledge through real people and real experiences.</p>
+      </div>
+      <div class="why-item reveal" style="--i:3">
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="8" cy="9" r="3" stroke-width="1.8"/><circle cx="17" cy="9" r="3" stroke-width="1.8"/><path d="M2 20c0-3.5 3-6 6-6s6 2.5 6 6M12 20c0-3.5 3-6 6-6" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Connect</h3>
+        <p>Find people interested in the same rabbit holes as you.</p>
+      </div>
+      <div class="why-item reveal" style="--i:4">
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2v14M6 10l6 6 6-6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <h3>Create</h3>
+        <p>Publish stories, experiments and creative work at your own pace.</p>
+      </div>
+      <div class="why-item reveal" style="--i:5">
+        <div class="why-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 7h6v6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Grow</h3>
+        <p>Build a lasting record of your intellectual journey over time.</p>
+      </div>
+    </div>
+
+    <div class="stats-strip reveal-stagger">
+      <div class="stat reveal" style="--i:0"><div class="num" data-count="700">0<span>+</span></div><div class="label">Journals Published</div></div>
+      <div class="stat reveal" style="--i:1"><div class="num" data-count="6">0</div><div class="label">Categories</div></div>
+      <div class="stat reveal" style="--i:2"><div class="num" data-count="1200">0<span>+</span></div><div class="label">Curious Readers</div></div>
+      <div class="stat reveal" style="--i:3"><div class="num" data-count="24">0<span>/7</span></div><div class="label">Open For Writing</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="#top" class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 4.5C4 3.67 4.67 3 5.5 3H18a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4.5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </span>
+          <span>Aspinora<br><small style="color:rgba(255,255,255,0.35)">READ • WRITE • DISCOVER</small></span>
+        </a>
+        <p>A space for thoughts, stories, knowledge, experiences and ideas — shared by curious minds, one entry at a time.</p>
+        <div class="footer-social">
+          <a href="#" aria-label="Aspinora on Instagram"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke-width="1.6"/><circle cx="17.5" cy="6.5" r="1" fill="#fff"/></svg></a>
+          <a href="#" aria-label="Aspinora on X"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4 4 20" stroke-width="1.6" stroke-linecap="round"/></svg></a>
+          <a href="#" aria-label="Aspinora on LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke-width="1.6"/><path d="M8 10v7M8 7.5v.01M12 17v-4.5c0-1.5 1-2.5 2.5-2.5S17 11 17 12.5V17" stroke-width="1.6" stroke-linecap="round"/></svg></a>
+        </div>
+      </div>
+
+      <div class="fcol">
+        <h4>Journal</h4>
+        <ul>
+          <li><a href="#wall">Explore</a></li>
+          <li><a href="#categories">Categories</a></li>
+          <li><a href="#write">Write</a></li>
+          <li><a href="#featured">Featured</a></li>
+        </ul>
+      </div>
+      <div class="fcol">
+        <h4>Aspinora</h4>
+        <ul>
+          <li><a href="#why">About</a></li>
+          <li><a href="https://aspinora.in">Aspinora.in</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+      <div class="fcol">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Aspinora. All rights reserved.</span>
+      <span>Made with curiosity, for curious minds.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- NAVBAR SCROLL STATE ---------- */
+  var navbar = document.getElementById('navbar');
+  var onScroll = function(){
+    if (window.scrollY > 40) navbar.classList.add('scrolled');
+    else navbar.classList.remove('scrolled');
+  };
+  document.addEventListener('scroll', onScroll, { passive:true });
+  onScroll();
+
+  /* ---------- MOBILE MENU ---------- */
+  var hamburger = document.getElementById('hamburger');
+  var mobileMenu = document.getElementById('mobile-menu');
+  hamburger.addEventListener('click', function(){
+    var isOpen = mobileMenu.classList.toggle('open');
+    hamburger.classList.toggle('open', isOpen);
+    hamburger.setAttribute('aria-expanded', isOpen);
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+  mobileMenu.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click', function(){
+      mobileMenu.classList.remove('open');
+      hamburger.classList.remove('open');
+      hamburger.setAttribute('aria-expanded', false);
+      document.body.style.overflow = '';
+    });
+  });
+
+  /* ---------- SCROLL REVEAL ---------- */
+  if ('IntersectionObserver' in window && !reduceMotion){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting){
+          entry.target.classList.add('in-view');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold:0.14, rootMargin:'0px 0px -60px 0px' });
+    document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  } else {
+    document.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in-view'); });
+  }
+
+  /* ---------- HERO PARALLAX (desktop, mouse-follow) ---------- */
+  var scene = document.getElementById('hero-scene');
+  var isDesktop = window.matchMedia('(min-width: 900px)').matches && window.matchMedia('(pointer: fine)').matches;
+  if (isDesktop && !reduceMotion && scene){
+    var layers = scene.querySelectorAll('[data-depth]');
+    var tx = 0, ty = 0, cx = 0, cy = 0;
+    document.querySelector('.hero').addEventListener('mousemove', function(e){
+      var rect = this.getBoundingClientRect();
+      tx = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+      ty = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    });
+    (function raf(){
+      cx += (tx - cx) * 0.06;
+      cy += (ty - cy) * 0.06;
+      layers.forEach(function(el){
+        var depth = parseFloat(el.getAttribute('data-depth')) || 0.05;
+        el.style.transform = 'translate(' + (cx * depth * 100) + 'px,' + (cy * depth * 60) + 'px)';
+      });
+      requestAnimationFrame(raf);
+    })();
+  }
+
+  /* ---------- MOCK DATA (Supabase-ready shape) ----------
+     Fields mirror the intended `journals` table:
+     slug, title, excerpt, category, author, author_initials,
+     reading_time, published_at, cover_palette, likes, views
+  ------------------------------------------------------------ */
+  var CATEGORY_STYLES = {
+    'Stories':      { c1:'#F1631B', c2:'#FCEADC' },
+    'Ideas':        { c1:'#A79BD1', c2:'#EDE9F7' },
+    'Knowledge':    { c1:'#7FB8D9', c2:'#E4F1F7' },
+    'Student Life': { c1:'#7FC8A9', c2:'#E4F4EC' },
+    'Creativity':   { c1:'#FF8B6B', c2:'#FCEADC' },
+    'Perspectives': { c1:'#D4A24C', c2:'#FBF0DC' }
+  };
+
+  var journals = [
+    { slug:'the-night-before-finals', title:'The Night Before Finals', excerpt:'What three years of exam-week panic finally taught me about slowing down.', category:'Student Life', author:'Meera Nair', reading_time:'6 min', published_at:'Aug 14', likes:212, views:3400 },
+    { slug:'why-we-forget-to-remember', title:'Why We Forget to Remember', excerpt:'A short dive into spaced repetition, and why cramming was never the answer.', category:'Knowledge', author:'Aarav Shah', reading_time:'8 min', published_at:'Aug 11', likes:184, views:2870 },
+    { slug:'letters-to-my-first-draft', title:'Letters to My First Draft', excerpt:'On writing badly on purpose, and why the first version is allowed to be wrong.', category:'Creativity', author:'Ishita Rao', reading_time:'5 min', published_at:'Aug 9', likes:156, views:2210 },
+    { slug:'the-library-at-2am', title:'The Library at 2AM', excerpt:'A quiet essay on the strange comfort of studying when the world is asleep.', category:'Stories', author:'Kabir Mehta', reading_time:'4 min', published_at:'Aug 6', likes:298, views:4120 },
+    { slug:'grades-vs-curiosity', title:'What If Grades Measured Curiosity?', excerpt:'A thought experiment on rebuilding assessment around wonder, not memorization.', category:'Ideas', author:'Sana Iyer', reading_time:'7 min', published_at:'Aug 3', likes:167, views:2650 },
+    { slug:'the-other-side-of-the-desk', title:'The Other Side of the Desk', excerpt:'What tutoring younger students taught me about how differently we all learn.', category:'Perspectives', author:'Rohan Verma', reading_time:'6 min', published_at:'Jul 30', likes:143, views:1980 }
+  ];
+
+  function initials(name){
+    return name.split(' ').map(function(p){ return p[0]; }).join('').slice(0,2).toUpperCase();
+  }
+
+  function coverSVG(cat){
+    var s = CATEGORY_STYLES[cat] || CATEGORY_STYLES['Ideas'];
+    return '<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect width="400" height="200" fill="' + s.c2 + '"/>' +
+      '<circle cx="340" cy="20" r="70" fill="' + s.c1 + '" opacity="0.16"/>' +
+      '<circle cx="30" cy="190" r="90" fill="' + s.c1 + '" opacity="0.14"/>' +
+      '<path d="M140 70h140l24 24v70H140V70Z" fill="#FFFDF8" opacity="0.85" stroke="' + s.c1 + '" stroke-width="1.5"/>' +
+      '<path d="M158 92h100M158 108h90M158 124h100M158 140h60" stroke="' + s.c1 + '" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>' +
+      '</svg>';
+  }
+
+  var journalGrid = document.getElementById('journal-grid');
+  journals.forEach(function(j, idx){
+    var s = CATEGORY_STYLES[j.category] || CATEGORY_STYLES['Ideas'];
+    var card = document.createElement('article');
+    card.className = 'j-card reveal';
+    card.style.setProperty('--i', idx);
+    card.setAttribute('role','listitem');
+    card.setAttribute('data-slug', j.slug);
+    card.innerHTML =
+      '<div class="j-cover">' + coverSVG(j.category) +
+        '<span class="j-cat-pill" style="color:' + s.c1 + '">' + j.category + '</span>' +
+      '</div>' +
+      '<div class="j-body">' +
+        '<h3>' + j.title + '</h3>' +
+        '<p class="j-excerpt">' + j.excerpt + '</p>' +
+        '<div class="j-meta">' +
+          '<div class="j-avatar" style="background:' + s.c1 + '">' + initials(j.author) + '</div>' +
+          '<div class="j-meta-text">' +
+            '<span class="author">' + j.author + '</span>' +
+            '<span class="sub">' + j.reading_time + ' read &middot; ' + j.published_at + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<a href="#" class="j-read">Read Journal <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>' +
+      '</div>';
+    journalGrid.appendChild(card);
+  });
+
+  /* ---------- JOURNAL WALL: masonry-style pinned notes ---------- */
+  var wallNotes = [
+    { tag:'Story', title:'Rain on exam day', body:'"There is something about rain on exam day that makes even bad results feel survivable."', cat:'Stories', author:'Meera N.', time:'2d ago' },
+    { tag:'Idea', title:'A syllabus for curiosity', body:'What if every course ended with a question instead of an answer?', cat:'Ideas', author:'Sana I.', time:'4d ago' },
+    { tag:'Knowledge', title:'The forgetting curve', body:'You lose 70% of new information within 24 hours — unless you revisit it.', cat:'Knowledge', author:'Aarav S.', time:'1w ago' },
+    { tag:'Student Life', title:'Group projects, ranked', body:'A very unscientific ranking of every group project archetype known to man.', cat:'Student Life', author:'Kabir M.', time:'3d ago' },
+    { tag:'Creativity', title:'Untitled, 2am', body:'a poem about the hum of a desk lamp and the shape of an unfinished sentence.', cat:'Creativity', author:'Ishita R.', time:'5d ago' },
+    { tag:'Perspectives', title:'The quiet kid theory', body:'Why the quietest person in the room usually has the most fully-formed opinion.', cat:'Perspectives', author:'Rohan V.', time:'6d ago' },
+    { tag:'Story', title:'My professor was wrong', body:'And the semester I spent proving it taught me more than the class itself.', cat:'Stories', author:'Devika P.', time:'1d ago' },
+    { tag:'Idea', title:'Notebooks over notes apps', body:'A small case for the friction of handwriting in a frictionless world.', cat:'Ideas', author:'Yusuf K.', time:'2w ago' },
+    { tag:'Knowledge', title:'Why we cram anyway', body:'We know spacing works better. We do it the night before regardless. Here\\'s why.', cat:'Knowledge', author:'Priya D.', time:'4d ago' }
+  ];
+
+  var wallWrap = document.getElementById('wall-wrap');
+  var isMobileWall = window.matchMedia('(max-width: 768px)').matches;
+
+  var wallLayout = isMobileWall ? [
+    {top:'2%',left:'50%',w:230,rot:-3},
+    {top:'19%',left:'50%',w:230,rot:2},
+    {top:'36%',left:'50%',w:230,rot:-2},
+    {top:'53%',left:'50%',w:230,rot:3},
+    {top:'70%',left:'50%',w:230,rot:-2},
+    {top:'87%',left:'50%',w:230,rot:2},
+    {top:'104%',left:'50%',w:230,rot:-3},
+    {top:'121%',left:'50%',w:230,rot:2},
+    {top:'138%',left:'50%',w:230,rot:-2}
+  ] : [
+    {top:'6%', left:'10%', w:210, rot:-6},
+    {top:'2%', left:'34%', w:240, rot:4},
+    {top:'14%',left:'59%', w:200, rot:-3},
+    {top:'4%', left:'82%', w:220, rot:6},
+    {top:'34%',left:'4%',  w:230, rot:3},
+    {top:'40%',left:'30%', w:210, rot:-5},
+    {top:'32%',left:'56%', w:240, rot:5},
+    {top:'42%',left:'80%', w:210, rot:-4},
+    {top:'66%',left:'18%', w:220, rot:-3}
+  ];
+
+  wallNotes.forEach(function(n, idx){
+    var s = CATEGORY_STYLES[n.cat] || CATEGORY_STYLES['Ideas'];
+    var pos = wallLayout[idx % wallLayout.length];
+    var note = document.createElement('div');
+    note.className = 'wall-note reveal';
+    note.style.setProperty('--i', idx % 5);
+    note.style.top = pos.top;
+    note.style.left = pos.left;
+    note.style.width = pos.w + 'px';
+    note.style.setProperty('--rot', pos.rot + 'deg');
+    note.style.transform = 'translate(-50%,-50%) rotate(' + pos.rot + 'deg)';
+    note.style.zIndex = String(idx + 1);
+    note.innerHTML =
+      '<span class="wn-tag" style="color:' + s.c1 + '">' + n.tag + '</span>' +
+      '<h4>' + n.title + '</h4>' +
+      '<p>' + n.body + '</p>' +
+      '<div class="wn-meta"><span>' + n.author + '</span><span>' + n.time + '</span></div>';
+    wallWrap.appendChild(note);
+  });
+
+  /* re-observe dynamically injected reveal elements */
+  if ('IntersectionObserver' in window && !reduceMotion){
+    var io2 = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting){
+          entry.target.classList.add('in-view');
+          io2.unobserve(entry.target);
+        }
+      });
+    }, { threshold:0.1, rootMargin:'0px 0px -40px 0px' });
+    document.querySelectorAll('#journal-grid .reveal, #wall-wrap .reveal').forEach(function(el){ io2.observe(el); });
+  } else {
+    document.querySelectorAll('#journal-grid .reveal, #wall-wrap .reveal').forEach(function(el){ el.classList.add('in-view'); });
+  }
+
+  /* ---------- ANIMATED COUNTERS ---------- */
+  var counters = document.querySelectorAll('.stat .num');
+  if (counters.length){
+    var counted = false;
+    var countUp = function(){
+      if (counted) return;
+      counted = true;
+      counters.forEach(function(el){
+        var target = parseInt(el.getAttribute('data-count'), 10) || 0;
+        var suffixEl = el.querySelector('span');
+        var suffix = suffixEl ? suffixEl.outerHTML : '';
+        if (reduceMotion){ el.innerHTML = target + suffix; return; }
+        var start = 0;
+        var duration = 1400;
+        var startTime = null;
+        function step(ts){
+          if (!startTime) startTime = ts;
+          var progress = Math.min((ts - startTime) / duration, 1);
+          var eased = 1 - Math.pow(1 - progress, 3);
+          var val = Math.floor(eased * target);
+          el.innerHTML = val + suffix;
+          if (progress < 1) requestAnimationFrame(step);
+          else el.innerHTML = target + suffix;
+        }
+        requestAnimationFrame(step);
+      });
+    };
+    var statObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){ if (entry.isIntersecting) countUp(); });
+    }, { threshold:0.4 });
+    var statsStrip = document.querySelector('.stats-strip');
+    if (statsStrip) statObserver.observe(statsStrip);
+  }
+
+  /* ---------- KEYBOARD: close mobile menu with Escape ---------- */
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && mobileMenu.classList.contains('open')){
+      mobileMenu.classList.remove('open');
+      hamburger.classList.remove('open');
+      hamburger.setAttribute('aria-expanded', false);
+      document.body.style.overflow = '';
+    }
+  });
+
+})();
+</script>
 </body>
 </html>
