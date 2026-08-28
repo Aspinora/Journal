@@ -210,6 +210,25 @@
     font-size:.58rem; letter-spacing:.16em; color:var(--ink-faint); margin-top:1px;
   }
 
+  /* -- New square SVG logo + "Journal / powered by aspinora" lockup (header only) -- */
+  .site-logo{
+    width:34px; height:34px; border-radius:10px; overflow:hidden;
+    flex-shrink:0; display:flex; box-shadow:0 4px 14px rgba(62,111,216,.28);
+  }
+  .site-logo svg{ width:100%; height:100%; display:block; }
+  .brand-logo-link{ display:flex; }
+  .brand-text{ display:flex; flex-direction:column; }
+  .brand-title{
+    font-family:var(--font-display); font-weight:700; font-size:1.3rem;
+    color:var(--ink); text-decoration:none; line-height:1.15;
+  }
+  .brand-powered{
+    display:inline-block; font-family:var(--font-mono); font-weight:400;
+    font-size:.55rem; letter-spacing:.1em; color:var(--ink-faint);
+    text-decoration:none; margin-top:2px; transition:color var(--dur-fast) var(--ease);
+  }
+  .brand-powered:hover{ color:var(--orange-deep); text-decoration:none; }
+
   .nav-links{ display:flex; align-items:center; gap:38px; }
   .nav-links a{
     font-size:.94rem; font-weight:600; color:var(--ink-soft);
@@ -669,12 +688,24 @@
 <!-- ============ NAVBAR ============ -->
 <header class="navbar" id="navbar">
   <div class="nav-inner">
-    <a href="#top" class="brand" aria-label="Aspinora Journal home">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 4.5C4 3.67 4.67 3 5.5 3H18a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4.5Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
-      </span>
-      <span>Aspinora<br><small>READ &nbsp;•&nbsp; WRITE &nbsp;•&nbsp; DISCOVER</small></span>
-    </a>
+    <div class="brand" aria-label="Journal home">
+      <a href="#top" class="brand-logo-link" aria-label="Journal home">
+        <span class="site-logo" aria-hidden="true">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Journal logo">
+            <rect width="64" height="64" rx="16" fill="#E8F0FB"/>
+            <g transform="rotate(45 32 32)">
+              <rect x="24" y="12" width="16" height="34" rx="3" fill="none" stroke="#3E6FD8" stroke-width="2.2" stroke-linejoin="round"/>
+              <line x1="24" y1="22" x2="40" y2="22" stroke="#3E6FD8" stroke-width="2"/>
+              <path d="M24 46 L32 58 L40 46 Z" fill="none" stroke="#3E6FD8" stroke-width="2.2" stroke-linejoin="round"/>
+            </g>
+          </svg>
+        </span>
+      </a>
+      <div class="brand-text">
+        <a href="#top" class="brand-title">Journal</a>
+        <a href="https://aspinora.in" class="brand-powered" rel="noopener">powered by aspinora</a>
+      </div>
+    </div>
 
     <nav class="nav-links" aria-label="Primary">
       <a href="#top">Home</a>
