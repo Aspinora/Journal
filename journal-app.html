@@ -2627,9 +2627,56 @@ function init(){
   initHomeControls();
   initWriteViewEvents();
   syncAuthUI();
-  renderHomeStatic();
-  navigateTo('home');
+
+  // CLEAN URL ROUTING FOR journal.aspinora.in/username/slug
+  const path = window.location.pathname;
+  const parts = path.split('/').filter(Boolean);
+
+  if (parts.length === 2) {
+    const username = parts[0];
+    const slug = parts[1];
+    loadJournalByUsernameAndSlug(username, slug);
+  } else {
+    navigateTo('home');
+  }
 }
+async function loadJournalByUsernameAndSlug(username, slug) {
+  try {
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .single();
+
+    if (!profile) {
+      showToast('Journal not found');
+      navigateTo('home');
+      return;
+    }
+
+    const { data: journal, error } = await supabaseClient
+      .from('journals')
+      .select('*')
+      .eq('author_id', profile.id)
+      .eq('slug', slug)
+      .eq('status', 'published')
+      .eq('visibility', 'public')
+      .single();
+
+    if (error || !journal) {
+      showToast('Journal not found');
+      navigateTo('home');
+      return;
+    }
+
+    navigateTo('read', { journalId: journal.id });
+  } catch (err) {
+    console.error(err);
+    showToast('Error loading journal');
+    navigateTo('home');
+  }
+}
+
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
