@@ -1417,19 +1417,60 @@ async function fetchLatestJournals(opts){
     return { rows: list.slice(0, page * pageSize), total: list.length };
   }
   // 👉 SUPABASE: range-based pagination, never a single unlimited select.
-  let query = supabaseClient.from('journals')
-    .select('id, slug, title, excerpt, category_id, author_id, published_at, tags', { count:'exact' })
-    .eq('status','published').eq('visibility','public');
-  if (opts.category && opts.category !== 'all') query = query.eq('categories.slug', opts.category);
-  if (opts.search) query = query.or('title.ilike.%'+opts.search+'%,excerpt.ilike.%'+opts.search+'%');
-  if (opts.sort === 'appreciated') query = query.order('like_count', { ascending:false });
-  else if (opts.sort === 'discussed') query = query.order('comment_count', { ascending:false });
-  else query = query.order('published_at', { ascending:false });
-  const from = 0, to = page * pageSize - 1;
+    // SUPABASE - Updated to match snake_case columns
+  let query = supabaseClient
+    .from('journals')
+    .select(`
+      id,
+      slug,
+      title,
+      subtitle,
+      excerpt,
+      body_markdown,
+      tags,
+      published_at,
+      allow_comments,
+      content_note,
+      status,
+      visibility,
+      profiles!journals_author_id_fkey (
+        display_name,
+        username
+      ),
+      categories!journals_category_id_fkey (
+        name,
+        slug,
+        color
+      ),
+      count
+    `, { count: 'exact' })
+    .eq('status', 'published')
+    .eq('visibility', 'public');
+
+  if (opts.category && opts.category !== 'all') {
+    query = query.eq('categories.slug', opts.category);
+  }
+
+  if (opts.search) {
+    query = query.or(`title.ilike.%${opts.search}%,excerpt.ilike.%${opts.search}%`);
+  }
+
+  if (opts.sort === 'appreciated') {
+    query = query.order('like_count', { ascending: false });
+  } else if (opts.sort === 'discussed') {
+    query = query.order('comment_count', { ascending: false });
+  } else {
+    query = query.order('published_at', { ascending: false });
+  }
+
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
   const { data, error, count } = await query.range(from, to);
+
   if (error) throw error;
+
   return { rows: data, total: count };
-}
+
 
 async function fetchCategoryCounts(){
   if (DEMO_MODE){
