@@ -1385,14 +1385,36 @@ async function fetchFeaturedJournals(){
     return MOCK_JOURNALS.filter(function(j){ return j.featured; }).slice(0,3);
   }
   // 👉 SUPABASE: only card fields, never body_markdown.
+    // SUPABASE - Updated to match snake_case columns and join profiles/categories
   const { data, error } = await supabaseClient
     .from('journals')
-    .select('id, slug, title, excerpt, category_id, author_id, published_at, tags')
-    .eq('status','published').eq('visibility','public')
-    .order('published_at', { ascending:false }).limit(3);
+    .select(`
+      id,
+      slug,
+      title,
+      subtitle,
+      excerpt,
+      body_markdown,
+      tags,
+      published_at,
+      allow_comments,
+      content_note,
+      profiles!journals_author_id_fkey (
+        display_name,
+        username
+      ),
+      categories!journals_category_id_fkey (
+        name,
+        slug,
+        color
+      )
+    `)
+    .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
+    .single();
+
   if (error) throw error;
   return data;
-}
+
 
 async function fetchLatestJournals(opts){
   opts = opts || {};
