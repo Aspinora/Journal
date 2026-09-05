@@ -915,8 +915,8 @@ section{ padding:36px 0; }
       <button type="button" data-auth-tab="signup">Sign Up</button>
     </div>
 
-    <div class="demo-note" id="demo-auth-note">
-      Demo data mode is on — sign-in is simulated locally. Once <span style="font-family:var(--font-mono);">DEMO_MODE</span> is set to <span style="font-family:var(--font-mono);">false</span> and your Supabase keys are added below, this form will call real Supabase auth.
+    <div class="demo-note" id="demo-auth-note" style="display:none;">
+      Supabase didn't load, so sign-in is simulated locally for this preview only.
     </div>
 
     <form id="auth-form">
@@ -976,7 +976,7 @@ section{ padding:36px 0; }
 </div>
 
 <div class="toast-stack" id="toast-stack"></div>
-<div class="demo-badge" id="demo-badge"><span class="dot"></span> Demo data mode</div>
+<div class="demo-badge" id="demo-badge"><span class="dot"></span> Sample content — accounts are real</div>
 
 <script>
 /* ==================================================================
@@ -1008,11 +1008,18 @@ try{
    2. DEMO MODE
    Flip to false once your Supabase project + tables + RLS policies
    (see the SUPABASE RLS REQUIREMENTS notes at the bottom of this file)
-   are ready. While true, the app runs entirely on realistic mock data
-   and localStorage, so you can test the whole UI before wiring the
-   backend up.
+   are ready. While true, journal/feed CONTENT (journals, comments,
+   likes, drafts) runs on realistic mock data so you can test the UI
+   before wiring the content backend up.
+
+   AUTH IS NOT PART OF THIS FLAG. This app shares one real Supabase
+   project with index.html, so sign-in/sign-up/session here always
+   use real Supabase auth (see AUTH_LIVE below) — otherwise a login
+   on the journal page wouldn't be recognised on the homepage (or on
+   reload), which is the "keeps asking me to log in again" bug.
    ------------------------------------------------------------------ */
 const DEMO_MODE = true;
+const AUTH_LIVE = !!supabaseClient;
 
 /* ------------------------------------------------------------------
    3. CATEGORIES
@@ -1320,32 +1327,59 @@ document.addEventListener('keydown', function(e){
    7. AUTH
    ------------------------------------------------------------------ */
 async function signIn(email, password){
-  if (DEMO_MODE){
+  if (!AUTH_LIVE){
+    // Only reachable if the Supabase SDK failed to initialise at all.
+    // Journal content still works via DEMO_MODE regardless.
     return { user: DEMO_USER };
   }
-  // 👉 SUPABASE: real email/password sign-in.
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  return { user: await loadProfile(data.user.id) };
+  return { user: await loadProfile(data.user) };
 }
 async function signUp(email, password, displayName){
-  if (DEMO_MODE){
+  if (!AUTH_LIVE){
     return { user: Object.assign({}, DEMO_USER, { display_name: displayName || 'You' }) };
   }
-  // 👉 SUPABASE: real sign-up. A database trigger should create the
-  // matching row in `profiles` for the new auth.users id.
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  // A database trigger creates the matching `profiles` row for the new
+  // auth.users id — same trigger index.html's sign-up relies on.
+  const { data, error } = await supabaseClient.auth.signUp({
+    email, password,
+    options: { data: { display_name: displayName, username: email.split('@')[0] } }
+  });
   if (error) throw error;
-  if (displayName){
-    await supabaseClient.from('profiles').update({ display_name: displayName }).eq('id', data.user.id);
+  const identities = data && data.user && data.user.identities;
+  if (identities && identities.length === 0){
+    throw new Error('An account with this email already exists. Try logging in instead.');
   }
-  return { user: await loadProfile(data.user.id) };
+  // Email confirmation required (same flow as index.html) — no session
+  // yet, so there's no one to log in as.
+  if (!data.session){
+    return { user: null, needsVerification: true, email };
+  }
+  return { user: await loadProfile(data.user) };
 }
-async function loadProfile(userId){
-  if (DEMO_MODE) return DEMO_USER;
-  const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio').eq('id', userId).single();
-  if (error) throw error;
-  return data;
+/* Looks up the matching `profiles` row; if the row hasn't landed yet
+   (trigger lag right after sign-up) or the query fails, falls back to
+   the auth user's own metadata so the UI never breaks on a missing
+   profile row. Accepts either a full Supabase auth user object or a
+   bare user id string. */
+async function loadProfile(authUser){
+  if (!AUTH_LIVE) return DEMO_USER;
+  const userId = typeof authUser === 'string' ? authUser : authUser.id;
+  try{
+    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio').eq('id', userId).single();
+    if (error || !data) throw error || new Error('no profile row');
+    return data;
+  }catch(e){
+    const meta = (typeof authUser === 'object' && authUser.user_metadata) || {};
+    const email = typeof authUser === 'object' ? authUser.email : '';
+    return {
+      id: userId,
+      username: meta.username || (email ? email.split('@')[0] : userId),
+      display_name: meta.display_name || (email ? email.split('@')[0] : 'You'),
+      bio: ''
+    };
+  }
 }
 
 /* Pull the signed-in user's existing likes/bookmarks so the heart and
@@ -1371,7 +1405,7 @@ async function hydrateUserActivity(userId){
    logged in earlier, or on the main Aspinora site which shares this
    same Supabase project) so they don't appear logged out on load. */
 async function restoreSession(){
-  if (DEMO_MODE || !supabaseClient) return;
+  if (!AUTH_LIVE) return;
   try{
     const { data } = await supabaseClient.auth.getSession();
     if (data && data.session && data.session.user){
@@ -1395,7 +1429,7 @@ async function restoreSession(){
 }
 
 async function signOutUser(){
-  if (!DEMO_MODE && supabaseClient){ await supabaseClient.auth.signOut(); }
+  if (AUTH_LIVE){ await supabaseClient.auth.signOut(); }
   state.currentUser = null;
   state.likedJournalIds = new Set();
   state.bookmarkedIds = new Set();
@@ -1435,13 +1469,15 @@ function requireAuth(actionText, callback){
 function openAuthModal(tab){
   setAuthTab(tab || 'login');
   openModal('auth-modal-scrim');
-  qs('#demo-auth-note').style.display = DEMO_MODE ? 'block' : 'none';
+  // The note only matters if Supabase itself failed to load — real
+  // sign-in/sign-up is always used otherwise, regardless of DEMO_MODE.
+  qs('#demo-auth-note').style.display = AUTH_LIVE ? 'none' : 'block';
 }
 function setAuthTab(tab){
   qsa('[data-auth-tab]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-auth-tab') === tab); });
   qs('#signup-name-field').hidden = tab !== 'signup';
   qs('#auth-modal-title').textContent = tab === 'signup' ? 'Create your account' : 'Welcome back';
-  qs('#auth-submit-btn').textContent = DEMO_MODE ? 'Continue as Demo User' : (tab === 'signup' ? 'Sign Up' : 'Log In');
+  qs('#auth-submit-btn').textContent = !AUTH_LIVE ? 'Continue as Demo User' : (tab === 'signup' ? 'Sign Up' : 'Log In');
   qs('#auth-form').setAttribute('data-mode', tab);
 }
 
@@ -2753,6 +2789,12 @@ function initAuthModal(){
     btn.disabled = true;
     try{
       const result = mode === 'signup' ? await signUp(email, password, name) : await signIn(email, password);
+      if (result.needsVerification){
+        closeModal('auth-modal-scrim');
+        showToast('Check ' + result.email + ' for a confirmation link to finish signing up.');
+        this.reset();
+        return;
+      }
       state.currentUser = result.user;
       await hydrateUserActivity(result.user.id);
       syncAuthUI();
