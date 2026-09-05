@@ -992,7 +992,7 @@ section{ padding:36px 0; }
       URL and anon/public key (Project Settings → API in Supabase).
    Never paste your service_role key into this file.
    ------------------------------------------------------------------ */
-const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co/rest/v1/';
+const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
 
 let supabaseClient = null;
@@ -1033,6 +1033,7 @@ const CATEGORIES = [
 ];
 function categoryBySlug(slug){ return CATEGORIES.find(function(c){ return c.slug === slug; }) || CATEGORIES[1]; }
 function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name === name; }) || CATEGORIES[1]; }
+function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[1]; }
 
 /* ------------------------------------------------------------------
    4. MOCK DATA (used only while DEMO_MODE is true)
@@ -1040,14 +1041,18 @@ function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name
 const DEMO_USER = { id:'demo-user-1', display_name:'You', username:'you', bio:'Testing Aspinora Journal.' };
 
 const MOCK_AUTHORS = {
-  'a1':{ id:'a1', display_name:'Meera Nair' },
-  'a2':{ id:'a2', display_name:'Aarav Shah' },
-  'a3':{ id:'a3', display_name:'Ishita Rao' },
-  'a4':{ id:'a4', display_name:'Kabir Mehta' },
-  'a5':{ id:'a5', display_name:'Sana Iyer' },
-  'a6':{ id:'a6', display_name:'Rohan Verma' },
+  'a1':{ id:'a1', display_name:'Meera Nair',  username:'meera' },
+  'a2':{ id:'a2', display_name:'Aarav Shah',  username:'aarav' },
+  'a3':{ id:'a3', display_name:'Ishita Rao',  username:'ishita' },
+  'a4':{ id:'a4', display_name:'Kabir Mehta', username:'kabir' },
+  'a5':{ id:'a5', display_name:'Sana Iyer',   username:'sana' },
+  'a6':{ id:'a6', display_name:'Rohan Verma', username:'rohan' },
   'demo-user-1': DEMO_USER
 };
+function mockAuthorByUsername(username){
+  return Object.keys(MOCK_AUTHORS).map(function(k){ return MOCK_AUTHORS[k]; })
+    .find(function(a){ return a.username === username; });
+}
 
 const SAMPLE_BODY = "Some mornings the library feels less like a building and more like a held breath. Rows of amber lamps, the soft click of laptop keys, a radiator ticking somewhere behind the reference shelves.\n\nI used to think studying at 2am meant something had gone wrong — that I'd failed to plan, failed to pace myself, failed at the very ordinary task of managing a week. It took a while to notice that the failure story wasn't the only one available.\n\n## What the quiet actually gave me\n\nThere is a particular kind of focus that only shows up after midnight, when the building empties out and the group-project noise disappears. Nobody is performing productivity. Nobody is comparing highlighter colours. It's just you, the material, and the strange comfort of a nearly-empty room.\n\n> The work doesn't get easier at 2am. But the noise around the work gets a lot quieter.\n\n- The vending machine hums like a small appliance choir.\n- Every chair squeak becomes a landmark you start to recognise.\n- Somewhere around page forty of the reading, you stop performing and start actually reading.\n\n## A short list of things I no longer believe\n\n1. That there's one correct number of hours to study.\n2. That tiredness always means you're doing it wrong.\n3. That the people who leave at 9pm are somehow better at this than you are.\n\n---\n\nI'm not recommending 2am as a lifestyle. I'm only saying that if you've ever felt guilty about the strange hours that actually work for your brain, you're allowed to let that guilt go. Find your library. Or your kitchen table. Or your dorm room floor. The room matters less than the honesty of showing up in it.";
 
@@ -1127,7 +1132,8 @@ const state = {
   likedCommentIds: new Set(),
   visibleRootComments: 10,
   saveTimer: null,
-  localSaveTimer: null
+  localSaveTimer: null,
+  pendingAuthAction: null   // callback to run right after a successful login/signup
 };
 
 /* ------------------------------------------------------------------
@@ -1154,9 +1160,23 @@ function avatarHTML(userId, name, sizeClass){
   const color = avatarColor(userId || name);
   return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + initials(name) + '</span>';
 }
+/* Populated from `profiles` joins whenever real Supabase rows come
+   back (journals, comments). Demo mode never touches this — it has
+   MOCK_AUTHORS instead — so authorName() checks both. */
+let AUTHOR_CACHE = {};
 function authorName(authorId){
+  if (AUTHOR_CACHE[authorId]) return AUTHOR_CACHE[authorId].display_name;
   const a = MOCK_AUTHORS[authorId];
-  return a ? a.display_name : 'Aspinora Member';
+  if (a) return a.display_name;
+  if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.display_name;
+  return 'Aspinora Member';
+}
+function authorUsername(authorId){
+  if (AUTHOR_CACHE[authorId]) return AUTHOR_CACHE[authorId].username;
+  const a = MOCK_AUTHORS[authorId];
+  if (a) return a.username || '';
+  if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.username || '';
+  return '';
 }
 
 function formatRelativeTime(iso){
@@ -1327,9 +1347,59 @@ async function loadProfile(userId){
   if (error) throw error;
   return data;
 }
+
+/* Pull the signed-in user's existing likes/bookmarks so the heart and
+   save icons reflect reality immediately, instead of only updating
+   once the user re-clicks something in this session. Demo mode
+   already seeds these sets directly on `state`, so this is a no-op
+   there. */
+async function hydrateUserActivity(userId){
+  if (DEMO_MODE || !supabaseClient) return;
+  try{
+    const [likesRes, bookmarksRes, commentLikesRes] = await Promise.all([
+      supabaseClient.from('journal_likes').select('journal_id').eq('user_id', userId),
+      supabaseClient.from('bookmarks').select('journal_id').eq('user_id', userId),
+      supabaseClient.from('comment_likes').select('comment_id').eq('user_id', userId)
+    ]);
+    if (likesRes.data) state.likedJournalIds = new Set(likesRes.data.map(function(r){ return r.journal_id; }));
+    if (bookmarksRes.data) state.bookmarkedIds = new Set(bookmarksRes.data.map(function(r){ return r.journal_id; }));
+    if (commentLikesRes.data) state.likedCommentIds = new Set(commentLikesRes.data.map(function(r){ return r.comment_id; }));
+  }catch(e){ console.warn('Could not load saved activity:', e); }
+}
+
+/* Restore a Supabase session that already exists (e.g. the user
+   logged in earlier, or on the main Aspinora site which shares this
+   same Supabase project) so they don't appear logged out on load. */
+async function restoreSession(){
+  if (DEMO_MODE || !supabaseClient) return;
+  try{
+    const { data } = await supabaseClient.auth.getSession();
+    if (data && data.session && data.session.user){
+      state.currentUser = await loadProfile(data.session.user.id);
+      await hydrateUserActivity(state.currentUser.id);
+    }
+  }catch(e){ console.warn('Could not restore session:', e); }
+
+  supabaseClient.auth.onAuthStateChange(function(event, session){
+    if (event === 'SIGNED_OUT'){
+      state.currentUser = null;
+      syncAuthUI();
+    } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
+      loadProfile(session.user.id).then(function(user){
+        state.currentUser = user;
+        syncAuthUI();
+        hydrateUserActivity(user.id);
+      });
+    }
+  });
+}
+
 async function signOutUser(){
   if (!DEMO_MODE && supabaseClient){ await supabaseClient.auth.signOut(); }
   state.currentUser = null;
+  state.likedJournalIds = new Set();
+  state.bookmarkedIds = new Set();
+  state.likedCommentIds = new Set();
   syncAuthUI();
   navigateTo('home');
   showToast('Signed out.');
@@ -1353,6 +1423,7 @@ function syncAuthUI(){
    letting anonymous users write, like, comment, or bookmark. */
 function requireAuth(actionText, callback){
   if (state.currentUser){ callback(); return; }
+  state.pendingAuthAction = callback;
   qs('#guest-modal-text').textContent = actionText || "You'll need an account to do that.";
   openModal('guest-modal-scrim');
   qs('#guest-modal-login').onclick = function(){
@@ -1380,41 +1451,64 @@ function setAuthTab(tab){
    real Supabase branch. Only the fields actually needed are selected,
    and every list request is capped, per the lightweight-query rules.
    ------------------------------------------------------------------ */
+/* Convert a raw Supabase `journals` row (snake_case, category_id,
+   body_markdown, like_count/comment_count, optional joined `profiles`)
+   into the same shape the rest of this app already works with
+   (category name, body, likes, comments) — this is the single place
+   that bridges the real schema and the app's internal journal shape,
+   so every render function works unchanged in both modes. */
+function normalizeJournalRow(row){
+  if (!row) return null;
+  if (row.profiles){
+    AUTHOR_CACHE[row.author_id] = {
+      id: row.author_id,
+      display_name: row.profiles.display_name || 'Aspinora Member',
+      username: row.profiles.username || ''
+    };
+  }
+  const cat = categoryById(row.category_id);
+  const words = wordCount(row.body_markdown || '');
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    subtitle: row.subtitle,
+    excerpt: row.excerpt,
+    body: row.body_markdown || '',
+    category: cat.name,
+    tags: row.tags || [],
+    author_id: row.author_id,
+    status: row.status,
+    visibility: row.visibility,
+    allow_comments: row.allow_comments,
+    content_note: row.content_note,
+    published_at: row.published_at,
+    reading_time: readingTimeMinutes(words),
+    likes: row.like_count || 0,
+    comments: row.comment_count || 0,
+    featured: !!row.featured
+  };
+}
+
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, tags, published_at, allow_comments, content_note, like_count, comment_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username)';
+
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
     return MOCK_JOURNALS.filter(function(j){ return j.featured; }).slice(0,3);
   }
-  // 👉 SUPABASE: only card fields, never body_markdown.
-    // SUPABASE - Updated to match snake_case columns and join profiles/categories
+  // 👉 SUPABASE: only card fields, never the full body.
   const { data, error } = await supabaseClient
     .from('journals')
-    .select(`
-      id,
-      slug,
-      title,
-      subtitle,
-      excerpt,
-      body_markdown,
-      tags,
-      published_at,
-      allow_comments,
-      content_note,
-      profiles!journals_author_id_fkey (
-        display_name,
-        username
-      ),
-      categories!journals_category_id_fkey (
-        name,
-        slug,
-        color
-      )
-    `)
-    .or(`id.eq.${idOrSlug},slug.eq.${idOrSlug}`)
-    .single();
+    .select(JOURNAL_CARD_FIELDS)
+    .eq('status', 'published')
+    .eq('visibility', 'public')
+    .eq('featured', true)
+    .order('published_at', { ascending: false })
+    .limit(3);
 
   if (error) throw error;
-  return data;
-
+  return data.map(normalizeJournalRow);
+}
 
 async function fetchLatestJournals(opts){
   opts = opts || {};
@@ -1439,38 +1533,15 @@ async function fetchLatestJournals(opts){
     return { rows: list.slice(0, page * pageSize), total: list.length };
   }
   // 👉 SUPABASE: range-based pagination, never a single unlimited select.
-    // SUPABASE - Updated to match snake_case columns
   let query = supabaseClient
     .from('journals')
-    .select(`
-      id,
-      slug,
-      title,
-      subtitle,
-      excerpt,
-      body_markdown,
-      tags,
-      published_at,
-      allow_comments,
-      content_note,
-      status,
-      visibility,
-      profiles!journals_author_id_fkey (
-        display_name,
-        username
-      ),
-      categories!journals_category_id_fkey (
-        name,
-        slug,
-        color
-      ),
-      count
-    `, { count: 'exact' })
+    .select(JOURNAL_CARD_FIELDS, { count: 'exact' })
     .eq('status', 'published')
     .eq('visibility', 'public');
 
   if (opts.category && opts.category !== 'all') {
-    query = query.eq('categories.slug', opts.category);
+    const cat = categoryBySlug(opts.category);
+    query = query.eq('category_id', cat.id);
   }
 
   if (opts.search) {
@@ -1491,8 +1562,8 @@ async function fetchLatestJournals(opts){
 
   if (error) throw error;
 
-  return { rows: data, total: count };
-
+  return { rows: data.map(normalizeJournalRow), total: count };
+}
 
 async function fetchCategoryCounts(){
   if (DEMO_MODE){
@@ -1500,86 +1571,183 @@ async function fetchCategoryCounts(){
     MOCK_JOURNALS.forEach(function(j){ counts[j.category] = (counts[j.category]||0) + 1; });
     return counts;
   }
-  // 👉 SUPABASE: ideally a small database VIEW that pre-aggregates
-  // published-journal counts per category, queried here in one call.
-  const { data, error } = await supabaseClient.from('category_journal_counts').select('*');
+  // 👉 SUPABASE: tally published+public journals per category_id
+  // client-side — avoids depending on a separate database view.
+  const { data, error } = await supabaseClient.from('journals')
+    .select('category_id').eq('status', 'published').eq('visibility', 'public');
   if (error) throw error;
   const counts = {};
-  data.forEach(function(row){ counts[row.category_name] = row.journal_count; });
+  data.forEach(function(row){
+    const name = categoryById(row.category_id).name;
+    counts[name] = (counts[name] || 0) + 1;
+  });
   return counts;
 }
 
+function normalizeWallPostRow(row){
+  if (row.profiles){
+    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '' };
+  }
+  return {
+    id: row.id,
+    category: categoryById(row.category_id).name,
+    body: row.body,
+    author_id: row.author_id,
+    published_at: row.published_at,
+    likes: row.likes || 0
+  };
+}
 async function fetchWallPosts(){
   if (DEMO_MODE) return MOCK_WALL_POSTS.slice(0, 8);
   const { data, error } = await supabaseClient.from('wall_posts')
-    .select('id, body, category_id, author_id, published_at')
+    .select('id, body, category_id, author_id, published_at, likes, profiles!wall_posts_author_id_fkey(display_name, username)')
     .eq('status','published').order('published_at',{ ascending:false }).limit(8);
   if (error) throw error;
-  return data;
+  return data.map(normalizeWallPostRow);
 }
 
 function findJournal(idOrSlug){
   return MOCK_JOURNALS.find(function(j){ return j.id === idOrSlug || j.slug === idOrSlug; });
 }
-async function fetchJournal(idOrSlug){
-  if (DEMO_MODE) return findJournal(idOrSlug);
-  const { data, error } = await supabaseClient.from('journals')
-    .select('*').or('id.eq.'+idOrSlug+',slug.eq.'+idOrSlug).single();
-  if (error) throw error;
-  return data;
+
+/* The single mutable "currently open journal" object, kept in sync in
+   BOTH modes. In demo mode this points at the same object living
+   inside MOCK_JOURNALS; in Supabase mode it's the normalized row.
+   Anything that needs to read/bump likes or comment counts after the
+   initial fetch (like/comment buttons) should go through this cache
+   instead of calling findJournal() directly, which only ever knows
+   about mock data. */
+let JOURNAL_CACHE = {};
+function getCachedJournal(id){
+  return JOURNAL_CACHE[id] || (DEMO_MODE ? findJournal(id) : null);
 }
 
-async function fetchRootComments(journalId){
+/* Live "preview before publishing" journal, used by the Preview button
+   in the write view — works the same way in both modes without ever
+   touching MOCK_JOURNALS. */
+let PREVIEW_JOURNAL = null;
+
+async function fetchJournal(idOrSlug){
+  if (idOrSlug === '__preview__') return PREVIEW_JOURNAL;
   if (DEMO_MODE){
-    return (MOCK_COMMENTS[journalId] || []).filter(function(c){ return !c.parent_id; }).slice(0, 10);
+    const j = findJournal(idOrSlug);
+    if (j) JOURNAL_CACHE[j.id] = j;
+    return j;
+  }
+  const { data, error } = await supabaseClient.from('journals')
+    .select(JOURNAL_CARD_FIELDS)
+    .or('id.eq.' + idOrSlug + ',slug.eq.' + idOrSlug)
+    .eq('status', 'published').eq('visibility', 'public')
+    .single();
+  if (error) throw error;
+  const j = normalizeJournalRow(data);
+  JOURNAL_CACHE[j.id] = j;
+  return j;
+}
+
+/* Full, flat list of visible comments (roots + replies) for a
+   journal, cached per journal id. Single source of truth in BOTH
+   modes: fetchRootComments/fetchReplies/toggleCommentLike/reply-count
+   display all read from this same cache, so a comment posted or
+   liked from one place is instantly reflected everywhere else. */
+let COMMENT_CACHE = {};
+async function loadCommentsForJournal(journalId){
+  if (DEMO_MODE){
+    COMMENT_CACHE[journalId] = MOCK_COMMENTS[journalId] || [];
+    return COMMENT_CACHE[journalId];
   }
   const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at')
-    .eq('journal_id', journalId).is('parent_id', null).eq('status','visible')
-    .order('created_at',{ ascending:true }).limit(10);
+    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username)')
+    .eq('journal_id', journalId).eq('status', 'visible')
+    .order('created_at', { ascending: true });
   if (error) throw error;
+  data.forEach(function(row){
+    if (row.profiles){
+      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username };
+    }
+  });
+  COMMENT_CACHE[journalId] = data;
   return data;
+}
+async function fetchRootComments(journalId){
+  const all = await loadCommentsForJournal(journalId);
+  return all.filter(function(c){ return !c.parent_id; }).slice(0, 10);
 }
 async function fetchReplies(journalId, parentId){
-  if (DEMO_MODE){
-    return (MOCK_COMMENTS[journalId] || []).filter(function(c){ return c.parent_id === parentId; });
-  }
-  const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at')
-    .eq('parent_id', parentId).eq('status','visible').order('created_at',{ ascending:true });
-  if (error) throw error;
-  return data;
+  const all = COMMENT_CACHE[journalId] || await loadCommentsForJournal(journalId);
+  return all.filter(function(c){ return c.parent_id === parentId; });
 }
 async function postComment(journalId, body, parentId){
+  let c;
   if (DEMO_MODE){
-    const c = { id:'c' + (nextCommentId++), journal_id:journalId, parent_id: parentId || null, author_id: state.currentUser.id, body: body, created_at: new Date().toISOString(), likes:0 };
+    c = { id:'c' + (nextCommentId++), journal_id:journalId, parent_id: parentId || null, author_id: state.currentUser.id, body: body, created_at: new Date().toISOString(), likes:0 };
     if (!MOCK_COMMENTS[journalId]) MOCK_COMMENTS[journalId] = [];
     MOCK_COMMENTS[journalId].push(c);
-    const j = findJournal(journalId); if (j) j.comments++;
-    return c;
+  } else {
+    const { data, error } = await supabaseClient.from('comments').insert({
+      journal_id: journalId, author_id: state.currentUser.id, body: body, parent_id: parentId || null, status:'visible'
+    }).select().single();
+    if (error) throw error;
+    c = data;
   }
-  const { data, error } = await supabaseClient.from('comments').insert({
-    journal_id: journalId, author_id: state.currentUser.id, body: body, parent_id: parentId || null, status:'visible'
-  }).select().single();
-  if (error) throw error;
-  return data;
+  if (!COMMENT_CACHE[journalId]) COMMENT_CACHE[journalId] = [];
+  COMMENT_CACHE[journalId].push(c);
+  const j = getCachedJournal(journalId); if (j) j.comments++;
+  return c;
 }
 async function deleteComment(journalId, commentId){
   if (DEMO_MODE){
     MOCK_COMMENTS[journalId] = (MOCK_COMMENTS[journalId]||[]).filter(function(c){ return c.id !== commentId && c.parent_id !== commentId; });
-    return;
+  } else {
+    const { error } = await supabaseClient.from('comments').delete().eq('id', commentId).eq('author_id', state.currentUser.id);
+    if (error) throw error;
   }
-  const { error } = await supabaseClient.from('comments').delete().eq('id', commentId).eq('author_id', state.currentUser.id);
-  if (error) throw error;
+  COMMENT_CACHE[journalId] = (COMMENT_CACHE[journalId]||[]).filter(function(c){ return c.id !== commentId && c.parent_id !== commentId; });
+  const j = getCachedJournal(journalId); if (j) j.comments = Math.max(0, j.comments - 1);
 }
 async function editComment(journalId, commentId, newBody){
   if (DEMO_MODE){
     const c = (MOCK_COMMENTS[journalId]||[]).find(function(x){ return x.id === commentId; });
     if (c) c.body = newBody;
-    return;
+  } else {
+    const { error } = await supabaseClient.from('comments').update({ body:newBody, updated_at:new Date().toISOString() }).eq('id', commentId).eq('author_id', state.currentUser.id);
+    if (error) throw error;
   }
-  const { error } = await supabaseClient.from('comments').update({ body:newBody, updated_at:new Date().toISOString() }).eq('id', commentId).eq('author_id', state.currentUser.id);
-  if (error) throw error;
+  const cached = (COMMENT_CACHE[journalId]||[]).find(function(x){ return x.id === commentId; });
+  if (cached) cached.body = newBody;
+}
+
+/* Map the app's internal draft/publish payload (category name, body)
+   onto real `journals` columns (category_id, body_markdown). */
+function toSupabaseJournalRow(payload){
+  const cat = payload.category ? categoryByName(payload.category) : null;
+  return {
+    title: payload.title || '',
+    subtitle: payload.subtitle || null,
+    excerpt: payload.excerpt || payload.subtitle || (payload.body || '').slice(0,140),
+    body_markdown: payload.body || '',
+    category_id: cat ? cat.id : null,
+    tags: payload.tags || [],
+    visibility: payload.visibility || 'public',
+    allow_comments: payload.allow_comments !== false,
+    content_note: payload.content_note || null
+  };
+}
+/* Reverse of the above — turns a raw `journals` row back into the
+   {category, body, ...} shape the write view's writeDraft uses. */
+function fromSupabaseJournalRow(row){
+  return {
+    id: row.id,
+    category: categoryById(row.category_id).name,
+    title: row.title || '',
+    subtitle: row.subtitle || '',
+    body: row.body_markdown || '',
+    tags: row.tags || [],
+    visibility: row.visibility || 'public',
+    allow_comments: row.allow_comments !== false,
+    content_note: row.content_note || '',
+    updated_at: row.updated_at
+  };
 }
 
 async function fetchDrafts(){
@@ -1591,17 +1759,21 @@ async function fetchDrafts(){
     .select('*').eq('author_id', state.currentUser.id).eq('status','draft')
     .order('updated_at',{ ascending:false }).limit(20);
   if (error) throw error;
-  return data;
+  return data.map(function(row){
+    const d = fromSupabaseJournalRow(row);
+    d.author_id = row.author_id;
+    return d;
+  });
 }
 async function fetchPublished(){
   if (DEMO_MODE){
     return MOCK_JOURNALS.filter(function(j){ return j.author_id === state.currentUser.id && j.status === 'published'; });
   }
   const { data, error } = await supabaseClient.from('journals')
-    .select('id, slug, title, excerpt, category_id, published_at, tags')
+    .select(JOURNAL_CARD_FIELDS)
     .eq('author_id', state.currentUser.id).eq('status','published').order('published_at',{ ascending:false });
   if (error) throw error;
-  return data;
+  return data.map(normalizeJournalRow);
 }
 
 async function fetchNotifications(){
@@ -1625,7 +1797,7 @@ function unreadNotifCount(){
    9. LIKES, BOOKMARKS, DRAFTS, PUBLISHING
    ------------------------------------------------------------------ */
 async function toggleJournalLike(journalId){
-  const j = findJournal(journalId);
+  const j = getCachedJournal(journalId);
   const already = state.likedJournalIds.has(journalId);
   // optimistic UI update
   if (already){ state.likedJournalIds.delete(journalId); if (j) j.likes--; }
@@ -1663,7 +1835,7 @@ async function toggleBookmark(journalId){
 async function toggleCommentLike(journalId, commentId){
   const key = commentId;
   const already = state.likedCommentIds.has(key);
-  const list = MOCK_COMMENTS[journalId] || [];
+  const list = COMMENT_CACHE[journalId] || [];
   const c = list.find(function(x){ return x.id === commentId; });
   if (already){ state.likedCommentIds.delete(key); if (c) c.likes--; }
   else { state.likedCommentIds.add(key); if (c) c.likes++; }
@@ -1707,7 +1879,7 @@ async function persistDraft(draftPayload, showSavingState){
   }
   // 👉 SUPABASE: upsert the draft journal row for this user.
   try{
-    const row = Object.assign({ author_id: state.currentUser.id, status:'draft' }, draftPayload);
+    const row = Object.assign({ author_id: state.currentUser.id, status:'draft' }, toSupabaseJournalRow(draftPayload));
     let result;
     if (state.currentDraftId) result = await supabaseClient.from('journals').update(row).eq('id', state.currentDraftId).select().single();
     else result = await supabaseClient.from('journals').insert(row).select().single();
@@ -1726,13 +1898,16 @@ async function deleteDraft(draftId){
   else { await supabaseClient.from('journals').delete().eq('id', draftId).eq('author_id', state.currentUser.id); }
   localStorage.removeItem('aspinora_draft_' + draftId);
 }
+function slugify(title){
+  return (title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.floor(Math.random()*900+100);
+}
 async function publishJournal(payload){
   if (DEMO_MODE){
     let d = currentDraft();
     const words = wordCount(payload.body);
     const journal = Object.assign({
       id: d ? d.id : 'j'+(Date.now()),
-      slug: (payload.title||'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.floor(Math.random()*900+100),
+      slug: slugify(payload.title),
       author_id: state.currentUser.id, status:'published', likes:0, comments:0,
       published_at:new Date().toISOString(), reading_time: readingTimeMinutes(words), featured:false
     }, payload, { excerpt: payload.subtitle || (payload.body.slice(0,140) + '…') });
@@ -1741,12 +1916,15 @@ async function publishJournal(payload){
     localStorage.removeItem('aspinora_draft_' + (d ? d.id : 'new'));
     return journal;
   }
-  const row = Object.assign({ author_id: state.currentUser.id, status:'published', published_at:new Date().toISOString() }, payload);
+  const row = Object.assign(
+    { author_id: state.currentUser.id, status:'published', published_at:new Date().toISOString(), slug: slugify(payload.title) },
+    toSupabaseJournalRow(payload)
+  );
   let result;
   if (state.currentDraftId) result = await supabaseClient.from('journals').update(row).eq('id', state.currentDraftId).select().single();
   else result = await supabaseClient.from('journals').insert(row).select().single();
   if (result.error) throw result.error;
-  return result.data;
+  return normalizeJournalRow(result.data);
 }
 
 /* ------------------------------------------------------------------
@@ -1767,6 +1945,7 @@ function navigateTo(view, params){
   if (view === 'read') renderReadView(params.journalId);
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
+  if (view === 'home' || view === 'explore') renderHomeStatic();
   if (view === 'explore'){
     setTimeout(function(){ const el = qs('#explore-section'); if (el) el.scrollIntoView({ behavior:'smooth' }); }, 60);
   }
@@ -1898,7 +2077,7 @@ async function renderReadView(journalId){
     requireAuth('Log in to appreciate this journal.', async function(){
       await toggleJournalLike(j.id);
       likeBtn.classList.toggle('is-liked');
-      qs('#like-count').textContent = findJournal(j.id).likes;
+      qs('#like-count').textContent = getCachedJournal(j.id).likes;
     });
   };
 
@@ -1913,7 +2092,10 @@ async function renderReadView(journalId){
   };
 
   qs('#share-journal-btn').onclick = async function(){
-    const url = window.location.href.split('#')[0] + '#journal/' + j.slug;
+    const username = authorUsername(j.author_id);
+    const url = username && j.slug
+      ? window.location.origin + '/' + username + '/' + j.slug
+      : window.location.href.split('#')[0];
     if (navigator.share){ try{ await navigator.share({ title:j.title, url:url }); }catch(e){} }
     else{ await navigator.clipboard.writeText(url); showToast('Link copied to clipboard.'); }
   };
@@ -1983,7 +2165,7 @@ async function renderComments(j){
       await postComment(j.id, text, null);
       qs('#new-comment-text').value = '';
       await renderComments(j);
-      qs('#comment-count-display').textContent = findJournal(j.id).comments;
+      qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
     });
   }
 
@@ -1996,7 +2178,7 @@ async function renderComments(j){
   list.innerHTML = roots.map(function(c){ return commentItemHTML(j.id, c); }).join('');
 
   roots.forEach(function(c){
-    const replies = (MOCK_COMMENTS[j.id]||[]).filter(function(x){ return x.parent_id === c.id; });
+    const replies = (COMMENT_CACHE[j.id]||[]).filter(function(x){ return x.parent_id === c.id; });
     if (replies.length){
       const btn = qs('[data-view-replies="' + c.id + '"]');
       btn.hidden = false;
@@ -2047,7 +2229,7 @@ function wireCommentEvents(j){
           qs('[data-view-replies="' + cid + '"]').textContent = 'View replies (' + replies.length + ')';
           qs('#replies-' + cid).innerHTML = replies.map(function(r){ return replyItemHTML(j.id, r); }).join('');
           qs('#replies-' + cid).hidden = false;
-          qs('#comment-count-display').textContent = findJournal(j.id).comments;
+          qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
           wireCommentEvents(j);
         };
       });
@@ -2130,10 +2312,20 @@ async function renderPublishedView(){
   wireGenericButtons();
 }
 
+async function fetchSavedJournals(){
+  if (DEMO_MODE){
+    return MOCK_JOURNALS.filter(function(j){ return state.bookmarkedIds.has(j.id); });
+  }
+  const { data, error } = await supabaseClient.from('bookmarks')
+    .select('journal_id, journals!bookmarks_journal_id_fkey(' + JOURNAL_CARD_FIELDS + ')')
+    .eq('user_id', state.currentUser.id);
+  if (error) throw error;
+  return data.map(function(row){ return normalizeJournalRow(row.journals); }).filter(Boolean);
+}
 async function renderSavedView(){
   const list = qs('#saved-list');
   if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your saved journals.</p></div>'; return; }
-  const rows = MOCK_JOURNALS.filter(function(j){ return state.bookmarkedIds.has(j.id); });
+  const rows = await fetchSavedJournals();
   if (!rows.length){
     list.innerHTML = '<div class="empty-state"><p>Save journals that you want to return to.</p></div>';
     return;
@@ -2221,9 +2413,20 @@ function setSaveStatus(kind){
   else { el.classList.add('is-unsaved'); textEl.textContent = 'Unsaved changes'; }
 }
 
-function renderWriteView(draftId){
+async function renderWriteView(draftId){
   state.currentDraftId = draftId;
-  const existing = draftId ? MOCK_DRAFTS.find(function(d){ return d.id === draftId; }) : null;
+  let existing = null;
+  if (draftId){
+    if (DEMO_MODE){
+      existing = MOCK_DRAFTS.find(function(d){ return d.id === draftId; });
+    } else {
+      try{
+        const { data, error } = await supabaseClient.from('journals').select('*')
+          .eq('id', draftId).eq('author_id', state.currentUser.id).eq('status','draft').single();
+        if (!error && data) existing = fromSupabaseJournalRow(data);
+      }catch(e){ /* fall back to local copy below */ }
+    }
+  }
   const localCopy = loadDraftFromLocalStorage('aspinora_draft_' + (draftId || 'new'));
   writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'' });
 
@@ -2434,10 +2637,10 @@ function initWriteViewEvents(){
 
   qs('#preview-btn').addEventListener('click', function(){
     saveDraftToLocalStorage();
-    const previewJournal = Object.assign({ id:'__preview__', author_id: state.currentUser ? state.currentUser.id : 'demo-user-1',
-      published_at:new Date().toISOString(), likes:0, comments:0, status:'draft' }, writeDraft);
-    MOCK_JOURNALS = MOCK_JOURNALS.filter(function(j){ return j.id !== '__preview__'; });
-    MOCK_JOURNALS.push(previewJournal);
+    PREVIEW_JOURNAL = Object.assign({ id:'__preview__', author_id: state.currentUser ? state.currentUser.id : 'demo-user-1',
+      published_at:new Date().toISOString(), likes:0, comments:0, status:'draft', reading_time: readingTimeMinutes(wordCount(writeDraft.body)) },
+      writeDraft, { excerpt: writeDraft.subtitle || (writeDraft.body||'').slice(0,140) });
+    JOURNAL_CACHE['__preview__'] = PREVIEW_JOURNAL;
     navigateTo('read', { journalId:'__preview__' });
     showToast('This is a preview — it hasn\'t been published.');
   });
@@ -2476,7 +2679,6 @@ async function doPublish(){
     closeModal('publish-modal-scrim');
     showToast('Your journal is live.');
     navigateTo('read', { journalId: journal.id });
-    renderHomeStatic();
   }catch(e){
     showToast("Couldn't publish — please try again.");
   }finally{
@@ -2552,12 +2754,20 @@ function initAuthModal(){
     try{
       const result = mode === 'signup' ? await signUp(email, password, name) : await signIn(email, password);
       state.currentUser = result.user;
+      await hydrateUserActivity(result.user.id);
       syncAuthUI();
       closeModal('auth-modal-scrim');
       showToast('Welcome, ' + result.user.display_name + '.');
       this.reset();
-      if (state.currentView === 'write') renderWriteView(state.currentDraftId);
-      else if (['drafts','notifications','saved','published','read'].indexOf(state.currentView) !== -1) navigateTo(state.currentView, { journalId: state.currentJournalId });
+      if (state.pendingAuthAction){
+        const action = state.pendingAuthAction;
+        state.pendingAuthAction = null;
+        action();
+      } else if (state.currentView === 'write'){
+        renderWriteView(state.currentDraftId);
+      } else if (['drafts','notifications','saved','published','read'].indexOf(state.currentView) !== -1){
+        navigateTo(state.currentView, { journalId: state.currentJournalId });
+      }
     }catch(err){
       showToast(err.message || 'Something went wrong — please try again.');
     }finally{
@@ -2617,7 +2827,7 @@ document.addEventListener('click', function(e){
 /* ------------------------------------------------------------------
    17. APP INIT
    ------------------------------------------------------------------ */
-function init(){
+async function init(){
   wireNav();
   initHamburger();
   initUserDropdown();
@@ -2628,6 +2838,12 @@ function init(){
   initWriteViewEvents();
   syncAuthUI();
 
+  // Restore an existing Supabase session (e.g. from logging in on the
+  // main Aspinora site, which shares this same project) before making
+  // any routing decisions that depend on being logged in.
+  await restoreSession();
+  syncAuthUI();
+
   // CLEAN URL ROUTING FOR journal.aspinora.in/username/slug
   const path = window.location.pathname;
   const parts = path.split('/').filter(Boolean);
@@ -2635,13 +2851,46 @@ function init(){
   if (parts.length === 2) {
     const username = parts[0];
     const slug = parts[1];
-    loadJournalByUsernameAndSlug(username, slug);
+    await loadJournalByUsernameAndSlug(username, slug);
   } else {
     navigateTo('home');
+
+    // Cross-page handoff: index.html links here with ?intent=write
+    // when the person clicks "Start Writing". If they're already
+    // logged in (session just restored above) this drops them
+    // straight into the writer; otherwise requireAuth() opens the
+    // login modal first, and the pendingAuthAction set there sends
+    // them to the writer the moment they log in.
+    const intent = new URLSearchParams(window.location.search).get('intent');
+    if (intent === 'write'){
+      history.replaceState(null, '', window.location.pathname);
+      goToProtectedView('write', 'Log in to start writing a journal.');
+    }
   }
 }
+
 async function loadJournalByUsernameAndSlug(username, slug) {
   try {
+    if (DEMO_MODE){
+      const author = mockAuthorByUsername(username);
+      if (!author){
+        showToast('Journal not found');
+        navigateTo('home');
+        return;
+      }
+      const journal = MOCK_JOURNALS.find(function(j){
+        return j.author_id === author.id && j.slug === slug &&
+               j.status === 'published' && j.visibility === 'public';
+      });
+      if (!journal){
+        showToast('Journal not found');
+        navigateTo('home');
+        return;
+      }
+      navigateTo('read', { journalId: journal.id });
+      return;
+    }
+
     const { data: profile } = await supabaseClient
       .from('profiles')
       .select('id')
@@ -2656,7 +2905,7 @@ async function loadJournalByUsernameAndSlug(username, slug) {
 
     const { data: journal, error } = await supabaseClient
       .from('journals')
-      .select('*')
+      .select(JOURNAL_CARD_FIELDS)
       .eq('author_id', profile.id)
       .eq('slug', slug)
       .eq('status', 'published')
@@ -2669,14 +2918,15 @@ async function loadJournalByUsernameAndSlug(username, slug) {
       return;
     }
 
-    navigateTo('read', { journalId: journal.id });
+    const normalized = normalizeJournalRow(journal);
+    JOURNAL_CACHE[normalized.id] = normalized;
+    navigateTo('read', { journalId: normalized.id });
   } catch (err) {
     console.error(err);
     showToast('Error loading journal');
     navigateTo('home');
   }
 }
-
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();

@@ -1244,7 +1244,7 @@
           <p class="eyebrow" style="color:rgba(255,255,255,0.85)"><span style="background:#fff"></span>YOUR TURN</p>
           <h2>You have something<br>worth saying.</h2>
           <p>Turn your thoughts, experiences and ideas into something others can discover.</p>
-          <a href="#" class="btn btn-primary" id="cta-start-writing" data-auth-open="signup">
+          <a href="#" class="btn btn-primary" id="cta-start-writing">
             Start Writing
             <svg class="arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
@@ -1682,6 +1682,7 @@
   var modal = document.getElementById('auth-modal');
   var panels = Array.prototype.slice.call(document.querySelectorAll('.auth-panel'));
   var lastFocused = null;
+  var pendingWriteRedirect = false; // set when "Start Writing" is clicked while logged out
 
   function showPanel(name){
     panels.forEach(function(p){ p.hidden = (p.getAttribute('data-panel') !== name); });
@@ -1703,6 +1704,7 @@
   function closeAuth(){
     overlay.classList.remove('open');
     document.body.style.overflow = '';
+    pendingWriteRedirect = false;
     if (lastFocused && lastFocused.focus) lastFocused.focus();
   }
 
@@ -1819,6 +1821,11 @@
       setLoading('login-submit', false);
       if (res.error){
         setBanner('login-error', friendlyError(res.error.message));
+        return;
+      }
+      if (pendingWriteRedirect){
+        pendingWriteRedirect = false;
+        window.location.href = 'journal-app.html?intent=write';
         return;
       }
       closeAuth();
@@ -2051,6 +2058,25 @@
       openAuth('reset');
     }
   });
+
+  /* "Start Writing" hands off to the journal app's write view, but
+     only once there's a real session — logged-out visitors are asked
+     to log in first, and land in the writer the moment they do. */
+  var startWritingBtn = document.getElementById('cta-start-writing');
+  if (startWritingBtn){
+    startWritingBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      sb.auth.getSession().then(function(res){
+        var session = res.data && res.data.session;
+        if (session && session.user){
+          window.location.href = 'journal-app.html?intent=write';
+        } else {
+          pendingWriteRedirect = true;
+          openAuth('login');
+        }
+      });
+    });
+  }
 
 })();
 </script>
