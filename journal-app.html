@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Journal — Aspinora</title>
-<meta name="description" content="Read, write and share thoughtful journals with the Aspinora community.">
+<title>Aspinora Writing</title>
+<meta name="description" content="Write privately. Publish beautifully. Share your world. Aspinora Writing is where writers, poets and shayars build a home for their words.">
 <link rel="icon" type="image/png" href="journal-logo.svg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap" rel="stylesheet">
 
 <!-- ============================================================
      SUPABASE CLIENT LIBRARY (CDN — no npm/build tools needed)
@@ -48,6 +48,8 @@
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-devanagari: 'Noto Sans Devanagari', 'Fraunces', serif;
+  --font-nastaliq: 'Noto Nastaliq Urdu', 'Fraunces', serif;
   --font-mono:    'Space Mono', 'SFMono-Regular', monospace;
 
   --container: 1240px;
@@ -393,6 +395,17 @@ section{ padding:36px 0; }
 .read-body hr{ border:none; border-top:1.5px solid var(--line); margin:2em 0; width:60px; }
 .read-body a{ color:var(--orange-deep); text-decoration:underline; }
 .read-body strong{ font-weight:700; }
+/* Shayari — the words are the visual hero: centred, generous
+   line-height, and a script-appropriate typeface. Roman/English
+   Shayari gets a quieter literary treatment (italic serif); Hindi
+   and Urdu scripts get their own typefaces so the script itself is
+   respected rather than approximated in a Latin font. */
+.read-body.is-shayari{ text-align:center; max-width:560px; margin:0 auto; }
+.read-body.is-shayari p{ margin:0 0 1.6em; }
+.read-body[data-script="hindi"]{ font-family:var(--font-devanagari); font-size:1.35rem; line-height:2.15; }
+.read-body[data-script="urdu"]{ font-family:var(--font-nastaliq); direction:rtl; font-size:1.55rem; line-height:2.3; }
+.read-body[data-script="roman"],
+.read-body[data-script="english"]{ font-family:var(--font-display); font-style:italic; font-size:1.28rem; line-height:2; }
 .read-engage{ display:flex; align-items:center; gap:14px; padding:22px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); flex-wrap:wrap; }
 .like-btn{ display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:999px; border:1.5px solid var(--line); background:var(--paper); font-weight:700; font-size:.9rem; color:var(--ink-soft); }
 .like-btn svg{ width:18px; height:18px; }
@@ -522,17 +535,17 @@ section{ padding:36px 0; }
         <svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9h7M8 13h7" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
       </div>
       <div class="nav-brand-text">
-        <span class="t1">Journal</span>
-        <span class="t2">POWERED BY ASPINORA</span>
+        <span class="t1">Aspinora</span>
+        <span class="t2">WRITING</span>
       </div>
     </div>
 
     <nav class="nav-links" aria-label="Main navigation">
       <button type="button" data-nav="home">Home</button>
-      <button type="button" data-nav="explore">Explore</button>
+      <button type="button" data-nav="explore">Discover</button>
       <button type="button" data-nav="write">Write</button>
       <button type="button" data-nav="drafts">My Drafts</button>
-      <button type="button" data-nav="notifications">Notifications<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
+      <button type="button" data-nav="notifications">Updates<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
     </nav>
 
     <div class="nav-right">
@@ -547,11 +560,11 @@ section{ padding:36px 0; }
           <span class="nav-user-name" id="nav-user-name"></span>
         </button>
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
-          <button type="button" data-nav="write" role="menuitem">✍️ Write a Journal</button>
+          <button type="button" data-nav="write" role="menuitem">✍️ Write a Work</button>
           <button type="button" data-nav="drafts" role="menuitem">📝 My Drafts</button>
-          <button type="button" data-nav="published" role="menuitem">📚 My Published Journals</button>
-          <button type="button" data-nav="saved" role="menuitem">🔖 Saved Journals</button>
-          <button type="button" data-nav="notifications" role="menuitem">🔔 Notifications</button>
+          <button type="button" data-nav="published" role="menuitem">📚 My Works</button>
+          <button type="button" data-nav="saved" role="menuitem">🔖 Archive</button>
+          <button type="button" data-nav="notifications" role="menuitem">🔔 Updates</button>
           <hr>
           <button type="button" class="danger" id="sign-out-btn" role="menuitem">Sign Out</button>
         </div>
@@ -570,18 +583,18 @@ section{ padding:36px 0; }
     <svg viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
   </button>
   <button type="button" data-nav="home">Home</button>
-  <button type="button" data-nav="explore">Explore</button>
+  <button type="button" data-nav="explore">Discover</button>
   <button type="button" data-nav="write">Write</button>
   <button type="button" data-nav="drafts">My Drafts</button>
-  <button type="button" data-nav="notifications">Notifications</button>
+  <button type="button" data-nav="notifications">Updates</button>
   <hr>
   <div id="mobile-guest-actions">
     <button type="button" class="btn btn-secondary" style="width:100%;margin-bottom:10px;" data-open-auth="login">Log In</button>
     <button type="button" class="btn btn-primary" style="width:100%;" data-open-auth="signup">Sign Up</button>
   </div>
   <div id="mobile-user-actions" hidden>
-    <button type="button" data-nav="published">My Published Journals</button>
-    <button type="button" data-nav="saved">Saved Journals</button>
+    <button type="button" data-nav="published">My Works</button>
+    <button type="button" data-nav="saved">Archive</button>
     <hr>
     <button type="button" class="danger" id="mobile-sign-out-btn">Sign Out</button>
   </div>
@@ -596,11 +609,11 @@ section{ padding:36px 0; }
     <div class="view-inner" style="padding-top:0;">
 
       <div class="hero container">
-        <p class="eyebrow" style="justify-content:center;">A JOURNAL FOR CURIOUS MINDS</p>
-        <h1>Read what people are thinking.</h1>
-        <p>Stories, ideas, knowledge, study journeys and perspectives — shared by real people, one journal at a time.</p>
+        <p class="eyebrow" style="justify-content:center;">WRITE PRIVATELY · PUBLISH BEAUTIFULLY · SHARE YOUR WORLD</p>
+        <h1>Read what people are creating.</h1>
+        <p>Journals, stories, poetry, Shayari, thoughts and articles — shared by real authors, one Work at a time.</p>
         <div class="hero-actions">
-          <button type="button" class="btn btn-primary" id="hero-explore-btn">Explore journals</button>
+          <button type="button" class="btn btn-primary" id="hero-explore-btn">Discover Works</button>
           <button type="button" class="btn btn-secondary" id="hero-write-btn">Start writing</button>
         </div>
       </div>
@@ -609,7 +622,7 @@ section{ padding:36px 0; }
         <div class="section-head">
           <div>
             <p class="eyebrow">FEATURED</p>
-            <h2>Journals worth your time</h2>
+            <h2>Works worth your time</h2>
           </div>
         </div>
         <div class="j-grid" id="featured-grid"></div>
@@ -638,9 +651,9 @@ section{ padding:36px 0; }
           <div class="search-sort-row">
             <div class="search-box">
               <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-              <input type="search" id="search-input" placeholder="Search title, author, tags…" aria-label="Search journals">
+              <input type="search" id="search-input" placeholder="Search title, author, tags…" aria-label="Search Works">
             </div>
-            <select class="select-sort" id="sort-select" aria-label="Sort journals">
+            <select class="select-sort" id="sort-select" aria-label="Sort Works">
               <option value="latest">Latest</option>
               <option value="appreciated">Most Appreciated</option>
               <option value="discussed">Most Discussed</option>
@@ -650,14 +663,14 @@ section{ padding:36px 0; }
 
         <div class="j-grid" id="latest-grid"></div>
         <div class="load-more-wrap">
-          <button type="button" class="btn btn-secondary" id="load-more-btn">Load more journals</button>
+          <button type="button" class="btn btn-secondary" id="load-more-btn">Load more Works</button>
         </div>
       </section>
 
       <section class="container">
         <div class="section-head">
           <div>
-            <p class="eyebrow">JOURNAL WALL</p>
+            <p class="eyebrow">THE WALL</p>
             <h2>Pinned thoughts, in progress.</h2>
             <p>Short fragments, small realizations and notes from the Aspinora community.</p>
           </div>
@@ -675,8 +688,8 @@ section{ padding:36px 0; }
     <div class="write-header">
       <div class="container write-header-inner">
         <div class="write-header-left">
-          <button type="button" class="btn btn-ghost" data-nav="home">← Back to Journal</button>
-          <span class="write-title-preview" id="write-title-preview">New Journal</span>
+          <button type="button" class="btn btn-ghost" data-nav="home">← Back</button>
+          <span class="write-title-preview" id="write-title-preview">New Work</span>
           <span class="save-status" id="save-status"><span class="dot"></span> <span id="save-status-text">Not saved yet</span></span>
         </div>
         <div class="write-header-right">
@@ -693,17 +706,17 @@ section{ padding:36px 0; }
         <div class="field">
           <label>Category</label>
           <div class="cat-picker" id="write-cat-picker"></div>
-          <div class="error-msg" id="err-category" hidden>Please choose a category for this journal.</div>
+          <div class="error-msg" id="err-category" hidden>Please choose a category for this Work.</div>
         </div>
 
         <div class="field">
-          <input type="text" id="write-title" class="field-title-input" placeholder="Give your thought a title" maxlength="140" aria-label="Journal title">
+          <input type="text" id="write-title" class="field-title-input" placeholder="Give your thought a title" maxlength="140" aria-label="Work title">
           <span class="count"><span id="title-count">0</span>/140</span>
           <div class="error-msg" id="err-title" hidden>A title is required.</div>
         </div>
 
         <div class="field">
-          <input type="text" id="write-subtitle" class="field-subtitle-input" placeholder="A short line that invites people in — optional" maxlength="240" aria-label="Journal subtitle">
+          <input type="text" id="write-subtitle" class="field-subtitle-input" placeholder="A short line that invites people in — optional" maxlength="240" aria-label="Work subtitle">
           <span class="count"><span id="subtitle-count">0</span>/240</span>
         </div>
 
@@ -721,8 +734,8 @@ section{ padding:36px 0; }
             <button type="button" id="undo-btn" title="Undo" aria-label="Undo"><svg viewBox="0 0 20 20" fill="none"><path d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8h-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <button type="button" id="redo-btn" title="Redo" aria-label="Redo"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l4 4-4 4M17 9H8a4 4 0 0 0 0 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
-          <textarea id="write-body" class="editor-textarea" placeholder="Start wherever you are. A thought, a question, a moment worth keeping…" aria-label="Journal body"></textarea>
-          <div class="error-msg" id="err-body" hidden>Your journal needs at least 100 characters.</div>
+          <textarea id="write-body" class="editor-textarea" placeholder="Start wherever you are. A thought, a question, a moment worth keeping…" aria-label="Work body"></textarea>
+          <div class="error-msg" id="err-body" hidden>Your Work needs at least 100 characters.</div>
         </div>
 
         <div class="field">
@@ -734,22 +747,24 @@ section{ padding:36px 0; }
 
         <div class="settings-panel">
           <button type="button" class="settings-toggle" id="settings-toggle" aria-expanded="false">
-            <span>Journal settings</span>
+            <span>Work settings</span>
             <svg viewBox="0 0 20 20" fill="none" id="settings-chevron"><path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
           <div class="settings-body" id="settings-body">
             <div>
               <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Visibility</label>
               <div class="radio-row" id="visibility-row">
-                <label class="radio-pill is-active"><input type="radio" name="visibility" value="public" checked>Public</label>
-                <label class="radio-pill"><input type="radio" name="visibility" value="unlisted">Unlisted</label>
+                <label class="radio-pill"><input type="radio" name="visibility" value="private">Private 🔒</label>
+                <label class="radio-pill"><input type="radio" name="visibility" value="unlisted">Unlisted 🔗</label>
+                <label class="radio-pill is-active"><input type="radio" name="visibility" value="public" checked>Public 🌍</label>
               </div>
+              <p style="margin:8px 0 0;font-size:.78rem;color:var(--ink-faint);line-height:1.5;" id="visibility-hint">Public Works appear on your Portfolio and can be discovered by readers.</p>
             </div>
             <div>
-              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Comments</label>
+              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Impressions</label>
               <div class="radio-row" id="comments-row">
-                <label class="radio-pill is-active"><input type="radio" name="comments" value="on" checked>Allow comments</label>
-                <label class="radio-pill"><input type="radio" name="comments" value="off">Turn comments off</label>
+                <label class="radio-pill is-active"><input type="radio" name="comments" value="on" checked>Allow Impressions</label>
+                <label class="radio-pill"><input type="radio" name="comments" value="off">Turn off Impressions</label>
               </div>
             </div>
             <div>
@@ -798,7 +813,7 @@ section{ padding:36px 0; }
     <div class="view-inner container">
       <div class="section-head">
         <div>
-          <p class="eyebrow">MY PUBLISHED JOURNALS</p>
+          <p class="eyebrow">MY WORKS</p>
           <h2>What you've shared</h2>
         </div>
       </div>
@@ -807,14 +822,14 @@ section{ padding:36px 0; }
   </section>
 
   <!-- ============================================================
-       JOURNAL READING VIEW
+       WORK READING VIEW
        ============================================================ -->
   <section class="view" id="view-read">
     <div class="view-inner container">
       <div class="read-shell">
         <a href="#" class="read-back" data-nav="explore">
           <svg viewBox="0 0 16 16" fill="none" width="15" height="15"><path d="M10 3 5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Back to Explore
+          Back to Discover
         </a>
 
         <div class="read-cover" id="read-cover"></div>
@@ -832,13 +847,13 @@ section{ padding:36px 0; }
           <div class="content-note" id="read-content-note" hidden></div>
           <div class="read-tags" id="read-tags"></div>
           <div class="read-actions-top">
-            <button type="button" class="btn-icon" id="save-journal-btn" title="Save journal" aria-label="Save journal">
+            <button type="button" class="btn-icon" id="save-journal-btn" title="Preserve this Work" aria-label="Preserve this Work">
               <svg viewBox="0 0 20 20" fill="none"><path d="M5 3.5h10a1 1 0 0 1 1 1V17l-6-3.5L4 17V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
             </button>
-            <button type="button" class="btn-icon" id="share-journal-btn" title="Share" aria-label="Share journal">
+            <button type="button" class="btn-icon" id="share-journal-btn" title="Circulate" aria-label="Circulate this Work">
               <svg viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M6.7 9 13.3 6M6.7 11l6.6 3" stroke="currentColor" stroke-width="1.5"/></svg>
             </button>
-            <button type="button" class="btn-icon" id="report-journal-btn" title="Report" aria-label="Report journal">
+            <button type="button" class="btn-icon" id="report-journal-btn" title="Report" aria-label="Report this Work">
               <svg viewBox="0 0 20 20" fill="none"><path d="M5 3v14M5 3h9l-2 3 2 3H5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
             </button>
           </div>
@@ -851,15 +866,15 @@ section{ padding:36px 0; }
             <svg viewBox="0 0 20 20" fill="none"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z" stroke="currentColor" stroke-width="1.6"/></svg>
             <span id="like-count">0</span> Appreciate
           </button>
-          <span style="color:var(--ink-faint);font-size:.86rem;font-family:var(--font-mono);"><span id="comment-count-display">0</span> comments</span>
+          <span style="color:var(--ink-faint);font-size:.86rem;font-family:var(--font-mono);"><span id="comment-count-display">0</span> Impressions</span>
         </div>
 
         <div class="comments-section" id="comments-section">
-          <h2>Conversation</h2>
+          <h2>Impressions</h2>
           <div id="comment-form-wrap"></div>
           <div id="comments-list"></div>
           <div style="text-align:center;margin-top:10px;">
-            <button type="button" class="btn btn-secondary btn-sm" id="load-more-comments-btn" hidden>Show earlier comments</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="load-more-comments-btn" hidden>Show earlier Impressions</button>
           </div>
         </div>
       </div>
@@ -873,7 +888,7 @@ section{ padding:36px 0; }
     <div class="view-inner container" style="max-width:680px;">
       <div class="notif-toolbar">
         <div>
-          <p class="eyebrow">NOTIFICATIONS</p>
+          <p class="eyebrow">UPDATES</p>
           <h2>What's new</h2>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" id="mark-all-read-btn">Mark all as read</button>
@@ -883,14 +898,14 @@ section{ padding:36px 0; }
   </section>
 
   <!-- ============================================================
-       SAVED JOURNALS VIEW
+       ARCHIVE VIEW
        ============================================================ -->
   <section class="view" id="view-saved">
     <div class="view-inner container">
       <div class="section-head">
         <div>
-          <p class="eyebrow">SAVED</p>
-          <h2>Journals you've bookmarked</h2>
+          <p class="eyebrow">ARCHIVE</p>
+          <h2>Works you've preserved</h2>
         </div>
       </div>
       <div class="list-stack" id="saved-list"></div>
@@ -907,8 +922,8 @@ section{ padding:36px 0; }
     <button type="button" class="modal-close" id="auth-modal-close" aria-label="Close">
       <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
-    <h2 id="auth-modal-title">Welcome to Journal</h2>
-    <p class="modal-sub">Log in or create an account to write, appreciate and join the conversation.</p>
+    <h2 id="auth-modal-title">Welcome to Aspinora Writing</h2>
+    <p class="modal-sub">Log in or create an account to write, appreciate and leave Impressions.</p>
 
     <div class="auth-tabs">
       <button type="button" class="is-active" data-auth-tab="login">Log In</button>
@@ -945,12 +960,12 @@ section{ padding:36px 0; }
     <button type="button" class="modal-close" id="publish-modal-close" aria-label="Close">
       <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
-    <h2 id="publish-modal-title">Ready to share this?</h2>
+    <h2 id="publish-modal-title">Ready to publish this Work?</h2>
     <div class="publish-summary" id="publish-summary"></div>
     <p class="publish-reminder">Please publish only your own writing and keep the community respectful.</p>
     <div class="modal-actions">
       <button type="button" class="btn btn-secondary" id="publish-go-back-btn">Go back</button>
-      <button type="button" class="btn btn-primary" id="publish-confirm-btn">Publish journal</button>
+      <button type="button" class="btn btn-primary" id="publish-confirm-btn">Publish</button>
     </div>
   </div>
 </div>
@@ -1023,37 +1038,41 @@ const AUTH_LIVE = !!supabaseClient;
 
 /* ------------------------------------------------------------------
    3. CATEGORIES
+   General creative/personal categories only — no exam or education
+   framing. Shayari is first-class, not a subcategory of Poetry.
    ------------------------------------------------------------------ */
 const CATEGORIES = [
-  { id:1, slug:'stories',      name:'Stories',      color:'#F1631B', soft:'#FCEADC', desc:'Personal stories, experiences and creative writing from real lives.',
-    icon:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" stroke="#F1631B" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9h7M8 13h5" stroke="#F1631B" stroke-width="1.6" stroke-linecap="round"/>' },
-  { id:2, slug:'ideas',        name:'Ideas',        color:'#A79BD1', soft:'#EDE9F7', desc:'Thoughts, opinions, concepts and interesting perspectives worth sitting with.',
-    icon:'<circle cx="12" cy="9" r="5" stroke="#A79BD1" stroke-width="1.6"/><path d="M9.5 17h5M10.5 20h3" stroke="#A79BD1" stroke-width="1.6" stroke-linecap="round"/>' },
-  { id:3, slug:'knowledge',    name:'Knowledge',    color:'#7FB8D9', soft:'#E4F1F7', desc:'Interesting facts, explanations and educational discoveries, explained simply.',
-    icon:'<path d="M4 6.5C7 5 9 5 12 6.5c3-1.5 5-1.5 8 0v11c-3-1.5-5-1.5-8 0-3-1.5-5-1.5-8 0v-11Z" stroke="#7FB8D9" stroke-width="1.6" stroke-linejoin="round"/>' },
-  { id:4, slug:'student-life', name:'Student Life', color:'#7FC8A9', soft:'#E4F4EC', desc:'Exams, preparation, college, career and the everyday chaos in between.',
-    icon:'<path d="M4 9l8-4 8 4-8 4-8-4Z" stroke="#7FC8A9" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 11v4c0 1 2 2 5 2s5-1 5-2v-4" stroke="#7FC8A9" stroke-width="1.6"/>' },
-  { id:5, slug:'creativity',   name:'Creativity',   color:'#FF8B6B', soft:'#FCEADC', desc:'Poetry, art, fiction, experiments and anything made just to make it.',
-    icon:'<path d="M12 4c4 0 7 2.7 7 6.5S16 17 12 17h-1l-2 3v-3.3C6 15.8 5 13.5 5 10.5 5 6.7 8 4 12 4Z" stroke="#FF8B6B" stroke-width="1.6" stroke-linejoin="round"/>' },
-  { id:6, slug:'perspectives', name:'Perspectives', color:'#D4A24C', soft:'#FBF0DC', desc:'Thought-provoking discussions and viewpoints from every angle.',
-    icon:'<circle cx="12" cy="12" r="8" stroke="#D4A24C" stroke-width="1.6"/><path d="M12 4a8 15 0 0 1 0 16 8 15 0 0 1 0-16Z" stroke="#D4A24C" stroke-width="1.6"/>' }
+  { id:1, slug:'journals',  name:'Journals',  color:'#F1631B', soft:'#FCEADC', desc:'Private-feeling entries, day-to-day reflection, and things worth remembering.',
+    icon:'<path d="M6 4.5h9a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4.5Z" stroke="#F1631B" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 9h6M9 12.5h6M9 16h3.5" stroke="#F1631B" stroke-width="1.6" stroke-linecap="round"/>' },
+  { id:2, slug:'stories',   name:'Stories',   color:'#FF8B6B', soft:'#FCEADC', desc:'Personal stories, fiction and narrative writing from real lives and imagined ones.',
+    icon:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" stroke="#FF8B6B" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9h7M8 13h5" stroke="#FF8B6B" stroke-width="1.6" stroke-linecap="round"/>' },
+  { id:3, slug:'poetry',    name:'Poetry',    color:'#A79BD1', soft:'#EDE9F7', desc:'Verse, free-form or structured — image, rhythm and feeling over explanation.',
+    icon:'<path d="M12 4c4 0 7 2.7 7 6.5S16 17 12 17h-1l-2 3v-3.3C6 15.8 5 13.5 5 10.5 5 6.7 8 4 12 4Z" stroke="#A79BD1" stroke-width="1.6" stroke-linejoin="round"/>' },
+  { id:4, slug:'shayari',   name:'Shayari',   color:'#F0B429', soft:'#FBF0DC', desc:'Shayari in Hindi, Urdu, Roman Urdu/Hinglish or English — the words as the visual hero.',
+    icon:'<path d="M5 18.5c3-9 5-13 7-13s4 4 7 13" stroke="#F0B429" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 14.5h8" stroke="#F0B429" stroke-width="1.6" stroke-linecap="round"/>' },
+  { id:5, slug:'thoughts',  name:'Thoughts',  color:'#7FB8D9', soft:'#E4F1F7', desc:'Short reflections, opinions and passing ideas worth sitting with.',
+    icon:'<circle cx="12" cy="9" r="5" stroke="#7FB8D9" stroke-width="1.6"/><path d="M9.5 17h5M10.5 20h3" stroke="#7FB8D9" stroke-width="1.6" stroke-linecap="round"/>' },
+  { id:6, slug:'articles',  name:'Articles',  color:'#7FC8A9', soft:'#E4F4EC', desc:'Longer-form, explanatory writing — explained simply, still worth publishing beautifully.',
+    icon:'<path d="M4 6.5C7 5 9 5 12 6.5c3-1.5 5-1.5 8 0v11c-3-1.5-5-1.5-8 0-3-1.5-5-1.5-8 0v-11Z" stroke="#7FC8A9" stroke-width="1.6" stroke-linejoin="round"/>' }
 ];
-function categoryBySlug(slug){ return CATEGORIES.find(function(c){ return c.slug === slug; }) || CATEGORIES[1]; }
-function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name === name; }) || CATEGORIES[1]; }
-function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[1]; }
+const CREATIVE_IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
+function categoryBySlug(slug){ return CATEGORIES.find(function(c){ return c.slug === slug; }) || CATEGORIES[0]; }
+function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name === name; }) || CATEGORIES[0]; }
+function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[0]; }
 
 /* ------------------------------------------------------------------
    4. MOCK DATA (used only while DEMO_MODE is true)
    ------------------------------------------------------------------ */
-const DEMO_USER = { id:'demo-user-1', display_name:'You', username:'you', bio:'Testing Aspinora Journal.' };
+const DEMO_USER = { id:'demo-user-1', display_name:'You', username:'you', bio:'Testing Aspinora Writing.', creative_identity:'Author' };
 
 const MOCK_AUTHORS = {
-  'a1':{ id:'a1', display_name:'Meera Nair',  username:'meera' },
-  'a2':{ id:'a2', display_name:'Aarav Shah',  username:'aarav' },
-  'a3':{ id:'a3', display_name:'Ishita Rao',  username:'ishita' },
-  'a4':{ id:'a4', display_name:'Kabir Mehta', username:'kabir' },
-  'a5':{ id:'a5', display_name:'Sana Iyer',   username:'sana' },
-  'a6':{ id:'a6', display_name:'Rohan Verma', username:'rohan' },
+  'a1':{ id:'a1', display_name:'Meera Nair',  username:'meera',  creative_identity:'Author' },
+  'a2':{ id:'a2', display_name:'Aarav Shah',  username:'aarav',  creative_identity:'Writer' },
+  'a3':{ id:'a3', display_name:'Ishita Rao',  username:'ishita', creative_identity:'Poet' },
+  'a4':{ id:'a4', display_name:'Kabir Mehta', username:'kabir',  creative_identity:'Storyteller' },
+  'a5':{ id:'a5', display_name:'Sana Iyer',   username:'sana',   creative_identity:'Author' },
+  'a6':{ id:'a6', display_name:'Rohan Verma', username:'rohan',  creative_identity:'Writer' },
+  'a7':{ id:'a7', display_name:'Zoya Khan',   username:'zoya',   creative_identity:'Shayar' },
   'demo-user-1': DEMO_USER
 };
 function mockAuthorByUsername(username){
@@ -1065,25 +1084,27 @@ const SAMPLE_BODY = "Some mornings the library feels less like a building and mo
 
 const MOCK_JOURNALS = [
   { id:'j1', slug:'the-library-at-2am', title:'The Library at 2AM', subtitle:'A quiet essay on the strange comfort of studying when the world is asleep.', excerpt:'A quiet essay on the strange comfort of studying when the world is asleep.', body:SAMPLE_BODY, category:'Stories', tags:['study','night-owl','reflection'], author_id:'a4', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(6), reading_time:4, likes:298, comments:12, featured:true },
-  { id:'j2', slug:'why-we-forget-to-remember', title:'Why We Forget to Remember', subtitle:'A short dive into spaced repetition, and why cramming was never the answer.', excerpt:'A short dive into spaced repetition, and why cramming was never the answer.', body:"We forget most of what we learn within a day — not because our memory is broken, but because it's efficient. The brain treats unused information as clutter and quietly clears it out.\n\n## The forgetting curve\n\nHermann Ebbinghaus mapped this out over a century ago: without review, you lose roughly 70% of new information within 24 hours. The curve is steep, and it doesn't care how interesting the material was.\n\n## Spacing beats cramming\n\nRevisiting material right before you'd naturally forget it resets the curve and makes the next forgetting slower. Five short reviews spread over two weeks will outperform one long cram session every time — even though cramming *feels* more productive in the moment.\n\n- Review after 1 day\n- Review after 3 days\n- Review after 7 days\n- Review after 14 days\n\nNone of this requires an app or a system. A calendar reminder and a little discipline will do.", category:'Knowledge', tags:['learning','memory'], author_id:'a2', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(9), reading_time:5, likes:184, comments:8, featured:true },
-  { id:'j3', slug:'letters-to-my-first-draft', title:'Letters to My First Draft', subtitle:'On writing badly on purpose, and why the first version is allowed to be wrong.', excerpt:'On writing badly on purpose, and why the first version is allowed to be wrong.', body:"Dear first draft,\n\nYou are allowed to be bad. That's the whole point of you.\n\nI used to sit in front of a blank page waiting for the good sentence to arrive first, as if writing were dictation from somewhere smarter than me. Nothing came, obviously, because that's not how any of this works.\n\n## Permission, not perfection\n\nThe first draft's only job is to exist. It doesn't need to be clever. It doesn't need to be organised. It needs to turn a blank page into a page with something on it, because editing a bad paragraph is infinitely easier than editing nothing at all.\n\n> Give yourself permission to write the worst version first. You can always fix it later — but only if it exists.\n\nSo: thank you, first draft, for being clumsy and repetitive and a little too honest. You made the second draft possible.", category:'Creativity', tags:['writing','craft'], author_id:'a3', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(11), reading_time:5, likes:156, comments:6, featured:true },
-  { id:'j4', slug:'the-night-before-finals', title:'The Night Before Finals', subtitle:'What three years of exam-week panic finally taught me about slowing down.', excerpt:'What three years of exam-week panic finally taught me about slowing down.', body:"Every exam season used to start the same way: a colour-coded schedule I'd abandon by day two, and a slow-building panic that peaked the night before the first paper.\n\n## The turning point\n\nIn my third year, I got sick during exam week. Forced to rest, I discovered something uncomfortable — my grades that semester were about the same as always, despite doing less. That single data point undid a lot of assumptions.\n\n- Sleep is not optional, even during finals.\n- A tired brain re-reads the same page without absorbing it.\n- Panic is not the same thing as preparation.\n\nThe night before finals now looks different for me: an early dinner, one final skim of my own notes, and lights off by eleven. It's not dramatic. It's just what actually works.", category:'Student Life', tags:['exams','wellbeing'], author_id:'a1', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(14), reading_time:6, likes:212, comments:15, featured:false },
-  { id:'j5', slug:'grades-vs-curiosity', title:'What If Grades Measured Curiosity?', subtitle:'A thought experiment on rebuilding assessment around wonder, not memorization.', excerpt:'A thought experiment on rebuilding assessment around wonder, not memorization.', body:"Imagine a report card with a column for questions asked instead of only answers given. What would change about how we study?\n\n## A different kind of scorecard\n\nMost grading rewards convergence — arriving at the one correct answer efficiently. Curiosity is divergent by nature; it wanders, doubles back, asks unhelpful questions on purpose. The two don't measure well on the same scale.\n\nThis isn't a call to abolish grades. It's a smaller suggestion: that somewhere in a semester, there should be room to be rewarded for a good question instead of just a correct one.", category:'Ideas', tags:['education'], author_id:'a5', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(16), reading_time:7, likes:167, comments:9, featured:false },
-  { id:'j6', slug:'the-other-side-of-the-desk', title:'The Other Side of the Desk', subtitle:'What tutoring younger students taught me about how differently we all learn.', excerpt:'What tutoring younger students taught me about how differently we all learn.', body:"I started tutoring for the money. I stayed for the accidental education in how differently people's minds work.\n\nOne student needed every concept drawn before it made sense. Another needed to argue with it first. A third just needed quiet and enough time — no explanation at all, only space.\n\n## Teaching as a mirror\n\nExplaining something forces you to notice the gaps in your own understanding. I found several. It also forced me to let go of the idea that there's one right way to learn a thing — a lesson no lecture ever quite taught me from the other side of the desk.", category:'Perspectives', tags:['teaching'], author_id:'a6', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(20), reading_time:6, likes:143, comments:7, featured:false },
-  { id:'j7', slug:'a-quiet-case-for-boredom', title:'A Quiet Case for Boredom', subtitle:'Why I stopped filling every gap with my phone.', excerpt:'Why I stopped filling every gap with my phone.', body:"For a month I tried to notice every time I reached for my phone out of boredom rather than need. The number was higher than I expected, and the boredom itself was gone within seconds every time — before I'd even let it become anything.\n\n## What boredom used to be for\n\nBoredom used to be the waiting room where ideas happened. Some of my best thoughts have arrived on long walks or slow bus rides, precisely because there was nothing else demanding my attention.\n\nI'm not anti-phone. I just miss the gaps.", category:'Ideas', tags:['focus','habits'], author_id:'a3', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(2), reading_time:4, likes:87, comments:3, featured:false },
-  { id:'j8', slug:'notes-on-a-borrowed-language', title:'Notes on a Borrowed Language', subtitle:'Learning to think, and not just speak, in a second language.', excerpt:'Learning to think, and not just speak, in a second language.', body:"For the first year, I translated everything in my head before I said it. Somewhere in year two, a sentence arrived already formed in the new language — no translation step at all. I still don't know exactly when that shift happened.\n\n## The gap between speaking and thinking\n\nFluency, it turns out, isn't a vocabulary milestone. It's the disappearance of the translation step itself, and it happens quietly, without an obvious before-and-after.", category:'Knowledge', tags:['language'], author_id:'a2', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(4), reading_time:5, likes:121, comments:5, featured:false },
-  { id:'j9', slug:'a-poem-for-unfinished-things', title:'A Poem for Unfinished Things', subtitle:'', excerpt:'Small verses about the drafts, sketches and half-built ideas we don\u2019t throw away.', body:"the half-built shelf leans\nagainst a wall that forgave it\nlong before I did\n\n---\n\nsomewhere a notebook\nkeeps forty unfinished lines\nlike pressed flowers, waiting\n\n---\n\nnot every draft\nis a failure in disguise —\nsome are just resting", category:'Creativity', tags:['poetry'], author_id:'a3', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(1), reading_time:2, likes:64, comments:2, featured:false }
+  { id:'j2', slug:'why-we-forget-to-remember', title:'Why We Forget to Remember', subtitle:'A short dive into spaced repetition, and why cramming was never the answer.', excerpt:'A short dive into spaced repetition, and why cramming was never the answer.', body:"We forget most of what we learn within a day — not because our memory is broken, but because it's efficient. The brain treats unused information as clutter and quietly clears it out.\n\n## The forgetting curve\n\nHermann Ebbinghaus mapped this out over a century ago: without review, you lose roughly 70% of new information within 24 hours. The curve is steep, and it doesn't care how interesting the material was.\n\n## Spacing beats cramming\n\nRevisiting material right before you'd naturally forget it resets the curve and makes the next forgetting slower. Five short reviews spread over two weeks will outperform one long cram session every time — even though cramming *feels* more productive in the moment.\n\n- Review after 1 day\n- Review after 3 days\n- Review after 7 days\n- Review after 14 days\n\nNone of this requires an app or a system. A calendar reminder and a little discipline will do.", category:'Articles', tags:['learning','memory'], author_id:'a2', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(9), reading_time:5, likes:184, comments:8, featured:true },
+  { id:'j3', slug:'letters-to-my-first-draft', title:'Letters to My First Draft', subtitle:'On writing badly on purpose, and why the first version is allowed to be wrong.', excerpt:'On writing badly on purpose, and why the first version is allowed to be wrong.', body:"Dear first draft,\n\nYou are allowed to be bad. That's the whole point of you.\n\nI used to sit in front of a blank page waiting for the good sentence to arrive first, as if writing were dictation from somewhere smarter than me. Nothing came, obviously, because that's not how any of this works.\n\n## Permission, not perfection\n\nThe first draft's only job is to exist. It doesn't need to be clever. It doesn't need to be organised. It needs to turn a blank page into a page with something on it, because editing a bad paragraph is infinitely easier than editing nothing at all.\n\n> Give yourself permission to write the worst version first. You can always fix it later — but only if it exists.\n\nSo: thank you, first draft, for being clumsy and repetitive and a little too honest. You made the second draft possible.", category:'Thoughts', tags:['writing','craft'], author_id:'a3', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(11), reading_time:5, likes:156, comments:6, featured:true },
+  { id:'j4', slug:'the-night-before-finals', title:'The Night Before Finals', subtitle:'What three years of exam-week panic finally taught me about slowing down.', excerpt:'What three years of exam-week panic finally taught me about slowing down.', body:"Every exam season used to start the same way: a colour-coded schedule I'd abandon by day two, and a slow-building panic that peaked the night before the first paper.\n\n## The turning point\n\nIn my third year, I got sick during exam week. Forced to rest, I discovered something uncomfortable — my grades that semester were about the same as always, despite doing less. That single data point undid a lot of assumptions.\n\n- Sleep is not optional, even during finals.\n- A tired brain re-reads the same page without absorbing it.\n- Panic is not the same thing as preparation.\n\nThe night before finals now looks different for me: an early dinner, one final skim of my own notes, and lights off by eleven. It's not dramatic. It's just what actually works.", category:'Journals', tags:['exams','wellbeing'], author_id:'a1', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(14), reading_time:6, likes:212, comments:15, featured:false },
+  { id:'j5', slug:'grades-vs-curiosity', title:'What If Grades Measured Curiosity?', subtitle:'A thought experiment on rebuilding assessment around wonder, not memorization.', excerpt:'A thought experiment on rebuilding assessment around wonder, not memorization.', body:"Imagine a report card with a column for questions asked instead of only answers given. What would change about how we study?\n\n## A different kind of scorecard\n\nMost grading rewards convergence — arriving at the one correct answer efficiently. Curiosity is divergent by nature; it wanders, doubles back, asks unhelpful questions on purpose. The two don't measure well on the same scale.\n\nThis isn't a call to abolish grades. It's a smaller suggestion: that somewhere in a semester, there should be room to be rewarded for a good question instead of just a correct one.", category:'Thoughts', tags:['education'], author_id:'a5', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(16), reading_time:7, likes:167, comments:9, featured:false },
+  { id:'j6', slug:'the-other-side-of-the-desk', title:'The Other Side of the Desk', subtitle:'What tutoring younger students taught me about how differently we all learn.', excerpt:'What tutoring younger students taught me about how differently we all learn.', body:"I started tutoring for the money. I stayed for the accidental education in how differently people's minds work.\n\nOne student needed every concept drawn before it made sense. Another needed to argue with it first. A third just needed quiet and enough time — no explanation at all, only space.\n\n## Teaching as a mirror\n\nExplaining something forces you to notice the gaps in your own understanding. I found several. It also forced me to let go of the idea that there's one right way to learn a thing — a lesson no lecture ever quite taught me from the other side of the desk.", category:'Thoughts', tags:['teaching'], author_id:'a6', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(20), reading_time:6, likes:143, comments:7, featured:false },
+  { id:'j7', slug:'a-quiet-case-for-boredom', title:'A Quiet Case for Boredom', subtitle:'Why I stopped filling every gap with my phone.', excerpt:'Why I stopped filling every gap with my phone.', body:"For a month I tried to notice every time I reached for my phone out of boredom rather than need. The number was higher than I expected, and the boredom itself was gone within seconds every time — before I'd even let it become anything.\n\n## What boredom used to be for\n\nBoredom used to be the waiting room where ideas happened. Some of my best thoughts have arrived on long walks or slow bus rides, precisely because there was nothing else demanding my attention.\n\nI'm not anti-phone. I just miss the gaps.", category:'Journals', tags:['focus','habits'], author_id:'a3', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(2), reading_time:4, likes:87, comments:3, featured:false },
+  { id:'j8', slug:'notes-on-a-borrowed-language', title:'Notes on a Borrowed Language', subtitle:'Learning to think, and not just speak, in a second language.', excerpt:'Learning to think, and not just speak, in a second language.', body:"For the first year, I translated everything in my head before I said it. Somewhere in year two, a sentence arrived already formed in the new language — no translation step at all. I still don't know exactly when that shift happened.\n\n## The gap between speaking and thinking\n\nFluency, it turns out, isn't a vocabulary milestone. It's the disappearance of the translation step itself, and it happens quietly, without an obvious before-and-after.", category:'Articles', tags:['language'], author_id:'a2', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(4), reading_time:5, likes:121, comments:5, featured:false },
+  { id:'j9', slug:'a-poem-for-unfinished-things', title:'A Poem for Unfinished Things', subtitle:'', excerpt:'Small verses about the drafts, sketches and half-built ideas we don\u2019t throw away.', body:"the half-built shelf leans\nagainst a wall that forgave it\nlong before I did\n\n---\n\nsomewhere a notebook\nkeeps forty unfinished lines\nlike pressed flowers, waiting\n\n---\n\nnot every draft\nis a failure in disguise —\nsome are just resting", category:'Poetry', tags:['poetry'], author_id:'a3', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(1), reading_time:2, likes:64, comments:2, featured:false },
+  { id:'j10', slug:'chaand-bhi-thak-kar', title:'चाँद भी थक कर', subtitle:'A short Shayari on the quiet hours.', excerpt:'चाँद भी थक कर उधर छुप गया, रात मेरी बात सुनते सुनते जाग गया।', body:"चाँद भी थक कर उधर छुप गया,\nरात मेरी बात सुनते सुनते जाग गया।\n\nसुबह की पहली किरण ने पूछा,\nकल रात किसका ज़िक्र था, बता भी दो।", script:'hindi', category:'Shayari', tags:['shayari','raat'], author_id:'a7', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(3), reading_time:1, likes:212, comments:9, featured:true },
+  { id:'j11', slug:'khamoshi-hi-zaban-thi', title:'Khamoshi Hi Zaban Thi', subtitle:'Roman Urdu / Hinglish Shayari.', excerpt:'dil ki baat labon tak aate aate ruk gayi, shayad khamoshi hi sabse acchi zaban thi.', body:"dil ki baat labon tak aate aate ruk gayi,\nshayad khamoshi hi sabse acchi zaban thi.\n\nkuch log likh kar keh dete hain,\nhum thehre, aur baat wahin reh gayi.", script:'roman', category:'Shayari', tags:['shayari','khamoshi'], author_id:'a7', status:'published', visibility:'public', allow_comments:true, content_note:'', published_at:daysAgo(7), reading_time:1, likes:178, comments:5, featured:false }
 ];
 
 const MOCK_WALL_POSTS = [
   { id:'w1', category:'Stories', body:'There is something about rain on exam day that makes even bad results feel survivable.', author_id:'a1', published_at:hoursAgo(48), likes:34 },
-  { id:'w2', category:'Ideas', body:'What if every course ended with a question instead of an answer?', author_id:'a5', published_at:hoursAgo(96), likes:41 },
-  { id:'w3', category:'Knowledge', body:'You lose about 70% of new information within 24 hours — unless you revisit it.', author_id:'a2', published_at:hoursAgo(168), likes:52 },
-  { id:'w4', category:'Student Life', body:'A very unscientific ranking of every group project archetype known to man.', author_id:'a4', published_at:hoursAgo(72), likes:29 },
-  { id:'w5', category:'Creativity', body:'a poem about the hum of a desk lamp and the shape of an unfinished sentence.', author_id:'a3', published_at:hoursAgo(120), likes:23 },
-  { id:'w6', category:'Perspectives', body:'Why the quietest person in the room usually has the most fully-formed opinion.', author_id:'a6', published_at:hoursAgo(144), likes:38 },
+  { id:'w2', category:'Thoughts', body:'What if every course ended with a question instead of an answer?', author_id:'a5', published_at:hoursAgo(96), likes:41 },
+  { id:'w3', category:'Articles', body:'You lose about 70% of new information within 24 hours — unless you revisit it.', author_id:'a2', published_at:hoursAgo(168), likes:52 },
+  { id:'w4', category:'Journals', body:'A very unscientific ranking of every group project archetype known to man.', author_id:'a4', published_at:hoursAgo(72), likes:29 },
+  { id:'w5', category:'Poetry', body:'a poem about the hum of a desk lamp and the shape of an unfinished sentence.', author_id:'a3', published_at:hoursAgo(120), likes:23 },
+  { id:'w6', category:'Thoughts', body:'Why the quietest person in the room usually has the most fully-formed opinion.', author_id:'a6', published_at:hoursAgo(144), likes:38 },
   { id:'w7', category:'Stories', body:'My professor was wrong. And the semester I spent proving it taught me more than the class itself.', author_id:'a1', published_at:hoursAgo(24), likes:47 },
-  { id:'w8', category:'Ideas', body:'A small case for the friction of handwriting in a frictionless world.', author_id:'a5', published_at:hoursAgo(200), likes:19 }
+  { id:'w8', category:'Thoughts', body:'A small case for the friction of handwriting in a frictionless world.', author_id:'a5', published_at:hoursAgo(200), likes:19 }
 ];
 
 function daysAgo(n){ return new Date(Date.now() - n*86400000).toISOString(); }
@@ -1114,7 +1135,7 @@ let MOCK_NOTIFICATIONS = [
 /* Demo drafts belonging to the demo user, so My Drafts isn't empty
    on first load. */
 let MOCK_DRAFTS = [
-  { id:'d1', author_id:'demo-user-1', category:'Ideas', title:'On choosing a major nobody understands', subtitle:'', body:'I get the same three questions every time I mention my major, and I still don\u2019t have a tidy answer for any of them.\n\nMaybe the honest version is that I chose it because it was the only class that made me lose track of time.', tags:['career'], visibility:'public', allow_comments:true, content_note:'', status:'draft', updated_at:hoursAgo(20) },
+  { id:'d1', author_id:'demo-user-1', category:'Thoughts', title:'On choosing a major nobody understands', subtitle:'', body:'I get the same three questions every time I mention my major, and I still don\u2019t have a tidy answer for any of them.\n\nMaybe the honest version is that I chose it because it was the only class that made me lose track of time.', tags:['career'], visibility:'public', allow_comments:true, content_note:'', status:'draft', updated_at:hoursAgo(20) },
   { id:'d2', author_id:'demo-user-1', category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'', status:'draft', updated_at:hoursAgo(80) }
 ];
 let nextDraftId = 3;
@@ -1530,7 +1551,7 @@ const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, 
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
-    return MOCK_JOURNALS.filter(function(j){ return j.featured; }).slice(0,3);
+    return MOCK_JOURNALS.filter(function(j){ return j.featured && j.status === 'published' && j.visibility === 'public'; }).slice(0,3);
   }
   // 👉 SUPABASE: only card fields, never the full body.
   const { data, error } = await supabaseClient
@@ -1550,7 +1571,7 @@ async function fetchLatestJournals(opts){
   opts = opts || {};
   const page = opts.page || 1, pageSize = opts.pageSize || 6;
   if (DEMO_MODE){
-    let list = MOCK_JOURNALS.slice();
+    let list = MOCK_JOURNALS.filter(function(j){ return j.status === 'published' && j.visibility === 'public'; });
     if (opts.category && opts.category !== 'all'){
       list = list.filter(function(j){ return categoryByName(j.category).slug === opts.category; });
     }
@@ -1604,7 +1625,8 @@ async function fetchLatestJournals(opts){
 async function fetchCategoryCounts(){
   if (DEMO_MODE){
     const counts = {};
-    MOCK_JOURNALS.forEach(function(j){ counts[j.category] = (counts[j.category]||0) + 1; });
+    MOCK_JOURNALS.filter(function(j){ return j.status === 'published' && j.visibility === 'public'; })
+      .forEach(function(j){ counts[j.category] = (counts[j.category]||0) + 1; });
     return counts;
   }
   // 👉 SUPABASE: tally published+public journals per category_id
@@ -1667,13 +1689,21 @@ async function fetchJournal(idOrSlug){
   if (idOrSlug === '__preview__') return PREVIEW_JOURNAL;
   if (DEMO_MODE){
     const j = findJournal(idOrSlug);
-    if (j) JOURNAL_CACHE[j.id] = j;
+    if (!j) return null;
+    const isOwner = !!(state.currentUser && state.currentUser.id === j.author_id);
+    // Private: only the author can open it. Unlisted: anyone with the
+    // link can, but it's excluded from feeds/Discover/Portfolio
+    // elsewhere. Drafts are never reachable through the read view.
+    if (j.status !== 'published' && !isOwner) return null;
+    if (j.visibility === 'private' && !isOwner) return null;
+    JOURNAL_CACHE[j.id] = j;
     return j;
   }
   const { data, error } = await supabaseClient.from('journals')
     .select(JOURNAL_CARD_FIELDS)
     .or('id.eq.' + idOrSlug + ',slug.eq.' + idOrSlug)
-    .eq('status', 'published').eq('visibility', 'public')
+    .eq('status', 'published')
+    .neq('visibility', 'private')
     .single();
   if (error) throw error;
   const j = normalizeJournalRow(data);
@@ -2013,7 +2043,7 @@ async function renderFeatured(){
   try{
     const rows = await fetchFeaturedJournals();
     grid.innerHTML = rows.map(journalCardHTML).join('');
-  }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load featured journals right now.</p>'; }
+  }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load featured Works right now.</p>'; }
 }
 
 async function renderCategoryGrid(){
@@ -2024,7 +2054,7 @@ async function renderCategoryGrid(){
     return '<button type="button" class="cat-card" data-filter-category="' + c.slug + '">' +
       '<span class="cat-icon" style="background:' + c.soft + '"><svg viewBox="0 0 24 24" fill="none" width="22" height="22">' + c.icon + '</svg></span>' +
       '<h3>' + c.name + '</h3><p>' + c.desc + '</p>' +
-      '<span class="cat-count">' + count + (count===1?' journal':' journals') + '</span>' +
+      '<span class="cat-count">' + count + (count===1?' Work':' Works') + '</span>' +
     '</button>';
   }).join('');
 }
@@ -2048,9 +2078,9 @@ async function renderLatestFeed(){
       category: state.activeFilter, sort: state.activeSort, search: state.searchQuery
     });
     grid.innerHTML = result.rows.length ? result.rows.map(journalCardHTML).join('') :
-      '<div class="empty-state" style="grid-column:1/-1;"><p>No journals match that search yet.</p></div>';
+      '<div class="empty-state" style="grid-column:1/-1;"><p>No Works match that search yet.</p></div>';
     qs('#load-more-btn').style.display = result.rows.length < result.total ? 'inline-flex' : 'none';
-  }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load journals right now.</p>'; }
+  }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load Works right now.</p>'; }
 }
 
 function wallNoteHTML(w){
@@ -2103,14 +2133,17 @@ async function renderReadView(journalId){
   } else { noteEl.hidden = true; }
 
   qs('#read-tags').innerHTML = (j.tags||[]).map(function(t){ return '<span class="read-tag">#' + escapeHtml(t) + '</span>'; }).join('');
-  qs('#read-body').innerHTML = markdownToHtml(j.body);
+  const bodyEl = qs('#read-body');
+  bodyEl.innerHTML = markdownToHtml(j.body);
+  bodyEl.classList.toggle('is-shayari', j.category === 'Shayari');
+  if (j.script){ bodyEl.setAttribute('data-script', j.script); } else { bodyEl.removeAttribute('data-script'); }
 
   const likeBtn = qs('#like-btn');
   const liked = state.likedJournalIds.has(j.id);
   likeBtn.classList.toggle('is-liked', liked);
   qs('#like-count').textContent = j.likes;
   likeBtn.onclick = function(){
-    requireAuth('Log in to appreciate this journal.', async function(){
+    requireAuth('Log in to appreciate this Work.', async function(){
       await toggleJournalLike(j.id);
       likeBtn.classList.toggle('is-liked');
       qs('#like-count').textContent = getCachedJournal(j.id).likes;
@@ -2120,10 +2153,10 @@ async function renderReadView(journalId){
   const saveBtn = qs('#save-journal-btn');
   saveBtn.classList.toggle('is-active', state.bookmarkedIds.has(j.id));
   saveBtn.onclick = function(){
-    requireAuth('Log in to save this journal.', async function(){
+    requireAuth('Log in to preserve this Work.', async function(){
       await toggleBookmark(j.id);
       saveBtn.classList.toggle('is-active');
-      showToast(state.bookmarkedIds.has(j.id) ? 'Saved to your journals.' : 'Removed from saved.');
+      showToast(state.bookmarkedIds.has(j.id) ? 'Preserved to your Archive.' : 'Removed from Archive.');
     });
   };
 
@@ -2136,7 +2169,7 @@ async function renderReadView(journalId){
     else{ await navigator.clipboard.writeText(url); showToast('Link copied to clipboard.'); }
   };
   qs('#report-journal-btn').onclick = function(){
-    requireAuth('Log in to report a journal.', function(){ showToast('Thanks — our moderators will take a look.'); });
+    requireAuth('Log in to report a Work.', function(){ showToast('Thanks — our moderators will take a look.'); });
   };
 
   qs('#comment-count-display').textContent = j.comments;
@@ -2150,7 +2183,7 @@ function commentActionsHTML(journalId, c, isReply){
     '<button type="button" class="comment-action-btn' + (liked?' is-liked':'') + '" data-like-comment="' + c.id + '" data-like-journal="' + journalId + '">' +
       '<svg viewBox="0 0 20 20" fill="' + (liked?'currentColor':'none') + '"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z" stroke="currentColor" stroke-width="1.5"/></svg> ' + c.likes +
     '</button>' +
-    (isReply ? '' : '<button type="button" class="comment-action-btn" data-reply-to="' + c.id + '" data-reply-name="' + escapeHtml(authorName(c.author_id)) + '">Reply</button>') +
+    (isReply ? '' : '<button type="button" class="comment-action-btn" data-reply-to="' + c.id + '" data-reply-name="' + escapeHtml(authorName(c.author_id)) + '">Response</button>') +
     (isOwn ? '<button type="button" class="comment-action-btn" data-edit-comment="' + c.id + '">Edit</button>' : '') +
     (isOwn ? '<button type="button" class="comment-action-btn" data-delete-comment="' + c.id + '">Delete</button>' : '') +
     (isOwn ? '' : '<button type="button" class="comment-action-btn" data-report-comment="' + c.id + '">Report</button>') +
@@ -2179,20 +2212,20 @@ function replyItemHTML(journalId, r){
 async function renderComments(j){
   const wrap = qs('#comment-form-wrap');
   if (!j.allow_comments){
-    wrap.innerHTML = '<p class="guest-cta">The author has turned comments off for this journal.</p>';
+    wrap.innerHTML = '<p class="guest-cta">The author has turned off Impressions for this Work.</p>';
     qs('#comments-list').innerHTML = '';
     return;
   }
   if (!state.currentUser){
-    wrap.innerHTML = '<div class="guest-cta">Log in to join the conversation.<br><br>' +
+    wrap.innerHTML = '<div class="guest-cta">Log in to leave an Impression.<br><br>' +
       '<button type="button" class="btn btn-primary btn-sm" data-open-auth="login">Log In</button></div>';
   } else {
     wrap.innerHTML =
       '<div class="comment-form">' + avatarHTML(state.currentUser.id, state.currentUser.display_name) +
       '<div class="comment-form-body">' +
-        '<textarea class="textarea" id="new-comment-text" maxlength="1500" placeholder="Respond thoughtfully…" aria-label="Write a comment"></textarea>' +
+        '<textarea class="textarea" id="new-comment-text" maxlength="1500" placeholder="Respond thoughtfully…" aria-label="Leave an Impression"></textarea>' +
         '<div class="comment-form-actions"><span class="count"><span id="new-comment-count">0</span>/1500</span>' +
-        '<button type="button" class="btn btn-primary btn-sm" id="submit-comment-btn">Add Comment</button></div>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="submit-comment-btn">Leave Impression</button></div>' +
       '</div></div>';
     qs('#new-comment-text').addEventListener('input', function(){ qs('#new-comment-count').textContent = this.value.length; });
     qs('#submit-comment-btn').addEventListener('click', async function(){
@@ -2218,7 +2251,7 @@ async function renderComments(j){
     if (replies.length){
       const btn = qs('[data-view-replies="' + c.id + '"]');
       btn.hidden = false;
-      btn.textContent = 'View replies (' + replies.length + ')';
+      btn.textContent = 'View Responses (' + replies.length + ')';
     }
   });
   wireCommentEvents(j);
@@ -2227,7 +2260,7 @@ async function renderComments(j){
 function wireCommentEvents(j){
   qsa('[data-like-comment]').forEach(function(btn){
     btn.onclick = function(){
-      requireAuth('Log in to like comments.', async function(){
+      requireAuth('Log in to appreciate Impressions.', async function(){
         await toggleCommentLike(this.getAttribute('data-like-journal'), this.getAttribute('data-like-comment'));
         renderComments(j);
       }.bind(this));
@@ -2246,7 +2279,7 @@ function wireCommentEvents(j){
   });
   qsa('[data-reply-to]').forEach(function(btn){
     btn.onclick = function(){
-      requireAuth('Log in to reply.', function(){
+      requireAuth('Log in to leave a Response.', function(){
         const cid = btn.getAttribute('data-reply-to');
         const name = btn.getAttribute('data-reply-name');
         const box = qs('#reply-compose-' + cid);
@@ -2254,7 +2287,7 @@ function wireCommentEvents(j){
         box.hidden = false;
         box.innerHTML = '<div class="replying-to">Replying to ' + escapeHtml(name) + '</div>' +
           '<textarea class="textarea" maxlength="1500" placeholder="Write a reply…" style="min-height:60px;"></textarea>' +
-          '<div class="comment-form-actions" style="margin-top:8px;"><span></span><button type="button" class="btn btn-primary btn-sm">Reply</button></div>';
+          '<div class="comment-form-actions" style="margin-top:8px;"><span></span><button type="button" class="btn btn-primary btn-sm">Response</button></div>';
         box.querySelector('button').onclick = async function(){
           const text = box.querySelector('textarea').value.trim();
           if (!text) return;
@@ -2262,7 +2295,7 @@ function wireCommentEvents(j){
           box.hidden = true;
           qs('[data-view-replies="' + cid + '"]').hidden = false;
           const replies = await fetchReplies(j.id, cid);
-          qs('[data-view-replies="' + cid + '"]').textContent = 'View replies (' + replies.length + ')';
+          qs('[data-view-replies="' + cid + '"]').textContent = 'View Responses (' + replies.length + ')';
           qs('#replies-' + cid).innerHTML = replies.map(function(r){ return replyItemHTML(j.id, r); }).join('');
           qs('#replies-' + cid).hidden = false;
           qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
@@ -2295,7 +2328,7 @@ function wireCommentEvents(j){
     };
   });
   qsa('[data-report-comment]').forEach(function(btn){
-    btn.onclick = function(){ requireAuth('Log in to report a comment.', function(){ showToast('Thanks — our moderators will take a look.'); }); };
+    btn.onclick = function(){ requireAuth('Log in to report an Impression.', function(){ showToast('Thanks — our moderators will take a look.'); }); };
   });
   qsa('[data-open-auth]').forEach(function(btn){
     btn.onclick = function(){ openAuthModal(btn.getAttribute('data-open-auth')); };
@@ -2322,7 +2355,7 @@ async function renderDraftsView(){
     const words = wordCount(d.body);
     return '<div class="draft-card">' +
       '<div class="draft-strip" style="background:' + cat.color + '"></div>' +
-      '<div class="draft-info"><h3>' + escapeHtml(d.title || 'Untitled journal') + '</h3>' +
+      '<div class="draft-info"><h3>' + escapeHtml(d.title || 'Untitled Work') + '</h3>' +
       '<p>' + escapeHtml((d.body||'').slice(0,120) || 'Nothing written yet.') + (d.body && d.body.length>120?'…':'') + '</p>' +
       '<div class="draft-meta"><span>Saved ' + formatRelativeTime(d.updated_at) + '</span><span>' + words + ' words</span></div>' +
       '<div class="draft-actions"><button type="button" class="btn btn-secondary btn-sm" data-continue-draft="' + d.id + '">Continue writing</button>' +
@@ -2341,10 +2374,10 @@ async function renderDraftsView(){
 
 async function renderPublishedView(){
   const grid = qs('#published-grid');
-  if (!state.currentUser){ grid.innerHTML = '<div class="empty-state"><p>Log in to see your published journals.</p></div>'; return; }
+  if (!state.currentUser){ grid.innerHTML = '<div class="empty-state"><p>Log in to see your Works.</p></div>'; return; }
   const rows = await fetchPublished();
   grid.innerHTML = rows.length ? rows.map(journalCardHTML).join('') :
-    '<div class="empty-state" style="grid-column:1/-1;"><p>You haven\'t published a journal yet.</p><button type="button" class="btn btn-primary" data-nav="write">Start writing</button></div>';
+    '<div class="empty-state" style="grid-column:1/-1;"><p>You haven\'t published a Work yet.</p><button type="button" class="btn btn-primary" data-nav="write">Start writing</button></div>';
   wireGenericButtons();
 }
 
@@ -2360,17 +2393,17 @@ async function fetchSavedJournals(){
 }
 async function renderSavedView(){
   const list = qs('#saved-list');
-  if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your saved journals.</p></div>'; return; }
+  if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your Archive.</p></div>'; return; }
   const rows = await fetchSavedJournals();
   if (!rows.length){
-    list.innerHTML = '<div class="empty-state"><p>Save journals that you want to return to.</p></div>';
+    list.innerHTML = '<div class="empty-state"><p>Preserve Works that you want to return to.</p></div>';
     return;
   }
   list.innerHTML = rows.map(function(j){
     return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category) + '</div>' +
       '<div class="draft-info"><h3>' + escapeHtml(j.title) + '</h3><p>' + escapeHtml(j.excerpt) + '</p>' +
       '<div class="draft-meta"><span>' + authorName(j.author_id) + '</span></div>' +
-      '<div class="draft-actions"><button type="button" class="btn btn-primary btn-sm" data-open-journal="' + j.id + '">Read journal</button>' +
+      '<div class="draft-actions"><button type="button" class="btn btn-primary btn-sm" data-open-journal="' + j.id + '">Read Work</button>' +
       '<button type="button" class="btn btn-secondary btn-sm" data-unsave="' + j.id + '">Remove bookmark</button></div></div></div>';
   }).join('');
   qsa('[data-unsave]').forEach(function(b){ b.onclick = async function(){ await toggleBookmark(b.getAttribute('data-unsave')); renderSavedView(); }; });
@@ -2378,21 +2411,21 @@ async function renderSavedView(){
 }
 
 const NOTIF_COPY = {
-  like_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> appreciated your journal.'; },
-  comment_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> commented on your journal.'; },
-  reply_comment: function(n){ return '<b>' + authorName(n.actor_id) + '</b> replied to your comment.'; },
-  journal_published: function(n){ return n.message || 'Your journal was published.'; }
+  like_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> appreciated your Work.'; },
+  comment_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> left an Impression on your Work.'; },
+  reply_comment: function(n){ return '<b>' + authorName(n.actor_id) + '</b> left a Response to your Impression.'; },
+  journal_published: function(n){ return n.message || 'Your Work was published.'; }
 };
 async function renderNotificationsView(){
   const list = qs('#notifications-list');
-  if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your notifications.</p></div>'; return; }
+  if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your Updates.</p></div>'; return; }
   const rows = await fetchNotifications();
   if (!rows.length){
-    list.innerHTML = '<div class="empty-state"><p>No new notes from the community yet.</p></div>';
+    list.innerHTML = '<div class="empty-state"><p>No new updates from the community yet.</p></div>';
     return;
   }
   list.innerHTML = rows.map(function(n){
-    const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new notification.'; };
+    const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new update.'; };
     return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-journal="' + (n.journal_id||'') + '">' +
       (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:var(--ink-faint)">✦</span>') +
       '<div><div class="n-msg">' + copyFn(n) + '</div><div class="n-time">' + formatRelativeTime(n.created_at) + '</div></div>' +
@@ -2509,8 +2542,15 @@ function renderTagChips(){
   });
 }
 
+const VISIBILITY_HINTS = {
+  private: 'Private Works are only ever visible to you.',
+  unlisted: 'Unlisted Works are reachable via their direct link, but won\u2019t appear on your Portfolio or in Discover.',
+  public: 'Public Works appear on your Portfolio and can be discovered by readers.'
+};
 function syncSettingsRadios(){
   qsa('input[name="visibility"]').forEach(function(r){ r.checked = r.value === writeDraft.visibility; r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
+  const hint = qs('#visibility-hint');
+  if (hint) hint.textContent = VISIBILITY_HINTS[writeDraft.visibility] || VISIBILITY_HINTS.public;
   qsa('input[name="comments"]').forEach(function(r){ r.checked = (r.value === 'on') === writeDraft.allow_comments; r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
   qsa('input[name="content_note"]').forEach(function(r){ r.checked = r.value === (writeDraft.content_note || ''); r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
 }
@@ -2698,7 +2738,7 @@ function openPublishModal(){
     ['Title', writeDraft.title],
     ['Category', writeDraft.category],
     ['Reading time', readingTimeMinutes(words) + ' min'],
-    ['Visibility', writeDraft.visibility === 'public' ? 'Public' : 'Unlisted'],
+    ['Visibility', writeDraft.visibility === 'public' ? 'Public 🌍' : writeDraft.visibility === 'unlisted' ? 'Unlisted 🔗' : 'Private 🔒'],
     ['Comments', writeDraft.allow_comments ? 'Allowed' : 'Turned off'],
     ['Excerpt', (writeDraft.subtitle || writeDraft.body.slice(0,110) + '…')]
   ].map(function(row){ return '<div class="publish-summary-row"><span class="k">' + row[0] + '</span><span class="v">' + escapeHtml(String(row[1])) + '</span></div>'; }).join('');
@@ -2713,13 +2753,16 @@ async function doPublish(){
     const journal = await publishJournal(Object.assign({}, writeDraft));
     localStorage.removeItem(localDraftKey());
     closeModal('publish-modal-scrim');
-    showToast('Your journal is live.');
+    const msg = journal.visibility === 'private' ? 'Saved privately — only you can see this Work.'
+      : journal.visibility === 'unlisted' ? 'Published — reachable by its link, not listed on your Portfolio.'
+      : 'Your Work is live on your Portfolio.';
+    showToast(msg);
     navigateTo('read', { journalId: journal.id });
   }catch(e){
     showToast("Couldn't publish — please try again.");
   }finally{
     btn.disabled = false;
-    btn.textContent = 'Publish journal';
+    btn.textContent = 'Publish';
   }
 }
 
@@ -2735,11 +2778,11 @@ function wireNav(){
       const view = this.getAttribute('data-nav');
       closeMobileMenu();
       qs('#nav-dropdown').classList.remove('open');
-      if (view === 'write') goToProtectedView('write', 'Log in to start writing a journal.');
+      if (view === 'write') goToProtectedView('write', 'Log in to start writing a Work.');
       else if (view === 'drafts') goToProtectedView('drafts', 'Log in to see your drafts.');
-      else if (view === 'notifications') goToProtectedView('notifications', 'Log in to see your notifications.');
-      else if (view === 'saved') goToProtectedView('saved', 'Log in to see your saved journals.');
-      else if (view === 'published') goToProtectedView('published', 'Log in to see your published journals.');
+      else if (view === 'notifications') goToProtectedView('notifications', 'Log in to see your Updates.');
+      else if (view === 'saved') goToProtectedView('saved', 'Log in to see your Archive.');
+      else if (view === 'published') goToProtectedView('published', 'Log in to see your Works.');
       else navigateTo(view);
     });
   });
@@ -2906,7 +2949,7 @@ async function init(){
     const intent = new URLSearchParams(window.location.search).get('intent');
     if (intent === 'write'){
       history.replaceState(null, '', window.location.pathname);
-      goToProtectedView('write', 'Log in to start writing a journal.');
+      goToProtectedView('write', 'Log in to start writing a Work.');
     }
   }
 }
@@ -2916,7 +2959,7 @@ async function loadJournalByUsernameAndSlug(username, slug) {
     if (DEMO_MODE){
       const author = mockAuthorByUsername(username);
       if (!author){
-        showToast('Journal not found');
+        showToast('Work not found');
         navigateTo('home');
         return;
       }
@@ -2925,7 +2968,7 @@ async function loadJournalByUsernameAndSlug(username, slug) {
                j.status === 'published' && j.visibility === 'public';
       });
       if (!journal){
-        showToast('Journal not found');
+        showToast('Work not found');
         navigateTo('home');
         return;
       }
@@ -2940,7 +2983,7 @@ async function loadJournalByUsernameAndSlug(username, slug) {
       .single();
 
     if (!profile) {
-      showToast('Journal not found');
+      showToast('Work not found');
       navigateTo('home');
       return;
     }
@@ -2955,7 +2998,7 @@ async function loadJournalByUsernameAndSlug(username, slug) {
       .single();
 
     if (error || !journal) {
-      showToast('Journal not found');
+      showToast('Work not found');
       navigateTo('home');
       return;
     }
@@ -2965,7 +3008,7 @@ async function loadJournalByUsernameAndSlug(username, slug) {
     navigateTo('read', { journalId: normalized.id });
   } catch (err) {
     console.error(err);
-    showToast('Error loading journal');
+    showToast('Error loading Work');
     navigateTo('home');
   }
 }
@@ -2986,12 +3029,22 @@ else init();
      along these lines (write them in the Supabase SQL editor, not here):
 
      1. journals
-        - Public SELECT only where status = 'published' AND
-          visibility = 'public'.
+        - Public SELECT where status = 'published' AND
+          visibility IN ('public','unlisted') — unlisted rows are
+          fetchable by id/slug (direct link) but the app never lists
+          them in feeds, Discover, or a Portfolio, so don't rely on
+          RLS to hide them from listings; RLS only needs to allow the
+          single-row fetch.
+        - visibility = 'private' rows are NEVER selectable by anyone
+          except the owner (see the next bullet) — no public policy
+          should reference them at all.
         - A logged-in user may additionally SELECT their own rows
-          (drafts included) where author_id = auth.uid().
+          (drafts and private Works included) where author_id = auth.uid().
         - INSERT only allowed where author_id = auth.uid().
         - UPDATE / DELETE only allowed where author_id = auth.uid().
+          DELETE must be a real row delete (not a soft "hidden" flag)
+          so a removed Work stops existing and stops being reachable
+          by its old link, per the product spec.
 
      2. comments
         - Public SELECT where status = 'visible'.
