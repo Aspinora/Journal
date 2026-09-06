@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aspinora Writing</title>
 <meta name="description" content="Write privately. Publish beautifully. Share your world. Aspinora Writing is where writers, poets and shayars build a home for their words.">
-<link rel="icon" type="image/png" href="journal-logo.svg">
+<link rel="icon" type="image/svg+xml" href="journal-logo.svg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -63,6 +63,10 @@
 }
 
 *,*::before,*::after{ box-sizing:border-box; }
+/* Same-specificity trap: `.nav-guest-actions{ display:flex }` below
+   would otherwise beat the `hidden` attribute and the guest buttons
+   would keep showing after login. Force it globally. */
+[hidden]{ display:none !important; }
 html{ scroll-behavior:smooth; }
 html,body{ margin:0; padding:0; }
 body{
@@ -131,8 +135,8 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
 }
 .nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:24px; padding:14px 0; }
 .nav-brand{ display:flex; align-items:center; gap:10px; }
-.nav-logo{ width:38px; height:38px; border-radius:11px; background:var(--orange); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.nav-logo svg{ width:20px; height:20px; }
+.nav-logo{ width:38px; height:38px; border-radius:11px; overflow:hidden; flex-shrink:0; }
+.nav-logo svg{ width:100%; height:100%; display:block; }
 .nav-brand-text{ display:flex; flex-direction:column; line-height:1.15; }
 .nav-brand-text .t1{ font-family:var(--font-display); font-weight:700; font-size:1.12rem; }
 .nav-brand-text .t2{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.06em; color:var(--ink-faint); }
@@ -290,6 +294,7 @@ section{ padding:36px 0; }
 
 /* ============ FORM ELEMENTS ============ */
 .field{ margin-bottom:20px; }
+.field-hint{ margin:6px 0 0; font-size:.78rem; color:var(--ink-faint); line-height:1.45; }
 .field label{ display:block; font-weight:700; font-size:.86rem; margin-bottom:8px; }
 .field .hint{ font-size:.78rem; color:var(--ink-faint); margin-top:6px; }
 .field .count{ font-family:var(--font-mono); font-size:.74rem; color:var(--ink-faint); float:right; }
@@ -532,7 +537,14 @@ section{ padding:36px 0; }
   <div class="container nav-inner">
     <div class="nav-brand">
       <div class="nav-logo">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9h7M8 13h7" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aspinora Writing logo">
+          <rect width="64" height="64" rx="16" fill="#E8F0FB"/>
+          <g transform="rotate(45 32 32)">
+            <rect x="24" y="12" width="16" height="34" rx="3" stroke="#3E6FD8" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M24 22H40" stroke="#3E6FD8" stroke-width="2"/>
+            <path d="M24 46L32 58L40 46Z" stroke="#3E6FD8" stroke-width="2.2" stroke-linejoin="round"/>
+          </g>
+        </svg>
       </div>
       <div class="nav-brand-text">
         <span class="t1">Aspinora</span>
@@ -936,12 +948,13 @@ section{ padding:36px 0; }
 
     <form id="auth-form">
       <div class="field" id="signup-name-field" hidden>
-        <label for="auth-name">Display name</label>
-        <input type="text" id="auth-name" class="input" placeholder="e.g. Priya Sharma">
+        <label for="auth-username">Username</label>
+        <input type="text" id="auth-username" class="input" placeholder="e.g. priya_writes" autocomplete="username" maxlength="20">
+        <p class="field-hint">This is your handle and Portfolio link — you can add your real name later in your profile.</p>
       </div>
       <div class="field">
-        <label for="auth-email">Email</label>
-        <input type="email" id="auth-email" class="input" placeholder="you@example.com">
+        <label for="auth-email" id="auth-email-label">Email</label>
+        <input type="text" id="auth-email" class="input" placeholder="you@example.com" autocomplete="username email">
       </div>
       <div class="field">
         <label for="auth-password">Password</label>
@@ -1123,6 +1136,43 @@ let MOCK_COMMENTS = {
     { id:'c5', journal_id:'j2', parent_id:null, author_id:'a1', body:'Spacing repetition changed how I study completely. Wish I had read this in my first year.', created_at:hoursAgo(50), likes:11 }
   ]
 };
+
+/* ------------------------------------------------------------------
+   DEMO PERSISTENCE
+   DEMO_MODE content (MOCK_JOURNALS, MOCK_COMMENTS, likes, bookmarks)
+   otherwise lives only in memory, so a page refresh silently threw
+   away anything you'd just published or commented on. This mirrors
+   that state into localStorage so it survives reloads within the
+   same browser. Bump DEMO_DB_VERSION if the mock data shape changes
+   in a way that would make old saved data invalid.
+   ------------------------------------------------------------------ */
+const DEMO_DB_VERSION = 2;
+const DEMO_DB_KEY = 'aspinora_demo_db_v' + DEMO_DB_VERSION;
+function persistDemoDB(){
+  if (!DEMO_MODE) return;
+  try{
+    localStorage.setItem(DEMO_DB_KEY, JSON.stringify({
+      journals: MOCK_JOURNALS,
+      comments: MOCK_COMMENTS,
+      drafts: MOCK_DRAFTS,
+      likedIds: Array.from(state.likedJournalIds),
+      bookmarkedIds: Array.from(state.bookmarkedIds)
+    }));
+  }catch(e){ /* storage full or unavailable — fail silently, demo still works this session */ }
+}
+function loadDemoDB(){
+  if (!DEMO_MODE) return;
+  try{
+    const raw = localStorage.getItem(DEMO_DB_KEY);
+    if (!raw) return;
+    const db = JSON.parse(raw);
+    if (Array.isArray(db.journals)) MOCK_JOURNALS.splice(0, MOCK_JOURNALS.length, ...db.journals);
+    if (db.comments) MOCK_COMMENTS = db.comments;
+    if (Array.isArray(db.drafts)) MOCK_DRAFTS = db.drafts;
+    if (Array.isArray(db.likedIds)) state.likedJournalIds = new Set(db.likedIds);
+    if (Array.isArray(db.bookmarkedIds)) state.bookmarkedIds = new Set(db.bookmarkedIds);
+  }catch(e){ /* corrupt/old data — just keep the fresh seed */ }
+}
 let nextCommentId = 6;
 
 let MOCK_NOTIFICATIONS = [
@@ -1347,25 +1397,58 @@ document.addEventListener('keydown', function(e){
 /* ------------------------------------------------------------------
    7. AUTH
    ------------------------------------------------------------------ */
-async function signIn(email, password){
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+/* Login accepts either an email or a username. Supabase's own
+   signInWithPassword only takes an email/phone, so a bare username
+   has to be turned into its email first via the get_email_for_username
+   Postgres function documented in the SUPABASE RLS REQUIREMENTS notes
+   at the bottom of this file — that keeps the lookup narrow (just the
+   one email, only when the username actually exists) instead of
+   requiring a broad public-read policy on emails. */
+async function resolveLoginEmail(identifier){
+  if (identifier.indexOf('@') !== -1) return identifier;
+  if (!AUTH_LIVE) return identifier;
+  const { data, error } = await supabaseClient.rpc('get_email_for_username', { lookup_username: identifier.toLowerCase() });
+  if (error || !data) throw new Error("We couldn't find an account with that username.");
+  return data;
+}
+async function isUsernameAvailable(username){
+  if (!AUTH_LIVE){
+    return !Object.keys(MOCK_AUTHORS).some(function(k){ return MOCK_AUTHORS[k].username === username; });
+  }
+  const { data } = await supabaseClient.from('profiles').select('id').eq('username', username).maybeSingle();
+  return !data;
+}
+async function signIn(identifier, password){
   if (!AUTH_LIVE){
     // Only reachable if the Supabase SDK failed to initialise at all.
     // Journal content still works via DEMO_MODE regardless.
     return { user: DEMO_USER };
   }
+  const email = await resolveLoginEmail(identifier.trim());
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return { user: await loadProfile(data.user) };
 }
-async function signUp(email, password, displayName){
+async function signUp(username, email, password){
+  username = (username || '').trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(username)){
+    throw new Error('Usernames need to be 3–20 characters: lowercase letters, numbers or underscores.');
+  }
   if (!AUTH_LIVE){
-    return { user: Object.assign({}, DEMO_USER, { display_name: displayName || 'You' }) };
+    return { user: Object.assign({}, DEMO_USER, { username: username, display_name: username }) };
+  }
+  if (!(await isUsernameAvailable(username))){
+    throw new Error('That username is already taken — try another.');
   }
   // A database trigger creates the matching `profiles` row for the new
-  // auth.users id — same trigger index.html's sign-up relies on.
+  // auth.users id — same trigger index.html's sign-up relies on. The
+  // real name isn't collected here on purpose (see product spec): the
+  // username doubles as the display name until it's changed later in
+  // profile settings.
   const { data, error } = await supabaseClient.auth.signUp({
     email, password,
-    options: { data: { display_name: displayName, username: email.split('@')[0] } }
+    options: { data: { display_name: username, username: username } }
   });
   if (error) throw error;
   const identities = data && data.user && data.user.identities;
@@ -1397,7 +1480,7 @@ async function loadProfile(authUser){
     return {
       id: userId,
       username: meta.username || (email ? email.split('@')[0] : userId),
-      display_name: meta.display_name || (email ? email.split('@')[0] : 'You'),
+      display_name: meta.display_name || meta.username || (email ? email.split('@')[0] : 'You'),
       bio: ''
     };
   }
@@ -1497,6 +1580,17 @@ function openAuthModal(tab){
 function setAuthTab(tab){
   qsa('[data-auth-tab]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-auth-tab') === tab); });
   qs('#signup-name-field').hidden = tab !== 'signup';
+  const emailLabel = qs('#auth-email-label');
+  const emailInput = qs('#auth-email');
+  if (tab === 'signup'){
+    emailLabel.textContent = 'Email';
+    emailInput.placeholder = 'you@example.com';
+    emailInput.setAttribute('autocomplete', 'email');
+  } else {
+    emailLabel.textContent = 'Email or Username';
+    emailInput.placeholder = 'you@example.com or your_username';
+    emailInput.setAttribute('autocomplete', 'username');
+  }
   qs('#auth-modal-title').textContent = tab === 'signup' ? 'Create your account' : 'Welcome back';
   qs('#auth-submit-btn').textContent = !AUTH_LIVE ? 'Continue as Demo User' : (tab === 'signup' ? 'Sign Up' : 'Log In');
   qs('#auth-form').setAttribute('data-mode', tab);
@@ -1759,6 +1853,7 @@ async function postComment(journalId, body, parentId){
   if (!COMMENT_CACHE[journalId]) COMMENT_CACHE[journalId] = [];
   COMMENT_CACHE[journalId].push(c);
   const j = getCachedJournal(journalId); if (j) j.comments++;
+  persistDemoDB();
   return c;
 }
 async function deleteComment(journalId, commentId){
@@ -1770,11 +1865,13 @@ async function deleteComment(journalId, commentId){
   }
   COMMENT_CACHE[journalId] = (COMMENT_CACHE[journalId]||[]).filter(function(c){ return c.id !== commentId && c.parent_id !== commentId; });
   const j = getCachedJournal(journalId); if (j) j.comments = Math.max(0, j.comments - 1);
+  persistDemoDB();
 }
 async function editComment(journalId, commentId, newBody){
   if (DEMO_MODE){
     const c = (MOCK_COMMENTS[journalId]||[]).find(function(x){ return x.id === commentId; });
     if (c) c.body = newBody;
+    persistDemoDB();
   } else {
     const { error } = await supabaseClient.from('comments').update({ body:newBody, updated_at:new Date().toISOString() }).eq('id', commentId).eq('author_id', state.currentUser.id);
     if (error) throw error;
@@ -1862,13 +1959,34 @@ function unreadNotifCount(){
 /* ------------------------------------------------------------------
    9. LIKES, BOOKMARKS, DRAFTS, PUBLISHING
    ------------------------------------------------------------------ */
+/* Reads (not "Views" — see terminology). Seed data doesn't carry an
+   explicit reads count for every entry, so this derives a stable
+   placeholder from likes until a real count exists on the row. Once
+   `j.reads` is set (by recordRead below), that's used instead. */
+function readsFor(j){ return (j.reads != null) ? j.reads : Math.round((j.likes||0) * 4.5) + 60; }
+function recordRead(j){
+  if (!DEMO_MODE || !j) return;
+  // A real backend should count reads server-side (e.g. an RPC call)
+  // so this can't be trivially inflated by refreshing; the localStorage
+  // "seen" set here just keeps the demo from re-counting the same
+  // browser opening the same Work over and over.
+  try{
+    const seenKey = 'aspinora_reads_seen';
+    const seen = new Set(JSON.parse(localStorage.getItem(seenKey) || '[]'));
+    if (seen.has(j.id)) return;
+    seen.add(j.id);
+    localStorage.setItem(seenKey, JSON.stringify(Array.from(seen)));
+    j.reads = readsFor(j) + 1;
+    persistDemoDB();
+  }catch(e){ /* localStorage unavailable — reads just won't tick up this session */ }
+}
 async function toggleJournalLike(journalId){
   const j = getCachedJournal(journalId);
   const already = state.likedJournalIds.has(journalId);
   // optimistic UI update
   if (already){ state.likedJournalIds.delete(journalId); if (j) j.likes--; }
   else { state.likedJournalIds.add(journalId); if (j) j.likes++; }
-  if (DEMO_MODE) return;
+  if (DEMO_MODE){ persistDemoDB(); return; }
   try{
     if (already){
       await supabaseClient.from('journal_likes').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id);
@@ -1888,7 +2006,7 @@ async function toggleJournalLike(journalId){
 async function toggleBookmark(journalId){
   const already = state.bookmarkedIds.has(journalId);
   if (already) state.bookmarkedIds.delete(journalId); else state.bookmarkedIds.add(journalId);
-  if (DEMO_MODE) return;
+  if (DEMO_MODE){ persistDemoDB(); return; }
   try{
     if (already) await supabaseClient.from('bookmarks').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id);
     else await supabaseClient.from('bookmarks').insert({ journal_id: journalId, user_id: state.currentUser.id });
@@ -1941,6 +2059,7 @@ async function persistDraft(draftPayload, showSavingState){
       Object.assign(d, draftPayload, { updated_at:new Date().toISOString() });
     }
     setSaveStatus('saved');
+    persistDemoDB();
     return d;
   }
   // 👉 SUPABASE: upsert the draft journal row for this user.
@@ -1960,7 +2079,7 @@ async function persistDraft(draftPayload, showSavingState){
   }
 }
 async function deleteDraft(draftId){
-  if (DEMO_MODE){ MOCK_DRAFTS = MOCK_DRAFTS.filter(function(d){ return d.id !== draftId; }); }
+  if (DEMO_MODE){ MOCK_DRAFTS = MOCK_DRAFTS.filter(function(d){ return d.id !== draftId; }); persistDemoDB(); }
   else { await supabaseClient.from('journals').delete().eq('id', draftId).eq('author_id', state.currentUser.id); }
   localStorage.removeItem('aspinora_draft_' + draftId);
 }
@@ -1980,6 +2099,7 @@ async function publishJournal(payload){
     if (d) MOCK_DRAFTS = MOCK_DRAFTS.filter(function(x){ return x.id !== d.id; });
     MOCK_JOURNALS.unshift(journal);
     localStorage.removeItem('aspinora_draft_' + (d ? d.id : 'new'));
+    persistDemoDB();
     return journal;
   }
   const row = Object.assign(
@@ -1996,8 +2116,19 @@ async function publishJournal(payload){
 /* ------------------------------------------------------------------
    10. NAVIGATION
    ------------------------------------------------------------------ */
+/* Simple views map straight onto a fixed path; 'read' and 'portfolio'
+   build their path once the actual journal/author is known (see
+   renderReadView and renderPortfolioView), since they need data that
+   isn't available synchronously here. */
+const VIEW_PATHS = { home:'/', explore:'/', drafts:'/drafts', published:'/published', saved:'/saved', notifications:'/notifications' };
+function setPath(path, replace){
+  if (!path || window.location.pathname === path) return;
+  const fn = replace ? 'replaceState' : 'pushState';
+  history[fn]({ aspinoraNav:true }, '', path);
+}
 function navigateTo(view, params){
   params = params || {};
+  const replace = !!params.replace;
   state.currentView = view;
   qsa('.view').forEach(function(v){ v.classList.remove('active'); });
   const targetId = '#view-' + (view === 'explore' ? 'home' : view);
@@ -2005,10 +2136,12 @@ function navigateTo(view, params){
   qsa('[data-nav]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-nav') === view); });
   window.scrollTo({ top:0, behavior:'auto' });
 
-  if (view === 'write') renderWriteView(params.draftId || null);
+  if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
+  if (view === 'write'){ setPath(params.draftId ? '/write/' + params.draftId : '/write', replace); renderWriteView(params.draftId || null); }
   if (view === 'drafts') renderDraftsView();
   if (view === 'published') renderPublishedView();
-  if (view === 'read') renderReadView(params.journalId);
+  if (view === 'read') renderReadView(params.journalId, replace);
+  if (view === 'portfolio') renderPortfolioView(params.username, replace);
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
   if (view === 'home' || view === 'explore') renderHomeStatic();
@@ -2032,7 +2165,7 @@ function journalCardHTML(j){
         '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
       '</div>' +
       '<div class="j-stats"><span>♥ ' + j.likes + '</span><span>💬 ' + j.comments + '</span></div>' +
-      '<button type="button" class="j-read" data-open-journal="' + j.id + '">Read Journal ' +
+      '<button type="button" class="j-read" data-open-journal="' + j.id + '">Read Work ' +
         '<svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
     '</div></article>';
 }
@@ -2111,11 +2244,19 @@ function renderHomeStatic(){
 /* ------------------------------------------------------------------
    12. READING VIEW + COMMENTS
    ------------------------------------------------------------------ */
-async function renderReadView(journalId){
+async function renderReadView(journalId, replace){
   state.currentJournalId = journalId;
   state.visibleRootComments = 10;
   const j = await fetchJournal(journalId);
   if (!j){ navigateTo('home'); return; }
+
+  // Reflect the clean, shareable URL for this Work once we actually
+  // know it (never blocks the reading view over a URL nicety).
+  const authorRow = MOCK_AUTHORS[j.author_id];
+  if (DEMO_MODE && authorRow && authorRow.username && j.slug){
+    setPath('/' + authorRow.username + '/' + j.slug, !!replace);
+  }
+  recordRead(j);
 
   qs('#read-cover').innerHTML = coverHTML(j.category);
   qs('#read-title').textContent = j.title;
@@ -2825,13 +2966,13 @@ function initAuthModal(){
   qs('#auth-form').addEventListener('submit', async function(e){
     e.preventDefault();
     const mode = this.getAttribute('data-mode') || 'login';
-    const email = qs('#auth-email').value.trim();
+    const identifier = qs('#auth-email').value.trim();
     const password = qs('#auth-password').value;
-    const name = qs('#auth-name').value.trim();
+    const username = qs('#auth-username').value.trim();
     const btn = qs('#auth-submit-btn');
     btn.disabled = true;
     try{
-      const result = mode === 'signup' ? await signUp(email, password, name) : await signIn(email, password);
+      const result = mode === 'signup' ? await signUp(username, identifier, password) : await signIn(identifier, password);
       if (result.needsVerification){
         closeModal('auth-modal-scrim');
         showToast('Check ' + result.email + ' for a confirmation link to finish signing up.');
@@ -2913,6 +3054,7 @@ document.addEventListener('click', function(e){
    17. APP INIT
    ------------------------------------------------------------------ */
 async function init(){
+  loadDemoDB();
   wireNav();
   initHamburger();
   initUserDropdown();
@@ -2929,17 +3071,30 @@ async function init(){
   await restoreSession();
   syncAuthUI();
 
-  // CLEAN URL ROUTING FOR journal.aspinora.in/username/slug
+  await routeFromPath(true);
+  window.addEventListener('popstate', function(){ routeFromPath(false); });
+}
+
+/* ------------------------------------------------------------------
+   CLEAN URL ROUTING
+   /               -> home
+   /write           -> new Work
+   /write/<draftId> -> continue an existing draft
+   /drafts /published /saved /notifications -> the matching private view
+   /<username>              -> that author's Portfolio
+   /<username>/<slug>       -> that specific Work
+   Refreshing or opening any of these directly restores that exact
+   screen instead of always falling back to the homepage. `replace`
+   is true only for the very first load, so we don't leave a
+   duplicate history entry behind the URL the browser already had.
+   ------------------------------------------------------------------ */
+const RESERVED_PATHS = ['write', 'drafts', 'published', 'saved', 'notifications', 'home'];
+async function routeFromPath(replace){
   const path = window.location.pathname;
   const parts = path.split('/').filter(Boolean);
 
-  if (parts.length === 2) {
-    const username = parts[0];
-    const slug = parts[1];
-    await loadJournalByUsernameAndSlug(username, slug);
-  } else {
-    navigateTo('home');
-
+  if (parts.length === 0){
+    navigateTo('home', { replace: replace });
     // Cross-page handoff: index.html links here with ?intent=write
     // when the person clicks "Start Writing". If they're already
     // logged in (session just restored above) this drops them
@@ -2951,28 +3106,49 @@ async function init(){
       history.replaceState(null, '', window.location.pathname);
       goToProtectedView('write', 'Log in to start writing a Work.');
     }
+    return;
   }
+
+  if (RESERVED_PATHS.includes(parts[0])){
+    if (parts[0] === 'write'){ navigateTo('write', { draftId: parts[1] || null, replace: replace }); return; }
+    if (parts[0] === 'home'){ navigateTo('home', { replace: replace }); return; }
+    navigateTo(parts[0], { replace: replace });
+    return;
+  }
+
+  if (parts.length === 1){
+    navigateTo('portfolio', { username: parts[0], replace: replace });
+    return;
+  }
+
+  if (parts.length === 2){
+    await loadJournalByUsernameAndSlug(parts[0], parts[1], replace);
+    return;
+  }
+
+  navigateTo('home', { replace: replace });
 }
 
-async function loadJournalByUsernameAndSlug(username, slug) {
+async function loadJournalByUsernameAndSlug(username, slug, replace) {
   try {
     if (DEMO_MODE){
       const author = mockAuthorByUsername(username);
       if (!author){
         showToast('Work not found');
-        navigateTo('home');
+        navigateTo('home', { replace: replace });
         return;
       }
+      const isOwner = !!(state.currentUser && state.currentUser.id === author.id);
       const journal = MOCK_JOURNALS.find(function(j){
-        return j.author_id === author.id && j.slug === slug &&
-               j.status === 'published' && j.visibility === 'public';
+        return j.author_id === author.id && j.slug === slug && j.status === 'published' &&
+               (j.visibility !== 'private' || isOwner);
       });
       if (!journal){
         showToast('Work not found');
-        navigateTo('home');
+        navigateTo('home', { replace: replace });
         return;
       }
-      navigateTo('read', { journalId: journal.id });
+      navigateTo('read', { journalId: journal.id, replace: replace });
       return;
     }
 
@@ -2988,14 +3164,11 @@ async function loadJournalByUsernameAndSlug(username, slug) {
       return;
     }
 
-    const { data: journal, error } = await supabaseClient
-      .from('journals')
-      .select(JOURNAL_CARD_FIELDS)
-      .eq('author_id', profile.id)
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .eq('visibility', 'public')
-      .single();
+    const isOwner = !!(state.currentUser && state.currentUser.id === profile.id);
+    let journalQuery = supabaseClient.from('journals').select(JOURNAL_CARD_FIELDS)
+      .eq('author_id', profile.id).eq('slug', slug).eq('status', 'published');
+    if (!isOwner) journalQuery = journalQuery.neq('visibility', 'private');
+    const { data: journal, error } = await journalQuery.single();
 
     if (error || !journal) {
       showToast('Work not found');
@@ -3077,6 +3250,37 @@ else init();
      6. profiles
         - Public SELECT of small public fields (display_name, username)
           is fine. UPDATE only allowed where id = auth.uid().
+        - `username` needs a UNIQUE constraint (case-insensitive — a
+          `citext` column or a unique index on `lower(username)`) so
+          two people can't claim the same handle, and so it can double
+          as a login identifier and a Portfolio URL segment.
+        - Never expose real emails through a public policy on this
+          table (or any other) — that's what the function below is
+          for instead.
+
+     7. Username login (email is never exposed to the client)
+        Login accepts either an email or a username. Supabase's auth
+        API only takes an email/phone, so a bare username needs to be
+        turned into its email server-side. Add this as a SECURITY
+        DEFINER Postgres function (SQL editor), and grant EXECUTE to
+        the `anon` role so the frontend can call it via `.rpc(...)`:
+
+          create or replace function get_email_for_username(lookup_username text)
+          returns text
+          language sql
+          security definer
+          set search_path = public
+          as $$
+            select email from auth.users
+            where id = (select id from profiles where username = lookup_username)
+            limit 1;
+          $$;
+
+        This only ever returns the one email needed to attempt a
+        login — it doesn't expose a general "list emails" endpoint,
+        and a wrong/unknown username just returns null, which the
+        frontend turns into a generic "no account found" message
+        rather than confirming which usernames exist.
 
      Moderation actions (hiding a comment, removing a journal, acting
      on a report) should be restricted to rows where the requesting
