@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  // Single Page Apps for GitHub Pages
+  // https://github.com/rafgraph/spa-github-pages
+  // GitHub Pages can't rewrite arbitrary paths to this file server-side,
+  // so a direct visit or refresh on e.g. /priya/my-work would 404 before
+  // this page's own JS ever runs. 404.html catches that and redirects
+  // here with the real path encoded in the query string; this restores
+  // it via history.replaceState *before* anything below reads
+  // window.location, so the app's own router (see routeFromPath) sees
+  // the real path exactly as if the server had served it directly.
+  (function(l){
+    if (l.search[1] === '/'){
+      var decoded = l.search.slice(1).split('&').map(function(s){
+        return s.replace(/~and~/g, '&');
+      }).join('?');
+      window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
+    }
+  }(window.location));
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aspinora Writing</title>
@@ -120,6 +139,7 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
 .btn-icon{ width:38px; height:38px; padding:0; border-radius:50%; background:var(--paper); border:1.5px solid var(--line); color:var(--ink-soft); }
 .btn-icon:hover{ border-color:var(--orange); color:var(--orange-deep); }
 .btn-icon.is-active{ background:var(--orange-soft); border-color:var(--orange); color:var(--orange-deep); }
+.btn-icon.is-flagged{ background:#FBEAE5; border-color:#B3432B; color:#B3432B; }
 
 /* ============ AVATAR ============ */
 .avatar{
@@ -274,6 +294,23 @@ section{ padding:36px 0; }
 
 /* ============ WALL NOTES ============ */
 .wall-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+
+/* ============ SITE FOOTER ============ */
+.site-footer{
+  margin:56px 0 24px; padding:42px 7%; text-align:center;
+  border:1px solid var(--line); border-radius:24px; background:var(--paper);
+}
+.site-footer-support{ max-width:640px; margin:0 auto; color:var(--ink-faint); font-size:.88rem; line-height:1.7; }
+.site-footer-contact{ margin-top:26px; font-size:.88rem; color:var(--ink-faint); }
+.site-footer-contact a{ color:var(--orange-deep); font-weight:700; text-decoration:none; }
+.site-footer-contact a:hover{ text-decoration:underline; }
+.site-footer-links{ display:flex; flex-wrap:wrap; justify-content:center; gap:22px; margin:24px 0 20px; padding-top:22px; border-top:1px solid var(--line); }
+.site-footer-links a{ color:var(--ink-soft); font-size:.8rem; font-weight:700; text-decoration:none; }
+.site-footer-links a:hover{ color:var(--orange-deep); }
+.site-footer-copy{ margin:0; color:var(--ink-faint); font-size:.74rem; }
+@media (max-width:640px){
+  .site-footer{ padding:32px 6%; border-radius:18px; }
+}
 .wall-note{
   background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm); padding:18px;
   box-shadow:var(--shadow-soft); display:flex; flex-direction:column; gap:10px;
@@ -304,6 +341,13 @@ section{ padding:36px 0; }
 }
 .input:focus, .textarea:focus{ outline:none; border-color:var(--orange); }
 .input.has-error, .textarea.has-error{ border-color:#B3432B; }
+.password-shell{ position:relative; }
+.password-shell .input{ padding-right:46px; }
+.password-toggle{ position:absolute; top:50%; right:6px; transform:translateY(-50%); width:32px; height:32px; padding:0; border:none; background:none; color:var(--ink-faint); display:flex; align-items:center; justify-content:center; border-radius:8px; }
+.password-toggle:hover{ color:var(--ink); background:var(--paper-dark, rgba(0,0,0,.04)); }
+.password-toggle[aria-pressed="true"]{ color:var(--orange-deep); }
+.auth-alt-action{ text-align:center; margin:14px 0 0; font-size:.86rem; }
+.link-btn{ background:none; border:none; padding:0; color:var(--orange-deep); font-weight:700; text-decoration:underline; font-size:inherit; cursor:pointer; }
 .error-msg{ color:#B3432B; font-size:.8rem; margin-top:6px; font-weight:600; display:flex; align-items:center; gap:6px; }
 .field-title-input{ font-family:var(--font-display); font-size:1.6rem; font-weight:600; border:none; background:none; padding:6px 0; width:100%; }
 .field-title-input:focus{ outline:none; }
@@ -365,9 +409,8 @@ section{ padding:36px 0; }
 .write-footer-bar .fb-stats{ display:flex; gap:16px; flex-wrap:wrap; }
 
 .settings-panel{ margin-top:18px; border:1px solid var(--line); border-radius:14px; background:var(--paper); overflow:hidden; }
-.settings-toggle{ width:100%; display:flex; justify-content:space-between; align-items:center; padding:16px 18px; background:none; border:none; font-weight:700; }
-.settings-body{ padding:0 18px 18px; display:none; flex-direction:column; gap:16px; }
-.settings-body.open{ display:flex; }
+.settings-heading{ padding:16px 18px 0; font-weight:700; }
+.settings-body{ padding:14px 18px 18px; display:flex; flex-direction:column; gap:16px; }
 .radio-row{ display:flex; gap:10px; flex-wrap:wrap; }
 .radio-pill{ display:flex; align-items:center; gap:7px; padding:8px 14px; border:1.5px solid var(--line); border-radius:999px; font-size:.82rem; font-weight:600; cursor:pointer; }
 .radio-pill input{ margin:0; }
@@ -437,6 +480,7 @@ section{ padding:36px 0; }
 .comment-action-btn{ background:none; border:none; display:inline-flex; align-items:center; gap:5px; font-size:.8rem; font-weight:700; color:var(--ink-faint); padding:2px; }
 .comment-action-btn:hover{ color:var(--orange-deep); }
 .comment-action-btn.is-liked{ color:var(--orange-deep); }
+.comment-action-btn.is-flagged{ color:#B3432B; }
 .comment-action-btn svg{ width:15px; height:15px; }
 .replies-wrap{ margin-top:10px; padding-left:20px; border-left:2px solid var(--line); }
 .reply-item{ display:flex; gap:10px; padding:12px 0; }
@@ -547,8 +591,8 @@ section{ padding:36px 0; }
         </svg>
       </div>
       <div class="nav-brand-text">
-        <span class="t1">Aspinora</span>
-        <span class="t2">WRITING</span>
+        <span class="t1">Journal</span>
+        <span class="t2">POWERED BY ASPINORA</span>
       </div>
     </div>
 
@@ -690,6 +734,21 @@ section{ padding:36px 0; }
         <div class="wall-grid" id="wall-grid"></div>
       </section>
 
+      <footer class="site-footer">
+        <p class="site-footer-support">Aspinora Writing is completely free and accessible to all — a space to write, publish and keep what matters, without it costing anything to be here.</p>
+
+        <p class="site-footer-contact">Contact us: <a href="mailto:support@aspinora.in">support@aspinora.in</a></p>
+
+        <nav class="site-footer-links" aria-label="Legal and support links">
+          <a href="https://aspinora.in/legal/#privacy-policy">Privacy Policy</a>
+          <a href="https://aspinora.in/legal/#terms-of-use">Terms of Use</a>
+          <a href="https://aspinora.in/legal/#disclaimer">Disclaimer</a>
+          <a href="https://aspinora.in/legal/#contact-us">Contact Us</a>
+        </nav>
+
+        <p class="site-footer-copy">© 2026 Aspinora. All rights reserved.</p>
+      </footer>
+
     </div>
   </section>
 
@@ -747,7 +806,7 @@ section{ padding:36px 0; }
             <button type="button" id="redo-btn" title="Redo" aria-label="Redo"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l4 4-4 4M17 9H8a4 4 0 0 0 0 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
           <textarea id="write-body" class="editor-textarea" placeholder="Start wherever you are. A thought, a question, a moment worth keeping…" aria-label="Work body"></textarea>
-          <div class="error-msg" id="err-body" hidden>Your Work needs at least 100 characters.</div>
+          <div class="error-msg" id="err-body" hidden>Your Work can't be empty.</div>
         </div>
 
         <div class="field">
@@ -758,11 +817,8 @@ section{ padding:36px 0; }
         </div>
 
         <div class="settings-panel">
-          <button type="button" class="settings-toggle" id="settings-toggle" aria-expanded="false">
-            <span>Work settings</span>
-            <svg viewBox="0 0 20 20" fill="none" id="settings-chevron"><path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div class="settings-body" id="settings-body">
+          <div class="settings-heading">Work settings</div>
+          <div class="settings-body open" id="settings-body">
             <div>
               <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Visibility</label>
               <div class="radio-row" id="visibility-row">
@@ -958,10 +1014,35 @@ section{ padding:36px 0; }
       </div>
       <div class="field">
         <label for="auth-password">Password</label>
-        <input type="password" id="auth-password" class="input" placeholder="••••••••">
+        <div class="password-shell">
+          <input type="password" id="auth-password" class="input" placeholder="••••••••">
+          <button type="button" class="password-toggle" id="auth-password-toggle" aria-label="Show password" aria-pressed="false">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="auth-submit-btn">Continue as Demo User</button>
     </form>
+
+    <p class="auth-alt-action" id="auth-otp-link-wrap">
+      <button type="button" class="link-btn" id="use-otp-btn">Email me a one-time code instead</button>
+    </p>
+
+    <form id="otp-form" hidden>
+      <p class="modal-sub" id="otp-step-text" style="margin-top:0;">We'll email you a 6-digit code to log in — no password needed.</p>
+      <div class="field" id="otp-email-field">
+        <label for="otp-email">Email</label>
+        <input type="email" id="otp-email" class="input" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field" id="otp-code-field" hidden>
+        <label for="otp-code">6-digit code</label>
+        <input type="text" id="otp-code" class="input" placeholder="123456" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="otp-submit-btn">Send code</button>
+    </form>
+    <p class="auth-alt-action" id="otp-back-wrap" hidden>
+      <button type="button" class="link-btn" id="otp-back-btn">Use password instead</button>
+    </p>
   </div>
 </div>
 
@@ -1040,11 +1121,9 @@ try{
    likes, drafts) runs on realistic mock data so you can test the UI
    before wiring the content backend up.
 
-   AUTH IS NOT PART OF THIS FLAG. This app shares one real Supabase
-   project with index.html, so sign-in/sign-up/session here always
-   use real Supabase auth (see AUTH_LIVE below) — otherwise a login
-   on the journal page wouldn't be recognised on the homepage (or on
-   reload), which is the "keeps asking me to log in again" bug.
+   AUTH IS NOT PART OF THIS FLAG. Sign-in/sign-up/session here always
+   use real Supabase auth (see AUTH_LIVE below), independent of demo
+   content, so a login always survives a reload.
    ------------------------------------------------------------------ */
 const DEMO_MODE = true;
 const AUTH_LIVE = !!supabaseClient;
@@ -1156,7 +1235,9 @@ function persistDemoDB(){
       comments: MOCK_COMMENTS,
       drafts: MOCK_DRAFTS,
       likedIds: Array.from(state.likedJournalIds),
-      bookmarkedIds: Array.from(state.bookmarkedIds)
+      bookmarkedIds: Array.from(state.bookmarkedIds),
+      flaggedJournalIds: Array.from(state.flaggedJournalIds),
+      flaggedCommentIds: Array.from(state.flaggedCommentIds)
     }));
   }catch(e){ /* storage full or unavailable — fail silently, demo still works this session */ }
 }
@@ -1171,6 +1252,8 @@ function loadDemoDB(){
     if (Array.isArray(db.drafts)) MOCK_DRAFTS = db.drafts;
     if (Array.isArray(db.likedIds)) state.likedJournalIds = new Set(db.likedIds);
     if (Array.isArray(db.bookmarkedIds)) state.bookmarkedIds = new Set(db.bookmarkedIds);
+    if (Array.isArray(db.flaggedJournalIds)) state.flaggedJournalIds = new Set(db.flaggedJournalIds);
+    if (Array.isArray(db.flaggedCommentIds)) state.flaggedCommentIds = new Set(db.flaggedCommentIds);
   }catch(e){ /* corrupt/old data — just keep the fresh seed */ }
 }
 let nextCommentId = 6;
@@ -1208,6 +1291,8 @@ const state = {
   bookmarkedIds: new Set(),
   likedJournalIds: new Set(['j2']),   // demo user has already liked j2
   likedCommentIds: new Set(),
+  flaggedJournalIds: new Set(),
+  flaggedCommentIds: new Set(),
   visibleRootComments: 10,
   saveTimer: null,
   localSaveTimer: null,
@@ -1409,7 +1494,7 @@ async function resolveLoginEmail(identifier){
   if (identifier.indexOf('@') !== -1) return identifier;
   if (!AUTH_LIVE) return identifier;
   const { data, error } = await supabaseClient.rpc('get_email_for_username', { lookup_username: identifier.toLowerCase() });
-  if (error || !data) throw new Error("We couldn't find an account with that username.");
+  if (error || !data) throw new Error('No account found with that username.');
   return data;
 }
 async function isUsernameAvailable(username){
@@ -1442,7 +1527,7 @@ async function signUp(username, email, password){
     throw new Error('That username is already taken — try another.');
   }
   // A database trigger creates the matching `profiles` row for the new
-  // auth.users id — same trigger index.html's sign-up relies on. The
+  // auth.users id. The
   // real name isn't collected here on purpose (see product spec): the
   // username doubles as the display name until it's changed later in
   // profile settings.
@@ -1455,7 +1540,7 @@ async function signUp(username, email, password){
   if (identities && identities.length === 0){
     throw new Error('An account with this email already exists. Try logging in instead.');
   }
-  // Email confirmation required (same flow as index.html) — no session
+  // Email confirmation required — no session
   // yet, so there's no one to log in as.
   if (!data.session){
     return { user: null, needsVerification: true, email };
@@ -1572,6 +1657,7 @@ function requireAuth(actionText, callback){
 
 function openAuthModal(tab){
   setAuthTab(tab || 'login');
+  resetOtpPanel();
   openModal('auth-modal-scrim');
   // The note only matters if Supabase itself failed to load — real
   // sign-in/sign-up is always used otherwise, regardless of DEMO_MODE.
@@ -1594,6 +1680,7 @@ function setAuthTab(tab){
   qs('#auth-modal-title').textContent = tab === 'signup' ? 'Create your account' : 'Welcome back';
   qs('#auth-submit-btn').textContent = !AUTH_LIVE ? 'Continue as Demo User' : (tab === 'signup' ? 'Sign Up' : 'Log In');
   qs('#auth-form').setAttribute('data-mode', tab);
+  qs('#auth-otp-link-wrap').hidden = tab === 'signup';
 }
 
 /* ------------------------------------------------------------------
@@ -1627,6 +1714,7 @@ function normalizeJournalRow(row){
     excerpt: row.excerpt,
     body: row.body_markdown || '',
     category: cat.name,
+    script: row.script || null,
     tags: row.tags || [],
     author_id: row.author_id,
     status: row.status,
@@ -1637,11 +1725,12 @@ function normalizeJournalRow(row){
     reading_time: readingTimeMinutes(words),
     likes: row.like_count || 0,
     comments: row.comment_count || 0,
+    reads: row.read_count || 0,
     featured: !!row.featured
   };
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, tags, published_at, allow_comments, content_note, like_count, comment_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username)';
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
@@ -1890,6 +1979,7 @@ function toSupabaseJournalRow(payload){
     excerpt: payload.excerpt || payload.subtitle || (payload.body || '').slice(0,140),
     body_markdown: payload.body || '',
     category_id: cat ? cat.id : null,
+    script: payload.script || null,
     tags: payload.tags || [],
     visibility: payload.visibility || 'public',
     allow_comments: payload.allow_comments !== false,
@@ -1902,6 +1992,7 @@ function fromSupabaseJournalRow(row){
   return {
     id: row.id,
     category: categoryById(row.category_id).name,
+    script: row.script || null,
     title: row.title || '',
     subtitle: row.subtitle || '',
     body: row.body_markdown || '',
@@ -2014,6 +2105,24 @@ async function toggleBookmark(journalId){
     if (already) state.bookmarkedIds.add(journalId); else state.bookmarkedIds.delete(journalId);
     showToast("Couldn't update that — please try again.");
   }
+}
+
+/* Flagging is a simple client-side toggle for now — tap to flag, tap
+   again to remove the flag. A real backend should additionally record
+   each flag as a row in a `reports` table (reporter_id + target_id +
+   created_at) for moderators to review; see the RLS notes at the
+   bottom of this file. Returns the new flagged state. */
+function toggleFlagJournal(journalId){
+  const already = state.flaggedJournalIds.has(journalId);
+  if (already) state.flaggedJournalIds.delete(journalId); else state.flaggedJournalIds.add(journalId);
+  if (DEMO_MODE) persistDemoDB();
+  return !already;
+}
+function toggleFlagComment(commentId){
+  const already = state.flaggedCommentIds.has(commentId);
+  if (already) state.flaggedCommentIds.delete(commentId); else state.flaggedCommentIds.add(commentId);
+  if (DEMO_MODE) persistDemoDB();
+  return !already;
 }
 
 async function toggleCommentLike(journalId, commentId){
@@ -2309,8 +2418,14 @@ async function renderReadView(journalId, replace){
     if (navigator.share){ try{ await navigator.share({ title:j.title, url:url }); }catch(e){} }
     else{ await navigator.clipboard.writeText(url); showToast('Link copied to clipboard.'); }
   };
-  qs('#report-journal-btn').onclick = function(){
-    requireAuth('Log in to report a Work.', function(){ showToast('Thanks — our moderators will take a look.'); });
+  const reportBtn = qs('#report-journal-btn');
+  reportBtn.classList.toggle('is-flagged', state.flaggedJournalIds.has(j.id));
+  reportBtn.onclick = function(){
+    requireAuth('Log in to report a Work.', function(){
+      const flagged = toggleFlagJournal(j.id);
+      reportBtn.classList.toggle('is-flagged', flagged);
+      showToast(flagged ? 'Flagged — our moderators will take a look.' : 'Flag removed.');
+    });
   };
 
   qs('#comment-count-display').textContent = j.comments;
@@ -2327,7 +2442,7 @@ function commentActionsHTML(journalId, c, isReply){
     (isReply ? '' : '<button type="button" class="comment-action-btn" data-reply-to="' + c.id + '" data-reply-name="' + escapeHtml(authorName(c.author_id)) + '">Response</button>') +
     (isOwn ? '<button type="button" class="comment-action-btn" data-edit-comment="' + c.id + '">Edit</button>' : '') +
     (isOwn ? '<button type="button" class="comment-action-btn" data-delete-comment="' + c.id + '">Delete</button>' : '') +
-    (isOwn ? '' : '<button type="button" class="comment-action-btn" data-report-comment="' + c.id + '">Report</button>') +
+    (isOwn ? '' : '<button type="button" class="comment-action-btn' + (state.flaggedCommentIds.has(c.id)?' is-flagged':'') + '" data-report-comment="' + c.id + '">' + (state.flaggedCommentIds.has(c.id)?'Flagged':'Report') + '</button>') +
   '</div>';
 }
 function commentItemHTML(journalId, c){
@@ -2469,7 +2584,15 @@ function wireCommentEvents(j){
     };
   });
   qsa('[data-report-comment]').forEach(function(btn){
-    btn.onclick = function(){ requireAuth('Log in to report an Impression.', function(){ showToast('Thanks — our moderators will take a look.'); }); };
+    btn.onclick = function(){
+      const commentId = this.getAttribute('data-report-comment');
+      requireAuth('Log in to report an Impression.', function(){
+        const flagged = toggleFlagComment(commentId);
+        btn.classList.toggle('is-flagged', flagged);
+        btn.textContent = flagged ? 'Flagged' : 'Report';
+        showToast(flagged ? 'Flagged — our moderators will take a look.' : 'Flag removed.');
+      });
+    };
   });
   qsa('[data-open-auth]').forEach(function(btn){
     btn.onclick = function(){ openAuthModal(btn.getAttribute('data-open-auth')); };
@@ -2772,13 +2895,6 @@ function initWriteViewEvents(){
     writeDraft.content_note = e.target.value; syncSettingsRadios(); markUnsavedImmediately();
   });
 
-  qs('#settings-toggle').addEventListener('click', function(){
-    const body = qs('#settings-body');
-    const open = body.classList.toggle('open');
-    this.setAttribute('aria-expanded', open);
-    qs('#settings-chevron').style.transform = open ? 'rotate(180deg)' : 'rotate(0)';
-  });
-
   /* ---- markdown toolbar: wraps or inserts syntax around the
      current textarea selection, beginner-friendly and dependency-free ---- */
   const MD_ACTIONS = {
@@ -2867,7 +2983,7 @@ function initWriteViewEvents(){
     let ok = true;
     if (!writeDraft.category){ qs('#err-category').hidden = false; ok = false; }
     if (!writeDraft.title.trim()){ qs('#err-title').hidden = false; ok = false; }
-    if (writeDraft.body.trim().length < 100 || writeDraft.body.length > 30000){ qs('#err-body').hidden = false; ok = false; }
+    if (writeDraft.body.trim().length < 1 || writeDraft.body.length > 30000){ qs('#err-body').hidden = false; ok = false; }
     if (!ok){ showToast('Please fix the highlighted fields first.'); return; }
     openPublishModal();
   });
@@ -2956,12 +3072,99 @@ function initUserDropdown(){
   qs('#mobile-sign-out-btn').addEventListener('click', signOutUser);
 }
 
+async function completeLoginSuccess(form, result){
+  state.currentUser = result.user;
+  await hydrateUserActivity(result.user.id);
+  syncAuthUI();
+  closeModal('auth-modal-scrim');
+  showToast('Welcome, ' + result.user.display_name + '.');
+  if (form) form.reset();
+  resetOtpPanel();
+  if (state.pendingAuthAction){
+    const action = state.pendingAuthAction;
+    state.pendingAuthAction = null;
+    action();
+  } else if (state.currentView === 'write'){
+    renderWriteView(state.currentDraftId);
+  } else if (['drafts','notifications','saved','published','read'].indexOf(state.currentView) !== -1){
+    navigateTo(state.currentView, { journalId: state.currentJournalId });
+  }
+}
+
+function resetOtpPanel(){
+  qs('#otp-form').hidden = true;
+  qs('#otp-back-wrap').hidden = true;
+  qs('#auth-form').hidden = false;
+  qs('#auth-otp-link-wrap').hidden = false;
+  qs('.auth-tabs').hidden = false;
+  qs('#otp-code-field').hidden = true;
+  qs('#otp-email-field').hidden = false;
+  qs('#otp-submit-btn').textContent = 'Send code';
+  qs('#otp-step-text').textContent = "We'll email you a 6-digit code to log in — no password needed.";
+  qs('#otp-form').reset();
+  qs('#otp-form').setAttribute('data-step', 'request');
+}
+
 function initAuthModal(){
   qsa('[data-open-auth]').forEach(function(btn){
     btn.addEventListener('click', function(){ openAuthModal(this.getAttribute('data-open-auth')); });
   });
-  qs('#auth-modal-close').addEventListener('click', function(){ closeModal('auth-modal-scrim'); });
+  qs('#auth-modal-close').addEventListener('click', function(){ closeModal('auth-modal-scrim'); resetOtpPanel(); });
   qsa('[data-auth-tab]').forEach(function(btn){ btn.addEventListener('click', function(){ setAuthTab(this.getAttribute('data-auth-tab')); }); });
+
+  qs('#auth-password-toggle').addEventListener('click', function(){
+    const input = qs('#auth-password');
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    this.setAttribute('aria-pressed', String(!showing));
+    this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  });
+
+  // Email OTP: an alternative to password login, not shown on the
+  // Sign Up tab (an account has to already exist to log in with a
+  // code — signup still needs a password to create one).
+  qs('#use-otp-btn').addEventListener('click', function(){
+    qs('#auth-form').hidden = true;
+    qs('#auth-otp-link-wrap').hidden = true;
+    qs('.auth-tabs').hidden = true;
+    qs('#otp-form').hidden = false;
+    qs('#otp-back-wrap').hidden = false;
+    const email = qs('#auth-email').value.trim();
+    if (email.indexOf('@') !== -1) qs('#otp-email').value = email;
+  });
+  qs('#otp-back-btn').addEventListener('click', resetOtpPanel);
+
+  qs('#otp-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const step = this.getAttribute('data-step') || 'request';
+    const btn = qs('#otp-submit-btn');
+    const email = qs('#otp-email').value.trim();
+    if (!email){ showToast('Enter your email first.'); return; }
+    btn.disabled = true;
+    try{
+      if (step === 'request'){
+        if (!AUTH_LIVE){ showToast('Email OTP needs a live Supabase connection.'); return; }
+        const { error } = await supabaseClient.auth.signInWithOtp({ email: email, options: { shouldCreateUser: false } });
+        if (error) throw error;
+        qs('#otp-email-field').hidden = true;
+        qs('#otp-code-field').hidden = false;
+        qs('#otp-code').focus();
+        qs('#otp-step-text').textContent = 'Enter the 6-digit code we just emailed to ' + email + '.';
+        btn.textContent = 'Verify code';
+        this.setAttribute('data-step', 'verify');
+      } else {
+        const token = qs('#otp-code').value.trim();
+        if (!token){ showToast('Enter the code from your email.'); return; }
+        const { data, error } = await supabaseClient.auth.verifyOtp({ email: email, token: token, type: 'email' });
+        if (error) throw error;
+        await completeLoginSuccess(null, { user: await loadProfile(data.user) });
+      }
+    }catch(err){
+      showToast(err.message || 'Something went wrong — please try again.');
+    }finally{
+      btn.disabled = false;
+    }
+  });
 
   qs('#auth-form').addEventListener('submit', async function(e){
     e.preventDefault();
@@ -2979,21 +3182,7 @@ function initAuthModal(){
         this.reset();
         return;
       }
-      state.currentUser = result.user;
-      await hydrateUserActivity(result.user.id);
-      syncAuthUI();
-      closeModal('auth-modal-scrim');
-      showToast('Welcome, ' + result.user.display_name + '.');
-      this.reset();
-      if (state.pendingAuthAction){
-        const action = state.pendingAuthAction;
-        state.pendingAuthAction = null;
-        action();
-      } else if (state.currentView === 'write'){
-        renderWriteView(state.currentDraftId);
-      } else if (['drafts','notifications','saved','published','read'].indexOf(state.currentView) !== -1){
-        navigateTo(state.currentView, { journalId: state.currentJournalId });
-      }
+      await completeLoginSuccess(this, result);
     }catch(err){
       showToast(err.message || 'Something went wrong — please try again.');
     }finally{
@@ -3095,17 +3284,6 @@ async function routeFromPath(replace){
 
   if (parts.length === 0){
     navigateTo('home', { replace: replace });
-    // Cross-page handoff: index.html links here with ?intent=write
-    // when the person clicks "Start Writing". If they're already
-    // logged in (session just restored above) this drops them
-    // straight into the writer; otherwise requireAuth() opens the
-    // login modal first, and the pendingAuthAction set there sends
-    // them to the writer the moment they log in.
-    const intent = new URLSearchParams(window.location.search).get('intent');
-    if (intent === 'write'){
-      history.replaceState(null, '', window.location.pathname);
-      goToProtectedView('write', 'Log in to start writing a Work.');
-    }
     return;
   }
 
