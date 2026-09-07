@@ -1125,7 +1125,7 @@ try{
    use real Supabase auth (see AUTH_LIVE below), independent of demo
    content, so a login always survives a reload.
    ------------------------------------------------------------------ */
-const DEMO_MODE = true;
+const DEMO_MODE = false;
 const AUTH_LIVE = !!supabaseClient;
 
 /* ------------------------------------------------------------------
@@ -3243,6 +3243,7 @@ document.addEventListener('click', function(e){
    17. APP INIT
    ------------------------------------------------------------------ */
 async function init(){
+  qs('#demo-badge').hidden = !DEMO_MODE;
   loadDemoDB();
   wireNav();
   initHamburger();
