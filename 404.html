@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Aspinora Writing</title>
+  <script>
+    // Single Page Apps for GitHub Pages
+    // https://github.com/rafgraph/spa-github-pages
+    //
+    // GitHub Pages has no server-side rewrites, so any URL that isn't a
+    // real file (e.g. /priya/my-shayari, or /write after a refresh)
+    // lands here. This encodes that path into a query string and sends
+    // the browser back to the real app, which decodes it and restores
+    // the clean URL via history.replaceState before its own router runs
+    // (see the matching script at the very top of index.html's <head>).
+    //
+    // pathSegmentsToKeep:
+    //   0 — if this site is served from the domain root (a custom
+    //       domain, or a username.github.io *user/org* Pages site).
+    //   1 — if this is a *project* Pages site served at
+    //       username.github.io/repo-name/ (so the first path segment,
+    //       the repo name, has to be preserved rather than treated as
+    //       part of the app's own routing).
+    var pathSegmentsToKeep = 0;
+
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
+  </script>
+</head>
+<body>
+  Redirecting…
+</body>
+</html>
