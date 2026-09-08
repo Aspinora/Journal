@@ -28,7 +28,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Nastaliq+Urdu:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Nastaliq+Urdu:wght@400;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Amiri:ital,wght@0,400;0,700;1,400&family=Mukta:wght@400;600;700&display=swap" rel="stylesheet">
 
 <!-- ============================================================
      SUPABASE CLIENT LIBRARY (CDN — no npm/build tools needed)
@@ -267,7 +267,8 @@ section{ padding:36px 0; }
   text-align:left; display:flex; flex-direction:column; gap:10px;
 }
 .cat-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow-mid); border-color:var(--line-strong); }
-.cat-card .cat-icon{ width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; }
+.cat-badge{ border-radius:50%; background:var(--badge-bg); display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+.cat-badge svg{ display:block; }
 .cat-card h3{ font-size:1.08rem; }
 .cat-card p{ color:var(--ink-soft); font-size:.86rem; margin:0; line-height:1.5; }
 .cat-card .cat-count{ font-family:var(--font-mono); font-size:.76rem; color:var(--ink-faint); margin-top:auto; }
@@ -294,6 +295,15 @@ section{ padding:36px 0; }
 
 /* ============ WALL NOTES ============ */
 .wall-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.wall-compose{ border:1px solid var(--line); border-radius:16px; background:var(--paper); padding:16px; margin-bottom:20px; }
+.wall-compose .textarea{ resize:vertical; min-height:52px; }
+.wall-compose-row{ display:flex; align-items:center; gap:10px; margin-top:10px; }
+.wall-compose-count{ font-family:var(--font-mono); font-size:.76rem; color:var(--ink-faint); margin-right:auto; }
+.wall-compose-count.is-over{ color:#B3432B; font-weight:700; }
+@media (max-width:640px){
+  .wall-compose-row{ flex-wrap:wrap; }
+  .wall-compose-count{ order:3; width:100%; margin-right:0; }
+}
 
 /* ============ SITE FOOTER ============ */
 .site-footer{
@@ -516,6 +526,35 @@ section{ padding:36px 0; }
 .modal-scrim{ position:fixed; inset:0; background:rgba(43,36,28,.45); z-index:400; display:none; align-items:center; justify-content:center; padding:20px; }
 .modal-scrim.open{ display:flex; }
 .modal-box{ background:var(--paper); border-radius:var(--radius-lg); max-width:460px; width:100%; padding:32px; box-shadow:var(--shadow-deep); max-height:90vh; overflow-y:auto; }
+
+/* ============ POST STUDIO ============ */
+.ps-box{ max-width:920px; padding:24px; }
+.ps-title{ font-size:1.1rem; margin-bottom:16px; }
+.ps-layout{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+.ps-preview-pane{ position:sticky; top:0; }
+.ps-canvas-wrap{ width:100%; aspect-ratio:1/1; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(43,36,28,.18); background:#eee; }
+.ps-canvas-wrap.is-portrait{ aspect-ratio:4/5; }
+.ps-canvas-wrap canvas{ width:100%; height:100%; display:block; }
+.ps-controls-pane{ min-width:0; }
+.ps-tabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:16px; overflow-x:auto; }
+.ps-tab{ background:none; border:none; padding:9px 12px; font-weight:700; font-size:.86rem; color:var(--ink-faint); white-space:nowrap; border-bottom:2px solid transparent; }
+.ps-tab.is-active{ color:var(--orange-deep); border-bottom-color:var(--orange-deep); }
+.ps-panel{ display:flex; flex-wrap:wrap; gap:10px; min-height:220px; align-content:flex-start; }
+.ps-swatch{ border:1.5px solid var(--line); background:var(--paper); border-radius:12px; padding:10px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; width:84px; }
+.ps-swatch.is-active{ border-color:var(--orange-deep); box-shadow:0 0 0 2px var(--orange-soft); }
+.ps-swatch .ps-swatch-preview{ width:56px; height:56px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; }
+.ps-swatch .ps-swatch-label{ font-size:.72rem; font-weight:700; text-align:center; line-height:1.2; }
+.ps-font-swatch{ width:auto; min-width:120px; padding:12px 14px; }
+.ps-font-swatch .ps-swatch-preview{ width:auto; height:auto; font-size:1.4rem; background:none !important; color:var(--ink); }
+.ps-row-group{ display:flex; gap:8px; flex-wrap:wrap; width:100%; }
+.ps-actions{ display:flex; align-items:center; gap:10px; margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
+.ps-status{ font-size:.78rem; color:var(--ink-faint); margin-right:auto; }
+@media (max-width:760px){
+  .ps-layout{ grid-template-columns:1fr; }
+  .ps-preview-pane{ position:static; }
+  .ps-canvas-wrap{ max-width:340px; margin:0 auto; }
+  .ps-box{ padding:18px; max-height:94vh; }
+}
 .modal-box.wide{ max-width:560px; }
 .modal-close{ float:right; background:none; border:none; color:var(--ink-faint); width:30px; height:30px; }
 .modal-box h2{ font-size:1.5rem; margin-bottom:6px; }
@@ -664,77 +703,118 @@ section{ padding:36px 0; }
   <section class="view active" id="view-home">
     <div class="view-inner" style="padding-top:0;">
 
-      <div class="hero container">
-        <p class="eyebrow" style="justify-content:center;">WRITE PRIVATELY · PUBLISH BEAUTIFULLY · SHARE YOUR WORLD</p>
-        <h1>Read what people are creating.</h1>
-        <p>Journals, stories, poetry, Shayari, thoughts and articles — shared by real authors, one Work at a time.</p>
-        <div class="hero-actions">
-          <button type="button" class="btn btn-primary" id="hero-explore-btn">Discover Works</button>
-          <button type="button" class="btn btn-secondary" id="hero-write-btn">Start writing</button>
+      <!-- ============ PUBLIC HOME (logged out) ============ -->
+      <div id="public-home">
+        <div class="hero container">
+          <p class="eyebrow" style="justify-content:center;">WRITE PRIVATELY · PUBLISH BEAUTIFULLY · SHARE YOUR WORLD</p>
+          <h1>Read what people are creating.</h1>
+          <p>Journals, stories, poetry, Shayari, thoughts and articles — shared by real authors, one Work at a time.</p>
+          <div class="hero-actions">
+            <button type="button" class="btn btn-primary" id="hero-explore-btn">Discover Works</button>
+            <button type="button" class="btn btn-secondary" id="hero-write-btn">Start writing</button>
+          </div>
         </div>
+
+        <section class="container" id="featured-section">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">FEATURED</p>
+              <h2>Works worth your time</h2>
+            </div>
+          </div>
+          <div class="j-grid" id="featured-grid"></div>
+        </section>
+
+        <section class="container">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">SIX WAYS TO WANDER</p>
+              <h2>Find a mood to read in</h2>
+            </div>
+          </div>
+          <div class="cat-grid" id="category-grid"></div>
+        </section>
+
+        <section class="container" id="explore-section">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">LATEST</p>
+              <h2>Fresh from the community</h2>
+            </div>
+          </div>
+
+          <div class="feed-controls">
+            <div class="filter-row" id="filter-row"></div>
+            <div class="search-sort-row">
+              <div class="search-box">
+                <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                <input type="search" id="search-input" placeholder="Search title, author, tags…" aria-label="Search Works">
+              </div>
+              <select class="select-sort" id="sort-select" aria-label="Sort Works">
+                <option value="latest">Latest</option>
+                <option value="appreciated">Most Appreciated</option>
+                <option value="discussed">Most Discussed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="j-grid" id="latest-grid"></div>
+          <div class="load-more-wrap">
+            <button type="button" class="btn btn-secondary" id="load-more-btn">Load more Works</button>
+          </div>
+        </section>
       </div>
 
-      <section class="container" id="featured-section">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">FEATURED</p>
-            <h2>Works worth your time</h2>
-          </div>
-        </div>
-        <div class="j-grid" id="featured-grid"></div>
-      </section>
-
-      <section class="container">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">SIX WAYS TO WANDER</p>
-            <h2>Find a mood to read in</h2>
-          </div>
-        </div>
-        <div class="cat-grid" id="category-grid"></div>
-      </section>
-
-      <section class="container" id="explore-section">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">LATEST</p>
-            <h2>Fresh from the community</h2>
-          </div>
-        </div>
-
-        <div class="feed-controls">
-          <div class="filter-row" id="filter-row"></div>
-          <div class="search-sort-row">
-            <div class="search-box">
-              <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-              <input type="search" id="search-input" placeholder="Search title, author, tags…" aria-label="Search Works">
+      <!-- ============ MEMBER HOME (logged in) ============ -->
+      <div id="member-home" hidden>
+        <div class="container mh-shell">
+          <header class="mh-header">
+            <div class="mh-title-wrap">
+              <h1 id="mh-title">Journals</h1>
+              <p class="mh-subtitle" id="mh-subtitle">POWERED BY ASPINORA</p>
             </div>
-            <select class="select-sort" id="sort-select" aria-label="Sort Works">
-              <option value="latest">Latest</option>
-              <option value="appreciated">Most Appreciated</option>
-              <option value="discussed">Most Discussed</option>
-            </select>
+            <div class="mh-search">
+              <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+              <input type="search" id="m-search-input" placeholder="Search writings and writers…" aria-label="Search Works">
+              <select class="mh-sort-select" id="m-sort-select" aria-label="Sort Works">
+                <option value="latest">Latest</option>
+                <option value="appreciated">Most Appreciated</option>
+                <option value="discussed">Most Discussed</option>
+              </select>
+            </div>
+            <div class="mh-header-actions">
+              <button type="button" class="mh-icon-btn" id="mh-updates-btn" aria-label="Updates">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4.3c-2.4 0-4.1 1.9-4.1 4.4v2.8L6.4 14.6h11.2L16.1 11.5V8.7c0-2.5-1.7-4.4-4.1-4.4Z" stroke-linejoin="round"/><path d="M10.3 17.3a1.8 1.8 0 0 0 3.4 0" stroke-linecap="round"/></svg>
+                <span class="nav-badge" id="mh-notif-badge" hidden>0</span>
+              </button>
+              <button type="button" class="mh-icon-btn" id="mh-wall-btn" aria-label="The Wall">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="12.5" width="6.5" height="3" rx="0.4"/><rect x="13" y="12.5" width="7" height="3" rx="0.4"/><rect x="4" y="16.5" width="4.5" height="3" rx="0.4"/><rect x="10" y="16.5" width="7" height="3" rx="0.4"/><rect x="4" y="20.5" width="16" height="0" /></svg>
+              </button>
+              <button type="button" class="mh-avatar-btn" id="mh-avatar-btn" aria-label="Your account">
+                <span class="avatar" id="mh-avatar"></span>
+              </button>
+            </div>
+          </header>
+
+          <nav class="mh-category-row" id="mh-category-row" aria-label="Categories"></nav>
+
+          <button type="button" class="mh-create-bar" id="mh-create-bar">
+            <span class="mh-create-icon">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13.5 3.5 16.5 6.5 7 16H4v-3L13.5 3.5Z" stroke-linejoin="round"/></svg>
+            </span>
+            <span id="mh-create-text">Write your own Journal…</span>
+          </button>
+        </div>
+
+        <section class="container mh-feed">
+          <div class="j-grid" id="m-latest-grid"></div>
+          <div class="load-more-wrap">
+            <button type="button" class="btn btn-secondary" id="m-load-more-btn">Load more Works</button>
           </div>
-        </div>
+        </section>
+      </div>
 
-        <div class="j-grid" id="latest-grid"></div>
-        <div class="load-more-wrap">
-          <button type="button" class="btn btn-secondary" id="load-more-btn">Load more Works</button>
-        </div>
-      </section>
-
-      <section class="container">
-        <div class="section-head">
-          <div>
-            <p class="eyebrow">THE WALL</p>
-            <h2>Pinned thoughts, in progress.</h2>
-            <p>Short fragments, small realizations and notes from the Aspinora community.</p>
-          </div>
-        </div>
-        <div class="wall-grid" id="wall-grid"></div>
-      </section>
-
-      <footer class="site-footer">
+      <footer class="site-footer container">
         <p class="site-footer-support">Aspinora Writing is completely free and accessible to all — a space to write, publish and keep what matters, without it costing anything to be here.</p>
 
         <p class="site-footer-contact">Contact us: <a href="mailto:support@aspinora.in">support@aspinora.in</a></p>
@@ -749,6 +829,32 @@ section{ padding:36px 0; }
         <p class="site-footer-copy">© 2026 Aspinora. All rights reserved.</p>
       </footer>
 
+    </div>
+  </section>
+
+  <!-- ============================================================
+       THE WALL VIEW
+       ============================================================ -->
+  <section class="view" id="view-wall">
+    <div class="view-inner container">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">THE WALL</p>
+          <h2>Pinned thoughts, in progress.</h2>
+          <p>Short fragments, small realizations and notes from the Aspinora community — up to 40 words.</p>
+        </div>
+      </div>
+
+      <form class="wall-compose" id="wall-compose-form">
+        <textarea id="wall-compose-body" class="textarea" rows="2" maxlength="400" placeholder="Pin a short thought to the wall — 40 words or less…"></textarea>
+        <div class="wall-compose-row">
+          <select id="wall-compose-category" class="select-sort" aria-label="Category"></select>
+          <span class="wall-compose-count" id="wall-compose-count">0 / 40 words</span>
+          <button type="submit" class="btn btn-primary btn-sm" id="wall-compose-submit">Pin to Wall</button>
+        </div>
+      </form>
+
+      <div class="wall-grid" id="wall-grid"></div>
     </div>
   </section>
 
@@ -921,6 +1027,12 @@ section{ padding:36px 0; }
             <button type="button" class="btn-icon" id="share-journal-btn" title="Circulate" aria-label="Circulate this Work">
               <svg viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M6.7 9 13.3 6M6.7 11l6.6 3" stroke="currentColor" stroke-width="1.5"/></svg>
             </button>
+            <button type="button" class="btn-icon" id="post-studio-instagram-btn" title="Create an Instagram post" aria-label="Create an Instagram post from this Work">
+              <svg viewBox="0 0 20 20" fill="none"><rect x="2.5" y="2.5" width="15" height="15" rx="4.5" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="3.6" stroke="currentColor" stroke-width="1.5"/><circle cx="14.3" cy="5.7" r="1" fill="currentColor"/></svg>
+            </button>
+            <button type="button" class="btn-icon" id="post-studio-facebook-btn" title="Create a Facebook post" aria-label="Create a Facebook post from this Work">
+              <svg viewBox="0 0 20 20" fill="none"><path d="M12.5 6.2h-1.6c-.5 0-1 .4-1 1v1.6h2.5l-.3 2.3h-2.2V17H7.5v-6H5.8V8.8h1.7V7c0-1.9 1.2-3.3 3-3.3h2v2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            </button>
             <button type="button" class="btn-icon" id="report-journal-btn" title="Report" aria-label="Report this Work">
               <svg viewBox="0 0 20 20" fill="none"><path d="M5 3v14M5 3h9l-2 3 2 3H5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
             </button>
@@ -1084,6 +1196,44 @@ section{ padding:36px 0; }
   </div>
 </div>
 
+<!-- ============================================================
+     POST STUDIO (Instagram/Facebook-style share-card creator)
+     ============================================================ -->
+<div class="modal-scrim" id="post-studio-scrim">
+  <div class="modal-box ps-box" role="dialog" aria-modal="true" aria-labelledby="ps-title">
+    <button type="button" class="modal-close" id="ps-close" aria-label="Close">
+      <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <h2 id="ps-title" class="ps-title">Post Studio</h2>
+    <div class="ps-layout">
+      <div class="ps-preview-pane">
+        <div class="ps-canvas-wrap" id="ps-canvas-wrap">
+          <canvas id="ps-canvas" width="1080" height="1080" aria-label="Post preview"></canvas>
+        </div>
+      </div>
+      <div class="ps-controls-pane">
+        <div class="ps-tabs" id="ps-tabs">
+          <button type="button" class="ps-tab is-active" data-ps-tab="style">Style</button>
+          <button type="button" class="ps-tab" data-ps-tab="font">Font</button>
+          <button type="button" class="ps-tab" data-ps-tab="decor">Decor</button>
+          <button type="button" class="ps-tab" data-ps-tab="layout">Layout</button>
+          <button type="button" class="ps-tab" data-ps-tab="format">Format</button>
+        </div>
+        <div class="ps-panel" id="ps-panel-style" data-ps-panel="style"></div>
+        <div class="ps-panel" id="ps-panel-font" data-ps-panel="font" hidden></div>
+        <div class="ps-panel" id="ps-panel-decor" data-ps-panel="decor" hidden></div>
+        <div class="ps-panel" id="ps-panel-layout" data-ps-panel="layout" hidden></div>
+        <div class="ps-panel" id="ps-panel-format" data-ps-panel="format" hidden></div>
+      </div>
+    </div>
+    <div class="ps-actions">
+      <span class="ps-status" id="ps-status"></span>
+      <button type="button" class="btn btn-secondary" id="ps-download-btn">Download</button>
+      <button type="button" class="btn btn-primary" id="ps-share-btn">Share</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-stack" id="toast-stack"></div>
 <div class="demo-badge" id="demo-badge"><span class="dot"></span> Sample content — accounts are real</div>
 
@@ -1133,24 +1283,41 @@ const AUTH_LIVE = !!supabaseClient;
    General creative/personal categories only — no exam or education
    framing. Shayari is first-class, not a subcategory of Poetry.
    ------------------------------------------------------------------ */
+/* Icon badges: soft pastel circle background + a muted-tone line icon,
+   matching Aspinora's calm, professional visual language — never
+   emoji. Used for the category row, and (via ALL_CATEGORY / WALL_
+   BADGE / UPDATES_BADGE) for the header quick-access icons too. */
 const CATEGORIES = [
-  { id:1, slug:'journals',  name:'Journals',  color:'#F1631B', soft:'#FCEADC', desc:'Private-feeling entries, day-to-day reflection, and things worth remembering.',
-    icon:'<path d="M6 4.5h9a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4.5Z" stroke="#F1631B" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 9h6M9 12.5h6M9 16h3.5" stroke="#F1631B" stroke-width="1.6" stroke-linecap="round"/>' },
-  { id:2, slug:'stories',   name:'Stories',   color:'#FF8B6B', soft:'#FCEADC', desc:'Personal stories, fiction and narrative writing from real lives and imagined ones.',
-    icon:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4Z" stroke="#FF8B6B" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 9h7M8 13h5" stroke="#FF8B6B" stroke-width="1.6" stroke-linecap="round"/>' },
-  { id:3, slug:'poetry',    name:'Poetry',    color:'#A79BD1', soft:'#EDE9F7', desc:'Verse, free-form or structured — image, rhythm and feeling over explanation.',
-    icon:'<path d="M12 4c4 0 7 2.7 7 6.5S16 17 12 17h-1l-2 3v-3.3C6 15.8 5 13.5 5 10.5 5 6.7 8 4 12 4Z" stroke="#A79BD1" stroke-width="1.6" stroke-linejoin="round"/>' },
-  { id:4, slug:'shayari',   name:'Shayari',   color:'#F0B429', soft:'#FBF0DC', desc:'Shayari in Hindi, Urdu, Roman Urdu/Hinglish or English — the words as the visual hero.',
-    icon:'<path d="M5 18.5c3-9 5-13 7-13s4 4 7 13" stroke="#F0B429" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 14.5h8" stroke="#F0B429" stroke-width="1.6" stroke-linecap="round"/>' },
-  { id:5, slug:'thoughts',  name:'Thoughts',  color:'#7FB8D9', soft:'#E4F1F7', desc:'Short reflections, opinions and passing ideas worth sitting with.',
-    icon:'<circle cx="12" cy="9" r="5" stroke="#7FB8D9" stroke-width="1.6"/><path d="M9.5 17h5M10.5 20h3" stroke="#7FB8D9" stroke-width="1.6" stroke-linecap="round"/>' },
-  { id:6, slug:'articles',  name:'Articles',  color:'#7FC8A9', soft:'#E4F4EC', desc:'Longer-form, explanatory writing — explained simply, still worth publishing beautifully.',
-    icon:'<path d="M4 6.5C7 5 9 5 12 6.5c3-1.5 5-1.5 8 0v11c-3-1.5-5-1.5-8 0-3-1.5-5-1.5-8 0v-11Z" stroke="#7FC8A9" stroke-width="1.6" stroke-linejoin="round"/>' }
+  { id:1, slug:'journals',  name:'Journals',  color:'#8A6B3D', soft:'#F3E7CE', desc:'Private-feeling entries, day-to-day reflection, and things worth remembering.',
+    icon:'<path d="M7 4.5h8A1.5 1.5 0 0 1 16.5 6v13.5A1.5 1.5 0 0 1 15 21H8.5A1.5 1.5 0 0 1 7 19.5V4.5Z" stroke-linejoin="round"/><rect x="10.2" y="7.2" width="3.6" height="2.6" rx="0.4"/><path d="M9.2 17.8v2.6l1.3-1 1.3 1v-2.6" stroke-linejoin="round"/>' },
+  { id:2, slug:'stories',   name:'Stories',   color:'#3D5A73', soft:'#D8E6F0', desc:'Personal stories, fiction and narrative writing from real lives and imagined ones.',
+    icon:'<path d="M6.5 4h7l4 4v12h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/><path d="M9 12.2c1.6-1.4 3.2-.9 3.2.6s-1.6 2-3.2.6" stroke-linecap="round"/>' },
+  { id:3, slug:'poetry',    name:'Poetry',    color:'#5B4A7A', soft:'#E4DCF2', desc:'Verse, free-form or structured — image, rhythm and feeling over explanation.',
+    icon:'<path d="M18 4c-7 .8-11.5 5-13 12 1-1.3 2.3-2 3.7-2C10 8.5 13.7 5 18 4Z" stroke-linejoin="round"/><path d="M4 20c1.6-2.3 3.4-3 5.2-2.5" stroke-linecap="round"/>' },
+  { id:4, slug:'shayari',   name:'Shayari',   color:'#8A3A45', soft:'#F5D9DE', desc:'Shayari in Hindi, Urdu, Roman Urdu/Hinglish or English — the words as the visual hero.',
+    icon:'<path d="M8.5 6h7A3.2 3.2 0 0 1 18.7 9.2v1.6A3.2 3.2 0 0 1 15.5 14h-1l-2.8 2.8V14h-3.2a3.2 3.2 0 0 1-3.2-3.2V9.2A3.2 3.2 0 0 1 8.5 6Z" stroke-linejoin="round"/><path d="M12 11.3c.4-.9 1.7-.8 1.9.2.4-1 1.7-1.1 2 0 .4.9-.5 1.7-2 2.6-1.5-.9-2.3-1.9-1.9-2.8Z" fill="currentColor" stroke="none"/>' },
+  { id:5, slug:'thoughts',  name:'Thoughts',  color:'#7A6B2E', soft:'#F5EBC7', desc:'Short reflections, opinions and passing ideas worth sitting with.',
+    icon:'<path d="M9.3 20v-2.4c-2.1-1-3.5-3.1-3.5-5.5A6.2 6.2 0 0 1 12 6a6.2 6.2 0 0 1 6.2 6.1c0 2.4-1.4 4.5-3.5 5.5V20" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.4 6c0-1.2.6-1.9 1.6-2.3" stroke-linecap="round"/><path d="M14 3.7c.8-.2 1.6.1 1.8.9" stroke-linecap="round"/>' },
+  { id:6, slug:'articles',  name:'Articles',  color:'#3D5A73', soft:'#D8E6F0', desc:'Longer-form, explanatory writing — explained simply, still worth publishing beautifully.',
+    icon:'<path d="M6.5 4h7l4 4v13h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/><path d="M9 11.5h6M9 14.3h6M9 17h3.8" stroke-linecap="round"/>' }
 ];
+const ALL_CATEGORY = { id:0, slug:'all', name:'All', color:'#5B6B4A', soft:'#DCE5D0',
+  icon:'<rect x="4.3" y="4.3" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="13.1" y="4.3" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="4.3" y="13.1" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="13.1" y="13.1" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/>' };
+const WALL_BADGE = { name:'The Wall', color:'#4A6B3D', soft:'#DCE5D0',
+  icon:'<rect x="4" y="12.5" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="10.2" y="12.5" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="16.4" y="12.5" width="3.6" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="4" y="16" width="3.6" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="8.3" y="16" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="14.5" y="16" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="4" y="19.5" width="5.5" height="1.2" fill="currentColor" stroke="none"/><rect x="10.2" y="19.5" width="5.5" height="1.2" fill="currentColor" stroke="none"/><path d="M12 12c0-1.8.5-3 .1-4.6M12 7.4c-1.3 0-2.2-.9-2.3-2.1M12 7.4c1-.2 1.8-1.1 1.8-2.3" stroke-linecap="round" fill="none"/>' };
+const UPDATES_BADGE = { name:'Updates', color:'#A35A2E', soft:'#F5DCC7',
+  icon:'<path d="M12 4.3c-2.4 0-4.1 1.9-4.1 4.4v2.8L6.4 14.6h11.2L16.1 11.5V8.7c0-2.5-1.7-4.4-4.1-4.4Z" stroke-linejoin="round"/><path d="M10.3 17.3a1.8 1.8 0 0 0 3.4 0" stroke-linecap="round"/><path d="M5 8.3c-.8.8-1.3 1.9-1.3 3.1M19 8.3c.8.8 1.3 1.9 1.3 3.1" stroke-linecap="round"/>' };
 const CREATIVE_IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
 function categoryBySlug(slug){ return CATEGORIES.find(function(c){ return c.slug === slug; }) || CATEGORIES[0]; }
 function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name === name; }) || CATEGORIES[0]; }
 function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[0]; }
+/* Renders one of the category-badge objects above as a self-contained
+   circular icon: <span class="cat-badge" style="--bg:..;--fg:..">svg</span> */
+function categoryBadgeHTML(cat, size){
+  size = size || 44;
+  return '<span class="cat-badge" style="--badge-bg:' + cat.soft + ';--badge-fg:' + cat.color + ';width:' + size + 'px;height:' + size + 'px;">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';width:56%;height:56%;">' + cat.icon + '</svg></span>';
+}
 
 /* ------------------------------------------------------------------
    4. MOCK DATA (used only while DEMO_MODE is true)
@@ -1234,6 +1401,7 @@ function persistDemoDB(){
       journals: MOCK_JOURNALS,
       comments: MOCK_COMMENTS,
       drafts: MOCK_DRAFTS,
+      wallPosts: MOCK_WALL_POSTS,
       likedIds: Array.from(state.likedJournalIds),
       bookmarkedIds: Array.from(state.bookmarkedIds),
       flaggedJournalIds: Array.from(state.flaggedJournalIds),
@@ -1250,6 +1418,7 @@ function loadDemoDB(){
     if (Array.isArray(db.journals)) MOCK_JOURNALS.splice(0, MOCK_JOURNALS.length, ...db.journals);
     if (db.comments) MOCK_COMMENTS = db.comments;
     if (Array.isArray(db.drafts)) MOCK_DRAFTS = db.drafts;
+    if (Array.isArray(db.wallPosts)) MOCK_WALL_POSTS.splice(0, MOCK_WALL_POSTS.length, ...db.wallPosts);
     if (Array.isArray(db.likedIds)) state.likedJournalIds = new Set(db.likedIds);
     if (Array.isArray(db.bookmarkedIds)) state.bookmarkedIds = new Set(db.bookmarkedIds);
     if (Array.isArray(db.flaggedJournalIds)) state.flaggedJournalIds = new Set(db.flaggedJournalIds);
@@ -1448,8 +1617,8 @@ function readingTimeMinutes(words){
 function coverHTML(categoryName){
   const cat = categoryByName(categoryName);
   return '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);position:relative;overflow:hidden;">' +
-    '<svg viewBox="0 0 24 24" fill="none" style="position:absolute;width:64px;height:64px;right:18px;bottom:14px;opacity:.5;">' + cat.icon + '</svg>' +
-    '<svg viewBox="0 0 24 24" fill="none" style="position:absolute;width:110px;height:110px;left:-24px;top:-24px;opacity:.12;">' + cat.icon + '</svg>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:64px;height:64px;right:18px;bottom:14px;opacity:.5;">' + cat.icon + '</svg>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:110px;height:110px;left:-24px;top:-24px;opacity:.12;">' + cat.icon + '</svg>' +
     '<span class="cat-pill" style="position:absolute;left:14px;top:14px;color:' + cat.color + '">' + cat.name + '</span>' +
   '</div>';
 }
@@ -1785,7 +1954,22 @@ async function fetchLatestJournals(opts){
   }
 
   if (opts.search) {
-    query = query.or(`title.ilike.%${opts.search}%,excerpt.ilike.%${opts.search}%`);
+    // Sanitize first: PostgREST's .or() syntax uses commas to separate
+    // conditions and % as the ilike wildcard, so an unescaped comma or
+    // % in the search box could silently break the whole filter (and
+    // make search look broken for exactly the inputs people actually
+    // type, like "grief, loss" or "50% done").
+    const term = opts.search.replace(/[%,()]/g, ' ').trim();
+    if (term) {
+      // Also match on the author's name/username, not just the Work's
+      // own text — searching "meera" should find her Works.
+      const { data: matchingAuthors } = await supabaseClient.from('profiles')
+        .select('id').or(`display_name.ilike.%${term}%,username.ilike.%${term}%`);
+      const authorIds = (matchingAuthors || []).map(function(a){ return a.id; });
+      const orParts = [`title.ilike.%${term}%`, `excerpt.ilike.%${term}%`, `body_markdown.ilike.%${term}%`];
+      if (authorIds.length) orParts.push(`author_id.in.(${authorIds.join(',')})`);
+      query = query.or(orParts.join(','));
+    }
   }
 
   if (opts.sort === 'appreciated') {
@@ -1845,6 +2029,26 @@ async function fetchWallPosts(){
     .eq('status','published').order('published_at',{ ascending:false }).limit(8);
   if (error) throw error;
   return data.map(normalizeWallPostRow);
+}
+const WALL_WORD_LIMIT = 40;
+function wordCountOf(text){
+  const trimmed = (text || '').trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+async function postToWall(body, categorySlug){
+  const cat = categoryBySlug(categorySlug);
+  if (DEMO_MODE){
+    const post = { id:'w' + Date.now(), category:cat.name, body:body, author_id: state.currentUser.id, published_at:new Date().toISOString(), likes:0 };
+    MOCK_WALL_POSTS.unshift(post);
+    persistDemoDB();
+    return post;
+  }
+  const { data, error } = await supabaseClient.from('wall_posts')
+    .insert({ body: body, category_id: cat.id, author_id: state.currentUser.id })
+    .select('id, body, category_id, author_id, published_at, likes').single();
+  if (error) throw error;
+  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username };
+  return normalizeWallPostRow(data);
 }
 
 function findJournal(idOrSlug){
@@ -2042,9 +2246,15 @@ async function markAllNotificationsRead(){
   const { error } = await supabaseClient.from('notifications').update({ read_at:new Date().toISOString() }).eq('recipient_id', state.currentUser.id).is('read_at', null);
   if (error) throw error;
 }
-function unreadNotifCount(){
+async function unreadNotifCount(){
   if (DEMO_MODE) return MOCK_NOTIFICATIONS.filter(function(n){ return !n.read_at; }).length;
-  return 0; // real count comes back with fetchNotifications() results in production
+  if (!state.currentUser) return 0;
+  const { count, error } = await supabaseClient.from('notifications')
+    .select('id', { count:'exact', head:true })
+    .eq('recipient_id', state.currentUser.id)
+    .is('read_at', null);
+  if (error) return 0;
+  return count || 0;
 }
 
 /* ------------------------------------------------------------------
@@ -2229,7 +2439,7 @@ async function publishJournal(payload){
    build their path once the actual journal/author is known (see
    renderReadView and renderPortfolioView), since they need data that
    isn't available synchronously here. */
-const VIEW_PATHS = { home:'/', explore:'/', drafts:'/drafts', published:'/published', saved:'/saved', notifications:'/notifications' };
+const VIEW_PATHS = { home:'/', explore:'/', drafts:'/drafts', published:'/published', saved:'/saved', notifications:'/notifications', wall:'/wall' };
 function setPath(path, replace){
   if (!path || window.location.pathname === path) return;
   const fn = replace ? 'replaceState' : 'pushState';
@@ -2253,6 +2463,7 @@ function navigateTo(view, params){
   if (view === 'portfolio') renderPortfolioView(params.username, replace);
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
+  if (view === 'wall') renderWallView();
   if (view === 'home' || view === 'explore') renderHomeStatic();
   if (view === 'explore'){
     setTimeout(function(){ const el = qs('#explore-section'); if (el) el.scrollIntoView({ behavior:'smooth' }); }, 60);
@@ -2290,11 +2501,17 @@ async function renderFeatured(){
 
 async function renderCategoryGrid(){
   const grid = qs('#category-grid');
-  const counts = await fetchCategoryCounts();
+  let counts = {};
+  try{
+    counts = await fetchCategoryCounts();
+  }catch(e){
+    grid.innerHTML = '<p class="empty-state">Couldn\'t load categories right now.</p>';
+    return;
+  }
   grid.innerHTML = CATEGORIES.map(function(c){
     const count = counts[c.name] || 0;
     return '<button type="button" class="cat-card" data-filter-category="' + c.slug + '">' +
-      '<span class="cat-icon" style="background:' + c.soft + '"><svg viewBox="0 0 24 24" fill="none" width="22" height="22">' + c.icon + '</svg></span>' +
+      categoryBadgeHTML(c, 52) +
       '<h3>' + c.name + '</h3><p>' + c.desc + '</p>' +
       '<span class="cat-count">' + count + (count===1?' Work':' Works') + '</span>' +
     '</button>';
@@ -2312,7 +2529,8 @@ function renderFilterRow(){
 const runSearch = debounce(function(){ state.latestPage = 1; renderLatestFeed(); }, 450);
 
 async function renderLatestFeed(){
-  const grid = qs('#latest-grid');
+  const grid = homeGridEl();
+  if (!grid) return;
   if (state.latestPage === 1){ grid.innerHTML = '<div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div>'; }
   try{
     const result = await fetchLatestJournals({
@@ -2321,7 +2539,8 @@ async function renderLatestFeed(){
     });
     grid.innerHTML = result.rows.length ? result.rows.map(journalCardHTML).join('') :
       '<div class="empty-state" style="grid-column:1/-1;"><p>No Works match that search yet.</p></div>';
-    qs('#load-more-btn').style.display = result.rows.length < result.total ? 'inline-flex' : 'none';
+    const loadMoreBtn = homeLoadMoreEl();
+    if (loadMoreBtn) loadMoreBtn.style.display = result.rows.length < result.total ? 'inline-flex' : 'none';
   }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load Works right now.</p>'; }
 }
 
@@ -2334,7 +2553,7 @@ function wallNoteHTML(w){
     '<span>♥ ' + w.likes + ' · ' + formatRelativeTime(w.published_at) + '</span></div>' +
   '</div>';
 }
-async function renderWall(){
+async function renderWallView(){
   const grid = qs('#wall-grid');
   try{
     const rows = await fetchWallPosts();
@@ -2342,12 +2561,51 @@ async function renderWall(){
   }catch(e){ grid.innerHTML = ''; }
 }
 
+/* Member (logged-in) home shares the same categories, but presents
+   them as a horizontally-scrollable icon row instead of the public
+   chip row, and drives the page title instead of a static heading. */
+const CREATE_PROMPTS = {
+  all: 'Write your own Journal…',
+  journals: 'Write your own Journal…',
+  stories: 'Write your own Story…',
+  poetry: 'Write your own Poem…',
+  shayari: 'Write your own Shayari…',
+  thoughts: 'Share a thought…',
+  articles: 'Write your own Article…'
+};
+function updateCreateBarPrompt(){
+  const slug = state.activeFilter || 'all';
+  qs('#mh-create-text').textContent = CREATE_PROMPTS[slug] || CREATE_PROMPTS.all;
+}
+function renderMemberCategoryRow(){
+  const row = qs('#mh-category-row');
+  const all = [ALL_CATEGORY].concat(CATEGORIES);
+  row.innerHTML = all.map(function(c){
+    return '<button type="button" class="mh-cat-chip' + (state.activeFilter===c.slug?' is-active':'') + '" data-filter-chip="' + c.slug + '">' +
+      categoryBadgeHTML(c, 46) + '<span>' + c.name + '</span></button>';
+  }).join('');
+  qs('#mh-title').textContent = state.activeFilter && state.activeFilter !== 'all' ? categoryBySlug(state.activeFilter).name : 'Journals';
+  qs('#mh-subtitle').hidden = !!(state.activeFilter && state.activeFilter !== 'all');
+  updateCreateBarPrompt();
+}
+
+function homeGridEl(){ return state.currentUser ? qs('#m-latest-grid') : qs('#latest-grid'); }
+function homeLoadMoreEl(){ return state.currentUser ? qs('#m-load-more-btn') : qs('#load-more-btn'); }
+
 function renderHomeStatic(){
-  renderFilterRow();
-  renderFeatured();
-  renderCategoryGrid();
+  const loggedIn = !!state.currentUser;
+  qs('#public-home').hidden = loggedIn;
+  qs('#member-home').hidden = !loggedIn;
+  if (loggedIn){
+    qs('#mh-avatar').outerHTML = avatarHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="mh-avatar"');
+    renderMemberCategoryRow();
+    renderNotifBadge();
+  } else {
+    renderFilterRow();
+    renderFeatured();
+    renderCategoryGrid();
+  }
   renderLatestFeed();
-  renderWall();
 }
 
 /* ------------------------------------------------------------------
@@ -2702,11 +2960,15 @@ async function renderNotificationsView(){
     el.onclick = function(){ const jid = this.getAttribute('data-notif-journal'); if (jid) navigateTo('read', { journalId: jid }); };
   });
 }
-function renderNotifBadge(){
-  const n = state.currentUser ? unreadNotifCount() : 0;
-  const badge = qs('#nav-notif-badge');
-  badge.textContent = n;
-  badge.hidden = n === 0;
+async function renderNotifBadge(){
+  const n = state.currentUser ? await unreadNotifCount() : 0;
+  const text = n > 99 ? '99+' : n;
+  ['#nav-notif-badge', '#mh-notif-badge'].forEach(function(sel){
+    const badge = qs(sel);
+    if (!badge) return;
+    badge.textContent = text;
+    badge.hidden = n === 0;
+  });
 }
 
 function wireGenericButtons(){
@@ -2722,6 +2984,13 @@ function wireGenericButtons(){
       qs('#explore-section').scrollIntoView({ behavior:'smooth' });
     };
   });
+  const markAllBtn = qs('#mark-all-read-btn');
+  if (markAllBtn) markAllBtn.onclick = async function(){
+    if (!state.currentUser) return;
+    await markAllNotificationsRead();
+    await renderNotificationsView();
+    renderNotifBadge();
+  };
 }
 
 /* ------------------------------------------------------------------
@@ -3086,6 +3355,9 @@ async function completeLoginSuccess(form, result){
     action();
   } else if (state.currentView === 'write'){
     renderWriteView(state.currentDraftId);
+  } else if (state.currentView === 'home'){
+    state.latestPage = 1;
+    renderHomeStatic();
   } else if (['drafts','notifications','saved','published','read'].indexOf(state.currentView) !== -1){
     navigateTo(state.currentView, { journalId: state.currentJournalId });
   }
@@ -3213,6 +3485,55 @@ function initHomeControls(){
   qs('#search-input').addEventListener('input', function(){ state.searchQuery = this.value.trim(); runSearch(); });
   qs('#sort-select').addEventListener('change', function(){ state.activeSort = this.value; state.latestPage = 1; renderLatestFeed(); });
   qs('#load-more-btn').addEventListener('click', function(){ state.latestPage++; renderLatestFeed(); });
+
+  qs('#m-search-input').addEventListener('input', function(){ state.searchQuery = this.value.trim(); runSearch(); });
+  qs('#m-sort-select').addEventListener('change', function(){ state.activeSort = this.value; state.latestPage = 1; renderLatestFeed(); });
+  qs('#m-load-more-btn').addEventListener('click', function(){ state.latestPage++; renderLatestFeed(); });
+  qs('#mh-updates-btn').addEventListener('click', function(){ navigateTo('notifications'); });
+  qs('#mh-wall-btn').addEventListener('click', function(){ navigateTo('wall'); });
+  qs('#mh-avatar-btn').addEventListener('click', function(){ qs('#nav-user-trigger').click(); });
+  qs('#mh-create-bar').addEventListener('click', function(){ goToProtectedView('write', 'Log in to start writing.'); });
+
+  initWallCompose();
+}
+
+function initWallCompose(){
+  const catSelect = qs('#wall-compose-category');
+  catSelect.innerHTML = CATEGORIES.map(function(c){ return '<option value="' + c.slug + '">' + c.name + '</option>'; }).join('');
+
+  const body = qs('#wall-compose-body');
+  const count = qs('#wall-compose-count');
+  const submitBtn = qs('#wall-compose-submit');
+  function updateCount(){
+    const n = wordCountOf(body.value);
+    count.textContent = n + ' / ' + WALL_WORD_LIMIT + ' words';
+    const over = n > WALL_WORD_LIMIT;
+    count.classList.toggle('is-over', over);
+    submitBtn.disabled = over || n === 0;
+  }
+  body.addEventListener('input', updateCount);
+  updateCount();
+
+  qs('#wall-compose-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    requireAuth('Log in to pin a thought to the Wall.', async function(){
+      const text = body.value.trim();
+      const n = wordCountOf(text);
+      if (!text || n > WALL_WORD_LIMIT){ updateCount(); return; }
+      submitBtn.disabled = true;
+      try{
+        await postToWall(text, catSelect.value);
+        body.value = '';
+        updateCount();
+        showToast('Pinned to the Wall.');
+        renderWallView();
+      }catch(err){
+        showToast(err.message || "Couldn't pin that — please try again.");
+      }finally{
+        submitBtn.disabled = false;
+      }
+    });
+  });
 }
 
 /* Filter chips and category-grid clicks and journal-card clicks are
@@ -3224,7 +3545,8 @@ document.addEventListener('click', function(e){
   if (chip){
     state.activeFilter = chip.getAttribute('data-filter-chip');
     state.latestPage = 1;
-    renderFilterRow(); renderLatestFeed();
+    if (state.currentUser) renderMemberCategoryRow(); else renderFilterRow();
+    renderLatestFeed();
     return;
   }
   const catCard = e.target.closest('[data-filter-category]');
@@ -3278,7 +3600,7 @@ async function init(){
    is true only for the very first load, so we don't leave a
    duplicate history entry behind the URL the browser already had.
    ------------------------------------------------------------------ */
-const RESERVED_PATHS = ['write', 'drafts', 'published', 'saved', 'notifications', 'home'];
+const RESERVED_PATHS = ['write', 'drafts', 'published', 'saved', 'notifications', 'home', 'wall'];
 async function routeFromPath(replace){
   const path = window.location.pathname;
   const parts = path.split('/').filter(Boolean);
