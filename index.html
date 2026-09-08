@@ -185,6 +185,7 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
   padding:8px; display:none; flex-direction:column; gap:2px;
 }
 .nav-dropdown.open{ display:flex; }
+.nav-dropdown-name{ display:none; padding:8px 12px 10px; font-family:var(--font-display); font-weight:700; font-size:.98rem; color:var(--ink); border-bottom:1px solid var(--line); margin-bottom:4px; }
 .nav-dropdown button{
   background:none; border:none; text-align:left; padding:10px 12px; border-radius:8px; font-size:.88rem;
   font-weight:600; color:var(--ink); display:flex; align-items:center; gap:10px;
@@ -589,6 +590,9 @@ section{ padding:36px 0; }
 @media (max-width: 980px){
   .nav-links, .nav-guest-actions{ display:none; }
   .nav-hamburger{ display:flex; }
+  .nav-user-name{ display:none; }
+  .nav-user-trigger{ padding:2px; border:none; background:none; }
+  .nav-dropdown-name{ display:block; }
   .j-grid{ grid-template-columns:repeat(2,1fr); }
   .cat-grid{ grid-template-columns:repeat(2,1fr); }
   .wall-grid{ grid-template-columns:repeat(2,1fr); }
@@ -609,6 +613,15 @@ section{ padding:36px 0; }
   .saved-thumb{ width:100%; }
   .modal-box{ padding:24px; }
 }
+
+/* ============================================================
+   WORDMARK LOGO ("J" + Journals)
+   ============================================================ */
+.pl-brand{ background:none; border:none; padding:0; }
+.pl-wordmark{ display:flex; flex-direction:column; line-height:1; }
+.pl-word{ font-family:var(--font-display); font-weight:700; font-size:1.32rem; color:var(--ink); }
+.pl-j{ color:var(--orange); }
+.pl-wordmark .t2{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-top:3px; }
 </style>
 </head>
 <body>
@@ -618,21 +631,11 @@ section{ padding:36px 0; }
      ============================================================ -->
 <header class="navbar">
   <div class="container nav-inner">
-    <div class="nav-brand">
-      <div class="nav-logo">
-        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Aspinora Writing logo">
-          <rect width="64" height="64" rx="16" fill="#E8F0FB"/>
-          <g transform="rotate(45 32 32)">
-            <rect x="24" y="12" width="16" height="34" rx="3" stroke="#3E6FD8" stroke-width="2.2" stroke-linejoin="round"/>
-            <path d="M24 22H40" stroke="#3E6FD8" stroke-width="2"/>
-            <path d="M24 46L32 58L40 46Z" stroke="#3E6FD8" stroke-width="2.2" stroke-linejoin="round"/>
-          </g>
-        </svg>
-      </div>
-      <div class="nav-brand-text">
-        <span class="t1">Journal</span>
-        <span class="t2">POWERED BY ASPINORA</span>
-      </div>
+    <div class="nav-brand pl-brand">
+      <span class="pl-wordmark">
+        <span class="pl-word"><span class="pl-j">J</span>ournals</span>
+        <span class="t2">Powered by Aspinora</span>
+      </span>
     </div>
 
     <nav class="nav-links" aria-label="Main navigation">
@@ -655,6 +658,7 @@ section{ padding:36px 0; }
           <span class="nav-user-name" id="nav-user-name"></span>
         </button>
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
+          <div class="nav-dropdown-name" id="nav-dropdown-name"></div>
           <button type="button" data-nav="write" role="menuitem">✍️ Write a Work</button>
           <button type="button" data-nav="drafts" role="menuitem">📝 My Drafts</button>
           <button type="button" data-nav="published" role="menuitem">📚 My Works</button>
@@ -765,55 +769,6 @@ section{ padding:36px 0; }
         </section>
       </div>
 
-      <!-- ============ MEMBER HOME (logged in) ============ -->
-      <div id="member-home" hidden>
-        <div class="container mh-shell">
-          <header class="mh-header">
-            <div class="mh-title-wrap">
-              <h1 id="mh-title">Journals</h1>
-              <p class="mh-subtitle" id="mh-subtitle">POWERED BY ASPINORA</p>
-            </div>
-            <div class="mh-search">
-              <svg viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-              <input type="search" id="m-search-input" placeholder="Search writings and writers…" aria-label="Search Works">
-              <select class="mh-sort-select" id="m-sort-select" aria-label="Sort Works">
-                <option value="latest">Latest</option>
-                <option value="appreciated">Most Appreciated</option>
-                <option value="discussed">Most Discussed</option>
-              </select>
-            </div>
-            <div class="mh-header-actions">
-              <button type="button" class="mh-icon-btn" id="mh-updates-btn" aria-label="Updates">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4.3c-2.4 0-4.1 1.9-4.1 4.4v2.8L6.4 14.6h11.2L16.1 11.5V8.7c0-2.5-1.7-4.4-4.1-4.4Z" stroke-linejoin="round"/><path d="M10.3 17.3a1.8 1.8 0 0 0 3.4 0" stroke-linecap="round"/></svg>
-                <span class="nav-badge" id="mh-notif-badge" hidden>0</span>
-              </button>
-              <button type="button" class="mh-icon-btn" id="mh-wall-btn" aria-label="The Wall">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="12.5" width="6.5" height="3" rx="0.4"/><rect x="13" y="12.5" width="7" height="3" rx="0.4"/><rect x="4" y="16.5" width="4.5" height="3" rx="0.4"/><rect x="10" y="16.5" width="7" height="3" rx="0.4"/><rect x="4" y="20.5" width="16" height="0" /></svg>
-              </button>
-              <button type="button" class="mh-avatar-btn" id="mh-avatar-btn" aria-label="Your account">
-                <span class="avatar" id="mh-avatar"></span>
-              </button>
-            </div>
-          </header>
-
-          <nav class="mh-category-row" id="mh-category-row" aria-label="Categories"></nav>
-
-          <button type="button" class="mh-create-bar" id="mh-create-bar">
-            <span class="mh-create-icon">
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13.5 3.5 16.5 6.5 7 16H4v-3L13.5 3.5Z" stroke-linejoin="round"/></svg>
-            </span>
-            <span id="mh-create-text">Write your own Journal…</span>
-          </button>
-        </div>
-
-        <section class="container mh-feed">
-          <div class="j-grid" id="m-latest-grid"></div>
-          <div class="load-more-wrap">
-            <button type="button" class="btn btn-secondary" id="m-load-more-btn">Load more Works</button>
-          </div>
-        </section>
-      </div>
-
       <footer class="site-footer container">
         <p class="site-footer-support">Aspinora Writing is completely free and accessible to all — a space to write, publish and keep what matters, without it costing anything to be here.</p>
 
@@ -829,169 +784,6 @@ section{ padding:36px 0; }
         <p class="site-footer-copy">© 2026 Aspinora. All rights reserved.</p>
       </footer>
 
-    </div>
-  </section>
-
-  <!-- ============================================================
-       THE WALL VIEW
-       ============================================================ -->
-  <section class="view" id="view-wall">
-    <div class="view-inner container">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">THE WALL</p>
-          <h2>Pinned thoughts, in progress.</h2>
-          <p>Short fragments, small realizations and notes from the Aspinora community — up to 40 words.</p>
-        </div>
-      </div>
-
-      <form class="wall-compose" id="wall-compose-form">
-        <textarea id="wall-compose-body" class="textarea" rows="2" maxlength="400" placeholder="Pin a short thought to the wall — 40 words or less…"></textarea>
-        <div class="wall-compose-row">
-          <select id="wall-compose-category" class="select-sort" aria-label="Category"></select>
-          <span class="wall-compose-count" id="wall-compose-count">0 / 40 words</span>
-          <button type="submit" class="btn btn-primary btn-sm" id="wall-compose-submit">Pin to Wall</button>
-        </div>
-      </form>
-
-      <div class="wall-grid" id="wall-grid"></div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       START WRITING VIEW
-       ============================================================ -->
-  <section class="view" id="view-write">
-    <div class="write-header">
-      <div class="container write-header-inner">
-        <div class="write-header-left">
-          <button type="button" class="btn btn-ghost" data-nav="home">← Back</button>
-          <span class="write-title-preview" id="write-title-preview">New Work</span>
-          <span class="save-status" id="save-status"><span class="dot"></span> <span id="save-status-text">Not saved yet</span></span>
-        </div>
-        <div class="write-header-right">
-          <button type="button" class="btn btn-secondary" id="preview-btn">Preview</button>
-          <button type="button" class="btn btn-secondary" id="save-draft-btn">Save Draft</button>
-          <button type="button" class="btn btn-primary" id="publish-btn">Publish</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="view-inner container">
-      <div class="write-shell">
-
-        <div class="field">
-          <label>Category</label>
-          <div class="cat-picker" id="write-cat-picker"></div>
-          <div class="error-msg" id="err-category" hidden>Please choose a category for this Work.</div>
-        </div>
-
-        <div class="field">
-          <input type="text" id="write-title" class="field-title-input" placeholder="Give your thought a title" maxlength="140" aria-label="Work title">
-          <span class="count"><span id="title-count">0</span>/140</span>
-          <div class="error-msg" id="err-title" hidden>A title is required.</div>
-        </div>
-
-        <div class="field">
-          <input type="text" id="write-subtitle" class="field-subtitle-input" placeholder="A short line that invites people in — optional" maxlength="240" aria-label="Work subtitle">
-          <span class="count"><span id="subtitle-count">0</span>/240</span>
-        </div>
-
-        <div class="field">
-          <div class="editor-toolbar" role="toolbar" aria-label="Formatting toolbar">
-            <button type="button" data-md="bold" title="Bold" aria-label="Bold"><svg viewBox="0 0 20 20" fill="none"><path d="M6 4h5a3 3 0 0 1 0 6H6V4Zm0 6h6a3 3 0 0 1 0 6H6v-6Z" stroke="currentColor" stroke-width="1.6"/></svg></button>
-            <button type="button" data-md="italic" title="Italic" aria-label="Italic"><svg viewBox="0 0 20 20" fill="none"><path d="M9 4h6M5 16h6M11 4 9 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="heading" title="Heading" aria-label="Heading"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4v12M13 4v12M5 10h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="quote" title="Quote" aria-label="Quote"><svg viewBox="0 0 20 20" fill="none"><path d="M5 5h4v5H6c0 2-1 3-3 3M11 5h4v5h-3c0 2-1 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
-            <button type="button" data-md="ul" title="Bullet list" aria-label="Bullet list"><svg viewBox="0 0 20 20" fill="none"><circle cx="4" cy="5" r="1.2" fill="currentColor"/><circle cx="4" cy="10" r="1.2" fill="currentColor"/><circle cx="4" cy="15" r="1.2" fill="currentColor"/><path d="M8 5h8M8 10h8M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="ol" title="Numbered list" aria-label="Numbered list"><svg viewBox="0 0 20 20" fill="none"><text x="2" y="7" font-size="5" fill="currentColor">1</text><text x="2" y="12" font-size="5" fill="currentColor">2</text><path d="M8 5h8M8 10h8M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="divider" title="Divider" aria-label="Divider"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="link" title="Link" aria-label="Link"><svg viewBox="0 0 20 20" fill="none"><path d="M8 12l4-4M7 13a3 3 0 0 1 0-4l2-2a3 3 0 0 1 4 4M13 7a3 3 0 0 1 0 4l-2 2a3 3 0 0 1-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-            <span class="tb-sep"></span>
-            <button type="button" id="undo-btn" title="Undo" aria-label="Undo"><svg viewBox="0 0 20 20" fill="none"><path d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8h-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            <button type="button" id="redo-btn" title="Redo" aria-label="Redo"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l4 4-4 4M17 9H8a4 4 0 0 0 0 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          </div>
-          <textarea id="write-body" class="editor-textarea" placeholder="Start wherever you are. A thought, a question, a moment worth keeping…" aria-label="Work body"></textarea>
-          <div class="error-msg" id="err-body" hidden>Your Work can't be empty.</div>
-        </div>
-
-        <div class="field">
-          <label for="tag-text-input">Tags <span style="font-weight:400;color:var(--ink-faint);">(up to 3)</span></label>
-          <div class="tag-input-row" id="tag-input-row">
-            <input type="text" id="tag-text-input" placeholder="Add a tag and press Enter" maxlength="30" aria-label="Add a tag">
-          </div>
-        </div>
-
-        <div class="settings-panel">
-          <div class="settings-heading">Work settings</div>
-          <div class="settings-body open" id="settings-body">
-            <div>
-              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Visibility</label>
-              <div class="radio-row" id="visibility-row">
-                <label class="radio-pill"><input type="radio" name="visibility" value="private">Private 🔒</label>
-                <label class="radio-pill"><input type="radio" name="visibility" value="unlisted">Unlisted 🔗</label>
-                <label class="radio-pill is-active"><input type="radio" name="visibility" value="public" checked>Public 🌍</label>
-              </div>
-              <p style="margin:8px 0 0;font-size:.78rem;color:var(--ink-faint);line-height:1.5;" id="visibility-hint">Public Works appear on your Portfolio and can be discovered by readers.</p>
-            </div>
-            <div>
-              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Impressions</label>
-              <div class="radio-row" id="comments-row">
-                <label class="radio-pill is-active"><input type="radio" name="comments" value="on" checked>Allow Impressions</label>
-                <label class="radio-pill"><input type="radio" name="comments" value="off">Turn off Impressions</label>
-              </div>
-            </div>
-            <div>
-              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Content note</label>
-              <div class="radio-row" id="note-row">
-                <label class="radio-pill is-active"><input type="radio" name="content_note" value="" checked>No content note</label>
-                <label class="radio-pill"><input type="radio" name="content_note" value="sensitive">Sensitive personal topic</label>
-                <label class="radio-pill"><input type="radio" name="content_note" value="heavy">Heavy emotional topic</label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="write-footer-bar">
-          <div class="fb-stats">
-            <span id="fb-words">0 words</span>
-            <span id="fb-read">0 min read</span>
-            <span id="fb-chars">0/30,000 characters</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       MY DRAFTS VIEW
-       ============================================================ -->
-  <section class="view" id="view-drafts">
-    <div class="view-inner container">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">MY DRAFTS</p>
-          <h2>Unfinished thoughts</h2>
-        </div>
-        <button type="button" class="btn btn-primary" data-nav="write">Start writing</button>
-      </div>
-      <div class="list-stack" id="drafts-list"></div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       MY PUBLISHED JOURNALS VIEW
-       ============================================================ -->
-  <section class="view" id="view-published">
-    <div class="view-inner container">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">MY WORKS</p>
-          <h2>What you've shared</h2>
-        </div>
-      </div>
-      <div class="j-grid" id="published-grid"></div>
     </div>
   </section>
 
@@ -1061,37 +853,6 @@ section{ padding:36px 0; }
     </div>
   </section>
 
-  <!-- ============================================================
-       NOTIFICATIONS VIEW
-       ============================================================ -->
-  <section class="view" id="view-notifications">
-    <div class="view-inner container" style="max-width:680px;">
-      <div class="notif-toolbar">
-        <div>
-          <p class="eyebrow">UPDATES</p>
-          <h2>What's new</h2>
-        </div>
-        <button type="button" class="btn btn-ghost btn-sm" id="mark-all-read-btn">Mark all as read</button>
-      </div>
-      <div class="list-stack" id="notifications-list"></div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       ARCHIVE VIEW
-       ============================================================ -->
-  <section class="view" id="view-saved">
-    <div class="view-inner container">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">ARCHIVE</p>
-          <h2>Works you've preserved</h2>
-        </div>
-      </div>
-      <div class="list-stack" id="saved-list"></div>
-    </div>
-  </section>
-
 </main>
 
 <!-- ============================================================
@@ -1155,24 +916,6 @@ section{ padding:36px 0; }
     <p class="auth-alt-action" id="otp-back-wrap" hidden>
       <button type="button" class="link-btn" id="otp-back-btn">Use password instead</button>
     </p>
-  </div>
-</div>
-
-<!-- ============================================================
-     PUBLISH CONFIRMATION MODAL
-     ============================================================ -->
-<div class="modal-scrim" id="publish-modal-scrim">
-  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="publish-modal-title">
-    <button type="button" class="modal-close" id="publish-modal-close" aria-label="Close">
-      <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    </button>
-    <h2 id="publish-modal-title">Ready to publish this Work?</h2>
-    <div class="publish-summary" id="publish-summary"></div>
-    <p class="publish-reminder">Please publish only your own writing and keep the community respectful.</p>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-secondary" id="publish-go-back-btn">Go back</button>
-      <button type="button" class="btn btn-primary" id="publish-confirm-btn">Publish</button>
-    </div>
   </div>
 </div>
 
@@ -1780,7 +1523,9 @@ async function restoreSession(){
       loadProfile(session.user.id).then(function(user){
         state.currentUser = user;
         syncAuthUI();
-        hydrateUserActivity(user.id);
+        hydrateUserActivity(user.id).then(function(){
+          window.location.href = 'userpostlogin.html';
+        });
       });
     }
   });
@@ -1806,8 +1551,8 @@ function syncAuthUI(){
   if (loggedIn){
     qs('#nav-user-avatar').outerHTML = avatarHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="nav-user-avatar"');
     qs('#nav-user-name').textContent = state.currentUser.display_name;
+    qs('#nav-dropdown-name').textContent = state.currentUser.display_name;
   }
-  renderNotifBadge();
 }
 
 /* Any protected action funnels through here: if logged in, run the
@@ -2451,19 +2196,14 @@ function navigateTo(view, params){
   state.currentView = view;
   qsa('.view').forEach(function(v){ v.classList.remove('active'); });
   const targetId = '#view-' + (view === 'explore' ? 'home' : view);
-  qs(targetId).classList.add('active');
+  const targetEl = qs(targetId);
+  if (targetEl) targetEl.classList.add('active');
   qsa('[data-nav]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-nav') === view); });
   window.scrollTo({ top:0, behavior:'auto' });
 
   if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
-  if (view === 'write'){ setPath(params.draftId ? '/write/' + params.draftId : '/write', replace); renderWriteView(params.draftId || null); }
-  if (view === 'drafts') renderDraftsView();
-  if (view === 'published') renderPublishedView();
   if (view === 'read') renderReadView(params.journalId, replace);
   if (view === 'portfolio') renderPortfolioView(params.username, replace);
-  if (view === 'notifications') renderNotificationsView();
-  if (view === 'saved') renderSavedView();
-  if (view === 'wall') renderWallView();
   if (view === 'home' || view === 'explore') renderHomeStatic();
   if (view === 'explore'){
     setTimeout(function(){ const el = qs('#explore-section'); if (el) el.scrollIntoView({ behavior:'smooth' }); }, 60);
@@ -2589,22 +2329,16 @@ function renderMemberCategoryRow(){
   updateCreateBarPrompt();
 }
 
-function homeGridEl(){ return state.currentUser ? qs('#m-latest-grid') : qs('#latest-grid'); }
-function homeLoadMoreEl(){ return state.currentUser ? qs('#m-load-more-btn') : qs('#load-more-btn'); }
+/* Logged-in visitors are redirected to userpostlogin.html (see init()
+   and routeFromPath()) before this ever renders, so this page only
+   ever needs the guest/public home. */
+function homeGridEl(){ return qs('#latest-grid'); }
+function homeLoadMoreEl(){ return qs('#load-more-btn'); }
 
 function renderHomeStatic(){
-  const loggedIn = !!state.currentUser;
-  qs('#public-home').hidden = loggedIn;
-  qs('#member-home').hidden = !loggedIn;
-  if (loggedIn){
-    qs('#mh-avatar').outerHTML = avatarHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="mh-avatar"');
-    renderMemberCategoryRow();
-    renderNotifBadge();
-  } else {
-    renderFilterRow();
-    renderFeatured();
-    renderCategoryGrid();
-  }
+  renderFilterRow();
+  renderFeatured();
+  renderCategoryGrid();
   renderLatestFeed();
 }
 
@@ -3295,8 +3029,11 @@ async function doPublish(){
 /* ------------------------------------------------------------------
    16. GLOBAL NAVIGATION + MODAL WIRING
    ------------------------------------------------------------------ */
+/* These views now live on userpostlogin.html. Guests still get the
+   familiar "log in to continue" prompt; once logged in (now or
+   already), they land on the same feature there instead of here. */
 function goToProtectedView(view, message){
-  requireAuth(message, function(){ navigateTo(view); });
+  requireAuth(message, function(){ window.location.href = 'userpostlogin.html/' + view; });
 }
 function wireNav(){
   qsa('[data-nav]').forEach(function(btn){
@@ -3346,20 +3083,14 @@ async function completeLoginSuccess(form, result){
   await hydrateUserActivity(result.user.id);
   syncAuthUI();
   closeModal('auth-modal-scrim');
-  showToast('Welcome, ' + result.user.display_name + '.');
   if (form) form.reset();
   resetOtpPanel();
   if (state.pendingAuthAction){
     const action = state.pendingAuthAction;
     state.pendingAuthAction = null;
     action();
-  } else if (state.currentView === 'write'){
-    renderWriteView(state.currentDraftId);
-  } else if (state.currentView === 'home'){
-    state.latestPage = 1;
-    renderHomeStatic();
-  } else if (['drafts','notifications','saved','published','read'].indexOf(state.currentView) !== -1){
-    navigateTo(state.currentView, { journalId: state.currentJournalId });
+  } else {
+    window.location.href = 'userpostlogin.html';
   }
 }
 
@@ -3485,16 +3216,6 @@ function initHomeControls(){
   qs('#search-input').addEventListener('input', function(){ state.searchQuery = this.value.trim(); runSearch(); });
   qs('#sort-select').addEventListener('change', function(){ state.activeSort = this.value; state.latestPage = 1; renderLatestFeed(); });
   qs('#load-more-btn').addEventListener('click', function(){ state.latestPage++; renderLatestFeed(); });
-
-  qs('#m-search-input').addEventListener('input', function(){ state.searchQuery = this.value.trim(); runSearch(); });
-  qs('#m-sort-select').addEventListener('change', function(){ state.activeSort = this.value; state.latestPage = 1; renderLatestFeed(); });
-  qs('#m-load-more-btn').addEventListener('click', function(){ state.latestPage++; renderLatestFeed(); });
-  qs('#mh-updates-btn').addEventListener('click', function(){ navigateTo('notifications'); });
-  qs('#mh-wall-btn').addEventListener('click', function(){ navigateTo('wall'); });
-  qs('#mh-avatar-btn').addEventListener('click', function(){ qs('#nav-user-trigger').click(); });
-  qs('#mh-create-bar').addEventListener('click', function(){ goToProtectedView('write', 'Log in to start writing.'); });
-
-  initWallCompose();
 }
 
 function initWallCompose(){
@@ -3545,7 +3266,7 @@ document.addEventListener('click', function(e){
   if (chip){
     state.activeFilter = chip.getAttribute('data-filter-chip');
     state.latestPage = 1;
-    if (state.currentUser) renderMemberCategoryRow(); else renderFilterRow();
+    renderFilterRow();
     renderLatestFeed();
     return;
   }
@@ -3572,16 +3293,21 @@ async function init(){
   initUserDropdown();
   initAuthModal();
   initGuestModal();
-  initPublishModal();
   initHomeControls();
-  initWriteViewEvents();
   syncAuthUI();
 
   // Restore an existing Supabase session (e.g. from logging in on the
   // main Aspinora site, which shares this same project) before making
-  // any routing decisions that depend on being logged in.
+  // any routing decisions that depend on being logged in. Logged-in
+  // visitors live on userpostlogin.html, so send them straight there
+  // instead of rendering the guest homepage underneath them.
   await restoreSession();
   syncAuthUI();
+  const partsNow = window.location.pathname.split('/').filter(Boolean);
+  if (state.currentUser && (partsNow.length === 0 || MEMBER_PATHS.indexOf(partsNow[0]) !== -1)){
+    window.location.replace('userpostlogin.html' + (partsNow.length ? '/' + partsNow.join('/') : ''));
+    return;
+  }
 
   await routeFromPath(true);
   window.addEventListener('popstate', function(){ routeFromPath(false); });
@@ -3600,22 +3326,27 @@ async function init(){
    is true only for the very first load, so we don't leave a
    duplicate history entry behind the URL the browser already had.
    ------------------------------------------------------------------ */
-const RESERVED_PATHS = ['write', 'drafts', 'published', 'saved', 'notifications', 'home', 'wall'];
+/* Everything that now lives on userpostlogin.html instead of here. */
+const MEMBER_PATHS = ['write', 'drafts', 'published', 'saved', 'notifications', 'wall'];
 async function routeFromPath(replace){
   const path = window.location.pathname;
   const parts = path.split('/').filter(Boolean);
+
+  if (parts.length && MEMBER_PATHS.indexOf(parts[0]) !== -1){
+    const target = 'userpostlogin.html' + path;
+    if (state.currentUser){ window.location.href = target; return; }
+    requireAuth('Log in to continue.', function(){ window.location.href = target; });
+    navigateTo('home', { replace: replace });
+    return;
+  }
 
   if (parts.length === 0){
     navigateTo('home', { replace: replace });
     return;
   }
 
-  if (RESERVED_PATHS.includes(parts[0])){
-    if (parts[0] === 'write'){ navigateTo('write', { draftId: parts[1] || null, replace: replace }); return; }
-    if (parts[0] === 'home'){ navigateTo('home', { replace: replace }); return; }
-    navigateTo(parts[0], { replace: replace });
-    return;
-  }
+  if (parts[0] === 'home'){ navigateTo('home', { replace: replace }); return; }
+  if (parts[0] === 'explore'){ navigateTo('explore', { replace: replace }); return; }
 
   if (parts.length === 1){
     navigateTo('portfolio', { username: parts[0], replace: replace });
