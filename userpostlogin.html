@@ -839,7 +839,9 @@ section{ padding:36px 0; }
         </button>
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
           <div class="nav-dropdown-name" id="nav-dropdown-name"></div>
-          <button type="button" data-nav="published" role="menuitem">📚 Portfolio</button>
+          <button type="button" id="nav-my-portfolio-btn" role="menuitem">🪪 Portfolio</button>
+          <button type="button" id="nav-update-profile-btn" role="menuitem">⚙️ Update Profile</button>
+          <button type="button" data-nav="published" role="menuitem">📚 My Works</button>
           <button type="button" data-nav="notifications" role="menuitem">🔔 Notification<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
           <button type="button" data-nav="drafts" role="menuitem">📝 My Drafts</button>
           <button type="button" data-nav="saved" role="menuitem">🔖 Archive</button>
@@ -2534,7 +2536,7 @@ function navigateTo(view, params){
   if (view === 'drafts') renderDraftsView();
   if (view === 'published') renderPublishedView();
   if (view === 'read') renderReadView(params.journalId, replace);
-  if (view === 'portfolio') renderPortfolioView(params.username, replace);
+  if (view === 'portfolio'){ window.location.href = 'portfolio.html?u=' + encodeURIComponent(params.username || ''); }
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
   if (view === 'wall') renderWallView();
@@ -2554,10 +2556,10 @@ function journalCardHTML(j){
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(j.excerpt) + '</p>' +
-      '<div class="j-meta">' + avatarHTML(j.author_id, authorName(j.author_id)) +
+      '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarHTML(j.author_id, authorName(j.author_id)) +
         '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
         '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
-      '</div>' +
+      '</a>' +
       '<div class="j-stats"><span>♥ ' + j.likes + '</span><span>💬 ' + j.comments + '</span></div>' +
       '<button type="button" class="j-read" data-open-journal="' + j.id + '">Read Work ' +
         '<svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
@@ -3398,6 +3400,13 @@ function initUserDropdown(){
   });
   document.addEventListener('click', function(){ qs('#nav-dropdown').classList.remove('open'); });
   qs('#sign-out-btn').addEventListener('click', signOutUser);
+  qs('#nav-my-portfolio-btn').addEventListener('click', function(){
+    if (!state.currentUser) return;
+    window.location.href = 'portfolio.html?u=' + encodeURIComponent(state.currentUser.username || '');
+  });
+  qs('#nav-update-profile-btn').addEventListener('click', function(){
+    window.location.href = 'updateprofile.html';
+  });
 }
 
 async function completeLoginSuccess(form, result){
@@ -3739,7 +3748,16 @@ async function init(){
   }
   syncAuthUI();
 
-  await routeFromPath(true);
+  // Query-param entry points let other standalone pages (e.g.
+  // portfolio.html) deep-link into this SPA without needing to know
+  // its clean-URL path scheme.
+  const entryParams = new URLSearchParams(window.location.search);
+  const readId = entryParams.get('read');
+  if (readId){
+    navigateTo('read', { journalId: readId, replace: true });
+  } else {
+    await routeFromPath(true);
+  }
   window.addEventListener('popstate', function(){ routeFromPath(false); });
   const loader = qs('#page-loader');
   if (loader) loader.classList.add('is-hidden');
