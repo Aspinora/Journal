@@ -622,9 +622,40 @@ section{ padding:36px 0; }
 .pl-word{ font-family:var(--font-display); font-weight:700; font-size:1.32rem; color:var(--ink); }
 .pl-j{ color:var(--orange); }
 .pl-wordmark .t2{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-top:3px; }
+
+/* ============================================================
+   PAGE LOADER (covers the page until the session check resolves)
+   ============================================================ */
+.page-loader{
+  position:fixed; inset:0; z-index:600;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--cream);
+  transition:opacity .35s ease, visibility .35s ease;
+}
+.page-loader.is-hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.page-loader-mark{ position:relative; width:56px; height:56px; display:flex; align-items:center; justify-content:center; }
+.page-loader-j{
+  font-family:var(--font-display); font-weight:700; font-size:1.9rem; color:var(--orange);
+}
+.page-loader-ring{
+  position:absolute; inset:0; border-radius:50%;
+  border:3px solid var(--line); border-top-color:var(--orange-deep);
+  animation:page-loader-spin .8s linear infinite;
+}
+@keyframes page-loader-spin{ to{ transform:rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<!-- Shown only very briefly while the session check resolves, so a
+     logged-in visitor never sees this guest page flash before being
+     sent on to userpostlogin.html. -->
+<div id="page-loader" class="page-loader">
+  <div class="page-loader-mark">
+    <span class="page-loader-j">J</span>
+    <span class="page-loader-ring"></span>
+  </div>
+</div>
 
 <!-- ============================================================
      NAVBAR
@@ -1499,30 +1530,45 @@ async function hydrateUserActivity(userId){
 /* Restore a Supabase session that already exists (e.g. the user
    logged in earlier, or on the main Aspinora site which shares this
    same Supabase project) so they don't appear logged out on load. */
+/* See the matching comment in userpostlogin.html's restoreSession():
+   waiting for the one-time INITIAL_SESSION event (rather than calling
+   getSession() directly) avoids concluding "logged out" before
+   Supabase has actually finished checking storage for a persisted
+   session — which was causing a real redirect round-trip on refresh. */
 async function restoreSession(){
   if (!AUTH_LIVE) return;
   try{
-    const { data } = await supabaseClient.auth.getSession();
-    if (data && data.session && data.session.user){
-      state.currentUser = await loadProfile(data.session.user.id);
-      await hydrateUserActivity(state.currentUser.id);
-    }
-  }catch(e){ console.warn('Could not restore session:', e); }
-
-  supabaseClient.auth.onAuthStateChange(function(event, session){
-    if (event === 'SIGNED_OUT'){
-      state.currentUser = null;
-      syncAuthUI();
-    } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
-      loadProfile(session.user.id).then(function(user){
-        state.currentUser = user;
-        syncAuthUI();
-        hydrateUserActivity(user.id).then(function(){
-          window.location.href = 'userpostlogin.html';
-        });
+    await new Promise(function(resolve){
+      let settled = false;
+      supabaseClient.auth.onAuthStateChange(function(event, session){
+        if (event === 'SIGNED_OUT'){
+          state.currentUser = null;
+          syncAuthUI();
+        } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
+          loadProfile(session.user.id).then(function(user){
+            state.currentUser = user;
+            syncAuthUI();
+            hydrateUserActivity(user.id).then(function(){
+              window.location.href = 'userpostlogin.html';
+            });
+          });
+        }
+        if (settled) return;
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT'){
+          settled = true;
+          if (session && session.user){
+            loadProfile(session.user.id).then(function(user){
+              state.currentUser = user;
+              return hydrateUserActivity(user.id);
+            }).catch(function(e){ console.warn('Could not load profile:', e); }).then(resolve);
+          } else {
+            resolve();
+          }
+        }
       });
-    }
-  });
+      setTimeout(function(){ if (!settled){ settled = true; resolve(); } }, 4000);
+    });
+  }catch(e){ console.warn('Could not restore session:', e); }
 }
 
 async function signOutUser(){
@@ -3305,6 +3351,8 @@ async function init(){
 
   await routeFromPath(true);
   window.addEventListener('popstate', function(){ routeFromPath(false); });
+  const loader = qs('#page-loader');
+  if (loader) loader.classList.add('is-hidden');
 }
 
 /* ------------------------------------------------------------------
