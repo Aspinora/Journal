@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Update Profile · Aspinora Writing</title>
+<link rel="icon" type="image/svg+xml" href="journal-logo.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --cream:        #FBF5EA;
+  --cream-deep:   #F4EBDA;
+  --paper:        #FFFDF8;
+  --ink:          #2B241C;
+  --ink-soft:     #5B5347;
+  --ink-faint:    #948B7C;
+  --orange:       #F1631B;
+  --orange-deep:  #D3510F;
+  --orange-soft:  #FCEADC;
+  --line:         rgba(43,36,28,0.10);
+  --line-strong:  rgba(43,36,28,0.18);
+  --shadow-soft:  0 4px 24px rgba(43,36,28,0.06);
+  --shadow-mid:   0 12px 40px rgba(43,36,28,0.10);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'Space Mono', 'SFMono-Regular', monospace;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --ease: cubic-bezier(.22,.9,.32,1);
+  --dur-fast: .18s;
+}
+*,*::before,*::after{ box-sizing:border-box; }
+[hidden]{ display:none !important; }
+html,body{ margin:0; padding:0; min-height:100%; }
+body{ background:var(--cream); color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+a{ color:inherit; text-decoration:none; }
+button{ font-family:inherit; cursor:pointer; }
+textarea,input,select{ font-family:inherit; font-size:inherit; color:inherit; }
+h1,h2{ font-family:var(--font-display); font-weight:600; margin:0; letter-spacing:-0.01em; }
+.container{ max-width:640px; margin:0 auto; padding:0 24px; }
+
+.navbar{ position:sticky; top:0; z-index:100; background:rgba(251,245,234,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+.nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 0; max-width:640px; margin:0 auto; padding-left:24px; padding-right:24px; }
+.nav-brand{ display:flex; align-items:center; gap:10px; }
+.nav-logo{ width:36px; height:36px; border-radius:11px; overflow:hidden; flex-shrink:0; }
+.nav-brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+.nav-brand-text .t1{ font-family:var(--font-display); font-weight:700; font-size:1.06rem; }
+.nav-brand-text .t2{ font-family:var(--font-mono); font-size:10px; letter-spacing:.06em; color:var(--ink-faint); }
+
+.page-head{ padding:40px 0 8px; }
+.page-head p{ color:var(--ink-soft); margin-top:8px; }
+
+.card{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow-soft); padding:32px; margin:26px 0 70px; }
+
+.avatar-row{ display:flex; align-items:center; gap:18px; margin-bottom:28px; }
+.avatar{ width:76px; height:76px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-family:var(--font-mono); font-size:1.5rem; flex-shrink:0; overflow:hidden; }
+.avatar img{ width:100%; height:100%; object-fit:cover; }
+.color-swatches{ display:flex; gap:8px; flex-wrap:wrap; }
+.swatch{ width:28px; height:28px; border-radius:50%; border:2px solid transparent; padding:0; }
+.swatch.is-active{ border-color:var(--ink); box-shadow:0 0 0 2px var(--paper); }
+
+.field{ margin-bottom:22px; }
+.field label{ display:block; font-weight:700; font-size:.86rem; margin-bottom:8px; }
+.field .hint{ font-size:.78rem; color:var(--ink-faint); margin-top:6px; }
+.field .count{ font-family:var(--font-mono); font-size:.74rem; color:var(--ink-faint); float:right; font-weight:400; }
+.input, .textarea, select.input{ width:100%; padding:13px 16px; border-radius:12px; border:1.5px solid var(--line); background:var(--paper); font-size:.95rem; color:var(--ink); transition:border-color var(--dur-fast) var(--ease); }
+.input:focus, .textarea:focus{ outline:none; border-color:var(--orange); }
+.input.has-error, .textarea.has-error{ border-color:#B3432B; }
+.username-prefix{ position:relative; }
+.username-prefix span{ position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--ink-faint); font-family:var(--font-mono); }
+.username-prefix input{ padding-left:32px; }
+.textarea{ resize:vertical; min-height:90px; }
+.error-msg{ color:#B3432B; font-size:.8rem; margin-top:6px; font-weight:600; }
+.ok-msg{ color:#2E7D52; font-size:.8rem; margin-top:6px; font-weight:600; }
+
+.identity-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+.identity-btn{ padding:10px 16px; border-radius:999px; border:1.5px solid var(--line); background:var(--paper); font-weight:700; font-size:.86rem; color:var(--ink-soft); }
+.identity-btn.is-active{ border-color:var(--orange); background:var(--orange-soft); color:var(--orange-deep); }
+
+.form-actions{ display:flex; gap:12px; margin-top:6px; }
+.btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:13px 24px; border-radius:999px; font-weight:700; font-size:.92rem; border:none; transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease); white-space:nowrap; }
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+.btn-primary{ background:var(--orange); color:#fff; box-shadow:0 8px 20px rgba(241,99,27,.30); }
+.btn-primary:hover:not(:disabled){ transform:translateY(-1px); background:var(--orange-deep); }
+.btn-secondary{ background:var(--paper); color:var(--ink); border:1.5px solid var(--line-strong); }
+.btn-secondary:hover{ border-color:var(--orange); color:var(--orange-deep); }
+.spinner{ width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:spin .7s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.toast-stack{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:400; display:flex; flex-direction:column; gap:8px; }
+.toast{ background:var(--ink); color:var(--paper); padding:11px 20px; border-radius:999px; font-size:.86rem; font-weight:600; box-shadow:var(--shadow-mid); }
+
+.gate{ text-align:center; padding:120px 20px; }
+.gate p{ color:var(--ink-soft); margin:10px 0 20px; }
+
+/* ============================================================
+   PAGE LOADER (covers the page until profile has loaded)
+   ============================================================ */
+.page-loader{
+  position:fixed; inset:0; z-index:600;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--cream);
+  transition:opacity .35s ease, visibility .35s ease;
+}
+.page-loader.is-hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.page-loader-mark{ position:relative; width:56px; height:56px; display:flex; align-items:center; justify-content:center; }
+.page-loader-j{ font-family:var(--font-display); font-weight:700; font-size:1.9rem; color:var(--orange); }
+.page-loader-ring{
+  position:absolute; inset:0; border-radius:50%;
+  border:3px solid var(--line); border-top-color:var(--orange-deep);
+  animation:page-loader-spin .8s linear infinite;
+}
+@keyframes page-loader-spin{ to{ transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Shown until the profile has loaded, so the page never flashes
+     empty content. -->
+<div id="page-loader" class="page-loader">
+  <div class="page-loader-mark">
+    <span class="page-loader-j">J</span>
+    <span class="page-loader-ring"></span>
+  </div>
+</div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a class="nav-brand" href="userpostlogin.html">
+      <span class="nav-logo"><img src="journal-logo.svg" alt=""></span>
+      <span class="nav-brand-text"><span class="t1">Aspinora</span><span class="t2">WRITING</span></span>
+    </a>
+    <a class="btn btn-secondary" style="padding:9px 16px;font-size:.82rem;" href="userpostlogin.html">Cancel</a>
+  </div>
+</nav>
+
+<main class="container" id="app">
+  <div class="page-head"><h1>Update Profile</h1><p>Loading your details…</p></div>
+</main>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+let supabaseClient = null;
+try{
+  if (window.supabase){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+  }
+}catch(e){ console.warn('Supabase client not initialised:', e); }
+
+const AVATAR_PALETTE = ['#F1631B','#A79BD1','#7FB8D9','#7FC8A9','#D4A24C','#FF8B6B'];
+const IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+function escapeHtml(str){ return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function initials(name){ if (!name) return '?'; return name.trim().split(/\s+/).map(function(p){ return p[0]; }).join('').slice(0,2).toUpperCase(); }
+function qs(sel, root){ return (root||document).querySelector(sel); }
+function showToast(msg){
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  stack.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2600);
+}
+
+function gateHTML(){
+  return '<div class="gate"><h2>Log in to edit your profile</h2>' +
+    '<p>You need to be signed in to update your Aspinora Writing profile.</p>' +
+    '<a class="btn btn-primary" href="index.html">Go to Log In</a></div>';
+}
+
+function formHTML(profile){
+  const color = profile.avatar_color || AVATAR_PALETTE[0];
+  const avatarInner = profile.avatar_url
+    ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="">'
+    : escapeHtml(initials(profile.display_name || profile.username));
+  return (
+    '<div class="page-head"><h1>Update Profile</h1><p>This is how other writers and readers will see you across Aspinora.</p></div>' +
+    '<div class="card">' +
+      '<form id="profile-form">' +
+        '<div class="avatar-row">' +
+          '<span class="avatar" id="avatar-preview" style="background:' + color + ';">' + avatarInner + '</span>' +
+          '<div>' +
+            '<div class="field-hint" style="margin-bottom:8px;font-weight:700;font-size:.86rem;">Avatar Colour</div>' +
+            '<div class="color-swatches" id="color-swatches">' +
+              AVATAR_PALETTE.map(function(c){ return '<button type="button" class="swatch' + (c===color?' is-active':'') + '" data-color="' + c + '" style="background:' + c + ';" aria-label="' + c + '"></button>'; }).join('') +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label for="f-avatar-url">Avatar Image URL <span style="font-weight:400;color:var(--ink-faint);">(optional)</span></label>' +
+          '<input class="input" type="url" id="f-avatar-url" placeholder="https://…" value="' + escapeHtml(profile.avatar_url || '') + '">' +
+          '<p class="hint">Leave blank to use your initials on the colour above.</p>' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label for="f-display-name">Display Name</label>' +
+          '<input class="input" type="text" id="f-display-name" maxlength="60" required value="' + escapeHtml(profile.display_name || '') + '">' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label for="f-username">Username</label>' +
+          '<div class="username-prefix"><span>@</span><input class="input" type="text" id="f-username" maxlength="20" required value="' + escapeHtml(profile.username || '') + '"></div>' +
+          '<p class="hint">3–20 characters: lowercase letters, numbers and underscores only.</p>' +
+          '<p class="error-msg" id="username-error" hidden></p>' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label>Creative Identity</label>' +
+          '<div class="identity-grid" id="identity-grid">' +
+            IDENTITIES.map(function(i){ return '<button type="button" class="identity-btn' + (i===profile.creative_identity?' is-active':'') + '" data-identity="' + i + '">' + i + '</button>'; }).join('') +
+          '</div>' +
+        '</div>' +
+
+        '<div class="field">' +
+          '<label for="f-bio">Bio <span class="count" id="bio-count">' + ((profile.bio||'').length) + '/280</span></label>' +
+          '<textarea class="textarea" id="f-bio" maxlength="280" placeholder="A few lines about you and what you write…">' + escapeHtml(profile.bio || '') + '</textarea>' +
+        '</div>' +
+
+        '<p class="error-msg" id="form-error" hidden></p>' +
+        '<div class="form-actions">' +
+          '<button type="submit" class="btn btn-primary" id="save-btn">Save Changes</button>' +
+          '<a class="btn btn-secondary" id="view-portfolio-link" href="#">View Portfolio</a>' +
+        '</div>' +
+      '</form>' +
+    '</div>'
+  );
+}
+
+function wireForm(profile){
+  const form = qs('#profile-form');
+  const colorInput = { value: profile.avatar_color || AVATAR_PALETTE[0] };
+  const identityInput = { value: profile.creative_identity || 'Author' };
+  let usernameAvailable = true;
+  let usernameCheckTimer = null;
+
+  qs('#view-portfolio-link').setAttribute('href', 'portfolio.html?u=' + encodeURIComponent(profile.username || ''));
+
+  qs('#color-swatches').addEventListener('click', function(e){
+    const btn = e.target.closest('.swatch');
+    if (!btn) return;
+    colorInput.value = btn.getAttribute('data-color');
+    document.querySelectorAll('.swatch').forEach(function(s){ s.classList.remove('is-active'); });
+    btn.classList.add('is-active');
+    if (!qs('#f-avatar-url').value.trim()){
+      qs('#avatar-preview').style.background = colorInput.value;
+    }
+  });
+
+  qs('#identity-grid').addEventListener('click', function(e){
+    const btn = e.target.closest('.identity-btn');
+    if (!btn) return;
+    identityInput.value = btn.getAttribute('data-identity');
+    document.querySelectorAll('.identity-btn').forEach(function(b){ b.classList.remove('is-active'); });
+    btn.classList.add('is-active');
+  });
+
+  qs('#f-bio').addEventListener('input', function(){
+    qs('#bio-count').textContent = this.value.length + '/280';
+  });
+
+  qs('#f-avatar-url').addEventListener('input', function(){
+    const preview = qs('#avatar-preview');
+    const url = this.value.trim();
+    if (url){
+      preview.style.background = colorInput.value;
+      preview.innerHTML = '<img src="' + escapeHtml(url) + '" alt="">';
+    } else {
+      preview.innerHTML = escapeHtml(initials(qs('#f-display-name').value || profile.username));
+    }
+  });
+
+  qs('#f-display-name').addEventListener('input', function(){
+    if (!qs('#f-avatar-url').value.trim()){
+      qs('#avatar-preview').innerHTML = escapeHtml(initials(this.value || profile.username));
+    }
+  });
+
+  qs('#f-username').addEventListener('input', function(){
+    const val = this.value.trim().toLowerCase();
+    this.value = val;
+    const errEl = qs('#username-error');
+    clearTimeout(usernameCheckTimer);
+    if (!USERNAME_RE.test(val)){
+      usernameAvailable = false;
+      errEl.textContent = 'Use 3–20 lowercase letters, numbers or underscores.';
+      errEl.hidden = false;
+      return;
+    }
+    if (val === profile.username){
+      usernameAvailable = true;
+      errEl.hidden = true;
+      return;
+    }
+    errEl.hidden = true;
+    usernameCheckTimer = setTimeout(async function(){
+      const { data } = await supabaseClient.from('profiles').select('id').eq('username', val).maybeSingle();
+      if (data && data.id !== profile.id){
+        usernameAvailable = false;
+        errEl.textContent = 'That username is already taken.';
+        errEl.hidden = false;
+      } else {
+        usernameAvailable = true;
+        errEl.hidden = true;
+      }
+    }, 420);
+  });
+
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    const formError = qs('#form-error');
+    formError.hidden = true;
+
+    const username = qs('#f-username').value.trim().toLowerCase();
+    const displayName = qs('#f-display-name').value.trim();
+    if (!displayName){ formError.textContent = 'Display name can\'t be empty.'; formError.hidden = false; return; }
+    if (!USERNAME_RE.test(username) || !usernameAvailable){ formError.textContent = 'Please fix your username before saving.'; formError.hidden = false; return; }
+
+    const saveBtn = qs('#save-btn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner"></span> Saving…';
+
+    const updates = {
+      display_name: displayName,
+      username: username,
+      creative_identity: identityInput.value,
+      avatar_color: colorInput.value,
+      avatar_url: qs('#f-avatar-url').value.trim() || null,
+      bio: qs('#f-bio').value.trim() || null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabaseClient.from('profiles').update(updates).eq('id', profile.id);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Changes';
+
+    if (error){
+      formError.textContent = error.message.indexOf('duplicate') !== -1 ? 'That username is already taken.' : 'Couldn\'t save your changes. Please try again.';
+      formError.hidden = false;
+      return;
+    }
+    showToast('Profile updated');
+    window.location.href = 'portfolio.html?u=' + encodeURIComponent(username);
+  });
+}
+
+async function init(){
+  try{
+    await initProfileForm();
+  } finally {
+    const loader = qs('#page-loader');
+    if (loader) loader.classList.add('is-hidden');
+  }
+}
+
+async function initProfileForm(){
+  const app = qs('#app');
+  if (!supabaseClient){
+    app.innerHTML = '<div class="gate"><h2>Couldn\'t connect</h2><p>Please try again shortly.</p></div>';
+    return;
+  }
+  const { data:{ session } } = await supabaseClient.auth.getSession();
+  if (!session){
+    app.innerHTML = gateHTML();
+    return;
+  }
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('id,username,display_name,bio,avatar_color,avatar_url,creative_identity,created_at')
+    .eq('id', session.user.id)
+    .maybeSingle();
+
+  if (error || !profile){
+    app.innerHTML = '<div class="gate"><h2>Couldn\'t load your profile</h2><p>Please try again shortly.</p><a class="btn btn-primary" href="userpostlogin.html">Back to Aspinora</a></div>';
+    return;
+  }
+  app.innerHTML = formHTML(profile);
+  wireForm(profile);
+}
+
+init();
+</script>
+</body>
+</html>
