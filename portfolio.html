@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio · Aspinora Writing</title>
+<meta name="description" content="A writer's portfolio on Aspinora Writing.">
+<link rel="icon" type="image/svg+xml" href="journal-logo.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --cream:        #FBF5EA;
+  --cream-deep:   #F4EBDA;
+  --paper:        #FFFDF8;
+  --ink:          #2B241C;
+  --ink-soft:     #5B5347;
+  --ink-faint:    #948B7C;
+
+  --orange:       #F1631B;
+  --orange-deep:  #D3510F;
+  --orange-soft:  #FCEADC;
+
+  --line:         rgba(43,36,28,0.10);
+  --line-strong:  rgba(43,36,28,0.18);
+  --shadow-soft:  0 4px 24px rgba(43,36,28,0.06);
+  --shadow-mid:   0 12px 40px rgba(43,36,28,0.10);
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'Space Mono', 'SFMono-Regular', monospace;
+
+  --container: 1160px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --ease: cubic-bezier(.22,.9,.32,1);
+  --dur-fast: .18s;
+}
+*,*::before,*::after{ box-sizing:border-box; }
+[hidden]{ display:none !important; }
+html,body{ margin:0; padding:0; min-height:100%; }
+body{ background:var(--cream); color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+img,svg{ max-width:100%; display:block; }
+a{ color:inherit; text-decoration:none; }
+button{ font-family:inherit; cursor:pointer; }
+textarea,input,select{ font-family:inherit; }
+h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; margin:0; letter-spacing:-0.01em; }
+.container{ max-width:var(--container); margin:0 auto; padding:0 24px; }
+
+.navbar{ position:sticky; top:0; z-index:100; background:rgba(251,245,234,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+.nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 0; }
+.nav-brand{ display:flex; align-items:center; gap:10px; }
+.nav-logo{ width:36px; height:36px; border-radius:11px; overflow:hidden; flex-shrink:0; }
+.nav-brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+.nav-brand-text .t1{ font-family:var(--font-display); font-weight:700; font-size:1.06rem; }
+.nav-brand-text .t2{ font-family:var(--font-mono); font-size:10px; letter-spacing:.06em; color:var(--ink-faint); }
+.nav-actions{ display:flex; align-items:center; gap:10px; }
+
+.btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:999px; font-weight:700; font-size:.88rem; border:none; transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); white-space:nowrap; }
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+.btn-primary{ background:var(--orange); color:#fff; box-shadow:0 8px 20px rgba(241,99,27,.30); }
+.btn-primary:hover:not(:disabled){ transform:translateY(-1px); background:var(--orange-deep); }
+.btn-secondary{ background:var(--paper); color:var(--ink); border:1.5px solid var(--line-strong); }
+.btn-secondary:hover{ border-color:var(--orange); color:var(--orange-deep); }
+.btn-sm{ padding:9px 16px; font-size:.8rem; }
+
+.avatar{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; overflow:hidden; }
+.avatar img{ width:100%; height:100%; object-fit:cover; }
+.avatar-lg{ width:104px; height:104px; font-size:2.1rem; border:4px solid var(--paper); box-shadow:var(--shadow-mid); }
+
+/* ---- profile hero ---- */
+.profile-hero{ padding:44px 0 8px; }
+.hero-cover{ height:150px; border-radius:var(--radius-lg); margin-bottom:-58px; }
+.hero-row{ display:flex; align-items:flex-end; gap:22px; padding:0 8px; flex-wrap:wrap; }
+.hero-id{ flex:1; min-width:220px; padding-bottom:6px; }
+.hero-id h1{ font-size:clamp(1.7rem,3vw,2.3rem); }
+.hero-username{ font-family:var(--font-mono); color:var(--ink-faint); font-size:.86rem; margin-top:4px; }
+.identity-badge{ display:inline-flex; align-items:center; gap:6px; margin-top:10px; padding:5px 13px; border-radius:999px; background:var(--orange-soft); color:var(--orange-deep); font-size:.76rem; font-weight:700; font-family:var(--font-mono); letter-spacing:.03em; }
+.hero-actions{ display:flex; gap:10px; padding-bottom:6px; flex-wrap:wrap; }
+.hero-bio{ max-width:640px; color:var(--ink-soft); margin:22px 8px 0; font-size:1rem; line-height:1.65; white-space:pre-wrap; }
+.hero-stats{ display:flex; gap:26px; margin:20px 8px 0; flex-wrap:wrap; }
+.hero-stat b{ display:block; font-family:var(--font-display); font-size:1.3rem; }
+.hero-stat span{ font-size:.78rem; color:var(--ink-faint); font-family:var(--font-mono); }
+
+/* ---- tabs / filters ---- */
+.tab-row{ display:flex; gap:8px; flex-wrap:wrap; margin:34px 8px 26px; }
+.chip-filter{ background:var(--paper); border:1.5px solid var(--line); padding:8px 15px; border-radius:999px; font-size:.82rem; font-weight:600; color:var(--ink-soft); }
+.chip-filter.is-active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+
+/* ---- work grid (matches main app's card style) ---- */
+.j-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; padding:0 8px 60px; }
+.j-card{ background:var(--paper); border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--line); box-shadow:var(--shadow-soft); transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); display:flex; flex-direction:column; }
+.j-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-mid); }
+.j-cover{ position:relative; aspect-ratio:2/1; }
+.j-cover .cat-pill{ position:absolute; left:14px; top:14px; }
+.j-cover .vis-pill{ position:absolute; right:14px; top:14px; background:rgba(43,36,28,.72); color:#fff; }
+.cat-pill{ display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; font-size:.72rem; font-weight:700; font-family:var(--font-mono); letter-spacing:.02em; background:rgba(255,255,255,.88); }
+.j-body{ padding:18px 18px 20px; display:flex; flex-direction:column; gap:10px; flex:1; }
+.j-body h3{ font-size:1.1rem; line-height:1.28; }
+.j-excerpt{ color:var(--ink-soft); font-size:.88rem; line-height:1.5; margin:0; flex:1; }
+.j-stats{ display:flex; justify-content:space-between; align-items:center; font-size:.76rem; color:var(--ink-faint); font-family:var(--font-mono); }
+.j-stats .dates{ }
+.j-stats .nums{ display:flex; gap:12px; }
+
+.empty-state{ text-align:center; padding:60px 20px; color:var(--ink-soft); }
+.empty-state .empty-icon{ width:56px; height:56px; margin:0 auto 18px; border-radius:50%; background:var(--cream-deep); display:flex; align-items:center; justify-content:center; color:var(--ink-faint); }
+.empty-state p{ font-size:1rem; max-width:340px; margin:0 auto 20px; }
+
+.skeleton{ background:linear-gradient(90deg,var(--cream-deep) 25%,#EFE6D2 37%,var(--cream-deep) 63%); background-size:400% 100%; animation:shimmer 1.4s ease infinite; border-radius:var(--radius-md); }
+@keyframes shimmer{ 0%{background-position:100% 0;} 100%{background-position:0 0;} }
+.skel-card{ height:270px; }
+
+.private-tag{ font-family:var(--font-mono); font-size:.68rem; font-weight:700; letter-spacing:.04em; color:#B3432B; background:#FBEAE5; padding:3px 8px; border-radius:999px; }
+
+.toast-stack{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:400; display:flex; flex-direction:column; gap:8px; }
+.toast{ background:var(--ink); color:var(--paper); padding:11px 20px; border-radius:999px; font-size:.86rem; font-weight:600; box-shadow:var(--shadow-mid); }
+
+@media (max-width: 860px){
+  .j-grid{ grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width: 560px){
+  .j-grid{ grid-template-columns:1fr; }
+  .hero-row{ flex-direction:column; align-items:flex-start; }
+  .hero-actions{ padding-bottom:0; margin-top:10px; }
+}
+
+/* ============================================================
+   PAGE LOADER (covers the page until profile/works have loaded)
+   ============================================================ */
+.page-loader{
+  position:fixed; inset:0; z-index:600;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--cream);
+  transition:opacity .35s ease, visibility .35s ease;
+}
+.page-loader.is-hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.page-loader-mark{ position:relative; width:56px; height:56px; display:flex; align-items:center; justify-content:center; }
+.page-loader-j{ font-family:var(--font-display); font-weight:700; font-size:1.9rem; color:var(--orange); }
+.page-loader-ring{
+  position:absolute; inset:0; border-radius:50%;
+  border:3px solid var(--line); border-top-color:var(--orange-deep);
+  animation:page-loader-spin .8s linear infinite;
+}
+@keyframes page-loader-spin{ to{ transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Shown until profile + Works have loaded, so the page never
+     flashes empty content. -->
+<div id="page-loader" class="page-loader">
+  <div class="page-loader-mark">
+    <span class="page-loader-j">J</span>
+    <span class="page-loader-ring"></span>
+  </div>
+</div>
+
+<nav class="navbar">
+  <div class="container nav-inner">
+    <a class="nav-brand" href="userpostlogin.html" id="brand-link">
+      <span class="nav-logo"><img src="journal-logo.svg" alt=""></span>
+      <span class="nav-brand-text"><span class="t1">Aspinora</span><span class="t2">WRITING</span></span>
+    </a>
+    <div class="nav-actions" id="nav-actions"></div>
+  </div>
+</nav>
+
+<main class="container" id="app">
+  <div class="profile-hero">
+    <div class="skeleton" style="height:150px;border-radius:28px;"></div>
+    <div class="skeleton" style="height:32px;width:260px;border-radius:8px;margin:26px 8px 0;"></div>
+  </div>
+</main>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+/* ------------------------------------------------------------------
+   SUPABASE — same project/keys as index.html & userpostlogin.html
+   ------------------------------------------------------------------ */
+const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+let supabaseClient = null;
+try{
+  if (window.supabase){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+  }
+}catch(e){ console.warn('Supabase client not initialised:', e); }
+
+const CATEGORIES = [
+  { id:1, name:'Journals',  color:'#8A6B3D', soft:'#F3E7CE', icon:'<path d="M7 4.5h8A1.5 1.5 0 0 1 16.5 6v13.5A1.5 1.5 0 0 1 15 21H8.5A1.5 1.5 0 0 1 7 19.5V4.5Z" stroke-linejoin="round"/><rect x="10.2" y="7.2" width="3.6" height="2.6" rx="0.4"/><path d="M9.2 17.8v2.6l1.3-1 1.3 1v-2.6" stroke-linejoin="round"/>' },
+  { id:2, name:'Stories',   color:'#3D5A73', soft:'#D8E6F0', icon:'<path d="M6.5 4h7l4 4v12h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/>' },
+  { id:3, name:'Poetry',    color:'#5B4A7A', soft:'#E4DCF2', icon:'<path d="M18 4c-7 .8-11.5 5-13 12 1-1.3 2.3-2 3.7-2C10 8.5 13.7 5 18 4Z" stroke-linejoin="round"/>' },
+  { id:4, name:'Shayari',   color:'#8A3A45', soft:'#F5D9DE', icon:'<path d="M8.5 6h7A3.2 3.2 0 0 1 18.7 9.2v1.6A3.2 3.2 0 0 1 15.5 14h-1l-2.8 2.8V14h-3.2a3.2 3.2 0 0 1-3.2-3.2V9.2A3.2 3.2 0 0 1 8.5 6Z" stroke-linejoin="round"/>' },
+  { id:5, name:'Thoughts',  color:'#7A6B2E', soft:'#F5EBC7', icon:'<path d="M9.3 20v-2.4c-2.1-1-3.5-3.1-3.5-5.5A6.2 6.2 0 0 1 12 6a6.2 6.2 0 0 1 6.2 6.1c0 2.4-1.4 4.5-3.5 5.5V20" stroke-linecap="round" stroke-linejoin="round"/>' },
+  { id:6, name:'Articles',  color:'#3D5A73', soft:'#D8E6F0', icon:'<path d="M6.5 4h7l4 4v13h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/>' }
+];
+function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[0]; }
+
+const AVATAR_PALETTE = ['#F1631B','#A79BD1','#7FB8D9','#7FC8A9','#D4A24C','#FF8B6B'];
+function initials(name){ if (!name) return '?'; return name.trim().split(/\s+/).map(function(p){ return p[0]; }).join('').slice(0,2).toUpperCase(); }
+function escapeHtml(str){ return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function formatDate(iso){ return iso ? new Date(iso).toLocaleDateString(undefined,{ month:'short', day:'numeric', year:'numeric' }) : ''; }
+function showToast(msg){
+  const stack = document.getElementById('toast-stack');
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  stack.appendChild(t);
+  setTimeout(function(){ t.remove(); }, 2600);
+}
+function coverHTML(catId, visibility){
+  const cat = categoryById(catId);
+  return '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);position:relative;overflow:hidden;">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:60px;height:60px;right:16px;bottom:12px;opacity:.5;">' + cat.icon + '</svg>' +
+    '<span class="cat-pill" style="color:' + cat.color + '">' + cat.name + '</span>' +
+    (visibility && visibility !== 'public' ? '<span class="cat-pill vis-pill">' + (visibility === 'private' ? 'Private' : 'Unlisted') + '</span>' : '') +
+  '</div>';
+}
+
+let state = { currentUser:null, profile:null, works:[], activeCategory:'all' };
+
+async function loadCurrentUser(){
+  if (!supabaseClient) return null;
+  const { data:{ session } } = await supabaseClient.auth.getSession();
+  if (!session) return null;
+  const { data } = await supabaseClient.from('profiles').select('id,username,display_name,avatar_color,avatar_url').eq('id', session.user.id).single();
+  return data || null;
+}
+
+function renderNav(){
+  const el = document.getElementById('nav-actions');
+  if (state.currentUser){
+    el.innerHTML =
+      '<a class="btn btn-secondary btn-sm" href="userpostlogin.html">Home</a>' +
+      '<a class="btn btn-primary btn-sm" href="userpostlogin.html">Write</a>';
+  } else {
+    document.getElementById('brand-link').setAttribute('href', 'index.html');
+    el.innerHTML = '<a class="btn btn-secondary btn-sm" href="index.html">Log In</a>';
+  }
+}
+
+function heroSkeleton(){
+  return '<div class="profile-hero"><div class="skeleton" style="height:150px;border-radius:28px;"></div>' +
+    '<div class="skeleton" style="height:32px;width:260px;border-radius:8px;margin:26px 8px 0;"></div></div>';
+}
+
+function notFoundHTML(){
+  return '<div class="empty-state" style="padding:100px 20px;">' +
+    '<div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" width="24" height="24" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg></div>' +
+    '<h2 style="margin-bottom:10px;">Portfolio not found</h2>' +
+    '<p>This writer doesn\'t exist, or the link is out of date.</p>' +
+    '<a class="btn btn-primary" href="userpostlogin.html">Back to Aspinora</a></div>';
+}
+
+function heroHTML(profile, isOwner, works){
+  const color = profile.avatar_color || AVATAR_PALETTE[0];
+  const avatarInner = profile.avatar_url
+    ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="">'
+    : escapeHtml(initials(profile.display_name || profile.username));
+  return (
+    '<div class="profile-hero">' +
+      '<div class="hero-cover" style="background:linear-gradient(120deg,' + color + ',' + color + 'AA);"></div>' +
+      '<div class="hero-row">' +
+        '<span class="avatar avatar-lg" style="background:' + color + ';">' + avatarInner + '</span>' +
+        '<div class="hero-id">' +
+          '<h1>' + escapeHtml(profile.display_name || profile.username) + '</h1>' +
+          '<div class="hero-username">@' + escapeHtml(profile.username) + '</div>' +
+          (profile.creative_identity ? '<span class="identity-badge">' + escapeHtml(profile.creative_identity) + '</span>' : '') +
+        '</div>' +
+        '<div class="hero-actions">' +
+          (isOwner
+            ? '<a class="btn btn-secondary" href="updateprofile.html">Edit Profile</a><a class="btn btn-primary" href="userpostlogin.html">Write New Work</a>'
+            : '<button type="button" class="btn btn-secondary" id="share-btn">Share Portfolio</button>') +
+        '</div>' +
+      '</div>' +
+      (profile.bio ? '<p class="hero-bio">' + escapeHtml(profile.bio) + '</p>' : '') +
+      '<div class="hero-stats">' +
+        '<div class="hero-stat"><b>' + works.length + '</b><span>PUBLISHED WORKS</span></div>' +
+        '<div class="hero-stat"><b>' + formatDate(profile.created_at).replace(/\s\d+,\s/,' ') + '</b><span>MEMBER SINCE</span></div>' +
+      '</div>' +
+    '</div>'
+  );
+}
+
+function workCardHTML(w){
+  const readHref = (state.currentUser ? 'userpostlogin.html' : 'index.html') + '?read=' + w.id;
+  return '<a class="j-card" href="' + readHref + '">' +
+    '<div class="j-cover">' + coverHTML(w.category_id, w.visibility) + '</div>' +
+    '<div class="j-body">' +
+      '<h3>' + escapeHtml(w.title) + '</h3>' +
+      '<p class="j-excerpt">' + escapeHtml(w.excerpt || '') + '</p>' +
+      '<div class="j-stats"><span class="dates">' + formatDate(w.published_at) + '</span>' +
+        '<span class="nums"><span>♥ ' + (w.like_count||0) + '</span><span>💬 ' + (w.comment_count||0) + '</span></span></div>' +
+    '</div></a>';
+}
+
+function renderTabsAndGrid(profile, isOwner){
+  const present = {};
+  state.works.forEach(function(w){ present[w.category_id] = true; });
+  const cats = CATEGORIES.filter(function(c){ return present[c.id]; });
+
+  let tabsHTML = '<button type="button" class="chip-filter is-active" data-cat="all">All Works</button>' +
+    cats.map(function(c){ return '<button type="button" class="chip-filter" data-cat="' + c.id + '">' + c.name + '</button>'; }).join('');
+
+  const app = document.getElementById('app');
+  app.insertAdjacentHTML('beforeend',
+    '<div class="tab-row">' + tabsHTML + '</div>' +
+    '<div class="j-grid" id="work-grid"></div>'
+  );
+
+  document.querySelectorAll('.chip-filter').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.chip-filter').forEach(function(b){ b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      state.activeCategory = btn.getAttribute('data-cat');
+      renderGrid(isOwner);
+    });
+  });
+
+  renderGrid(isOwner);
+}
+
+function renderGrid(isOwner){
+  const grid = document.getElementById('work-grid');
+  const list = state.activeCategory === 'all'
+    ? state.works
+    : state.works.filter(function(w){ return String(w.category_id) === state.activeCategory; });
+
+  if (!list.length){
+    grid.outerHTML = '<div class="empty-state" id="work-grid" style="grid-column:1/-1;">' +
+      '<div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22" stroke="currentColor" stroke-width="1.6"><path d="M6.5 4h7l4 4v13h-11V4Z"/></svg></div>' +
+      '<p>' + (isOwner ? 'You haven\'t published anything in this category yet.' : 'Nothing published here yet.') + '</p>' +
+      (isOwner ? '<a class="btn btn-primary" href="userpostlogin.html">Start Writing</a>' : '') +
+    '</div>';
+    return;
+  }
+  grid.innerHTML = list.map(workCardHTML).join('');
+}
+
+async function init(){
+  try{
+    await initPortfolio();
+  } finally {
+    const loader = document.getElementById('page-loader');
+    if (loader) loader.classList.add('is-hidden');
+  }
+}
+
+async function initPortfolio(){
+  state.currentUser = await loadCurrentUser();
+  renderNav();
+
+  const params = new URLSearchParams(window.location.search);
+  let username = params.get('u');
+  if (!username){
+    if (state.currentUser){
+      username = state.currentUser.username;
+      const url = new URL(window.location.href);
+      url.searchParams.set('u', username);
+      window.history.replaceState(null, '', url.toString());
+    } else {
+      document.getElementById('app').innerHTML = notFoundHTML();
+      return;
+    }
+  }
+
+  if (!supabaseClient){
+    document.getElementById('app').innerHTML = '<div class="empty-state" style="padding:100px 20px;"><p>Couldn\'t connect right now. Please try again shortly.</p></div>';
+    return;
+  }
+
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('id,username,display_name,bio,avatar_color,avatar_url,creative_identity,created_at')
+    .eq('username', username)
+    .maybeSingle();
+
+  if (error || !profile){
+    document.getElementById('app').innerHTML = notFoundHTML();
+    return;
+  }
+  state.profile = profile;
+  const isOwner = !!(state.currentUser && state.currentUser.id === profile.id);
+
+  const { data: rows } = await supabaseClient
+    .from('journals')
+    .select('id,title,excerpt,category_id,visibility,published_at,like_count,comment_count')
+    .eq('author_id', profile.id)
+    .eq('status', 'published')
+    .order('published_at', { ascending:false });
+
+  const works = (rows || []).filter(function(w){ return isOwner || w.visibility === 'public'; });
+  state.works = works;
+
+  document.getElementById('app').innerHTML = heroHTML(profile, isOwner, works);
+  renderTabsAndGrid(profile, isOwner);
+
+  const shareBtn = document.getElementById('share-btn');
+  if (shareBtn){
+    shareBtn.addEventListener('click', function(){
+      const link = window.location.origin + window.location.pathname + '?u=' + encodeURIComponent(profile.username);
+      if (navigator.clipboard){ navigator.clipboard.writeText(link); }
+      showToast('Portfolio link copied');
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>
