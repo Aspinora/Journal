@@ -649,7 +649,7 @@ section{ padding:36px 0; }
 }
 .pl-icon-btn:hover{ background:var(--cream-deep); color:var(--ink); }
 .pl-icon-btn[aria-expanded="true"]{ background:var(--orange-soft); color:var(--orange-deep); }
-.pl-wall-icon-img{ width:19px; height:19px; border-radius:50%; display:block; }
+.pl-wall-icon-img{ width:25px; height:25px; border-radius:50%; display:block; }
 
 /* Desktop: a real, always-open search bar (not just an icon). */
 .pl-search-bar-inline{
@@ -679,7 +679,8 @@ section{ padding:36px 0; }
 .pl-cta-mini-mobile{ display:none; }
 
 .pl-cta-bar{
-  display:block; width:100%; background:#fff; border:none; border-bottom:1px solid var(--line);
+  display:block; width:70%; margin:0 auto; background:#fff; border:none; border-bottom:1px solid var(--line);
+  border-left:1px solid var(--line); border-right:1px solid var(--line);
   padding:12px 0; text-align:left; cursor:pointer;
   position:sticky; z-index:190;
   transform:translateY(0); transition:transform .22s ease, box-shadow .22s ease;
@@ -687,7 +688,7 @@ section{ padding:36px 0; }
 .pl-cta-bar.is-scrolled-hidden{ transform:translateY(-100%); box-shadow:none; }
 .pl-cta-inner{
   display:flex; align-items:center; justify-content:center; gap:12px; color:var(--ink-faint); font-family:var(--font-display); font-size:1rem;
-  width:70%; margin:0 auto;
+  width:100%; margin:0;
 }
 .pl-cta-icon{ display:inline-flex; width:30px; height:30px; align-items:center; justify-content:center; border-radius:50%; border:1.5px dashed var(--line-strong); color:var(--ink-faint); flex-shrink:0; }
 .pl-cta-bar:hover .pl-cta-inner{ color:var(--ink); }
@@ -728,6 +729,7 @@ section{ padding:36px 0; }
   .pl-nav-item{ flex:1; padding:4px 2px 7px; }
   .pl-nav-item .pl-nav-label{ display:none; }
   .pl-nav-item svg{ width:27px; height:27px; }
+  .pl-wall-icon-img{ width:27px; height:27px; }
   .pl-nav-item.is-active{ position:relative; }
   .pl-nav-item.is-active::after{
     content:''; position:absolute; left:22%; right:22%; bottom:0;
@@ -742,7 +744,7 @@ section{ padding:36px 0; }
      mobile — the mini "Write something.." button in the header row
      above is the write shortcut here instead. It blends into the
      page background rather than sitting on its own white strip. */
-  .pl-cta-bar{ pointer-events:none; background:transparent; border-bottom:none; padding:8px 0 10px; }
+  .pl-cta-bar{ pointer-events:none; width:100%; margin:0; background:transparent; border:none; padding:8px 0 10px; }
   .pl-cta-inner{ width:100%; margin:0; justify-content:flex-start; }
   .pl-cta-icon, #pl-cta-text{ display:none; }
   .pl-cta-section-label{ display:inline; font-family:var(--font-display); font-weight:700; font-size:.95rem; color:var(--ink); }
