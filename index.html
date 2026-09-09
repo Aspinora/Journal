@@ -2243,7 +2243,7 @@ function navigateTo(view, params){
 
   if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
   if (view === 'read') renderReadView(params.journalId, replace);
-  if (view === 'portfolio') renderPortfolioView(params.username, replace);
+  if (view === 'portfolio'){ window.location.href = 'portfolio.html?u=' + encodeURIComponent(params.username || ''); }
   if (view === 'home' || view === 'explore') renderHomeStatic();
   if (view === 'explore'){
     setTimeout(function(){ const el = qs('#explore-section'); if (el) el.scrollIntoView({ behavior:'smooth' }); }, 60);
@@ -2260,10 +2260,10 @@ function journalCardHTML(j){
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(j.excerpt) + '</p>' +
-      '<div class="j-meta">' + avatarHTML(j.author_id, authorName(j.author_id)) +
+      '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarHTML(j.author_id, authorName(j.author_id)) +
         '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
         '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
-      '</div>' +
+      '</a>' +
       '<div class="j-stats"><span>♥ ' + j.likes + '</span><span>💬 ' + j.comments + '</span></div>' +
       '<button type="button" class="j-read" data-open-journal="' + j.id + '">Read Work ' +
         '<svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
@@ -3346,6 +3346,17 @@ async function init(){
   const partsNow = window.location.pathname.replace(/\/?index\.html$/i, '').split('/').filter(Boolean);
   if (state.currentUser && (partsNow.length === 0 || MEMBER_PATHS.indexOf(partsNow[0]) !== -1)){
     window.location.replace('userpostlogin.html' + (partsNow.length ? '/' + partsNow.join('/') : ''));
+    return;
+  }
+
+  // Query-param entry point so portfolio.html can deep-link a signed-out
+  // reader straight to a public Work without requiring login first.
+  const entryParams = new URLSearchParams(window.location.search);
+  const readId = entryParams.get('read');
+  if (readId){
+    navigateTo('read', { journalId: readId, replace: true });
+    const loader = qs('#page-loader');
+    if (loader) loader.classList.add('is-hidden');
     return;
   }
 
