@@ -718,6 +718,7 @@ section{ padding:36px 0; }
   }
   .pl-cta-mini-mobile svg{ width:15px; height:15px; flex-shrink:0; }
   .pl-nav-right{ grid-column:3; grid-row:1; justify-self:end; gap:2px; margin-right:4px; }
+  .pl-wall-btn{ padding:6px; }
   .pl-search-bar-inline{ display:none; }
   .pl-search-btn-mobile{ display:inline-flex; }
   .pl-search-panel{ display:block; }
@@ -726,7 +727,7 @@ section{ padding:36px 0; }
     width:100%; justify-content:space-between; gap:0;
     overflow-x:visible;
   }
-  .pl-nav-item{ flex:1; padding:4px 2px 7px; }
+  #pl-center-nav .pl-nav-item{ flex:1; padding:4px 2px 7px; }
   .pl-nav-item .pl-nav-label{ display:none; }
   .pl-nav-item svg{ width:27px; height:27px; }
   .pl-wall-icon-img{ width:27px; height:27px; }
@@ -752,9 +753,39 @@ section{ padding:36px 0; }
 @media (max-width:520px){
   .pl-search-panel{ width:calc(100vw - 32px); right:-8px; }
 }
+
+/* ============================================================
+   PAGE LOADER (covers the page until the session check resolves)
+   ============================================================ */
+.page-loader{
+  position:fixed; inset:0; z-index:600;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--cream);
+  transition:opacity .35s ease, visibility .35s ease;
+}
+.page-loader.is-hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+.page-loader-mark{ position:relative; width:56px; height:56px; display:flex; align-items:center; justify-content:center; }
+.page-loader-j{
+  font-family:var(--font-display); font-weight:700; font-size:1.9rem; color:var(--orange);
+}
+.page-loader-ring{
+  position:absolute; inset:0; border-radius:50%;
+  border:3px solid var(--line); border-top-color:var(--orange-deep);
+  animation:page-loader-spin .8s linear infinite;
+}
+@keyframes page-loader-spin{ to{ transform:rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<!-- Shown until the session check finishes, so the page never
+     flashes guest/empty content or a redirect round-trip. -->
+<div id="page-loader" class="page-loader">
+  <div class="page-loader-mark">
+    <span class="page-loader-j">J</span>
+    <span class="page-loader-ring"></span>
+  </div>
+</div>
 
 <!-- ============================================================
      NAVBAR
@@ -774,6 +805,10 @@ section{ padding:36px 0; }
     </button>
 
     <div class="nav-right pl-nav-right">
+      <button type="button" class="pl-nav-item pl-wall-btn" id="pl-wall-btn" data-nav-wall="1" aria-label="The Wall">
+        <span class="pl-nav-icon"><img class="pl-wall-icon-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAW4klEQVR42s17a3Ac13Xmd8653T0zeFGiQEmkQJEWB5QEPSwBoh1KskBRflBeb2y5SDvOZr1O7crerXUq3tpU7Y+szdo/SbxV+0gqqYRxKonjOLKkaF1rhZRkWYAly5Ri0rRsQrIweiB8iyBB4jmP7nvP/ujuQWPQA4KxUtlmNTHTc/v2Peeee853vnObVNUDoFjdkbajNr8TAJf8pUqlwidPnqSuri67bdu20DmXaSgAEVRtpju3pLORkRHT2zvJvv9empmZcYODg9oyFsp5vq5izOlnJVX1k0aX6nxVx9jYGPv+MSqXdzWISAFAVYuvvnnkutOn39xSq82U6/Xq9YC7xjkt2sgKMZyI1xCRs0a848Vi1/hVV/W9cftN2/+BSGZTxYyP7w9mZta5wcFB12Z82XFry4QAALcqiFTV5M3eZVhF8rCKOXx4RoaGhhYSodc++/wj98zNTn04jKr31MP6FvG4aIShcFDnQERQBTR5lLCAmOAs0GjYyDfeW55X+GGp2P3UPds++XxnZ+fp1DKGh2/wgL5wBUuVZSaVZ7JtFJA1Fc7Yp+bN+Kt4FXtu2dNQVX7p8DN3nTn79r+q1Wc+wYwNoAiNegNRZOGcc0zs0ieopp8o+T++oqpMRGw8A88zICK4yHunWOx48sqe6/7qgfv2fL8R1nD06KM+cDMGBgZcZtK4ZfZbFbPECrIKaLemsya1RAETExNm8+bNNYDxg5ee2HH23PEvVeuzH2MDNOp12DByyuwAZSgRJX0RLbVe1bjblusKqAJwqkoiIkEhgLWEUtD5zNor1v/P4bs/9ZTTCOPj40G5XI4y46XVzP6lFJAKbADYRHMOgI6NjZlaraZDQ0PhkSMvDEyc/umXq/WZPUQW1YUaAErbk1IyHbp6p5IqIqsYVSigDgAXigExGxSCK55Ye8WWL9/7vp1jhw4d8gYHB9Nxu5bJW1EBskLDrMloYvIyMDAQAuADz/3ll6anz36ZJOyan68qgR0RJDv4VqFaf4uF08t0tWQBR6XOEmvEs91rrvndB3d89vcAUAUVKaMc5Tm8lRTQrvESvzA29hjfcsuexokTlb4fvfLdr4Vu5kPz8wtQC0scC75MgysI1zrTl91OYVkgHR1dMFQ6cHP5g/9u69atJ99+e6SwadNwlPEL2sZH6EpLIBsJ9PDhfTw09Plw9MX9d52dfPVbDrXNCwv1CCAhurSptRNyJQto9RX5fZECzpY6SoYRvPWeTXf+6l2373zpW48+4u/evRttfEHTqlMFZDXDLTe5gwcPBtu3b68++8LjHzt3YeKbYWO+s1EPI2Y2qtp2oHmDXk377Iyvpu+kbeT5xgR+x8WN62956P1DHxk5duxYsa8vN1Q2HTvnzLbNKuDAgQPe9u3bqyPPP/7xs+fffLxenekMG5G9HOHbzepqFbEqayKYsB7ZWn1uzcSJV77zg5ee3LFx48ZqpVKRNpGNLhkFKqiYfuqv/+Clb+84fubnT9VqVR/OOU2wweXM1OU4ustVastzrOeJ+F7H6Zves/3+2267++eqhzxgMErA0bK1kIuf92Kv9lN//cjYywMnz775WNio+mqtAxFfjgPLCpXe824qK+c5EobORrpw7esTL39bVdc89liBAHhYwRm0jkiwF6yqHeOVF78ZhnNro1AtiDi7ltsAmKbb1RVmN1VI6/d34yCC1KthpKhvfWL/vj/YvXsgqlQOUF7ClLsERkdHzc77H6g98eQf/VHDXfz3M9MzETOb7Ay1G3DsWpf6aPqFYv6lI0brRKTjU7ioo7PLXNV1/Wd3Dn/66wlitHlIsBkFKpUD0t//YH30hSd2nZ58ff98dd4ykbSCl4zwy8dEOcloPDNobXs5WVf8TG32kRqPaqzlbDROBuXYY/Kk4/Tdd+4Zuv76tyeB4SWP5NYhz8wcd6paOj359v+IXASKQ2Wb9asOBBJDZDyOT8NkZPEUQ82TheLfzeJ1zvyedxpvsW18X/IMj4kY6dhcKxRJxslh6Bx7dv1Pfv7d3ya6P6pUDnA2xGfNX0dHR7Fjx+fD7zztf4lN48bGbN0SseR7eoUX+AyYOYFMN7VIhIQEaE6v5mZXBIXGy0XjpZJtRMnvSxwT0WJ8dkow5Fnb6LUIOQytMpauSSKCqHJtfsFpMPW5o+OH/7BcvvM1QKXZJLMEHBHhnXfevvq7LzzyinW1XmdVAXAOrlcjfrT5+pseuXXgl54teKUqrGWIpASIIyISAVmbb87SBB2WANHW3ywsCURt9pq1tBjIxME679Q7b2/+8dEXf3W+dvGmKAyVch2TRh2dHQba8ad7fvmLD+/fvz/YtWuXBUDNTG/fvn0GQHjoZy/8a9+ndbOz1hKR5KAzJ0a475ob/vbubQ/9RbV6ptfaqiTSUCIUCwTthE/RVtIWAqGlv9nk7+L1ZlfWxuqwEAvrNm0aONJ75XXHn/ze13/f2rA7MZuWvJpkfmFBfU8/Uzl29Ktb+gbeHBsb8wYGBiwnfoAffvgKp6rF6el3/m290VDmRU1mHR4RGODwxvKdI43G5FrAyfLZlVV79vy2kodZltiOhSMRounp0z0d3esudnV2H/GMWcIDLEYHEJxaL0DH0bEf7CEinZycZADEKXlJtMeOvvB/dorYcthoqCq43aAZYo3xI1W2rebbIpwTiM059ReN9SKsACsgDCASz59JxMlHlASu1xuo16ufUtVgeLjLZqLAGyAinL948tMgqwRyK8VrhaqI5EMQEFnrGCBqIJSGDb3W08Kxte3PtI+2v8FRi0FQqwPMGRs36qE6rd32wx99e5BoKKxUKmIAoFzeFbopt+avn/vvO5wLCQROw8pSIiMRnxbXaSq4tRaFQqlujMQgMIpdeORZNgCipKUxolFkuViUZWlqFFkyRhDBUjESjZJnJPc08ZS4UBqN0PPFs4IwwV6kKU5oa7lEVgTm7LkzuwD88OTJk2QqlYr09/dH3x15fEjErW80IgclXiQusxgA0JzUn9nUPS/A5OTxTfV6g5jFglXhHAGssOlMOQIEDo4Z6lwGiMT9sDqnbElFlCxAiZKSfkBEoqaj2DV9ZffVZ6u1+UKyBElVCStZbRzQyFqLajT/AVWVw4f3WXPu3DkGgLm5c/fGPp8cEXFqZJyX1CTcoLWWnGtw0eusf+d73/jP87UL94aRjbWkCmKO47kqnGq8RFsHpYmXosXvhOR7E0kmrp0ILKy+78/e1v/+39lavuP1mZnJbgDqyDFIW3jEZTkeN+oNiPAdJ86fuHZo6PMnzMWLFx0AhFFtm1KUPn/l1QQmWJCIgMiL5qvT187OXBiGaYAJcOpATCCOVwOpxkAn5YV1ESgRLWJkSlASLWLcpkFzCqocIOKtOT81eTNQetVal/TAcZeJ4K3QPf3onKrno2ui8pMtAE6YXbt2hara8zdPfLVs1QK0FJTl2BKUlCCACNQ5xx1dXVPl99z+x5NTx+8MIyvqbAxPSVjVgojUqqoSyBDH7L9moJhqIiuBW6zEOQURU9qOWDjwSsdvLN95oFo90wFhlzA7rmlFK06eWs8zZm7+4lYAoyZOgI5eZW10rXU2jvSEtlpIYa6kmASCanXe3DV4zzOA/zRgGZBokVK3yW1+4getxG18BazGn9OufQtYWkppp87SZOnusF4/2+GcBswcZz2xEpeYfn56HUOFuer0egAwzKwHD/5dLxGKmvZw2YVBkqjecCbwG7GgxgJRjGghiL+DgIhigSSKBTIKRJwIlyjBJK6nLoBYAK5en+6o1RYCX7zQIhTnSDzPs4CqCBwAB256jZV5BQJUHVTDWAGqioYL14jH1AihoDjDyuiiNZQACgewi5Gpk85C5+wbx1/feOrMW9uttYCqU0BiqpzikgY0CVJkCeQcHCgFW5p8coCyKhNDVUkdQmPYbtk8MHZ174bxsFYPRDwVQZQKa22MZAmqhCRZSmJG/gomcs6B4HoBitU9Hy4EzJx6pjifaLOWUm9srSNrLQtc1AjD0qEfj37FSX1tHI3iMiJhsfCZKAEEScgKzS1cMy1GM+csjEd45/yZiT0f+8J/qqFqpJ1oGuOARTtYucavVn2AwbFNkB/PNmkKMNuakcYlO/FYRUQhoiANTOBHBECdSxx8nGbE6RvFWA0CQOHUxZ46Jc40jhQcL+bkzpijUSfw2MxcqmQf+24GKbWd/UVdKxTqAwoDKDzxosuqhhMSn2thrROvIBfvfd+Hf/fU6Ym+Rhh6ROKIQaQQq2rVuQYxEYPh4AygxMRW4wAoiI2mQUQOUA/aBLhWhN31G/vH6vUqVoB5pAlxcyk5NFUXqAE4GCKCiMxGkQOhfQLU2gsnhioiWqstFK/ovPLU1bf1vZUgMwcENnZk4MSZJSOzZmnFWRB7frFYhr3iS1F9LghdvRgnQCvJ5VY3f0RgkQWAYFSBgm9mV70nhAgEgrOLCYkIW7/YvWBtrWhtTZg5gq2qI2diUqRJepAkykhyiZi3UrZGfGOpZqrVeQ8Qje+JFSwCxYqGvYQpzHqeZTQlEZRAMMabAwBDBPSuWT/11sTPqkRUVM1XxRKICRBLTHg4Z7mzc+3M8wf/70OTU6fut5FNIIQSs1JsKy65l2OPT1DnFKrJpgGiyBgT3nTDex+/aesdP56bmw1833MrzkJcKqdsGppdAkrL1kiCEWKUCvApQGGccwbAqZd+8vQpMeaGKIxyFdBkhJwDBAhhKRCBMRTOzExddezUG79O3Ijzn2Y8zmSRTegrSPiJ5tw4pwhIMP7mTz9y09YPHLT2YlGE7bJJtqCYCOHmGCVlCFvCFqMl0mQpHRAKxVIFALhSOSBENO+bQsXzBKorexHKiAQAjUYo3d1dC2vXrH/aSOm8ocJ5QjBFCKYYhSlGYUqoMCVUvMBUnGIEFwjeBUIwxRRMCQUXPQ4uGnSc2dh347PAQuD74nIfLSkRkpPss4AzOJoSopVBYGRofFIOGxY9HWvfAABz8mSRAMD3i0dCrX8k5kJWqNIwg5iVmW0KZavVKu3aufuP5+amO52z+Um5tZSQppyktzZOTpyAiQKvUC0WS3PV6kznpdZ7XtUhw98lM695G/pURMhZTN1x6/vfVFVpchWdnWv+fvLCRagiSwcuj7YpSo8JUBLxHWB5bu58yfcLjQTKXvJgZefIsbVxUhWn5FPdIp7DZQTk5jpxaKbdoASxLocwzvONMApHSqWrTh8+vM/w8PAwVJXed8fwwSjUKRHhGLe2twJ1YCLiLOsr4rlGI5T0tNZy9nvrGYahiduF0rChadjQXKbw2UhJjhw34Zcud+CJg1TfCxAUu0aJSGdnfUnLYX5Pz3XvFIOu0WIxSMw7r57fdGZkrWORFj5fWNOz9Xvrma5nEVZBfP7j2NF0bKzZZCgVuiU9llotcht7Nz8NABs23K0MgE56RXIuQlfnFY8xCyX1mpyiI/LW1f8fh1NedNG5urSe78EzhSN33PHAT0dGRky5XHYMAMObhqORkRHzoeHPPB02+JgYZkBd3m4OTbd2iroUrLzLh8JSdvOwrmIJcMwG6Iq7SgI/oM7Oq/+aiOobNlQlu0UG2ARDRBe6Otb8eVAISFVd1oSSNUTxSlJfo7AgAlhr+V1WAEGaU8hou1HTxRCKYuARNuqFFXTqRJjrNXt26NYHHlE95JXLu9wS3D28adiqfoUHyjv/PKzTBRHhRQJIs/PjmNW8Nv7KPUGw7qwvXiMd3BKfkC3utP5duQikeScrW1a2i89hq0phd/eGqZkLp6+cnZ+9K2xEivx8xpVKJerpWrdv3bp1pycmZpv7iCmzXV4rlYrp7++v73/mL/7bfOPMf52bXYiIyLSsKSUCjAns9ddtfeSW8tDzxULnFCUhzQIiAoWFQkAJJR4jt7Ssl9QQRUSttUkxFOSLOE3JhGaBFM0aIxGRsmpcNLWkajvOnD3e98qrL3+2Wp/ZEjVCTSndpv8CHBsi5uLZD97zufeuW7ducgm1kdkh4g4fPiyDgwWanr6u86mRrx0J7VyfjZxiOaENAPADD2plgcDTDspYwiNoSh8SUbJTeGlMJqJFk9bFVH3JvUvwTTze5mdiKjgX9oAcotDmQHiFc2q7uruko3Dtlx584Nf+1/j4/qBc3mWzO0SW7BRNCiX1577/+CcnZ956vDo/FwFLrWDRITrHzExMTcZnpaySUk6cKI9pTV6g0JVxX2Z/eZxQQRNidFkZXxU2KBgx3Hlo97/8zXvHxsbcwMBA1pe0VBMBlMtlu3///uD++3b/rUc93+zsKhlVjfJxAbMq1FlV51RdpPHnKP+MIqdRpGojt+TMXm93b2vf1qpmMldeXsZTjbd2eLUbrrv9C0RUGxjoWLYlmHMcDjZu3KjHjv1D8RMfffiLNvR/7vlsVNPqf25+RCnNstK/xY1hlKW+m9dX00fzX4Y6bwU9Sdpri8Wi9PRs+C+DgzsPj4/vD4BNYYsCtNUCGAAGBgZcX18fiGhq8/pbP2OoNCtxRcO9G/v5fpGdYqvpT1XDrq4uI1z6q1/+0K//76NHv+Un6z61FpPKyu02bDFzdeTtkcK2bR88sm5t/68UCx2ORSgtnec89J8VCC4WcSkqlgJPuPN7Dz34xc+/9NJBb2Bgd+v7UE2KjnNYI07SVB7eNFwfH98f3H/fx//umiu3/JuC32nBjlVh2xEm/xxHuqKctVFHZ8kY6fr+Jx78D5/cu3dvfXBwkJD/UpjmIa0s/CQAVC7vsuPj+4MP3PPJb/RedcOnA79zwQ+MpGn05W51/yeafQVc1NndYQyXDjz04H/8F3v37p3dvXu3yWyZyX2DJMUB0gZ3p3tu3KlTh4sbNgwtvPj3T20/feb1v4x0fsvC/EJEJLKcgXt3doau7mBLpFLqLKFU6N330Z2f+yKAaAxjZgADLhk/twuopKqcKEBbfMGyl48mJkbN5s07aseOHdtw+OiTfxLa2Y9WqwtwViNkmJBlW1b/CZRABOdUtVgsiJA/vaZ7w299+P5f+9PnnnvW9Pb2cvImWet7hJzZcMZZC1j1UalUpFwuNwDwM8//zRcuXDixl8VdNT9XhaqzRMuxxeVaRf5WvybR6tRBvcCIXyjCl9LTm69932/dfvvQz0ZGvmKGh/emQtKlSjutUBg55aesNWhWCefOnePt27dXX3vtyKa3jh/67dn5qc8qR6ZWrQMxcOKkzkj/mDC47BU6hVMoBYHPfhDAhmbsyjXrvvrAfZ/5BhG5BOJGKzAWrVwlZaEw5SiAWhTgWjpylUrF6+/vrxMEPz763LZjJ1/7jerC7CeMj1KtVkUURgAQOacUE42UAp8muRIrY8nYNFGAS3ZFEAtJsVCAgsEUHF3Ts+5rO+/59J8R0dyhQ3/idXfv4MwucM0s6dYXQVv9gVLOy9OUEzKQEy2Sa2M8OjrJO3bsqAHAq2/+pL8y/vLH6/WFT0VR/U6/wLDqYKMINorgHOCcNmlbAinIUfxeNREzSIzA831I4l9tSBeKhY7nisWer3/wvl95hohqIyMj5oYbAq+v75dsi7DtFKAZP7BoaKv0AZd8r3h0dBRdXeM0OPhwFL9X4cyPfvTsreenj91bt+HdYaN2ayNcWK9Oe8TEldNs8qRKUAc41YYRMykSjHt+4afdHWtf7L/p/Qc3rXvPCetCPProo3LzzTdLktQgZ1LazXZ+pT+zWXq1gVszHt+1LBGuVCrseSdpYgLRjh07oubOHHXFV15/+Zrp82f65hbO9YZhrcdF6ofOCTFFzGahp6P7QrG05sStN773eE9P3/ms8Y2Pvx4kyZrLOLmV1vqlZFIA+v8AsAAdDOiZENgAAAAASUVORK5CYII=" alt=""></span>
+        <span class="pl-nav-label pl-wall-label">The Wall</span>
+      </button>
       <div class="pl-search-wrap">
         <div class="pl-search-bar-inline">
           <svg viewBox="0 0 20 20" fill="none" width="16" height="16"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -1787,27 +1822,47 @@ async function hydrateUserActivity(userId){
 /* Restore a Supabase session that already exists (e.g. the user
    logged in earlier, or on the main Aspinora site which shares this
    same Supabase project) so they don't appear logged out on load. */
+/* Supabase's getSession() can occasionally resolve before the client
+   has fully hydrated a persisted session from storage, which is what
+   was causing a real (not just visual) session-restored-too-late bug:
+   this page would conclude "not logged in", redirect to index.html,
+   and index.html would then find the session fine and bounce back —
+   a visible round trip on every refresh. Listening for the one-time
+   INITIAL_SESSION event instead guarantees we only make the redirect
+   decision once Supabase has actually finished checking storage. */
 async function restoreSession(){
   if (!AUTH_LIVE) return;
   try{
-    const { data } = await supabaseClient.auth.getSession();
-    if (data && data.session && data.session.user){
-      state.currentUser = await loadProfile(data.session.user.id);
-      await hydrateUserActivity(state.currentUser.id);
-    }
-  }catch(e){ console.warn('Could not restore session:', e); }
-
-  supabaseClient.auth.onAuthStateChange(function(event, session){
-    if (event === 'SIGNED_OUT'){
-      window.location.href = 'index.html';
-    } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
-      loadProfile(session.user.id).then(function(user){
-        state.currentUser = user;
-        syncAuthUI();
-        hydrateUserActivity(user.id);
+    await new Promise(function(resolve){
+      let settled = false;
+      supabaseClient.auth.onAuthStateChange(function(event, session){
+        if (event === 'SIGNED_OUT'){
+          if (settled) window.location.href = 'index.html';
+        } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
+          loadProfile(session.user.id).then(function(user){
+            state.currentUser = user;
+            syncAuthUI();
+            hydrateUserActivity(user.id);
+          });
+        }
+        if (settled) return;
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT'){
+          settled = true;
+          if (session && session.user){
+            loadProfile(session.user.id).then(function(user){
+              state.currentUser = user;
+              return hydrateUserActivity(user.id);
+            }).catch(function(e){ console.warn('Could not load profile:', e); }).then(resolve);
+          } else {
+            resolve();
+          }
+        }
       });
-    }
-  });
+      // Safety net: if Supabase never fires an initial event for some
+      // reason, don't hang the page forever waiting for it.
+      setTimeout(function(){ if (!settled){ settled = true; resolve(); } }, 4000);
+    });
+  }catch(e){ console.warn('Could not restore session:', e); }
 }
 
 async function signOutUser(){
@@ -2593,7 +2648,6 @@ const CTA_TEXT = {
   articles: 'Publish your article…'
 };
 const HOME_NAV_ICON = '<path d="M4 11.5 12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h5v-5h2v5h5v-9" stroke-linecap="round" stroke-linejoin="round"/>';
-const WALL_ICON_SRC = '';
 
 function topNavIconHTML(c){
   return '<span class="pl-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:' + (c.color || 'currentColor') + '">' + c.icon + '</svg></span>';
@@ -2604,17 +2658,14 @@ function renderTopNav(){
   const onWall = state.currentView === 'wall';
   const active = onWall ? null : (state.activeFilter || 'all');
   const items = [{ slug:'all', name:'Home', icon:HOME_NAV_ICON }].concat(CATEGORIES);
-  let html = items.map(function(c){
+  nav.innerHTML = items.map(function(c){
     return '<button type="button" class="pl-nav-item' + (active === c.slug ? ' is-active' : '') + '" data-filter-chip="' + c.slug + '">' +
       topNavIconHTML(c) + '<span class="pl-nav-label">' + c.name + '</span></button>';
   }).join('');
-  /* The Wall sits at the end of the same row, styled identically to
-     the other sections, but it is a real destination (not a category
-     filter) so it navigates directly rather than filtering Home. */
-  html += '<button type="button" class="pl-nav-item' + (onWall ? ' is-active' : '') + '" data-nav-wall="1">' +
-    '<span class="pl-nav-icon"><img class="pl-wall-icon-img" src="' + WALL_ICON_SRC + '" alt=""></span>' +
-    '<span class="pl-nav-label">The Wall</span></button>';
-  nav.innerHTML = html;
+  /* The Wall lives as its own button in the header (not part of this
+     generated row), so it only needs its active state toggled here. */
+  const wallBtn = qs('#pl-wall-btn');
+  if (wallBtn) wallBtn.classList.toggle('is-active', onWall);
 
   /* The logo/wordmark never changes with navigation — only the CTA
      bar's text (desktop prompt, mobile section label) reflects the
@@ -3490,26 +3541,24 @@ qsa('.modal-scrim').forEach(function(scrim){
    Home → Journals → Stories → Poetry → Shayari → Thoughts → Articles.
    Swiping right moves forward (e.g. Home → Journals), swiping left
    moves back (e.g. Stories → Journals). The Wall is never part of
-   this sequence — it's only reached by tapping its own icon. */
+   this sequence — it's only reached by tapping its own icon.
+
+   Tracks touchmove (not just touchstart/touchend) and reacts on
+   touchcancel too, because mobile browsers often cancel the touch
+   sequence outright once they decide the gesture is a scroll —
+   relying on touchend alone means genuine swipes can go unseen. */
 const SWIPE_SECTION_ORDER = ['all', 'journals', 'stories', 'poetry', 'shayari', 'thoughts', 'articles'];
 function initMobileSwipeNav(){
   const area = qs('#view-home');
-  let startX = 0, startY = 0, tracking = false;
-  area.addEventListener('touchstart', function(e){
-    if (state.currentView !== 'home' || e.touches.length !== 1) { tracking = false; return; }
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    tracking = true;
-  }, { passive:true });
-  area.addEventListener('touchend', function(e){
+  let startX = 0, startY = 0, lastX = 0, lastY = 0, tracking = false, decided = false, horizontal = false;
+
+  function finish(){
     if (!tracking) return;
     tracking = false;
     if (state.currentView !== 'home') return;
-    const endX = e.changedTouches[0].clientX;
-    const endY = e.changedTouches[0].clientY;
-    const dx = endX - startX;
-    const dy = endY - startY;
-    if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+    const dx = lastX - startX;
+    const dy = lastY - startY;
+    if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
     const idx = SWIPE_SECTION_ORDER.indexOf(state.activeFilter || 'all');
     if (idx === -1) return;
     const next = dx > 0 ? Math.min(idx + 1, SWIPE_SECTION_ORDER.length - 1) : Math.max(idx - 1, 0);
@@ -3518,7 +3567,33 @@ function initMobileSwipeNav(){
     state.latestPage = 1;
     renderTopNav();
     renderHomeStatic();
+  }
+
+  area.addEventListener('touchstart', function(e){
+    if (state.currentView !== 'home' || e.touches.length !== 1) { tracking = false; return; }
+    startX = lastX = e.touches[0].clientX;
+    startY = lastY = e.touches[0].clientY;
+    tracking = true; decided = false; horizontal = false;
   }, { passive:true });
+
+  area.addEventListener('touchmove', function(e){
+    if (!tracking || e.touches.length !== 1) return;
+    lastX = e.touches[0].clientX;
+    lastY = e.touches[0].clientY;
+    if (!decided){
+      const dx = lastX - startX, dy = lastY - startY;
+      if (Math.abs(dx) > 12 || Math.abs(dy) > 12){
+        decided = true;
+        horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
+      }
+    }
+    /* Once a horizontal swipe is clearly underway, stop the page from
+       also trying to scroll sideways or trigger edge-navigation. */
+    if (horizontal && e.cancelable) e.preventDefault();
+  }, { passive:false });
+
+  area.addEventListener('touchend', finish, { passive:true });
+  area.addEventListener('touchcancel', finish, { passive:true });
 }
 
 function initHomeControls(){
@@ -3654,6 +3729,9 @@ async function init(){
 
   // This page is for logged-in members only. Restore the session first;
   // if there isn't one, send the visitor back to the main site to log in.
+  // The page loader stays up the whole time, so there's nothing to
+  // flash either way — it's only hidden once we're actually ready to
+  // show this page's content.
   await restoreSession();
   if (!state.currentUser){
     window.location.href = 'index.html';
@@ -3663,6 +3741,8 @@ async function init(){
 
   await routeFromPath(true);
   window.addEventListener('popstate', function(){ routeFromPath(false); });
+  const loader = qs('#page-loader');
+  if (loader) loader.classList.add('is-hidden');
 }
 
 /* ------------------------------------------------------------------
