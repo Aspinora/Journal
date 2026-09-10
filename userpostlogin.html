@@ -150,7 +150,9 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
 .avatar{
   display:inline-flex; align-items:center; justify-content:center; border-radius:50%;
   color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; letter-spacing:.02em;
+  overflow:hidden;
 }
+.avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
 
 /* ============ NAVBAR ============ */
 .navbar{
@@ -1553,8 +1555,15 @@ function avatarColor(seed){
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
 function avatarHTML(userId, name, sizeClass){
-  const color = avatarColor(userId || name);
-  return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + initials(name) + '</span>';
+  let avatarUrl = null, storedColor = null;
+  if (state.currentUser && state.currentUser.id === userId){
+    avatarUrl = state.currentUser.avatar_url; storedColor = state.currentUser.avatar_color;
+  } else if (AUTHOR_CACHE[userId]){
+    avatarUrl = AUTHOR_CACHE[userId].avatar_url; storedColor = AUTHOR_CACHE[userId].avatar_color;
+  }
+  const color = storedColor || avatarColor(userId || name);
+  const inner = avatarUrl ? '<img src="' + escapeHtml(avatarUrl) + '" alt="">' : initials(name);
+  return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + inner + '</span>';
 }
 /* Populated from `profiles` joins whenever real Supabase rows come
    back (journals, comments). Demo mode never touches this — it has
@@ -1787,7 +1796,7 @@ async function loadProfile(authUser){
   if (!AUTH_LIVE) return DEMO_USER;
   const userId = typeof authUser === 'string' ? authUser : authUser.id;
   try{
-    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio').eq('id', userId).single();
+    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio, avatar_url, avatar_color').eq('id', userId).single();
     if (error || !data) throw error || new Error('no profile row');
     return data;
   }catch(e){
@@ -1940,7 +1949,9 @@ function normalizeJournalRow(row){
     AUTHOR_CACHE[row.author_id] = {
       id: row.author_id,
       display_name: row.profiles.display_name || 'Aspinora Member',
-      username: row.profiles.username || ''
+      username: row.profiles.username || '',
+      avatar_url: row.profiles.avatar_url || null,
+      avatar_color: row.profiles.avatar_color || null
     };
   }
   const cat = categoryById(row.category_id);
@@ -1969,7 +1980,7 @@ function normalizeJournalRow(row){
   };
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url, avatar_color)';
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
@@ -2081,7 +2092,7 @@ async function fetchCategoryCounts(){
 
 function normalizeWallPostRow(row){
   if (row.profiles){
-    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '' };
+    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '', avatar_url: row.profiles.avatar_url || null, avatar_color: row.profiles.avatar_color || null };
   }
   return {
     id: row.id,
@@ -2095,7 +2106,7 @@ function normalizeWallPostRow(row){
 async function fetchWallPosts(){
   if (DEMO_MODE) return MOCK_WALL_POSTS.slice(0, 8);
   const { data, error } = await supabaseClient.from('wall_posts')
-    .select('id, body, category_id, author_id, published_at, likes, profiles!wall_posts_author_id_fkey(display_name, username)')
+    .select('id, body, category_id, author_id, published_at, likes, profiles!wall_posts_author_id_fkey(display_name, username, avatar_url, avatar_color)')
     .eq('status','published').order('published_at',{ ascending:false }).limit(8);
   if (error) throw error;
   return data.map(normalizeWallPostRow);
@@ -2117,7 +2128,7 @@ async function postToWall(body, categorySlug){
     .insert({ body: body, category_id: cat.id, author_id: state.currentUser.id })
     .select('id, body, category_id, author_id, published_at, likes').single();
   if (error) throw error;
-  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username };
+  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: state.currentUser.avatar_url || null, avatar_color: state.currentUser.avatar_color || null };
   return normalizeWallPostRow(data);
 }
 
@@ -2180,13 +2191,13 @@ async function loadCommentsForJournal(journalId){
     return COMMENT_CACHE[journalId];
   }
   const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username)')
+    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username, avatar_url, avatar_color)')
     .eq('journal_id', journalId).eq('status', 'visible')
     .order('created_at', { ascending: true });
   if (error) throw error;
   data.forEach(function(row){
     if (row.profiles){
-      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username };
+      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username, avatar_url: row.profiles.avatar_url || null, avatar_color: row.profiles.avatar_color || null };
     }
   });
   COMMENT_CACHE[journalId] = data;
@@ -3015,6 +3026,21 @@ const NOTIF_COPY = {
   reply_comment: function(n){ return '<b>' + authorName(n.actor_id) + '</b> left a Response to your Impression.'; },
   journal_published: function(n){ return n.message || 'Your Work was published.'; }
 };
+/* Notifications don't come with a `profiles` join (they're a flat
+   table), so batch-fetch any actor profiles we don't already have
+   cached — otherwise their avatar/name fall back to "Aspinora
+   Member" instead of showing the real thing. */
+async function hydrateAuthorCache(userIds){
+  if (DEMO_MODE || !supabaseClient) return;
+  const missing = Array.from(new Set(userIds)).filter(function(id){ return id && !AUTHOR_CACHE[id]; });
+  if (!missing.length) return;
+  const { data, error } = await supabaseClient.from('profiles')
+    .select('id, display_name, username, avatar_url, avatar_color').in('id', missing);
+  if (error || !data) return;
+  data.forEach(function(p){
+    AUTHOR_CACHE[p.id] = { id: p.id, display_name: p.display_name || 'Aspinora Member', username: p.username || '', avatar_url: p.avatar_url || null, avatar_color: p.avatar_color || null };
+  });
+}
 async function renderNotificationsView(){
   const list = qs('#notifications-list');
   if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your Updates.</p></div>'; return; }
@@ -3023,6 +3049,7 @@ async function renderNotificationsView(){
     list.innerHTML = '<div class="empty-state"><p>No new updates from the community yet.</p></div>';
     return;
   }
+  await hydrateAuthorCache(rows.map(function(n){ return n.actor_id; }).filter(Boolean));
   list.innerHTML = rows.map(function(n){
     const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new update.'; };
     return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-journal="' + (n.journal_id||'') + '">' +
