@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+// Same GitHub-Pages SPA redirect decode used on index.html/userpostlogin.html,
+// so a 404-redirected path (e.g. /@username) is restored before anything
+// below reads window.location.
+(function(l){
+  if (l.search[1] === '/'){
+    var decoded = l.search.slice(1).split('&').map(function(s){ return s.replace(/~and~/g, '&'); }).join('?');
+    window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
+  }
+}(window.location));
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Portfolio · Aspinora Writing</title>
@@ -38,6 +49,7 @@
   --radius-lg: 28px;
   --ease: cubic-bezier(.22,.9,.32,1);
   --dur-fast: .18s;
+  --header-tint: 251,245,234;
 }
 *,*::before,*::after{ box-sizing:border-box; }
 [hidden]{ display:none !important; }
@@ -50,8 +62,16 @@ textarea,input,select{ font-family:inherit; font-size:inherit; color:inherit; }
 h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; margin:0; letter-spacing:-0.01em; }
 .container{ max-width:var(--container); margin:0 auto; padding:0 24px; }
 
-/* ============ HEADER (unchanged — do not restyle) ============ */
-.navbar{ position:sticky; top:0; z-index:100; background:rgba(251,245,234,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+/* ============ HEADER — structure/icons/logo untouched; only the
+   background tint changes, driven by --header-tint (set from the
+   cover image's average colour). The logo <img> never gets any
+   filter/blend applied, only the bar behind it does. ============ */
+.navbar{
+  position:sticky; top:0; z-index:100;
+  background:linear-gradient(rgba(var(--header-tint),.86),rgba(var(--header-tint),.86));
+  backdrop-filter:blur(10px); border-bottom:1px solid var(--line);
+  transition:background .5s ease;
+}
 .nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 0; }
 .nav-brand{ display:flex; align-items:center; gap:10px; }
 .nav-logo{ width:36px; height:36px; border-radius:11px; overflow:hidden; flex-shrink:0; }
@@ -74,7 +94,8 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .btn-secondary{ background:var(--paper); color:var(--ink); border:1.5px solid var(--line-strong); }
 .btn-secondary:hover{ border-color:var(--orange); color:var(--orange-deep); }
 .btn-sm{ padding:9px 16px; font-size:.8rem; }
-.btn-follow.is-following{ background:var(--paper); color:var(--ink); border:1.5px solid var(--line-strong); box-shadow:none; }
+.btn-follow{ background:#fff; color:var(--orange-deep); box-shadow:var(--shadow-mid); }
+.btn-follow.is-following{ background:rgba(255,255,255,.15); color:#fff; border:1.5px solid rgba(255,255,255,.6); box-shadow:none; }
 
 .avatar{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; overflow:hidden; }
 .avatar img{ width:100%; height:100%; object-fit:cover; }
@@ -82,16 +103,10 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 /* ============================================================
    COVER HERO — sticks directly under the header, 3:1 on desktop
    ============================================================ */
-.cover-wrap{
-  position:relative; width:100%; aspect-ratio:3/1; overflow:hidden;
-  background:var(--cream-deep);
-}
+.cover-wrap{ position:relative; width:100%; aspect-ratio:3/1; overflow:hidden; background:var(--cream-deep); }
 .cover-img{ width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
-.cover-scrim{ position:absolute; inset:0; background:linear-gradient(180deg,rgba(43,36,28,.08),rgba(43,36,28,.32)); }
-.cover-center{
-  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-  text-align:center; padding:16px;
-}
+.cover-scrim{ position:absolute; inset:0; background:linear-gradient(180deg,rgba(43,36,28,.10),rgba(43,36,28,.38)); }
+.cover-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; padding:16px; }
 .cover-avatar{ width:110px; height:110px; font-size:2.1rem; border:4px solid var(--paper); box-shadow:var(--shadow-mid); }
 .cover-username{ margin-top:12px; font-family:var(--font-mono); font-weight:700; font-size:1.05rem; color:#fff; text-shadow:0 1px 6px rgba(0,0,0,.35); }
 .cover-identities{ display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
@@ -100,6 +115,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .cover-stat{ color:#fff; text-shadow:0 1px 6px rgba(0,0,0,.35); }
 .cover-stat b{ display:block; font-family:var(--font-display); font-size:1.25rem; }
 .cover-stat span{ font-size:.7rem; font-family:var(--font-mono); letter-spacing:.04em; opacity:.9; }
+.cover-follow-wrap{ margin-top:14px; }
 .cover-edit-fab{
   position:absolute; top:16px; right:16px; z-index:5;
   width:40px; height:40px; border-radius:50%; border:none;
@@ -109,32 +125,24 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .cover-edit-fab:hover{ background:#fff; color:var(--orange-deep); }
 
 /* ============================================================
-   ACTION BAR — tabs (About / Works / Wall / Social) + Follow/Share
+   ACTION BAR — tabs (Works / About / Wall / Social) + share icon
    ============================================================ */
-.action-bar{
-  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
-  padding:18px 8px 10px; border-bottom:1px solid var(--line); margin-bottom:26px;
-}
-.underline-tabs{ display:flex; gap:26px; }
+.action-bar{ padding:18px 8px 0; border-bottom:1px solid var(--line); margin-bottom:8px; }
+.underline-tabs{ display:flex; align-items:center; gap:26px; }
 .underline-tabs button{
   background:none; border:none; padding:6px 0; font-weight:700; font-size:.92rem; color:var(--ink-faint);
-  border-bottom:2px solid transparent; margin-bottom:-1px;
+  border-bottom:2px solid transparent; margin-bottom:-1px; display:flex; align-items:center; gap:6px;
 }
 .underline-tabs button:hover{ color:var(--ink); }
 .underline-tabs button.is-active{ color:var(--orange-deep); border-bottom-color:var(--orange-deep); }
-.action-bar-right{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.portfolio-link{
-  font-family:var(--font-mono); font-size:.76rem; color:var(--ink-faint); background:var(--cream-deep);
-  padding:7px 12px; border-radius:999px; display:inline-flex; align-items:center; gap:6px;
-}
-.portfolio-link:hover{ color:var(--orange-deep); }
+.share-tab-btn{ margin-left:auto; }
+.share-tab-btn svg{ width:17px; height:17px; }
+.share-tab-label{ }
+.portfolio-link-row{ padding:10px 8px 22px; }
+.portfolio-link{ font-family:var(--font-mono); font-size:.78rem; color:var(--ink-faint); }
+.portfolio-link:hover{ color:var(--orange-deep); text-decoration:underline; }
 
-/* ============ tab panels ============ */
-.tab-row{ display:flex; gap:8px; flex-wrap:wrap; margin:0 8px 22px; }
-.chip-filter{ background:var(--paper); border:1.5px solid var(--line); padding:8px 15px; border-radius:999px; font-size:.82rem; font-weight:600; color:var(--ink-soft); }
-.chip-filter.is-active{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
-
-.j-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; padding:0 8px 60px; }
+.j-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; padding:8px 8px 60px; }
 .j-card{ position:relative; background:var(--paper); border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--line); box-shadow:var(--shadow-soft); transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); display:flex; flex-direction:column; }
 .j-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-mid); }
 .j-cover{ position:relative; aspect-ratio:2/1; }
@@ -146,17 +154,14 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .j-excerpt{ color:var(--ink-soft); font-size:.88rem; line-height:1.5; margin:0; flex:1; }
 .j-stats{ display:flex; justify-content:space-between; align-items:center; font-size:.76rem; color:var(--ink-faint); font-family:var(--font-mono); }
 .j-owner-actions{ position:absolute; top:14px; right:14px; z-index:4; display:flex; gap:6px; }
-.j-owner-actions button{
-  width:30px; height:30px; border-radius:50%; border:none; background:rgba(255,255,255,.92); color:var(--ink);
-  display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-soft);
-}
+.j-owner-actions button{ width:30px; height:30px; border-radius:50%; border:none; background:rgba(255,255,255,.92); color:var(--ink); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-soft); }
 .j-owner-actions button:hover{ background:#fff; color:var(--orange-deep); }
 .j-owner-actions button.danger:hover{ color:#B3432B; }
 
 .about-panel{ padding:4px 8px 60px; max-width:640px; }
 .about-panel p{ color:var(--ink-soft); font-size:1.02rem; line-height:1.7; white-space:pre-wrap; }
 
-.wall-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding:0 8px 60px; }
+.wall-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding:8px 8px 60px; }
 .wall-note{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm); padding:18px; box-shadow:var(--shadow-soft); display:flex; flex-direction:column; gap:10px; position:relative; }
 .wall-note p{ margin:0; font-size:.9rem; line-height:1.55; color:var(--ink); font-family:var(--font-display); }
 .wn-meta{ display:flex; justify-content:space-between; align-items:center; font-size:.74rem; color:var(--ink-faint); }
@@ -191,7 +196,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .input, .textarea{ width:100%; padding:13px 16px; border-radius:12px; border:1.5px solid var(--line); background:var(--paper); font-size:.95rem; color:var(--ink); }
 .input:focus, .textarea:focus{ outline:none; border-color:var(--orange); }
 .textarea{ resize:vertical; min-height:80px; }
-.media-edit-row{ display:flex; gap:20px; align-items:center; }
+.media-edit-row{ display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
 .media-edit-col{ text-align:center; }
 .media-edit-col .avatar{ width:76px; height:76px; font-size:1.5rem; margin:0 auto 8px; cursor:pointer; }
 .cover-preview-box{ width:150px; aspect-ratio:3/1; border-radius:10px; overflow:hidden; background:var(--cream-deep); cursor:pointer; margin-bottom:8px; }
@@ -200,8 +205,9 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .identity-grid{ display:flex; flex-wrap:wrap; gap:8px; }
 .identity-btn{ padding:9px 15px; border-radius:999px; border:1.5px solid var(--line); background:var(--paper); font-weight:700; font-size:.84rem; color:var(--ink-soft); }
 .identity-btn.is-active{ border-color:var(--orange); background:var(--orange-soft); color:var(--orange-deep); }
-.social-edit-row{ display:flex; gap:8px; margin-bottom:8px; }
-.social-edit-row select{ width:130px; padding:10px; border-radius:10px; border:1.5px solid var(--line); background:var(--paper); font-size:.84rem; }
+.social-edit-row{ display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+.social-edit-row .social-icon-mini{ width:20px; height:20px; color:var(--orange-deep); flex-shrink:0; }
+.social-edit-row select{ width:120px; padding:10px; border-radius:10px; border:1.5px solid var(--line); background:var(--paper); font-size:.82rem; }
 .social-edit-row input{ flex:1; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line); background:var(--paper); font-size:.86rem; }
 .social-edit-row button{ background:none; border:none; color:var(--ink-faint); width:32px; }
 .social-edit-row button:hover{ color:#B3432B; }
@@ -210,6 +216,17 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
 .spinner{ width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:spin .7s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ============================================================
+   MANUAL CROPPER
+   ============================================================ */
+.cropper-box{ max-width:480px; }
+.crop-frame{ position:relative; overflow:hidden; margin:0 auto 18px; background:#111; border-radius:12px; touch-action:none; cursor:grab; }
+.crop-frame:active{ cursor:grabbing; }
+.crop-frame img{ position:absolute; left:0; top:0; max-width:none; user-select:none; -webkit-user-drag:none; }
+.crop-controls{ display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.crop-controls svg{ width:16px; height:16px; color:var(--ink-faint); flex-shrink:0; }
+.crop-controls input[type="range"]{ flex:1; }
 
 .page-loader{ position:fixed; inset:0; z-index:600; display:flex; align-items:center; justify-content:center; background:var(--cream); transition:opacity .35s ease, visibility .35s ease; }
 .page-loader.is-hidden{ opacity:0; visibility:hidden; pointer-events:none; }
@@ -227,13 +244,13 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   .cover-wrap{ aspect-ratio:1/1; }
   .cover-avatar{ width:88px; height:88px; font-size:1.7rem; }
   .cover-stats{ gap:18px; }
-  .action-bar{ flex-direction:column; align-items:stretch; gap:14px; }
-  .underline-tabs{ gap:16px; overflow-x:auto; }
-  .action-bar-right{ justify-content:space-between; }
+  .underline-tabs{ overflow-x:auto; }
+  .share-tab-label{ display:none; }
   .j-grid{ grid-template-columns:1fr; }
   .wall-grid{ grid-template-columns:1fr; }
   .modal-box{ padding:22px; }
   .media-edit-row{ flex-direction:column; align-items:flex-start; }
+  .crop-frame{ width:260px !important; height:260px !important; }
 }
 @media (min-width:761px) and (max-width:980px){
   .j-grid{ grid-template-columns:repeat(2,1fr); }
@@ -265,6 +282,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   <div class="cover-wrap"><div class="skeleton" style="width:100%;height:100%;"></div></div>
 </main>
 
+<!-- Owner-only "update portfolio" modal -->
 <div class="modal-scrim" id="edit-modal">
   <div class="modal-box">
     <button type="button" class="modal-close" id="modal-close-btn">✕</button>
@@ -277,13 +295,11 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
             <span class="avatar" id="edit-avatar-preview" style="background:#F1631B;"></span>
             <button type="button" class="upload-hint-btn" id="pick-avatar-btn">Change avatar</button>
             <input type="file" accept="image/*" id="avatar-file-input" hidden>
-            <p class="hint" style="max-width:110px;">Auto-cropped &amp; compressed to ~20KB</p>
           </div>
           <div class="media-edit-col">
             <div class="cover-preview-box" id="edit-cover-preview-box"><div class="skeleton" style="width:100%;height:100%;"></div></div>
             <button type="button" class="upload-hint-btn" id="pick-cover-btn">Change cover image</button>
             <input type="file" accept="image/*" id="cover-file-input" hidden>
-            <p class="hint" style="max-width:170px;">Auto-cropped to 3:1 &amp; compressed to ~60KB</p>
           </div>
         </div>
       </div>
@@ -310,6 +326,24 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
         <button type="submit" class="btn btn-primary" id="save-btn">Save Changes</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Manual crop modal (shared for avatar + cover) -->
+<div class="modal-scrim" id="crop-modal">
+  <div class="modal-box cropper-box">
+    <h2 id="crop-title">Position your photo</h2>
+    <div class="crop-frame" id="crop-frame"><img id="crop-img" alt=""></div>
+    <div class="crop-controls">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5" stroke-linecap="round"/></svg>
+      <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="8"/><path d="M8 11h6M11 8v6" stroke-linecap="round"/></svg>
+    </div>
+    <p class="hint">Drag to reposition, use the slider to zoom.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" id="crop-cancel-btn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="crop-apply-btn">Apply</button>
+    </div>
   </div>
 </div>
 
@@ -343,7 +377,15 @@ function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === i
 const AVATAR_PALETTE = ['#F1631B','#A79BD1','#7FB8D9','#7FC8A9','#D4A24C','#FF8B6B'];
 const IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
 const SOCIAL_PLATFORMS = ['Instagram','X / Twitter','Facebook','YouTube','Website','Other'];
-const SOCIAL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const SOCIAL_ICONS = {
+  'Instagram': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.1" cy="6.9" r="1.1" fill="currentColor" stroke="none"/></svg>',
+  'X / Twitter': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4.5 4.5l15 15M19.5 4.5l-15 15" stroke-linecap="round"/></svg>',
+  'Facebook': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M13.8 8.2h-1.3c-.9 0-1.5.6-1.5 1.5v1.5H9.3v2h1.7v5h2.1v-5h1.6l.3-2h-1.9V9.9c0-.3.2-.5.5-.5h1.2V8.2Z" fill="currentColor" stroke="none"/></svg>',
+  'YouTube': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="6" width="19" height="12" rx="3.5"/><path d="M10.3 9.3v5.4l4.8-2.7-4.8-2.7Z" fill="currentColor" stroke="none"/></svg>',
+  'Website': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 4 5.8 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.8-4-9s1.4-6.4 4-9Z"/></svg>',
+  'Other': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1.5 1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1.5-1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+const SHARE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="M8.2 10.8l7.6-4.2M8.2 13.2l7.6 4.2" stroke-linecap="round"/></svg>';
 
 function initials(name){ if (!name) return '?'; return name.trim().split(/\s+/).map(function(p){ return p[0]; }).join('').slice(0,2).toUpperCase(); }
 function escapeHtml(str){ return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -365,47 +407,142 @@ function coverHTML(catId, visibility){
   '</div>';
 }
 
+/* A REAL, working link to this page — used for Share and the visible
+   portfolio-link text alike, so what's shown is always what works,
+   regardless of where/how the site ends up hosted. */
+function computePortfolioUrl(username){
+  const base = window.location.origin + window.location.pathname.replace(/portfolio\.html.*$/, '');
+  return base + 'portfolio.html?u=' + encodeURIComponent(username);
+}
+
 /* ------------------------------------------------------------------
-   Client-side "smart" image processing: centre-crops to the target
-   aspect ratio (never stretches), then iterates JPEG quality/size
-   downward until the file fits the byte budget while keeping
-   resolution as high as it can.
+   Header colour blend: samples the cover image's average colour and
+   tints the (otherwise untouched) navbar background to match. The
+   logo <img> itself is never filtered — only the bar's own
+   background-color changes.
    ------------------------------------------------------------------ */
-function loadImageFile(file){
-  return new Promise(function(resolve, reject){
-    const img = new Image();
-    img.onload = function(){ resolve(img); };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
-  });
+function tintHeaderFromImage(imgEl){
+  try{
+    const c = document.createElement('canvas');
+    c.width = 16; c.height = 16;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(imgEl, 0, 0, 16, 16);
+    const data = ctx.getImageData(0, 0, 16, 16).data;
+    let r=0,g=0,b=0,n=0;
+    for (let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++; }
+    r = Math.round(r/n); g = Math.round(g/n); b = Math.round(b/n);
+    // Blend toward the cream base so text/icons stay legible whatever the hue.
+    const blend = function(c1, c2, amt){ return Math.round(c1*amt + c2*(1-amt)); };
+    const tr = blend(r, 251, .35), tg = blend(g, 245, .35), tb = blend(b, 234, .35);
+    document.documentElement.style.setProperty('--header-tint', tr + ',' + tg + ',' + tb);
+  }catch(e){ /* canvas read can fail on cross-origin images — fall back to default tint */ }
 }
-async function cropAndCompress(file, aspect, maxDim, maxBytes){
-  const img = await loadImageFile(file);
-  const srcRatio = img.width / img.height;
-  let sx, sy, sw, sh;
-  if (srcRatio > aspect){ sh = img.height; sw = sh * aspect; sx = (img.width - sw) / 2; sy = 0; }
-  else { sw = img.width; sh = sw / aspect; sx = 0; sy = (img.height - sh) / 2; }
 
-  let outW = maxDim;
-  let outH = Math.round(maxDim / aspect);
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  let quality = 0.9;
-  let blob = null;
-  for (let attempt = 0; attempt < 14; attempt++){
-    canvas.width = outW; canvas.height = outH;
-    ctx.clearRect(0, 0, outW, outH);
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-    blob = await new Promise(function(res){ canvas.toBlob(res, 'image/jpeg', quality); });
-    if (blob.size <= maxBytes) break;
-    if (quality > 0.5){ quality -= 0.1; }
-    else { outW = Math.round(outW * 0.85); outH = Math.round(outH / aspect); quality = 0.75; }
+/* ------------------------------------------------------------------
+   Manual cropper (shared for avatar 1:1 and cover 3:1)
+   ------------------------------------------------------------------ */
+let cropState = null;
+function openCropper(file, aspect, outW, outH, title, onDone){
+  const modal = document.getElementById('crop-modal');
+  const frame = document.getElementById('crop-frame');
+  const img = document.getElementById('crop-img');
+  const zoom = document.getElementById('crop-zoom');
+  document.getElementById('crop-title').textContent = title;
+
+  const frameW = aspect >= 1 ? 300 : Math.round(300 * aspect);
+  const frameH = Math.round(frameW / aspect);
+  frame.style.width = frameW + 'px';
+  frame.style.height = frameH + 'px';
+
+  const url = URL.createObjectURL(file);
+  img.src = url;
+  img.onload = function(){
+    const baseScale = Math.max(frameW / img.naturalWidth, frameH / img.naturalHeight);
+    cropState = { frameW:frameW, frameH:frameH, baseScale:baseScale, scale:1, natW:img.naturalWidth, natH:img.naturalHeight, tx:0, ty:0, dragging:false, lastX:0, lastY:0 };
+    zoom.value = 1;
+    centreImage();
+    applyImageTransform();
+  };
+
+  function centreImage(){
+    const w = cropState.natW * cropState.baseScale * cropState.scale;
+    const h = cropState.natH * cropState.baseScale * cropState.scale;
+    cropState.tx = (frameW - w) / 2;
+    cropState.ty = (frameH - h) / 2;
   }
-  URL.revokeObjectURL(img.src);
-  return blob;
+  function clamp(){
+    const w = cropState.natW * cropState.baseScale * cropState.scale;
+    const h = cropState.natH * cropState.baseScale * cropState.scale;
+    cropState.tx = Math.min(0, Math.max(frameW - w, cropState.tx));
+    cropState.ty = Math.min(0, Math.max(frameH - h, cropState.ty));
+  }
+  function applyImageTransform(){
+    const w = cropState.natW * cropState.baseScale * cropState.scale;
+    const h = cropState.natH * cropState.baseScale * cropState.scale;
+    img.style.width = w + 'px';
+    img.style.height = h + 'px';
+    img.style.transform = 'translate(' + cropState.tx + 'px,' + cropState.ty + 'px)';
+  }
+
+  function pointerDown(e){
+    cropState.dragging = true;
+    const p = e.touches ? e.touches[0] : e;
+    cropState.lastX = p.clientX; cropState.lastY = p.clientY;
+  }
+  function pointerMove(e){
+    if (!cropState || !cropState.dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    cropState.tx += p.clientX - cropState.lastX;
+    cropState.ty += p.clientY - cropState.lastY;
+    cropState.lastX = p.clientX; cropState.lastY = p.clientY;
+    clamp(); applyImageTransform();
+  }
+  function pointerUp(){ if (cropState) cropState.dragging = false; }
+
+  frame.onmousedown = pointerDown;
+  window.onmousemove = pointerMove;
+  window.onmouseup = pointerUp;
+  frame.ontouchstart = pointerDown;
+  frame.ontouchmove = function(e){ pointerMove(e); e.preventDefault(); };
+  frame.ontouchend = pointerUp;
+
+  zoom.oninput = function(){
+    const before = cropState.scale;
+    cropState.scale = parseFloat(zoom.value);
+    // keep the crop centred on the frame while zooming
+    const cx = frameW/2, cy = frameH/2;
+    const ratio = cropState.scale / before;
+    cropState.tx = cx - (cx - cropState.tx) * ratio;
+    cropState.ty = cy - (cy - cropState.ty) * ratio;
+    clamp(); applyImageTransform();
+  };
+
+  document.getElementById('crop-cancel-btn').onclick = function(){ modal.classList.remove('open'); URL.revokeObjectURL(url); };
+  document.getElementById('crop-apply-btn').onclick = function(){
+    const canvas = document.createElement('canvas');
+    canvas.width = outW; canvas.height = outH;
+    const ctx = canvas.getContext('2d');
+    const totalScale = cropState.baseScale * cropState.scale;
+    const sx = -cropState.tx / totalScale;
+    const sy = -cropState.ty / totalScale;
+    const sw = frameW / totalScale;
+    const sh = frameH / totalScale;
+    const source = new Image();
+    source.onload = function(){
+      ctx.drawImage(source, sx, sy, sw, sh, 0, 0, outW, outH);
+      canvas.toBlob(function(blob){
+        modal.classList.remove('open');
+        URL.revokeObjectURL(url);
+        onDone(blob);
+      }, 'image/jpeg', 0.9);
+    };
+    source.src = url;
+  };
+
+  modal.classList.add('open');
 }
 
-let state = { currentUser:null, profile:null, isOwner:false, works:[], wallPosts:[], isFollowing:false, activeTab:'works', activeCategory:'all', pendingAvatarBlob:null, pendingCoverBlob:null };
+let state = { currentUser:null, profile:null, isOwner:false, works:[], wallPosts:[], isFollowing:false, activeTab:'works', pendingAvatarBlob:null, pendingCoverBlob:null };
 
 async function loadCurrentUser(){
   if (!supabaseClient) return null;
@@ -433,33 +570,34 @@ function notFoundHTML(){
     '<a class="btn btn-primary" href="userpostlogin.html">Back to Aspinora</a></div>';
 }
 
-function coverHeroHTML(profile, isOwner){
+function coverHeroHTML(profile, isOwner, isFollowing){
   const color = profile.avatar_color || AVATAR_PALETTE[0];
   const avatarInner = profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="">' : escapeHtml(initials(profile.display_name || profile.username));
   const identities = (profile.creative_identities && profile.creative_identities.length ? profile.creative_identities : ['Author']);
+  const portfolioHref = 'portfolio.html?u=' + encodeURIComponent(profile.username);
   return (
     '<div class="cover-wrap">' +
       (profile.cover_image_url
-        ? '<img class="cover-img" src="' + escapeHtml(profile.cover_image_url) + '" alt="">'
+        ? '<img class="cover-img" id="cover-img-el" crossorigin="anonymous" src="' + escapeHtml(profile.cover_image_url) + '" alt="">'
         : '<div class="cover-img" style="background:linear-gradient(120deg,' + color + ',' + color + 'AA);"></div>') +
       '<div class="cover-scrim"></div>' +
       (isOwner ? '<button type="button" class="cover-edit-fab" id="cover-edit-fab" aria-label="Update portfolio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke-linejoin="round"/></svg></button>' : '') +
       '<div class="cover-center">' +
-        '<a href="portfolio.html?u=' + encodeURIComponent(profile.username) + '"><span class="avatar cover-avatar" style="background:' + color + ';">' + avatarInner + '</span></a>' +
-        '<a class="cover-username" href="portfolio.html?u=' + encodeURIComponent(profile.username) + '">@' + escapeHtml(profile.username) + '</a>' +
+        '<a href="' + portfolioHref + '"><span class="avatar cover-avatar" style="background:' + color + ';">' + avatarInner + '</span></a>' +
+        '<a class="cover-username" href="' + portfolioHref + '">@' + escapeHtml(profile.username) + '</a>' +
         '<div class="cover-identities">' + identities.map(function(i){ return '<span class="identity-badge">' + escapeHtml(i) + '</span>'; }).join('') + '</div>' +
         '<div class="cover-stats">' +
           '<div class="cover-stat"><b id="stat-works">0</b><span>WORKS</span></div>' +
           '<div class="cover-stat"><b id="stat-impressions">0</b><span>IMPRESSIONS</span></div>' +
           '<div class="cover-stat"><b id="stat-followers">0</b><span>FOLLOWERS</span></div>' +
         '</div>' +
+        (isOwner ? '' : '<div class="cover-follow-wrap"><button type="button" class="btn btn-sm btn-follow' + (isFollowing ? ' is-following' : '') + '" id="follow-btn">' + (isFollowing ? 'Following' : 'Follow') + '</button></div>') +
       '</div>' +
     '</div>'
   );
 }
 
-function actionBarHTML(profile, isOwner, isFollowing){
-  const portfolioUrl = 'journal.aspinora.in/@' + profile.username;
+function actionBarHTML(){
   return (
     '<div class="action-bar">' +
       '<div class="underline-tabs" id="tab-row">' +
@@ -467,14 +605,10 @@ function actionBarHTML(profile, isOwner, isFollowing){
         '<button type="button" data-tab="about">About</button>' +
         '<button type="button" data-tab="wall">Wall</button>' +
         '<button type="button" data-tab="social">Social Links</button>' +
-      '</div>' +
-      '<div class="action-bar-right">' +
-        (isOwner ? '' : '<button type="button" class="btn btn-primary btn-sm btn-follow' + (isFollowing ? ' is-following' : '') + '" id="follow-btn">' + (isFollowing ? 'Following' : 'Follow') + '</button>') +
-        '<button type="button" class="btn btn-secondary btn-sm" id="share-btn">Share Profile</button>' +
-        '<span class="portfolio-link" id="portfolio-link-text" title="Click to copy">' + escapeHtml(portfolioUrl) + '</span>' +
+        '<button type="button" class="share-tab-btn" id="share-btn" title="Share portfolio">' + SHARE_ICON + '<span class="share-tab-label">Share</span></button>' +
       '</div>' +
     '</div>' +
-    '<div class="tab-row" id="works-filter-row" hidden></div>' +
+    '<div class="portfolio-link-row"><a class="portfolio-link" id="portfolio-link-text" href="#" rel="noopener">…</a></div>' +
     '<div class="j-grid" id="works-panel"></div>' +
     '<div class="about-panel" id="about-panel" hidden></div>' +
     '<div class="wall-grid" id="wall-panel" hidden></div>' +
@@ -500,35 +634,13 @@ function workCardHTML(w, isOwner){
   '</div>';
 }
 
-function renderWorksPanel(isOwner){
-  const present = {};
-  state.works.forEach(function(w){ present[w.category_id] = true; });
-  const cats = CATEGORIES.filter(function(c){ return present[c.id]; });
-  const filterRow = document.getElementById('works-filter-row');
-  if (cats.length){
-    filterRow.hidden = false;
-    filterRow.innerHTML = '<button type="button" class="chip-filter is-active" data-cat="all">All</button>' +
-      cats.map(function(c){ return '<button type="button" class="chip-filter" data-cat="' + c.id + '">' + c.name + '</button>'; }).join('');
-    Array.prototype.forEach.call(filterRow.querySelectorAll('.chip-filter'), function(btn){
-      btn.addEventListener('click', function(){
-        Array.prototype.forEach.call(filterRow.querySelectorAll('.chip-filter'), function(b){ b.classList.remove('is-active'); });
-        btn.classList.add('is-active');
-        state.activeCategory = btn.getAttribute('data-cat');
-        renderWorksGrid(isOwner);
-      });
-    });
-  } else { filterRow.hidden = true; }
-  renderWorksGrid(isOwner);
-}
-
 function renderWorksGrid(isOwner){
   const grid = document.getElementById('works-panel');
-  const list = state.activeCategory === 'all' ? state.works : state.works.filter(function(w){ return String(w.category_id) === state.activeCategory; });
-  if (!list.length){
+  if (!state.works.length){
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>' + (isOwner ? 'You haven\'t published anything yet.' : 'Nothing published here yet.') + '</p>' + (isOwner ? '<a class="btn btn-primary" href="userpostlogin.html">Start Writing</a>' : '') + '</div>';
     return;
   }
-  grid.innerHTML = list.map(function(w){ return workCardHTML(w, isOwner); }).join('');
+  grid.innerHTML = state.works.map(function(w){ return workCardHTML(w, isOwner); }).join('');
   Array.prototype.forEach.call(grid.querySelectorAll('.edit-work-btn'), function(btn){
     btn.addEventListener('click', function(e){ e.preventDefault(); window.location.href = 'userpostlogin.html?edit=' + btn.getAttribute('data-id'); });
   });
@@ -539,8 +651,10 @@ function renderWorksGrid(isOwner){
       const id = btn.getAttribute('data-id');
       const { error } = await supabaseClient.from('journals').delete().eq('id', id);
       if (error){ showToast('Couldn\'t delete — please try again.'); return; }
+      const removed = state.works.find(function(w){ return w.id === id; });
       state.works = state.works.filter(function(w){ return w.id !== id; });
       document.getElementById('stat-works').textContent = state.works.length;
+      if (removed) document.getElementById('stat-impressions').textContent = Math.max(0, parseInt(document.getElementById('stat-impressions').textContent,10) - (removed.like_count||0));
       renderWorksGrid(true);
       showToast('Work deleted');
     });
@@ -589,23 +703,20 @@ function renderSocialPanel(profile){
     return;
   }
   wrap.innerHTML = links.map(function(l){
-    return '<a class="social-row" href="' + escapeHtml(l.url) + '" target="_blank" rel="noopener noreferrer">' + SOCIAL_ICON + '<span>' + escapeHtml(l.platform) + '</span></a>';
+    const icon = SOCIAL_ICONS[l.platform] || SOCIAL_ICONS.Other;
+    return '<a class="social-row" href="' + escapeHtml(l.url) + '" target="_blank" rel="noopener noreferrer">' + icon + '<span>' + escapeHtml(l.platform) + '</span></a>';
   }).join('');
 }
 
 function switchTab(tab){
   state.activeTab = tab;
-  Array.prototype.forEach.call(document.querySelectorAll('#tab-row button'), function(b){ b.classList.toggle('is-active', b.getAttribute('data-tab') === tab); });
-  document.getElementById('works-filter-row').hidden = tab !== 'works' || !state.works.length;
+  Array.prototype.forEach.call(document.querySelectorAll('#tab-row button[data-tab]'), function(b){ b.classList.toggle('is-active', b.getAttribute('data-tab') === tab); });
   document.getElementById('works-panel').hidden = tab !== 'works';
   document.getElementById('about-panel').hidden = tab !== 'about';
   document.getElementById('wall-panel').hidden = tab !== 'wall';
   document.getElementById('social-panel').hidden = tab !== 'social';
 }
 
-/* ------------------------------------------------------------------
-   Follow / unfollow
-   ------------------------------------------------------------------ */
 async function toggleFollow(profile){
   if (!state.currentUser){ window.location.href = 'index.html'; return; }
   const btn = document.getElementById('follow-btn');
@@ -669,9 +780,12 @@ function addSocialRow(link){
   const row = document.createElement('div');
   row.className = 'social-edit-row';
   row.innerHTML =
+    '<span class="social-icon-mini">' + (SOCIAL_ICONS[link.platform] || SOCIAL_ICONS.Other) + '</span>' +
     '<select>' + SOCIAL_PLATFORMS.map(function(p){ return '<option' + (p === link.platform ? ' selected' : '') + '>' + p + '</option>'; }).join('') + '</select>' +
     '<input type="url" placeholder="https://…" value="' + escapeHtml(link.url || '') + '">' +
     '<button type="button" aria-label="Remove">✕</button>';
+  const iconSpan = row.querySelector('.social-icon-mini');
+  row.querySelector('select').addEventListener('change', function(){ iconSpan.innerHTML = SOCIAL_ICONS[this.value] || SOCIAL_ICONS.Other; });
   row.querySelector('button').addEventListener('click', function(){ row.remove(); });
   document.getElementById('social-edit-list').appendChild(row);
 }
@@ -698,8 +812,6 @@ async function saveProfileEdits(profile){
   try{
     const updates = { creative_identities: identities, bio: about || null, social_links: socialLinks, updated_at: new Date().toISOString() };
 
-    // Fixed per-user filenames + upsert: a new upload replaces the
-    // previous file at that path rather than accumulating orphans.
     if (state.pendingAvatarBlob){
       const path = profile.id + '/avatar.jpg';
       const { error: upErr } = await supabaseClient.storage.from('profile-media').upload(path, state.pendingAvatarBlob, { upsert: true, contentType: 'image/jpeg' });
@@ -751,6 +863,12 @@ async function initPortfolio(){
   const params = new URLSearchParams(window.location.search);
   let username = params.get('u');
   if (!username){
+    const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    const segs = path.split('/').filter(Boolean);
+    const last = segs[segs.length - 1];
+    if (last && last.toLowerCase() !== 'portfolio.html') username = last.replace(/^@/, '');
+  }
+  if (!username){
     if (state.currentUser){
       username = state.currentUser.username;
       const url = new URL(window.location.href);
@@ -800,30 +918,41 @@ async function initPortfolio(){
   state.wallPosts = wallRows || [];
 
   const app = document.getElementById('app');
-  app.innerHTML = coverHeroHTML(profile, state.isOwner) + '<div class="container">' + actionBarHTML(profile, state.isOwner, state.isFollowing) + '</div>';
+  app.innerHTML = coverHeroHTML(profile, state.isOwner, state.isFollowing) + '<div class="container">' + actionBarHTML() + '</div>';
 
-  const impressions = state.works.reduce(function(sum, w){ return sum + (w.read_count || 0); }, 0);
+  // Impressions = total likes across the writer's works (as defined by the user).
+  const impressions = state.works.reduce(function(sum, w){ return sum + (w.like_count || 0); }, 0);
   document.getElementById('stat-works').textContent = state.works.length;
   document.getElementById('stat-impressions').textContent = impressions;
   document.getElementById('stat-followers').textContent = followerCount || 0;
 
-  renderWorksPanel(state.isOwner);
+  const coverImgEl = document.getElementById('cover-img-el');
+  if (coverImgEl){
+    if (coverImgEl.complete) tintHeaderFromImage(coverImgEl);
+    else coverImgEl.addEventListener('load', function(){ tintHeaderFromImage(coverImgEl); });
+  }
+
+  renderWorksGrid(state.isOwner);
   renderAboutPanel(profile);
   renderWallPanel(state.isOwner);
   renderSocialPanel(profile);
   switchTab('works');
 
-  Array.prototype.forEach.call(document.querySelectorAll('#tab-row button'), function(btn){
+  Array.prototype.forEach.call(document.querySelectorAll('#tab-row button[data-tab]'), function(btn){
     btn.addEventListener('click', function(){ switchTab(btn.getAttribute('data-tab')); });
   });
 
-  const shareUrl = 'https://journal.aspinora.in/@' + profile.username;
-  document.getElementById('share-btn').addEventListener('click', function(){
-    if (navigator.clipboard) navigator.clipboard.writeText(shareUrl);
+  const realUrl = computePortfolioUrl(profile.username);
+  const linkEl = document.getElementById('portfolio-link-text');
+  linkEl.textContent = realUrl.replace(/^https?:\/\//, '');
+  linkEl.href = realUrl;
+  linkEl.addEventListener('click', function(e){
+    e.preventDefault();
+    if (navigator.clipboard) navigator.clipboard.writeText(realUrl);
     showToast('Portfolio link copied');
   });
-  document.getElementById('portfolio-link-text').addEventListener('click', function(){
-    if (navigator.clipboard) navigator.clipboard.writeText(shareUrl);
+  document.getElementById('share-btn').addEventListener('click', function(){
+    if (navigator.clipboard) navigator.clipboard.writeText(realUrl);
     showToast('Portfolio link copied');
   });
 
@@ -838,18 +967,22 @@ async function initPortfolio(){
     document.getElementById('add-social-btn').addEventListener('click', function(){ addSocialRow(); });
 
     document.getElementById('pick-avatar-btn').addEventListener('click', function(){ document.getElementById('avatar-file-input').click(); });
-    document.getElementById('avatar-file-input').addEventListener('change', async function(e){
+    document.getElementById('avatar-file-input').addEventListener('change', function(e){
       const file = e.target.files[0]; if (!file) return;
-      const blob = await cropAndCompress(file, 1, 480, 20 * 1024);
-      state.pendingAvatarBlob = blob;
-      document.getElementById('edit-avatar-preview').innerHTML = '<img src="' + URL.createObjectURL(blob) + '" alt="">';
+      openCropper(file, 1, 480, 480, 'Position your avatar', function(blob){
+        state.pendingAvatarBlob = blob;
+        document.getElementById('edit-avatar-preview').innerHTML = '<img src="' + URL.createObjectURL(blob) + '" alt="">';
+      });
+      e.target.value = '';
     });
     document.getElementById('pick-cover-btn').addEventListener('click', function(){ document.getElementById('cover-file-input').click(); });
-    document.getElementById('cover-file-input').addEventListener('change', async function(e){
+    document.getElementById('cover-file-input').addEventListener('change', function(e){
       const file = e.target.files[0]; if (!file) return;
-      const blob = await cropAndCompress(file, 3, 1500, 60 * 1024);
-      state.pendingCoverBlob = blob;
-      document.getElementById('edit-cover-preview-box').innerHTML = '<img src="' + URL.createObjectURL(blob) + '" alt="">';
+      openCropper(file, 3, 1500, 500, 'Position your cover image', function(blob){
+        state.pendingCoverBlob = blob;
+        document.getElementById('edit-cover-preview-box').innerHTML = '<img src="' + URL.createObjectURL(blob) + '" alt="">';
+      });
+      e.target.value = '';
     });
 
     document.getElementById('edit-form').addEventListener('submit', function(e){ e.preventDefault(); saveProfileEdits(profile); });
