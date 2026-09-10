@@ -900,12 +900,40 @@ section{ padding:36px 0; }
       Supabase didn't load, so sign-in is simulated locally for this preview only.
     </div>
 
-    <form id="auth-form">
-      <div class="field" id="signup-name-field" hidden>
-        <label for="auth-username">Username</label>
-        <input type="text" id="auth-username" class="input" placeholder="e.g. priya_writes" autocomplete="username" maxlength="20">
-        <p class="field-hint">This is your handle and Portfolio link — you can add your real name later in your profile.</p>
-      </div>
+    <!-- Social sign-in/sign-up. Same provider list and same buttons on
+         both tabs: Supabase's signInWithOAuth() transparently creates
+         the account on first use, so "continue with Google" IS the
+         sign-up for a new visitor and the log-in for a returning one.
+         See the SOCIAL LOGIN + USERNAME ONBOARDING notes at the bottom
+         of this file for the Supabase dashboard configuration this
+         needs (redirect URLs, each provider's client id/secret). -->
+    <div id="social-auth-buttons" style="display:flex;flex-direction:column;gap:10px;margin:18px 0;">
+      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="google">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#4285F4" d="M19.6 10.23c0-.68-.06-1.32-.17-1.94H10v3.68h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.26Z"/><path fill="#34A853" d="M10 20c2.7 0 4.96-.9 6.62-2.4l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.75-5.59-4.11H1.06v2.59A10 10 0 0 0 10 20Z"/><path fill="#FBBC05" d="M4.41 11.95a6 6 0 0 1 0-3.9V5.46H1.06a10 10 0 0 0 0 9.08l3.35-2.59Z"/><path fill="#EA4335" d="M10 3.96c1.47 0 2.78.5 3.82 1.5l2.87-2.87C14.95 1.02 12.69 0 10 0 6.1 0 2.73 2.24 1.06 5.46l3.35 2.59C5.2 5.7 7.4 3.96 10 3.96Z"/></svg>
+        Continue with Google
+      </button>
+      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="facebook">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#1877F2" d="M20 10a10 10 0 1 0-11.56 9.88v-6.99H5.9V10h2.54V7.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V10h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 20 10Z"/></svg>
+        Continue with Facebook
+      </button>
+      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="spotify">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><circle cx="10" cy="10" r="10" fill="#1ED760"/><path fill="#fff" d="M14.4 8.9c-2.44-1.45-6.47-1.58-8.8-.87a.66.66 0 1 1-.38-1.26c2.68-.81 7.13-.66 9.94 1.01a.66.66 0 1 1-.76 1.12Zm-.1 2.4c-2.03-1.25-5.13-1.61-7.53-.88a.55.55 0 1 1-.32-1.05c2.75-.83 6.17-.43 8.53 1.02a.55.55 0 1 1-.68.91Zm-.09 2.31c-1.78-1.09-4.02-1.34-6.66-.73a.46.46 0 0 1-.2-.9c2.89-.66 5.37-.38 7.38.86a.46.46 0 1 1-.52.77Z"/></svg>
+        Continue with Spotify
+      </button>
+      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="apple">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;color:var(--ink);"><path fill="currentColor" d="M14.1 10.6c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.5.7-3.1.7-.6 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2-1.4 2.5-.4 6.2 1 8.2.7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.6-.7s1.6.7 2.7.6c1.1 0 1.8-1 2.5-2 .8-1.1 1.1-2.2 1.1-2.3-.1 0-2.1-.8-2.1-3ZM12.1 4.4c.6-.7 1-1.7.9-2.7-.9.1-1.9.6-2.6 1.3-.6.6-1.1 1.6-1 2.6 1 .1 1.9-.5 2.7-1.2Z"/></svg>
+        Continue with Apple
+      </button>
+      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" id="use-email-auth-btn">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;color:var(--ink-soft);"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M3 5.5 10 11l7-5.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Continue with Email
+      </button>
+    </div>
+
+    <form id="auth-form" hidden>
+      <p class="auth-alt-action" style="margin-top:0;">
+        <button type="button" class="link-btn" id="auth-back-to-social-btn">← Back to all options</button>
+      </p>
       <div class="field">
         <label for="auth-email" id="auth-email-label">Email</label>
         <input type="text" id="auth-email" class="input" placeholder="you@example.com" autocomplete="username email">
@@ -921,26 +949,30 @@ section{ padding:36px 0; }
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="auth-submit-btn">Continue as Demo User</button>
     </form>
+  </div>
+</div>
 
-    <p class="auth-alt-action" id="auth-otp-link-wrap">
-      <button type="button" class="link-btn" id="use-otp-btn">Email me a one-time code instead</button>
-    </p>
-
-    <form id="otp-form" hidden>
-      <p class="modal-sub" id="otp-step-text" style="margin-top:0;">We'll email you a 6-digit code to log in — no password needed.</p>
-      <div class="field" id="otp-email-field">
-        <label for="otp-email">Email</label>
-        <input type="email" id="otp-email" class="input" placeholder="you@example.com" autocomplete="email">
+<!-- ============================================================
+     USERNAME ONBOARDING MODAL
+     Shown once, right after the very first successful sign-in
+     (social or email) for anyone whose profile has no username yet.
+     Deliberately has no close button — picking a unique username is
+     mandatory before the person can use the rest of the app. See the
+     SOCIAL LOGIN + USERNAME ONBOARDING notes near the bottom of this
+     file for the Supabase-side pieces (trigger + RLS) this depends on.
+     ============================================================ -->
+<div class="modal-scrim" id="username-modal-scrim">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="username-modal-title">
+    <h2 id="username-modal-title">Choose your username</h2>
+    <p class="modal-sub">This is your handle and Portfolio link — you can add your real name later in your profile.</p>
+    <form id="username-form">
+      <div class="field">
+        <label for="onboard-username">Username</label>
+        <input type="text" id="onboard-username" class="input" placeholder="e.g. priya_writes" autocomplete="username" maxlength="20">
+        <p class="field-hint" id="onboard-username-hint">3–20 characters: lowercase letters, numbers or underscores.</p>
       </div>
-      <div class="field" id="otp-code-field" hidden>
-        <label for="otp-code">6-digit code</label>
-        <input type="text" id="otp-code" class="input" placeholder="123456" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
-      </div>
-      <button type="submit" class="btn btn-primary" style="width:100%;" id="otp-submit-btn">Send code</button>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="onboard-username-submit">Continue</button>
     </form>
-    <p class="auth-alt-action" id="otp-back-wrap" hidden>
-      <button type="button" class="link-btn" id="otp-back-btn">Use password instead</button>
-    </p>
   </div>
 </div>
 
@@ -1045,6 +1077,10 @@ try{
    ------------------------------------------------------------------ */
 const DEMO_MODE = false;
 const AUTH_LIVE = !!supabaseClient;
+// This file (index.html) is the public/marketing entry point;
+// userpostlogin.html sets this true instead. Used only to decide
+// where the username-onboarding modal sends the person afterwards.
+const IS_MEMBER_PAGE = false;
 
 /* ------------------------------------------------------------------
    3. CATEGORIES
@@ -1256,7 +1292,21 @@ function avatarColor(seed){
   for (let i=0;i<seed.length;i++){ hash = (hash * 31 + seed.charCodeAt(i)) >>> 0; }
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
+function authorAvatarUrl(authorId){
+  if (AUTHOR_CACHE[authorId] && AUTHOR_CACHE[authorId].avatar_url) return AUTHOR_CACHE[authorId].avatar_url;
+  if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.avatar_url || '';
+  return '';
+}
+/* Renders the fetched provider photo (Google/Facebook/Spotify/Apple
+   avatar, persisted to Supabase Storage — see persistProviderProfileData())
+   when one is on file; otherwise falls back to the lettered avatar. */
 function avatarHTML(userId, name, sizeClass){
+  const avatarUrl = authorAvatarUrl(userId);
+  if (avatarUrl){
+    return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="padding:0;overflow:hidden;">' +
+      '<img src="' + escapeHtml(avatarUrl) + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;">' +
+    '</span>';
+  }
   const color = avatarColor(userId || name);
   return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + initials(name) + '</span>';
 }
@@ -1405,8 +1455,11 @@ function showToast(message){
 function openModal(id){ qs('#' + id).classList.add('open'); document.body.style.overflow = 'hidden'; }
 function closeModal(id){ qs('#' + id).classList.remove('open'); document.body.style.overflow = ''; }
 function closeAllModals(){
-  qsa('.modal-scrim.open').forEach(function(m){ m.classList.remove('open'); });
-  document.body.style.overflow = '';
+  // The username-onboarding modal is intentionally excluded: it's a
+  // mandatory step (no close button, can't be dismissed with Escape
+  // or a click outside) until a unique username is actually set.
+  qsa('.modal-scrim.open').forEach(function(m){ if (m.id !== 'username-modal-scrim') m.classList.remove('open'); });
+  document.body.style.overflow = qs('#username-modal-scrim').classList.contains('open') ? 'hidden' : '';
 }
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape'){
@@ -1450,28 +1503,18 @@ async function signIn(identifier, password){
   const email = await resolveLoginEmail(identifier.trim());
   const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  return { user: await loadProfile(data.user) };
+  return { user: await loadProfile(data.user), authUser: data.user };
 }
-async function signUp(username, email, password){
-  username = (username || '').trim().toLowerCase();
-  if (!USERNAME_PATTERN.test(username)){
-    throw new Error('Usernames need to be 3–20 characters: lowercase letters, numbers or underscores.');
-  }
+async function signUp(email, password){
   if (!AUTH_LIVE){
-    return { user: Object.assign({}, DEMO_USER, { username: username, display_name: username }) };
-  }
-  if (!(await isUsernameAvailable(username))){
-    throw new Error('That username is already taken — try another.');
+    return { user: Object.assign({}, DEMO_USER, { username: '' }) };
   }
   // A database trigger creates the matching `profiles` row for the new
-  // auth.users id. The
-  // real name isn't collected here on purpose (see product spec): the
-  // username doubles as the display name until it's changed later in
-  // profile settings.
-  const { data, error } = await supabaseClient.auth.signUp({
-    email, password,
-    options: { data: { display_name: username, username: username } }
-  });
+  // auth.users id, with username left blank on purpose — see the
+  // USERNAME ONBOARDING MODAL: the person picks (and we uniqueness-
+  // check) their username right after this, once they're confirmed,
+  // rather than collecting it up front here.
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
   if (error) throw error;
   const identities = data && data.user && data.user.identities;
   if (identities && identities.length === 0){
@@ -1482,7 +1525,7 @@ async function signUp(username, email, password){
   if (!data.session){
     return { user: null, needsVerification: true, email };
   }
-  return { user: await loadProfile(data.user) };
+  return { user: await loadProfile(data.user), authUser: data.user };
 }
 /* Looks up the matching `profiles` row; if the row hasn't landed yet
    (trigger lag right after sign-up) or the query fails, falls back to
@@ -1493,19 +1536,113 @@ async function loadProfile(authUser){
   if (!AUTH_LIVE) return DEMO_USER;
   const userId = typeof authUser === 'string' ? authUser : authUser.id;
   try{
-    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio').eq('id', userId).single();
+    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio, avatar_url').eq('id', userId).single();
     if (error || !data) throw error || new Error('no profile row');
     return data;
   }catch(e){
     const meta = (typeof authUser === 'object' && authUser.user_metadata) || {};
     const email = typeof authUser === 'object' ? authUser.email : '';
+    // Deliberately leave username blank here (rather than guessing one
+    // from the email) so a missing/not-yet-landed profile row always
+    // routes through the username onboarding modal instead of quietly
+    // assigning a username the person never chose.
     return {
       id: userId,
-      username: meta.username || (email ? email.split('@')[0] : userId),
-      display_name: meta.display_name || meta.username || (email ? email.split('@')[0] : 'You'),
-      bio: ''
+      username: '',
+      display_name: meta.display_name || meta.full_name || meta.name || (email ? email.split('@')[0] : 'You'),
+      bio: '',
+      avatar_url: meta.avatar_url || meta.picture || ''
     };
   }
+}
+/* True once we have a signed-in user whose profile has no username
+   yet — the single gate the username onboarding modal is keyed off. */
+function needsUsername(user){
+  return !!user && !user.username;
+}
+/* Kicks off Supabase's OAuth redirect flow for social sign-in/sign-up.
+   Supabase creates the auth.users row (and, via the trigger, the
+   profiles row) on first use automatically, so this same call serves
+   both "sign up with Google" and "log in with Google" — whichever it
+   is, the person lands back on userpostlogin.html signed in, and
+   restoreSession() there picks up needsUsername() the same way it
+   does for email/password sign-in. See the SOCIAL LOGIN +
+   USERNAME ONBOARDING notes near the bottom of this file for the
+   Supabase dashboard configuration each provider needs. */
+async function signInWithOAuth(provider){
+  if (!AUTH_LIVE){ showToast('Social sign-in needs a live Supabase connection.'); return; }
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: provider,
+    options: { redirectTo: window.location.origin + '/userpostlogin.html' }
+  });
+  if (error) showToast(error.message || ('Could not start ' + provider + ' sign-in.'));
+}
+/* First-time sign-in only: pulls the avatar photo and email the
+   provider gave us and saves them onto the profiles row — downloading
+   and re-uploading the photo to the already-created "avatars"
+   Supabase Storage bucket rather than linking the provider's URL
+   directly, since those URLs are often temporary/expire. Best-effort:
+   any failure here just means the person keeps their lettered avatar,
+   nothing else blocks on it. Also runs (harmlessly) for email/password
+   accounts, where there's just no avatar to fetch. */
+async function persistProviderProfileData(authUser, userId){
+  if (!AUTH_LIVE || !authUser) return {};
+  const meta = authUser.user_metadata || {};
+  const avatarSourceUrl = meta.avatar_url || meta.picture || '';
+  const email = authUser.email || '';
+  const updates = {};
+  if (email) updates.email = email;
+  if (avatarSourceUrl){
+    try{
+      const res = await fetch(avatarSourceUrl);
+      if (res.ok){
+        const blob = await res.blob();
+        const ext = (blob.type && blob.type.split('/')[1]) || 'jpg';
+        const path = userId + '/avatar.' + ext;
+        const { error: uploadError } = await supabaseClient.storage.from('avatars')
+          .upload(path, blob, { upsert: true, contentType: blob.type || 'image/jpeg' });
+        if (!uploadError){
+          const { data: pub } = supabaseClient.storage.from('avatars').getPublicUrl(path);
+          if (pub && pub.publicUrl) updates.avatar_url = pub.publicUrl;
+        }
+      }
+    }catch(e){ console.warn('Could not fetch/store provider avatar:', e); }
+  }
+  if (Object.keys(updates).length){
+    try{ await supabaseClient.from('profiles').update(updates).eq('id', userId); }catch(e){ console.warn('Could not save provider profile data:', e); }
+  }
+  return updates;
+}
+function openUsernameOnboarding(){
+  qs('#onboard-username').value = '';
+  qs('#onboard-username-hint').textContent = '3–20 characters: lowercase letters, numbers or underscores.';
+  openModal('username-modal-scrim');
+}
+/* Validates + uniqueness-checks the chosen username, saves it (plus
+   whatever avatar/email persistProviderProfileData can find), and
+   updates local state — the one path that clears needsUsername(). */
+async function completeUsernameOnboarding(username){
+  username = (username || '').trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(username)){
+    throw new Error('Usernames need to be 3–20 characters: lowercase letters, numbers or underscores.');
+  }
+  if (!(await isUsernameAvailable(username))){
+    throw new Error('That username is already taken — try another.');
+  }
+  if (AUTH_LIVE){
+    const { error } = await supabaseClient.from('profiles')
+      .update({ username: username, display_name: username })
+      .eq('id', state.currentUser.id);
+    if (error) throw error;
+    const providerUpdates = await persistProviderProfileData(state.pendingAuthUser, state.currentUser.id);
+    if (providerUpdates && providerUpdates.avatar_url) state.currentUser.avatar_url = providerUpdates.avatar_url;
+  }
+  state.currentUser.username = username;
+  state.currentUser.display_name = username;
+  state.pendingAuthUser = null;
+  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: username, username: username, avatar_url: state.currentUser.avatar_url || '' };
+  closeModal('username-modal-scrim');
+  syncAuthUI();
 }
 
 /* Pull the signed-in user's existing likes/bookmarks so the heart and
@@ -1548,6 +1685,11 @@ async function restoreSession(){
           loadProfile(session.user.id).then(function(user){
             state.currentUser = user;
             syncAuthUI();
+            if (needsUsername(user)){
+              state.pendingAuthUser = session.user;
+              openUsernameOnboarding();
+              return;
+            }
             hydrateUserActivity(user.id).then(function(){
               window.location.href = 'userpostlogin.html';
             });
@@ -1559,6 +1701,10 @@ async function restoreSession(){
           if (session && session.user){
             loadProfile(session.user.id).then(function(user){
               state.currentUser = user;
+              if (needsUsername(user)){
+                state.pendingAuthUser = session.user;
+                openUsernameOnboarding();
+              }
               return hydrateUserActivity(user.id);
             }).catch(function(e){ console.warn('Could not load profile:', e); }).then(resolve);
           } else {
@@ -1611,7 +1757,7 @@ function requireAuth(actionText, callback){
 
 function openAuthModal(tab){
   setAuthTab(tab || 'login');
-  resetOtpPanel();
+  resetAuthPanel();
   openModal('auth-modal-scrim');
   // The note only matters if Supabase itself failed to load — real
   // sign-in/sign-up is always used otherwise, regardless of DEMO_MODE.
@@ -1619,7 +1765,6 @@ function openAuthModal(tab){
 }
 function setAuthTab(tab){
   qsa('[data-auth-tab]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-auth-tab') === tab); });
-  qs('#signup-name-field').hidden = tab !== 'signup';
   const emailLabel = qs('#auth-email-label');
   const emailInput = qs('#auth-email');
   if (tab === 'signup'){
@@ -1634,7 +1779,6 @@ function setAuthTab(tab){
   qs('#auth-modal-title').textContent = tab === 'signup' ? 'Create your account' : 'Welcome back';
   qs('#auth-submit-btn').textContent = !AUTH_LIVE ? 'Continue as Demo User' : (tab === 'signup' ? 'Sign Up' : 'Log In');
   qs('#auth-form').setAttribute('data-mode', tab);
-  qs('#auth-otp-link-wrap').hidden = tab === 'signup';
 }
 
 /* ------------------------------------------------------------------
@@ -1655,7 +1799,8 @@ function normalizeJournalRow(row){
     AUTHOR_CACHE[row.author_id] = {
       id: row.author_id,
       display_name: row.profiles.display_name || 'Aspinora Member',
-      username: row.profiles.username || ''
+      username: row.profiles.username || '',
+      avatar_url: row.profiles.avatar_url || ''
     };
   }
   const cat = categoryById(row.category_id);
@@ -1684,7 +1829,7 @@ function normalizeJournalRow(row){
   };
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
@@ -1796,7 +1941,7 @@ async function fetchCategoryCounts(){
 
 function normalizeWallPostRow(row){
   if (row.profiles){
-    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '' };
+    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '', avatar_url: row.profiles.avatar_url || '' };
   }
   return {
     id: row.id,
@@ -1810,7 +1955,7 @@ function normalizeWallPostRow(row){
 async function fetchWallPosts(){
   if (DEMO_MODE) return MOCK_WALL_POSTS.slice(0, 8);
   const { data, error } = await supabaseClient.from('wall_posts')
-    .select('id, body, category_id, author_id, published_at, likes, profiles!wall_posts_author_id_fkey(display_name, username)')
+    .select('id, body, category_id, author_id, published_at, likes, profiles!wall_posts_author_id_fkey(display_name, username, avatar_url)')
     .eq('status','published').order('published_at',{ ascending:false }).limit(8);
   if (error) throw error;
   return data.map(normalizeWallPostRow);
@@ -1832,7 +1977,7 @@ async function postToWall(body, categorySlug){
     .insert({ body: body, category_id: cat.id, author_id: state.currentUser.id })
     .select('id, body, category_id, author_id, published_at, likes').single();
   if (error) throw error;
-  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username };
+  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: state.currentUser.avatar_url || '' };
   return normalizeWallPostRow(data);
 }
 
@@ -1895,13 +2040,13 @@ async function loadCommentsForJournal(journalId){
     return COMMENT_CACHE[journalId];
   }
   const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username)')
+    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username, avatar_url)')
     .eq('journal_id', journalId).eq('status', 'visible')
     .order('created_at', { ascending: true });
   if (error) throw error;
   data.forEach(function(row){
     if (row.profiles){
-      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username };
+      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username, avatar_url: row.profiles.avatar_url || '' };
     }
   });
   COMMENT_CACHE[journalId] = data;
@@ -2030,6 +2175,39 @@ async function markAllNotificationsRead(){
   if (DEMO_MODE){ MOCK_NOTIFICATIONS.forEach(function(n){ if (!n.read_at) n.read_at = new Date().toISOString(); }); return; }
   const { error } = await supabaseClient.from('notifications').update({ read_at:new Date().toISOString() }).eq('recipient_id', state.currentUser.id).is('read_at', null);
   if (error) throw error;
+}
+/* Marks a single notification read — used when the person opens/views
+   it individually, as opposed to the bulk "Mark all as read" action
+   above. Safe to call on an already-read notification (no-op). */
+async function markNotificationRead(notifId){
+  if (!notifId) return;
+  if (DEMO_MODE){
+    const n = MOCK_NOTIFICATIONS.find(function(x){ return x.id === notifId; });
+    if (n && !n.read_at) n.read_at = new Date().toISOString();
+    return;
+  }
+  const { error } = await supabaseClient.from('notifications').update({ read_at:new Date().toISOString() })
+    .eq('id', notifId).eq('recipient_id', state.currentUser.id).is('read_at', null);
+  if (error) console.warn('Could not mark notification read:', error);
+}
+/* fetchNotifications() only returns the bare notifications rows (no
+   profile join), so the actor's name/username previously only showed
+   up if some other query (a journal or comment list) had already
+   populated AUTHOR_CACHE for that person — otherwise it silently sat
+   on the "Aspinora Member" fallback forever, not just "slowly". This
+   fetches exactly the missing profiles in one batched query so every
+   notification actually resolves a name. */
+async function ensureAuthorsCached(authorIds){
+  if (DEMO_MODE || !supabaseClient) return;
+  const missing = Array.from(new Set((authorIds||[]).filter(Boolean))).filter(function(id){ return !AUTHOR_CACHE[id]; });
+  if (!missing.length) return;
+  try{
+    const { data, error } = await supabaseClient.from('profiles').select('id, display_name, username, avatar_url').in('id', missing);
+    if (error || !data) return;
+    data.forEach(function(p){
+      AUTHOR_CACHE[p.id] = { id: p.id, display_name: p.display_name || 'Aspinora Member', username: p.username || '', avatar_url: p.avatar_url || '' };
+    });
+  }catch(e){ console.warn('Could not load notification authors:', e); }
 }
 async function unreadNotifCount(){
   if (DEMO_MODE) return MOCK_NOTIFICATIONS.filter(function(n){ return !n.read_at; }).length;
@@ -2716,22 +2894,37 @@ async function renderNotificationsView(){
   const list = qs('#notifications-list');
   if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your Updates.</p></div>'; return; }
   const rows = await fetchNotifications();
+  await ensureAuthorsCached(rows.map(function(n){ return n.actor_id; }));
   if (!rows.length){
     list.innerHTML = '<div class="empty-state"><p>No new updates from the community yet.</p></div>';
+    wireGenericButtons();
     return;
   }
   list.innerHTML = rows.map(function(n){
     const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new update.'; };
-    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-journal="' + (n.journal_id||'') + '">' +
+    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-id="' + n.id + '" data-notif-journal="' + (n.journal_id||'') + '">' +
       (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:var(--ink-faint)">✦</span>') +
       '<div><div class="n-msg">' + copyFn(n) + '</div><div class="n-time">' + formatRelativeTime(n.created_at) + '</div></div>' +
       (!n.read_at ? '<span class="notif-dot"></span>' : '') +
     '</div>';
   }).join('');
   renderNotifBadge();
-  qsa('[data-notif-journal]').forEach(function(el){
+  wireGenericButtons();
+  /* Opening/viewing a notification marks it read individually, not
+     just via the bulk "Mark all as read" button. */
+  qsa('[data-notif-id]').forEach(function(el){
     el.style.cursor = 'pointer';
-    el.onclick = function(){ const jid = this.getAttribute('data-notif-journal'); if (jid) navigateTo('read', { journalId: jid }); };
+    el.onclick = function(){
+      const notifId = this.getAttribute('data-notif-id');
+      const jid = this.getAttribute('data-notif-journal');
+      if (this.classList.contains('is-unread')){
+        this.classList.remove('is-unread');
+        const dot = this.querySelector('.notif-dot');
+        if (dot) dot.remove();
+        markNotificationRead(notifId).then(renderNotifBadge);
+      }
+      if (jid) navigateTo('read', { journalId: jid });
+    };
   });
 }
 async function renderNotifBadge(){
@@ -3073,7 +3266,19 @@ async function doPublish(){
    familiar "log in to continue" prompt; once logged in (now or
    already), they land on the same feature there instead of here. */
 function goToProtectedView(view, message){
-  requireAuth(message, function(){ window.location.href = 'userpostlogin.html/' + view; });
+  /* userpostlogin.html is a single static file — "userpostlogin.html/wall"
+     isn't a real path the host can serve, so hand the intended route
+     over as a query param instead (see handoffPath()/consumeHandoffPath()
+     in userpostlogin.html) rather than faking a nested URL. */
+  requireAuth(message, function(){ window.location.href = handoffUrl(view); });
+}
+/* Builds the URL used to hand a member-only route from this page over
+   to userpostlogin.html. Query-string handoff works on any static
+   host; a fake nested path like "userpostlogin.html/wall" 404s unless
+   the server has custom rewrite rules for it. */
+function handoffUrl(pathOrView){
+  const path = pathOrView.indexOf('/') === 0 ? pathOrView : '/' + pathOrView;
+  return 'userpostlogin.html?path=' + encodeURIComponent(path);
 }
 function wireNav(){
   qsa('[data-nav]').forEach(function(btn){
@@ -3122,9 +3327,17 @@ async function completeLoginSuccess(form, result){
   state.currentUser = result.user;
   await hydrateUserActivity(result.user.id);
   syncAuthUI();
-  closeModal('auth-modal-scrim');
   if (form) form.reset();
-  resetOtpPanel();
+  if (needsUsername(result.user)){
+    // Keep the raw auth user around so completeUsernameOnboarding()
+    // can pull the provider's avatar/email once the username is set.
+    state.pendingAuthUser = result.authUser || null;
+    closeModal('auth-modal-scrim');
+    openUsernameOnboarding();
+    return;
+  }
+  closeModal('auth-modal-scrim');
+  resetAuthPanel();
   if (state.pendingAuthAction){
     const action = state.pendingAuthAction;
     state.pendingAuthAction = null;
@@ -3134,25 +3347,21 @@ async function completeLoginSuccess(form, result){
   }
 }
 
-function resetOtpPanel(){
-  qs('#otp-form').hidden = true;
-  qs('#otp-back-wrap').hidden = true;
-  qs('#auth-form').hidden = false;
-  qs('#auth-otp-link-wrap').hidden = false;
+/* Resets the auth modal back to its opening state: the social-button
+   list showing, the email/password form hidden. Replaces the old
+   OTP-panel reset now that the one-time email code option is gone. */
+function resetAuthPanel(){
+  qs('#auth-form').hidden = true;
+  qs('#social-auth-buttons').hidden = false;
   qs('.auth-tabs').hidden = false;
-  qs('#otp-code-field').hidden = true;
-  qs('#otp-email-field').hidden = false;
-  qs('#otp-submit-btn').textContent = 'Send code';
-  qs('#otp-step-text').textContent = "We'll email you a 6-digit code to log in — no password needed.";
-  qs('#otp-form').reset();
-  qs('#otp-form').setAttribute('data-step', 'request');
+  qs('#auth-form').reset();
 }
 
 function initAuthModal(){
   qsa('[data-open-auth]').forEach(function(btn){
     btn.addEventListener('click', function(){ openAuthModal(this.getAttribute('data-open-auth')); });
   });
-  qs('#auth-modal-close').addEventListener('click', function(){ closeModal('auth-modal-scrim'); resetOtpPanel(); });
+  qs('#auth-modal-close').addEventListener('click', function(){ closeModal('auth-modal-scrim'); resetAuthPanel(); });
   qsa('[data-auth-tab]').forEach(function(btn){ btn.addEventListener('click', function(){ setAuthTab(this.getAttribute('data-auth-tab')); }); });
 
   qs('#auth-password-toggle').addEventListener('click', function(){
@@ -3163,50 +3372,20 @@ function initAuthModal(){
     this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
   });
 
-  // Email OTP: an alternative to password login, not shown on the
-  // Sign Up tab (an account has to already exist to log in with a
-  // code — signup still needs a password to create one).
-  qs('#use-otp-btn').addEventListener('click', function(){
-    qs('#auth-form').hidden = true;
-    qs('#auth-otp-link-wrap').hidden = true;
-    qs('.auth-tabs').hidden = true;
-    qs('#otp-form').hidden = false;
-    qs('#otp-back-wrap').hidden = false;
-    const email = qs('#auth-email').value.trim();
-    if (email.indexOf('@') !== -1) qs('#otp-email').value = email;
+  // Same provider buttons, same handler, on both the Log In and Sign
+  // Up tabs — see signInWithOAuth()'s comment for why one call covers
+  // both cases.
+  qsa('[data-oauth-provider]').forEach(function(btn){
+    btn.addEventListener('click', function(){ signInWithOAuth(this.getAttribute('data-oauth-provider')); });
   });
-  qs('#otp-back-btn').addEventListener('click', resetOtpPanel);
-
-  qs('#otp-form').addEventListener('submit', async function(e){
-    e.preventDefault();
-    const step = this.getAttribute('data-step') || 'request';
-    const btn = qs('#otp-submit-btn');
-    const email = qs('#otp-email').value.trim();
-    if (!email){ showToast('Enter your email first.'); return; }
-    btn.disabled = true;
-    try{
-      if (step === 'request'){
-        if (!AUTH_LIVE){ showToast('Email OTP needs a live Supabase connection.'); return; }
-        const { error } = await supabaseClient.auth.signInWithOtp({ email: email, options: { shouldCreateUser: false } });
-        if (error) throw error;
-        qs('#otp-email-field').hidden = true;
-        qs('#otp-code-field').hidden = false;
-        qs('#otp-code').focus();
-        qs('#otp-step-text').textContent = 'Enter the 6-digit code we just emailed to ' + email + '.';
-        btn.textContent = 'Verify code';
-        this.setAttribute('data-step', 'verify');
-      } else {
-        const token = qs('#otp-code').value.trim();
-        if (!token){ showToast('Enter the code from your email.'); return; }
-        const { data, error } = await supabaseClient.auth.verifyOtp({ email: email, token: token, type: 'email' });
-        if (error) throw error;
-        await completeLoginSuccess(null, { user: await loadProfile(data.user) });
-      }
-    }catch(err){
-      showToast(err.message || 'Something went wrong — please try again.');
-    }finally{
-      btn.disabled = false;
-    }
+  qs('#use-email-auth-btn').addEventListener('click', function(){
+    qs('#social-auth-buttons').hidden = true;
+    qs('#auth-form').hidden = false;
+    qs('#auth-email').focus();
+  });
+  qs('#auth-back-to-social-btn').addEventListener('click', function(){
+    qs('#auth-form').hidden = true;
+    qs('#social-auth-buttons').hidden = false;
   });
 
   qs('#auth-form').addEventListener('submit', async function(e){
@@ -3214,11 +3393,10 @@ function initAuthModal(){
     const mode = this.getAttribute('data-mode') || 'login';
     const identifier = qs('#auth-email').value.trim();
     const password = qs('#auth-password').value;
-    const username = qs('#auth-username').value.trim();
     const btn = qs('#auth-submit-btn');
     btn.disabled = true;
     try{
-      const result = mode === 'signup' ? await signUp(username, identifier, password) : await signIn(identifier, password);
+      const result = mode === 'signup' ? await signUp(identifier, password) : await signIn(identifier, password);
       if (result.needsVerification){
         closeModal('auth-modal-scrim');
         showToast('Check ' + result.email + ' for a confirmation link to finish signing up.');
@@ -3228,6 +3406,34 @@ function initAuthModal(){
       await completeLoginSuccess(this, result);
     }catch(err){
       showToast(err.message || 'Something went wrong — please try again.');
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  // Username onboarding: the mandatory step right after first sign-in
+  // for anyone whose profile doesn't have a username yet (see
+  // needsUsername()/openUsernameOnboarding() above).
+  qs('#username-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const input = qs('#onboard-username');
+    const hint = qs('#onboard-username-hint');
+    const btn = qs('#onboard-username-submit');
+    btn.disabled = true;
+    try{
+      await completeUsernameOnboarding(input.value);
+      if (state.pendingAuthAction){
+        const action = state.pendingAuthAction;
+        state.pendingAuthAction = null;
+        action();
+      } else if (!IS_MEMBER_PAGE){
+        window.location.href = 'userpostlogin.html';
+      } else {
+        await routeFromPath(true);
+      }
+    }catch(err){
+      hint.textContent = err.message || 'Something went wrong — please try again.';
+      hint.style.color = '#c0392b';
     }finally{
       btn.disabled = false;
     }
@@ -3246,6 +3452,7 @@ function initPublishModal(){
 }
 
 qsa('.modal-scrim').forEach(function(scrim){
+  if (scrim.id === 'username-modal-scrim') return; // mandatory — no click-outside dismiss
   scrim.addEventListener('click', function(e){ if (e.target === scrim) closeAllModals(); });
 });
 
@@ -3345,7 +3552,7 @@ async function init(){
   syncAuthUI();
   const partsNow = window.location.pathname.replace(/\/?index\.html$/i, '').split('/').filter(Boolean);
   if (state.currentUser && (partsNow.length === 0 || MEMBER_PATHS.indexOf(partsNow[0]) !== -1)){
-    window.location.replace('userpostlogin.html' + (partsNow.length ? '/' + partsNow.join('/') : ''));
+    window.location.replace(partsNow.length ? handoffUrl('/' + partsNow.join('/')) : 'userpostlogin.html');
     return;
   }
 
@@ -3390,7 +3597,7 @@ async function routeFromPath(replace){
   const parts = path.replace(/\/?index\.html$/i, '').split('/').filter(Boolean);
 
   if (parts.length && MEMBER_PATHS.indexOf(parts[0]) !== -1){
-    const target = 'userpostlogin.html/' + parts.join('/');
+    const target = handoffUrl('/' + parts.join('/'));
     if (state.currentUser){ window.location.href = target; return; }
     requireAuth('Log in to continue.', function(){ window.location.href = target; });
     navigateTo('home', { replace: replace });
@@ -3537,15 +3744,24 @@ else init();
           could forge a notification.
 
      6. profiles
-        - Public SELECT of small public fields (display_name, username)
-          is fine. UPDATE only allowed where id = auth.uid().
+        - Public SELECT of small public fields (display_name, username,
+          avatar_url) is fine. UPDATE only allowed where id = auth.uid().
         - `username` needs a UNIQUE constraint (case-insensitive — a
           `citext` column or a unique index on `lower(username)`) so
           two people can't claim the same handle, and so it can double
-          as a login identifier and a Portfolio URL segment.
-        - Never expose real emails through a public policy on this
-          table (or any other) — that's what the function below is
-          for instead.
+          as a login identifier and a Portfolio URL segment. It also
+          needs to be nullable now (see section 8): the signup trigger
+          no longer sets it, so every new row starts with username =
+          null until the person completes the username onboarding
+          modal — RLS policies here should treat a null username as
+          "not yet a public profile" rather than assuming it's always
+          set.
+        - `avatar_url` and `email` columns hold what
+          persistProviderProfileData() (see section 8) saves after a
+          social sign-in. Keep `email` out of the public SELECT policy
+          — it's for the account owner only (id = auth.uid()); never
+          expose real emails through a public policy on this table (or
+          any other) — that's what the function below is for instead.
 
      7. Username login (email is never exposed to the client)
         Login accepts either an email or a username. Supabase's auth
@@ -3570,6 +3786,37 @@ else init();
         and a wrong/unknown username just returns null, which the
         frontend turns into a generic "no account found" message
         rather than confirming which usernames exist.
+
+     8. Social login (Google / Facebook / Spotify / Apple) +
+        username onboarding + avatar storage
+        - In the Supabase dashboard under Authentication > Providers,
+          enable Google, Facebook, Spotify and Apple, and fill in each
+          provider's client id/secret from that provider's own developer
+          console. Under Authentication > URL Configuration, add this
+          site's userpostlogin.html URL (e.g.
+          https://yourdomain.com/userpostlogin.html) to the redirect
+          allow-list — signInWithOAuth() always sends people back there
+          regardless of which page (index.html or userpostlogin.html)
+          they clicked a provider button on.
+        - The `profiles` insert trigger should stop setting username/
+          display_name from signup metadata entirely — leave both null
+          on insert. The app now forces every first-time signed-in user
+          (social or email) through the username onboarding modal
+          (completeUsernameOnboarding()), which uniqueness-checks and
+          sets `username`/`display_name` itself via an UPDATE the
+          person's own RLS policy already allows (id = auth.uid()).
+        - Storage: create a public bucket named `avatars` (Storage >
+          New bucket, "Public bucket" on). Add policies so any
+          authenticated user can INSERT/UPDATE only within their own
+          folder — `(storage.foldername(name))[1] = auth.uid()::text`
+          — since persistProviderProfileData() uploads to
+          `avatars/<user id>/avatar.<ext>`. Public SELECT on the bucket
+          is what lets avatarHTML() render the photo via getPublicUrl()
+          without needing a signed URL.
+        - persistProviderProfileData() is best-effort: if the provider
+          gave no photo, or the fetch/upload fails, the person just
+          keeps the lettered avatar — nothing else in the app depends
+          on it succeeding.
 
      Moderation actions (hiding a comment, removing a journal, acting
      on a report) should be restricted to rows where the requesting
