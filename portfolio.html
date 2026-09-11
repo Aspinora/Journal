@@ -70,9 +70,10 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
    filter/blend applied, only the bar behind it does. ============ */
 .navbar{
   position:sticky; top:0; z-index:100;
-  background:linear-gradient(rgba(var(--header-tint),.68),rgba(var(--header-tint),.68));
-  backdrop-filter:blur(16px) saturate(160%); -webkit-backdrop-filter:blur(16px) saturate(160%);
-  border-bottom:1px solid var(--line);
+  background:linear-gradient(rgba(var(--header-tint),.42),rgba(var(--header-tint),.42));
+  backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+  border-bottom:1px solid rgba(255,255,255,.25);
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset;
   transition:background .5s ease;
 }
 
@@ -645,15 +646,12 @@ function coverHTML(catId, visibility){
   '</div>';
 }
 
-/* A REAL, working link to this page — used for Share and the visible
-   portfolio-link text alike, so what's shown is always what works,
-   regardless of where/how the site ends up hosted. */
+/* The real, clean, working link to this page — journal.aspinora.in/username,
+   no query string. Works because index.html's router already forwards a bare
+   /username path to portfolio.html?u=username (via the GitHub Pages 404-redirect
+   + SPA decode script), so this resolves correctly wherever the site is hosted. */
 function computePortfolioUrl(username){
-  const base = window.location.origin + window.location.pathname.replace(/portfolio\.html.*$/, '');
-  return base + 'portfolio.html?u=' + encodeURIComponent(username);
-}
-function prettyPortfolioUrl(username){
-  return 'journal.aspinora.in/' + username;
+  return window.location.origin + '/' + encodeURIComponent(username);
 }
 
 /* ------------------------------------------------------------------
@@ -1309,13 +1307,13 @@ async function initPortfolio(){
   });
 
   const realUrl = computePortfolioUrl(profile.username);
-  const prettyUrl = prettyPortfolioUrl(profile.username);
+  const displayUrl = realUrl.replace(/^https?:\/\//, '');
   const shareBtn = document.getElementById('share-btn');
-  shareBtn.title = prettyUrl;
+  shareBtn.title = displayUrl;
   shareBtn.addEventListener('click', async function(){
     if (navigator.share){
       try{
-        await navigator.share({ title: (profile.display_name || profile.username) + ' on Aspinora Writing', text: prettyUrl, url: realUrl });
+        await navigator.share({ title: (profile.display_name || profile.username) + ' on Aspinora Writing', text: displayUrl, url: realUrl });
         return;
       }catch(e){ /* user cancelled the share sheet — fall through to copy */ if (e && e.name === 'AbortError') return; }
     }
