@@ -1955,27 +1955,36 @@ async function persistProviderProfileData(authUser, userId){
   if (avatarSourceUrl){
     try{
       const res = await fetch(avatarSourceUrl);
-      if (res.ok){
-        const rawBlob = await res.blob();
-        const compressed = await compressAvatarBlob(rawBlob);
-        // Fixed filename + fixed content-type now that every avatar is
-        // normalised to compressed JPEG here, regardless of what
-        // format the provider originally served.
-        const path = userId + '/avatar.jpg';
-        const { error: uploadError } = await supabaseClient.storage.from('avatars')
-          .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' });
-        if (!uploadError){
-          const { data: pub } = supabaseClient.storage.from('avatars').getPublicUrl(path);
-          // Cache-bust: the storage path is the same on every re-sync
-          // (upsert overwrites it), so without a changing query string
-          // browsers/CDN would keep showing a stale cached copy after
-          // the photo actually changed.
-          if (pub && pub.publicUrl) updates.avatar_url = pub.publicUrl + '?v=' + Date.now();
-        } else {
-          console.warn('Could not upload provider avatar:', uploadError);
-        }
-      }
-    }catch(e){ console.warn('Could not fetch/store provider avatar:', e); }
+      if (!res.ok) throw new Error('Provider image request failed: HTTP ' + res.status);
+      const rawBlob = await res.blob();
+      const compressed = await compressAvatarBlob(rawBlob);
+      // Fixed filename + fixed content-type now that every avatar is
+      // normalised to compressed JPEG here, regardless of what format
+      // the provider originally served.
+      const path = userId + '/avatar.jpg';
+      const { error: uploadError } = await supabaseClient.storage.from('avatars')
+        .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' });
+      if (uploadError) throw uploadError;
+      const { data: pub } = supabaseClient.storage.from('avatars').getPublicUrl(path);
+      if (!pub || !pub.publicUrl) throw new Error('getPublicUrl() returned no URL — is the "avatars" bucket set Public?');
+      // Cache-bust: the storage path is the same on every re-sync
+      // (upsert overwrites it), so without a changing query string
+      // browsers/CDN would keep showing a stale cached copy after the
+      // photo actually changed.
+      updates.avatar_url = pub.publicUrl + '?v=' + Date.now();
+    }catch(e){
+      // The single most common cause landing here is the provider's
+      // image host not sending CORS headers permissive enough for
+      // fetch() to read the bytes — this varies by provider/URL and
+      // isn't something fixable from this side. Rather than end up
+      // with no avatar update at all, fall back to linking the
+      // provider's URL directly: no compression and not re-hosted in
+      // our own Storage bucket, but a real, working "new avatar" still
+      // shows up. (A Storage upload/RLS problem would also land here —
+      // check the console message to tell which one happened.)
+      console.warn('Could not fetch/compress/store provider avatar — falling back to a direct link:', e);
+      updates.avatar_url = avatarSourceUrl;
+    }
   }
   if (Object.keys(updates).length){
     try{
@@ -1984,8 +1993,16 @@ async function persistProviderProfileData(authUser, userId){
       // update into a visible warning instead of a no-op.
       const { data, error } = await supabaseClient.from('profiles').update(updates).eq('id', userId).select('id');
       if (error) throw error;
-      if (!data || !data.length) console.warn('Provider profile data not saved — check the profiles UPDATE RLS policy.');
-    }catch(e){ console.warn('Could not save provider profile data:', e); }
+      if (!data || !data.length){
+        console.warn('Provider profile data not saved — check the profiles UPDATE RLS policy.');
+        delete updates.avatar_url; // wasn't actually saved — don't tell callers it was
+        delete updates.email;
+      }
+    }catch(e){
+      console.warn('Could not save provider profile data:', e);
+      delete updates.avatar_url;
+      delete updates.email;
+    }
   }
   return updates;
 }
@@ -2127,75 +2144,82 @@ async function restoreSession(){
   try{
     await new Promise(function(resolve){
       let settled = false;
+      let handledUserId = null; // guards against double-processing the same sign-in
+      function finishOnce(){ if (!settled){ settled = true; resolve(); } }
+
       supabaseClient.auth.onAuthStateChange(function(event, session){
         if (event === 'SIGNED_OUT'){
-          if (settled) window.location.href = 'index.html';
-        } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
-          let oauthIntent = 'login';
-          try{ oauthIntent = sessionStorage.getItem(OAUTH_INTENT_KEY) || 'login'; sessionStorage.removeItem(OAUTH_INTENT_KEY); }catch(e){}
-          loadProfile(session.user.id).then(function(user){
-            if (oauthIntent === 'signup' && !needsUsername(user)){
-              // They clicked a "Sign Up" provider button, but this
-              // provider identity already has a completed account
-              // (username already set) — reject rather than silently
-              // logging them into an existing account under a signup
-              // click. Note: this only catches a repeat sign-in with
-              // the SAME provider (e.g. Google again); if your Supabase
-              // project doesn't have account linking enabled, the same
-              // email via a DIFFERENT provider (or email/password)
-              // becomes a separate, undetected account — see the
-              // SOCIAL LOGIN notes near the bottom of this file.
-              supabaseClient.auth.signOut().then(function(){
-                state.currentUser = null;
-                syncAuthUI();
-                showToast('An account with this email already exists — please log in instead.');
-                openAuthModal('login');
-              });
-              return;
-            }
-            state.currentUser = user;
-            syncAuthUI();
-            if (needsUsername(user)){
-              state.pendingAuthUser = session.user;
-              openUsernameOnboarding();
-            } else {
-              // Returning social-login user: keep their avatar in sync
-              // automatically (in case it changed at Google/Spotify/
-              // etc. since last time), not just the very first sign-in.
-              // This is the branch that actually completes reliably —
-              // unlike index.html, nothing navigates away mid-upload
-              // here since the person is already on this page.
-              persistProviderProfileData(session.user, user.id).then(function(updates){
-                if (updates && updates.avatar_url){
-                  state.currentUser.avatar_url = updates.avatar_url;
-                  AUTHOR_CACHE[user.id] = { id: user.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: updates.avatar_url };
-                  syncAuthUI();
-                }
-              });
-            }
-            hydrateUserActivity(user.id);
-          });
-        }
-        if (settled) return;
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT'){
-          settled = true;
-          if (session && session.user){
-            loadProfile(session.user.id).then(function(user){
-              state.currentUser = user;
-              if (needsUsername(user)){
-                state.pendingAuthUser = session.user;
-                openUsernameOnboarding();
-              }
-              return hydrateUserActivity(user.id);
-            }).catch(function(e){ console.warn('Could not load profile:', e); }).then(resolve);
+          if (settled){
+            window.location.href = 'index.html';
           } else {
-            resolve();
+            finishOnce();
           }
+          return;
         }
+        if ((event !== 'SIGNED_IN' && event !== 'INITIAL_SESSION') || !session || !session.user){
+          if (event === 'INITIAL_SESSION') finishOnce();
+          return;
+        }
+        // Supabase can fire INITIAL_SESSION and SIGNED_IN back-to-back
+        // for the very same OAuth callback on a cold page load — this
+        // stops that from running the whole handler (including the
+        // avatar fetch/upload) twice for one actual sign-in.
+        if (handledUserId === session.user.id) return;
+        handledUserId = session.user.id;
+
+        let oauthIntent = 'login';
+        try{ oauthIntent = sessionStorage.getItem(OAUTH_INTENT_KEY) || 'login'; sessionStorage.removeItem(OAUTH_INTENT_KEY); }catch(e){}
+
+        loadProfile(session.user.id).then(async function(user){
+          if (oauthIntent === 'signup' && !needsUsername(user)){
+            // They clicked a "Sign Up" provider button, but this
+            // provider identity already has a completed account
+            // (username already set) — reject rather than silently
+            // logging them into an existing account under a signup
+            // click. Note: this only catches a repeat sign-in with
+            // the SAME provider (e.g. Google again); if your Supabase
+            // project doesn't have account linking enabled, the same
+            // email via a DIFFERENT provider (or email/password)
+            // becomes a separate, undetected account — see the
+            // SOCIAL LOGIN notes near the bottom of this file.
+            await supabaseClient.auth.signOut();
+            state.currentUser = null;
+            syncAuthUI();
+            showToast('An account with this email already exists — please log in instead.');
+            openAuthModal('login');
+            finishOnce();
+            return;
+          }
+          state.currentUser = user;
+          if (needsUsername(user)){
+            state.pendingAuthUser = session.user;
+            syncAuthUI();
+            openUsernameOnboarding();
+          } else {
+            // Returning social-login user: keep their avatar in sync
+            // automatically (in case it changed at Google/Spotify/etc.
+            // since last time), not just the very first sign-in.
+            // AWAITED, not fire-and-forget: this is what guarantees the
+            // fresh avatar is in AUTHOR_CACHE/state before this
+            // promise resolves and init() moves on to routeFromPath()
+            // — so the very first view rendered after login (nav,
+            // wall, home, wherever this person's posts/comments show
+            // up) already reflects it, instead of only the nav
+            // updating later whenever some background upload happens
+            // to finish.
+            const updates = await persistProviderProfileData(session.user, user.id);
+            if (updates && updates.avatar_url) state.currentUser.avatar_url = updates.avatar_url;
+            AUTHOR_CACHE[user.id] = { id: user.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: state.currentUser.avatar_url || '' };
+            syncAuthUI();
+          }
+          await hydrateUserActivity(user.id);
+          finishOnce();
+        }).catch(function(e){ console.warn('Could not load profile:', e); finishOnce(); });
       });
-      // Safety net: if Supabase never fires an initial event for some
-      // reason, don't hang the page forever waiting for it.
-      setTimeout(function(){ if (!settled){ settled = true; resolve(); } }, 4000);
+      // Safety net: if Supabase never fires an initial event, or the
+      // avatar fetch/upload above is unusually slow, don't hang the
+      // page forever waiting for it.
+      setTimeout(finishOnce, 8000);
     });
   }catch(e){ console.warn('Could not restore session:', e); }
 }
