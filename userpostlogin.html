@@ -1378,6 +1378,11 @@ const AUTH_LIVE = !!supabaseClient;
 // sends the person afterwards (nowhere, from here — they're already
 // on the member app).
 const IS_MEMBER_PAGE = true;
+// sessionStorage key used to carry "was this a Sign Up click or a
+// Log In click" across the full-page OAuth redirect (in-memory state
+// doesn't survive navigating away to Google/Facebook/etc. and back).
+// See signInWithOAuth() and restoreSession()'s SIGNED_IN handler.
+const OAUTH_INTENT_KEY = 'aspinora_oauth_intent';
 
 /* ------------------------------------------------------------------
    3. CATEGORIES
@@ -1864,8 +1869,9 @@ function needsUsername(user){
    does for email/password sign-in. See the SOCIAL LOGIN +
    USERNAME ONBOARDING notes near the bottom of this file for the
    Supabase dashboard configuration each provider needs. */
-async function signInWithOAuth(provider){
+async function signInWithOAuth(provider, intent){
   if (!AUTH_LIVE){ showToast('Social sign-in needs a live Supabase connection.'); return; }
+  try{ sessionStorage.setItem(OAUTH_INTENT_KEY, intent === 'signup' ? 'signup' : 'login'); }catch(e){}
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: provider,
     options: { redirectTo: window.location.origin + '/userpostlogin.html' }
@@ -2048,21 +2054,32 @@ async function completeUsernameOnboarding(username){
     throw new Error('That username is already taken — try another.');
   }
   if (AUTH_LIVE){
-    // IMPORTANT: .select() here is load-bearing, not decoration. If the
-    // profiles UPDATE RLS policy doesn't match this row (missing policy,
-    // wrong `using`/`with check` clause, id type mismatch, etc.),
-    // PostgREST silently "succeeds" with zero rows updated and NO
-    // error — the call below would otherwise look fine, the modal
-    // would close, and the username would never actually be saved,
-    // which is exactly what makes it come back after every refresh.
-    // Asking for the row back lets us catch that and surface it.
+    // upsert, not update: if there's no existing profiles row for this
+    // auth user — e.g. it was deleted directly from the database while
+    // the Supabase Auth session (in auth.users, a separate table from
+    // profiles) stayed alive, or the signup trigger somehow didn't
+    // fire — a plain .update() can never succeed, since UPDATE can't
+    // create a row. That left this stuck in an unrecoverable loop:
+    // every refresh re-opens this modal (correctly, since there's
+    // genuinely no profile), but submitting could never actually fix
+    // it. upsert() either updates the existing row (the normal case)
+    // or inserts a fresh one keyed on this user's id (recovers the
+    // deleted-row case) — either way it terminates the loop.
+    //
+    // IMPORTANT: .select() below is still load-bearing, not
+    // decoration — see the git history / earlier notes: if the
+    // profiles INSERT+UPDATE RLS policies don't both allow this row
+    // (missing policy, wrong `using`/`with check` clause, id type
+    // mismatch, etc.), PostgREST can silently "succeed" with zero
+    // rows affected and NO error. Asking for the row back catches
+    // that and surfaces it instead of closing the modal on a save
+    // that didn't happen.
     const { data, error } = await supabaseClient.from('profiles')
-      .update({ username: username, display_name: username })
-      .eq('id', state.currentUser.id)
+      .upsert({ id: state.currentUser.id, username: username, display_name: username }, { onConflict: 'id' })
       .select('id, username');
     if (error) throw error;
     if (!data || !data.length){
-      throw new Error('Your username couldn\'t be saved — check that the profiles table has an UPDATE policy allowing auth.uid() = id.');
+      throw new Error('Your username couldn\'t be saved — check the profiles table\'s INSERT/UPDATE RLS policies for auth.uid() = id.');
     }
     const providerUpdates = await persistProviderProfileData(state.pendingAuthUser, state.currentUser.id);
     if (providerUpdates && providerUpdates.avatar_url) state.currentUser.avatar_url = providerUpdates.avatar_url;
@@ -2114,7 +2131,28 @@ async function restoreSession(){
         if (event === 'SIGNED_OUT'){
           if (settled) window.location.href = 'index.html';
         } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
+          let oauthIntent = 'login';
+          try{ oauthIntent = sessionStorage.getItem(OAUTH_INTENT_KEY) || 'login'; sessionStorage.removeItem(OAUTH_INTENT_KEY); }catch(e){}
           loadProfile(session.user.id).then(function(user){
+            if (oauthIntent === 'signup' && !needsUsername(user)){
+              // They clicked a "Sign Up" provider button, but this
+              // provider identity already has a completed account
+              // (username already set) — reject rather than silently
+              // logging them into an existing account under a signup
+              // click. Note: this only catches a repeat sign-in with
+              // the SAME provider (e.g. Google again); if your Supabase
+              // project doesn't have account linking enabled, the same
+              // email via a DIFFERENT provider (or email/password)
+              // becomes a separate, undetected account — see the
+              // SOCIAL LOGIN notes near the bottom of this file.
+              supabaseClient.auth.signOut().then(function(){
+                state.currentUser = null;
+                syncAuthUI();
+                showToast('An account with this email already exists — please log in instead.');
+                openAuthModal('login');
+              });
+              return;
+            }
             state.currentUser = user;
             syncAuthUI();
             if (needsUsername(user)){
@@ -3818,7 +3856,14 @@ function initAuthModal(){
   // Up tabs — see signInWithOAuth()'s comment for why one call covers
   // both cases.
   qsa('[data-oauth-provider]').forEach(function(btn){
-    btn.addEventListener('click', function(){ signInWithOAuth(this.getAttribute('data-oauth-provider')); });
+    btn.addEventListener('click', function(){
+      // #auth-form's data-mode tracks which tab (Log In / Sign Up) is
+      // selected regardless of whether the form itself is visible —
+      // set by setAuthTab() — so this reads the person's intent even
+      // though both tabs share the same row of provider buttons.
+      const intent = qs('#auth-form').getAttribute('data-mode') || 'login';
+      signInWithOAuth(this.getAttribute('data-oauth-provider'), intent);
+    });
   });
   qs('#use-email-auth-btn').addEventListener('click', function(){
     qs('#social-auth-buttons').hidden = true;
@@ -4350,21 +4395,51 @@ else init();
           on insert. The app now forces every first-time signed-in user
           (social or email) through the username onboarding modal
           (completeUsernameOnboarding()), which uniqueness-checks and
-          saves `username`/`display_name` via an UPDATE — which
-          REQUIRES an actual UPDATE policy on `profiles`:
+          saves `username`/`display_name` via an UPSERT (not a plain
+          UPDATE — see the comment above that call for why: a missing
+          profiles row, e.g. deleted directly from the database while
+          testing, can only be recovered by an upsert). That upsert
+          REQUIRES both an INSERT and an UPDATE policy on `profiles`:
+              create policy "profiles_owner_insert"
+              on profiles for insert
+              with check (auth.uid() = id);
+
               create policy "profiles_owner_update"
               on profiles for update
               using (auth.uid() = id)
               with check (auth.uid() = id);
-          Without this, PostgREST silently updates zero rows and
+          Without these, PostgREST silently affects zero rows and
           reports success with no error — the modal appears to work
           but nothing is saved, and the person gets asked for a
           username again on every refresh. completeUsernameOnboarding()
           and persistProviderProfileData() both now chain .select()
-          on their updates specifically to catch this (a bare
-          .update() can't tell "0 rows, RLS blocked it" apart from
-          "1 row, saved fine" — .select() can), so a broken policy now
-          surfaces as a visible error instead of a silent no-op.
+          on their writes specifically to catch this (a bare
+          .update()/.upsert() can't tell "0 rows, RLS blocked it" apart
+          from "1 row, saved fine" — .select() can), so a broken policy
+          now surfaces as a visible error instead of a silent no-op.
+        - Testing tip: deleting a row from `profiles` does NOT delete
+          the actual Supabase Auth user or sign them out — auth.users
+          (and the browser's session) is entirely separate from the
+          public `profiles` table. A person in that state is
+          correctly re-prompted for a username (their profile really
+          is gone), and the upsert above now lets that actually
+          resolve. To fully remove a test account, delete the user
+          from Authentication > Users in the dashboard instead (or at
+          least call supabaseClient.auth.signOut() / clear the
+          browser's storage) rather than only deleting the profiles row.
+        - Sign-up vs. log-in via the same provider button: clicking a
+          social button on the Sign Up tab now rejects (signs back out
+          and points to Log In instead) if that identity already has a
+          completed account — see the oauthIntent check in
+          restoreSession()'s SIGNED_IN handler. This only recognizes a
+          REPEAT sign-in with the SAME provider. If two different
+          providers (or a provider and an email/password account) share
+          an email, whether Supabase treats that as one account or two
+          separate, undetected ones depends on your project's account-
+          linking setting (Authentication > Settings, "automatic
+          linking" of accounts sharing a verified email) — check that
+          setting if duplicate accounts by email across providers is a
+          concern.
         - Storage: create a public bucket named `avatars` (Storage >
           New bucket, "Public bucket" on). Add policies so any
           authenticated user can INSERT/UPDATE only within their own
