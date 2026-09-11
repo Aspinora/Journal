@@ -591,7 +591,17 @@ section{ padding:36px 0; }
   .nav-user-name{ display:none; }
   .nav-user-trigger{ padding:2px; border:none; background:none; }
   .nav-dropdown-name{ display:block; }
-  .brand-logo-img{ height:26px; width:107px; }
+  /* Mobile-only: desktop's .nav-brand/.nav-right (10px) and
+     .brand-logo-img (140x34, set above) are untouched — this just
+     gives the logo and hamburger/avatar a bit more breathing room off
+     the true screen edge (was reading as flush/cramped) without
+     centering them or losing the edge-aligned layout, and nudges the
+     logo up from a slightly shrunken 107x26 to a more legible size —
+     same ~4.12 aspect ratio as the desktop logo, so it's a stretch in
+     size only, not a distortion. */
+  .nav-brand{ margin-left:16px; }
+  .nav-right{ margin-right:16px; }
+  .brand-logo-img{ height:30px; width:123px; }
   .j-grid{ grid-template-columns:repeat(2,1fr); }
   .cat-grid{ grid-template-columns:repeat(2,1fr); }
   .wall-grid{ grid-template-columns:repeat(2,1fr); }
@@ -787,14 +797,14 @@ section{ padding:36px 0; }
               <select class="select-sort" id="sort-select" aria-label="Sort Works">
                 <option value="latest">Latest</option>
                 <option value="appreciated">Most Appreciated</option>
-                <option value="discussed">Most Discussed</option>
+                <option value="discussed" selected>Most Discussed</option>
               </select>
             </div>
           </div>
 
           <div class="j-grid" id="latest-grid"></div>
           <div class="load-more-wrap">
-            <button type="button" class="btn btn-secondary" id="load-more-btn">Load more Works</button>
+            <button type="button" class="btn btn-secondary" id="load-more-btn" hidden>Load more Works</button>
           </div>
         </section>
       </div>
@@ -1258,10 +1268,15 @@ const state = {
   currentUser: null,             // set on login; null = guest
   currentView: 'home',
   activeFilter: 'all',
-  activeSort: 'latest',
+  // "Fresh from the community" on this page is a fixed top-3 spotlight,
+  // not a paginated feed — see renderLatestFeed()'s hard cap and the
+  // permanently-hidden load-more button below. Default sort is
+  // "discussed" (this site's "Impressions" = comment_count) so it
+  // opens showing the 3 most-commented-on Works.
+  activeSort: 'discussed',
   searchQuery: '',
   latestPage: 1,
-  latestPageSize: 6,
+  latestPageSize: 3,
   currentJournalId: null,        // journal currently open in reading/write view
   currentDraftId: null,          // draft currently open in the writer
   writeMdHistory: [],            // simple undo/redo stack for the editor
@@ -2032,7 +2047,10 @@ const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, 
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
-    return MOCK_JOURNALS.filter(function(j){ return j.featured && j.status === 'published' && j.visibility === 'public'; }).slice(0,3);
+    const featured = MOCK_JOURNALS.filter(function(j){ return j.featured && j.status === 'published' && j.visibility === 'public'; }).slice(0,3);
+    if (featured.length) return featured;
+    return MOCK_JOURNALS.filter(function(j){ return j.status === 'published' && j.visibility === 'public'; })
+      .sort(function(a,b){ return b.likes - a.likes; }).slice(0,3);
   }
   // 👉 SUPABASE: only card fields, never the full body.
   const { data, error } = await supabaseClient
@@ -2045,7 +2063,21 @@ async function fetchFeaturedJournals(){
     .limit(3);
 
   if (error) throw error;
-  return data.map(normalizeJournalRow);
+  if (data.length) return data.map(normalizeJournalRow);
+
+  // Nothing's been marked featured=true yet (e.g. a fresh project with
+  // no curated picks set) — rather than show an empty section with
+  // just a bare "FEATURED" header, backfill with the best-liked
+  // published Works so this section is never blank.
+  const { data: fallback, error: fallbackError } = await supabaseClient
+    .from('journals')
+    .select(JOURNAL_CARD_FIELDS)
+    .eq('status', 'published')
+    .eq('visibility', 'public')
+    .order('like_count', { ascending: false })
+    .limit(3);
+  if (fallbackError) throw fallbackError;
+  return fallback.map(normalizeJournalRow);
 }
 
 async function fetchLatestJournals(opts){
@@ -2690,14 +2722,18 @@ async function renderLatestFeed(){
   if (!grid) return;
   if (state.latestPage === 1){ grid.innerHTML = '<div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div>'; }
   try{
+    // Hard-capped at state.latestPageSize (3) — this section is a
+    // fixed "top 3 by Impressions" spotlight, not a paginated feed.
     const result = await fetchLatestJournals({
-      page: state.latestPage, pageSize: state.latestPageSize,
+      page: 1, pageSize: state.latestPageSize,
       category: state.activeFilter, sort: state.activeSort, search: state.searchQuery
     });
     grid.innerHTML = result.rows.length ? result.rows.map(journalCardHTML).join('') :
       '<div class="empty-state" style="grid-column:1/-1;"><p>No Works match that search yet.</p></div>';
+    // Load-more is permanently hidden here — see the pageSize note
+    // above; there's never a "next page" for this section.
     const loadMoreBtn = homeLoadMoreEl();
-    if (loadMoreBtn) loadMoreBtn.style.display = result.rows.length < result.total ? 'inline-flex' : 'none';
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
   }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load Works right now.</p>'; }
 }
 
