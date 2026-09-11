@@ -2698,10 +2698,10 @@ async function ensureAuthorsCached(authorIds){
   const missing = Array.from(new Set((authorIds||[]).filter(Boolean))).filter(function(id){ return !AUTHOR_CACHE[id]; });
   if (!missing.length) return;
   try{
-    const { data, error } = await supabaseClient.from('profiles').select('id, display_name, username').in('id', missing);
+    const { data, error } = await supabaseClient.from('profiles').select('id, display_name, username, avatar_url').in('id', missing);
     if (error || !data) return;
     data.forEach(function(p){
-      AUTHOR_CACHE[p.id] = { id: p.id, display_name: p.display_name || 'Aspinora Member', username: p.username || '' };
+      AUTHOR_CACHE[p.id] = { id: p.id, display_name: p.display_name || 'Aspinora Member', username: p.username || '', avatar_url: p.avatar_url || '' };
     });
   }catch(e){ console.warn('Could not load notification authors:', e); }
 }
