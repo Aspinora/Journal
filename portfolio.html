@@ -299,6 +299,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 }
 .cover-stats{ display:flex; gap:34px; margin-top:22px; }
 .cover-stat{ color:var(--cover-fg, #fff); text-shadow:var(--cover-fg-shadow, 0 1px 8px rgba(0,0,0,.4)); }
+.cover-stat-btn{ background:none; border:none; font-family:inherit; cursor:pointer; }
 .cover-stat b{ display:block; font-family:var(--font-display); font-size:1.3rem; }
 .cover-stat span{ font-size:.68rem; font-family:var(--font-body); font-weight:700; letter-spacing:.07em; text-transform:uppercase; opacity:.92; }
 .cover-follow-wrap{ margin-top:18px; }
@@ -406,6 +407,16 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
    MANUAL CROPPER
    ============================================================ */
 .cropper-box{ max-width:480px; }
+.followers-box{ max-width:420px; }
+.follower-row{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+.follower-row:last-child{ border-bottom:none; }
+.follower-row .avatar{ width:44px; height:44px; font-size:.9rem; flex-shrink:0; }
+.follower-row-name{ flex:1; min-width:0; }
+.follower-row-name .fn{ font-weight:700; font-size:.92rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.follower-row-name .fu{ font-family:var(--font-mono); font-size:.76rem; color:var(--ink-faint); }
+.follower-follow-btn{ padding:8px 14px; border-radius:999px; font-weight:700; font-size:.78rem; border:1.5px solid var(--line-strong); background:var(--paper); color:var(--ink); flex-shrink:0; }
+.follower-follow-btn.is-following{ color:var(--ink-faint); }
+.follower-follow-btn:not(.is-following){ background:var(--orange); color:#fff; border-color:var(--orange); }
 .crop-frame{ position:relative; overflow:hidden; margin:0 auto 18px; background:#111; border-radius:12px; touch-action:none; cursor:grab; }
 .crop-frame:active{ cursor:grabbing; }
 .crop-frame img{ position:absolute; left:0; top:0; max-width:none; user-select:none; -webkit-user-drag:none; }
@@ -568,6 +579,15 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   </div>
 </div>
 
+<!-- Followers list modal -->
+<div class="modal-scrim" id="followers-modal">
+  <div class="modal-box followers-box">
+    <button type="button" class="modal-close" id="followers-close-btn">✕</button>
+    <h2>Followers</h2>
+    <div id="followers-list"><div class="empty-state"><p>Loading…</p></div></div>
+  </div>
+</div>
+
 <!-- Manual crop modal (shared for avatar + cover) -->
 <div class="modal-scrim" id="crop-modal">
   <div class="modal-box cropper-box">
@@ -612,6 +632,22 @@ const CATEGORIES = [
   { id:6, name:'Articles',  color:'#3D5A73', soft:'#D8E6F0', icon:'<path d="M6.5 4h7l4 4v13h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/>' }
 ];
 function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[0]; }
+const HOME_NAV_ICON = '<path d="M4 11.5 12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h5v-5h2v5h5v-9" stroke-linecap="round" stroke-linejoin="round"/>';
+function topNavIconHTML(c){
+  return '<span class="pl-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:' + (c.color || 'currentColor') + '">' + c.icon + '</svg></span>';
+}
+function renderHeaderCenterNav(){
+  const nav = document.getElementById('pl-center-nav');
+  if (!nav) return;
+  const home = state.currentUser ? 'userpostlogin.html' : 'index.html';
+  const items = [{ name:'Home', icon:HOME_NAV_ICON }].concat(CATEGORIES);
+  nav.innerHTML = items.map(function(c){
+    return '<button type="button" class="pl-nav-item" data-home-link="1">' + topNavIconHTML(c) + '<span class="pl-nav-label">' + c.name + '</span></button>';
+  }).join('');
+  Array.prototype.forEach.call(nav.querySelectorAll('[data-home-link]'), function(btn){
+    btn.addEventListener('click', function(){ window.location.href = home; });
+  });
+}
 
 const AVATAR_PALETTE = ['#F1631B','#A79BD1','#7FB8D9','#7FC8A9','#D4A24C','#FF8B6B'];
 const IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
@@ -846,6 +882,7 @@ async function loadCurrentUser(){
 }
 
 function wireHeader(){
+  renderHeaderCenterNav();
   const brandBtn = document.getElementById('pl-brand');
   if (brandBtn) brandBtn.addEventListener('click', function(){
     window.location.href = state.currentUser ? 'userpostlogin.html' : 'index.html';
@@ -881,7 +918,7 @@ function wireHeader(){
 
   const color = state.currentUser.avatar_color || AVATAR_PALETTE[0];
   const avatarInner = state.currentUser.avatar_url
-    ? '<img src="' + escapeHtml(state.currentUser.avatar_url) + '" alt="">'
+    ? '<img src="' + escapeHtml(state.currentUser.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;">'
     : escapeHtml(initials(state.currentUser.display_name || state.currentUser.username));
   const avatarEl = document.getElementById('nav-user-avatar');
   if (avatarEl){ avatarEl.style.background = color; avatarEl.innerHTML = avatarInner; }
@@ -930,7 +967,7 @@ function notFoundHTML(){
 
 function coverHeroHTML(profile, isOwner, isFollowing){
   const color = profile.avatar_color || AVATAR_PALETTE[0];
-  const avatarInner = profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="">' : escapeHtml(initials(profile.display_name || profile.username));
+  const avatarInner = profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;">' : escapeHtml(initials(profile.display_name || profile.username));
   const identities = (profile.creative_identities && profile.creative_identities.length ? profile.creative_identities : ['Author']);
   const portfolioHref = 'portfolio.html?u=' + encodeURIComponent(profile.username);
   return (
@@ -945,9 +982,9 @@ function coverHeroHTML(profile, isOwner, isFollowing){
         '<a class="cover-username" href="' + portfolioHref + '">@' + escapeHtml(profile.username) + '</a>' +
         '<div class="cover-identities">' + identities.map(function(i){ return '<span class="identity-badge">' + escapeHtml(i) + '</span>'; }).join('') + '</div>' +
         '<div class="cover-stats">' +
-          '<div class="cover-stat"><b id="stat-works">0</b><span>WORKS</span></div>' +
+          '<button type="button" class="cover-stat cover-stat-btn" id="stat-works-btn"><b id="stat-works">0</b><span>WORKS</span></button>' +
           '<div class="cover-stat"><b id="stat-impressions">0</b><span>IMPRESSIONS</span></div>' +
-          '<div class="cover-stat"><b id="stat-followers">0</b><span>FOLLOWERS</span></div>' +
+          '<button type="button" class="cover-stat cover-stat-btn" id="stat-followers-btn"><b id="stat-followers">0</b><span>FOLLOWERS</span></button>' +
         '</div>' +
         (isOwner ? '' : '<div class="cover-follow-wrap"><button type="button" class="btn btn-sm btn-follow' + (isFollowing ? ' is-following' : '') + '" id="follow-btn">' + (isFollowing ? 'Following' : 'Follow') + '</button></div>') +
       '</div>' +
@@ -1098,6 +1135,72 @@ function updateFollowerCount(delta){
 }
 
 /* ------------------------------------------------------------------
+   Followers list modal
+   ------------------------------------------------------------------ */
+function followerRowHTML(p, isFollowing){
+  const color = p.avatar_color || AVATAR_PALETTE[0];
+  const avatarInner = p.avatar_url
+    ? '<img src="' + escapeHtml(p.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;">'
+    : escapeHtml(initials(p.display_name || p.username));
+  const isSelf = state.currentUser && state.currentUser.id === p.id;
+  const portfolioHref = 'portfolio.html?u=' + encodeURIComponent(p.username);
+  return (
+    '<div class="follower-row">' +
+      '<a href="' + portfolioHref + '"><span class="avatar" style="background:' + color + ';">' + avatarInner + '</span></a>' +
+      '<a class="follower-row-name" href="' + portfolioHref + '">' +
+        '<span class="fn">' + escapeHtml(p.display_name || p.username) + '</span>' +
+        '<span class="fu">@' + escapeHtml(p.username) + '</span>' +
+      '</a>' +
+      (isSelf || !state.currentUser ? '' :
+        '<button type="button" class="follower-follow-btn' + (isFollowing ? ' is-following' : '') + '" data-target="' + p.id + '">' + (isFollowing ? 'Following' : 'Follow') + '</button>') +
+    '</div>'
+  );
+}
+
+async function openFollowersModal(profile){
+  const modal = document.getElementById('followers-modal');
+  const list = document.getElementById('followers-list');
+  list.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
+  modal.classList.add('open');
+
+  const { data: rows, error } = await supabaseClient
+    .from('follows')
+    .select('follower_id, profiles!follows_follower_id_fkey(id, username, display_name, avatar_url, avatar_color)')
+    .eq('following_id', profile.id);
+
+  if (error || !rows || !rows.length){
+    list.innerHTML = '<div class="empty-state"><p>No followers yet.</p></div>';
+    return;
+  }
+  const followers = rows.map(function(r){ return r.profiles; }).filter(Boolean);
+
+  let myFollowingIds = [];
+  if (state.currentUser){
+    const { data: mine } = await supabaseClient.from('follows').select('following_id').eq('follower_id', state.currentUser.id).in('following_id', followers.map(function(f){ return f.id; }));
+    myFollowingIds = (mine || []).map(function(r){ return r.following_id; });
+  }
+
+  list.innerHTML = followers.map(function(f){ return followerRowHTML(f, myFollowingIds.indexOf(f.id) !== -1); }).join('');
+
+  Array.prototype.forEach.call(list.querySelectorAll('.follower-follow-btn'), function(btn){
+    btn.addEventListener('click', async function(){
+      if (!state.currentUser){ window.location.href = 'index.html'; return; }
+      const targetId = btn.getAttribute('data-target');
+      const nowFollowing = btn.classList.contains('is-following');
+      btn.disabled = true;
+      if (nowFollowing){
+        const { error: delErr } = await supabaseClient.from('follows').delete().eq('follower_id', state.currentUser.id).eq('following_id', targetId);
+        if (!delErr){ btn.classList.remove('is-following'); btn.textContent = 'Follow'; if (targetId === profile.id) updateFollowerCount(-1); }
+      } else {
+        const { error: insErr } = await supabaseClient.from('follows').insert({ follower_id: state.currentUser.id, following_id: targetId });
+        if (!insErr){ btn.classList.add('is-following'); btn.textContent = 'Following'; if (targetId === profile.id) updateFollowerCount(1); }
+      }
+      btn.disabled = false;
+    });
+  });
+}
+
+/* ------------------------------------------------------------------
    Edit modal
    ------------------------------------------------------------------ */
 function openEditModal(profile){
@@ -1106,7 +1209,7 @@ function openEditModal(profile){
   const avatarPreview = document.getElementById('edit-avatar-preview');
   const color = profile.avatar_color || AVATAR_PALETTE[0];
   avatarPreview.style.background = color;
-  avatarPreview.innerHTML = profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="">' : escapeHtml(initials(profile.display_name || profile.username));
+  avatarPreview.innerHTML = profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;">' : escapeHtml(initials(profile.display_name || profile.username));
 
   const coverBox = document.getElementById('edit-cover-preview-box');
   coverBox.innerHTML = profile.cover_image_url ? '<img src="' + escapeHtml(profile.cover_image_url) + '" alt="">' : '';
@@ -1313,7 +1416,7 @@ async function initPortfolio(){
   shareBtn.addEventListener('click', async function(){
     if (navigator.share){
       try{
-        await navigator.share({ title: (profile.display_name || profile.username) + ' on Aspinora Writing', text: displayUrl, url: realUrl });
+        await navigator.share({ title: (profile.display_name || profile.username) + ' on Aspinora Writing', url: realUrl });
         return;
       }catch(e){ /* user cancelled the share sheet — fall through to copy */ if (e && e.name === 'AbortError') return; }
     }
@@ -1323,6 +1426,11 @@ async function initPortfolio(){
 
   const followBtn = document.getElementById('follow-btn');
   if (followBtn) followBtn.addEventListener('click', function(){ toggleFollow(profile); });
+
+  document.getElementById('stat-works-btn').addEventListener('click', function(){ switchTab('works', true); });
+  document.getElementById('stat-followers-btn').addEventListener('click', function(){ openFollowersModal(profile); });
+  document.getElementById('followers-close-btn').addEventListener('click', function(){ document.getElementById('followers-modal').classList.remove('open'); });
+  document.getElementById('followers-modal').addEventListener('click', function(e){ if (e.target.id === 'followers-modal') e.target.classList.remove('open'); });
 
   if (state.isOwner){
     document.getElementById('cover-edit-fab').addEventListener('click', function(){ openEditModal(profile); });
