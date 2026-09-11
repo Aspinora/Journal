@@ -592,16 +592,17 @@ section{ padding:36px 0; }
   .nav-user-trigger{ padding:2px; border:none; background:none; }
   .nav-dropdown-name{ display:block; }
   /* Mobile-only: desktop's .nav-brand/.nav-right (10px) and
-     .brand-logo-img (140x34, set above) are untouched — this just
-     gives the logo and hamburger/avatar a bit more breathing room off
-     the true screen edge (was reading as flush/cramped) without
-     centering them or losing the edge-aligned layout, and nudges the
-     logo up from a slightly shrunken 107x26 to a more legible size —
-     same ~4.12 aspect ratio as the desktop logo, so it's a stretch in
-     size only, not a distortion. */
-  .nav-brand{ margin-left:16px; }
-  .nav-right{ margin-right:16px; }
-  .brand-logo-img{ height:30px; width:123px; }
+     .brand-logo-img (140x34, set above) are untouched.
+     Iterating on this per feedback: the previous 16px margin read as
+     too much gap, so this pulls both sides in tighter (while staying
+     above 0 — still "along the edge", not flush against it). The logo
+     is now a genuine horizontal-only stretch — width +20% (123→148px)
+     with height left at 30px, not a proportional enlarge — so it
+     extends further left into the freed-up space rather than just
+     getting uniformly bigger. */
+  .nav-brand{ margin-left:4px; }
+  .nav-right{ margin-right:4px; }
+  .brand-logo-img{ height:30px; width:148px; }
   .j-grid{ grid-template-columns:repeat(2,1fr); }
   .cat-grid{ grid-template-columns:repeat(2,1fr); }
   .wall-grid{ grid-template-columns:repeat(2,1fr); }
