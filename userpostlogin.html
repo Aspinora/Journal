@@ -1880,6 +1880,65 @@ async function signInWithOAuth(provider){
    any failure here just means the person keeps their lettered avatar,
    nothing else blocks on it. Also runs (harmlessly) for email/password
    accounts, where there's just no avatar to fetch. */
+const AVATAR_MAX_BYTES = 20 * 1024; // hard budget: stored avatars must be under 20KB
+const AVATAR_MAX_DIMENSION = 512; // starting cap — only shrunk further if still over budget
+/* Resizes + compresses a fetched avatar image down to AVATAR_MAX_BYTES
+   entirely client-side (canvas), before it ever reaches Supabase
+   Storage. Two things this deliberately protects:
+     - No distortion: width/height are always scaled by the SAME
+       factor (never stretched to a fixed square), so the photo's
+       proportions are preserved exactly. Cropping to a circle/square
+       for display is left to CSS (avatarHTML already uses
+       object-fit:cover) rather than baked into the stored file.
+     - Quality is spent as a last resort, not a first one: since
+       avatars render small in the UI, shrinking the pixel dimensions
+       first is visually lossless at display size and buys most of the
+       size reduction. Only once dimensions hit a reasonable floor does
+       this start trading JPEG quality for size, and even then it
+       starts at 0.92 (very high) and steps down gradually rather than
+       jumping straight to something visibly lossy.
+   Best-effort: if canvas/createImageBitmap isn't available, or every
+   attempt still can't hit budget, it returns the smallest/highest-
+   quality result it managed rather than failing the whole upload. */
+async function compressAvatarBlob(blob){
+  const bitmap = await createImageBitmap(blob).catch(function(){ return null; });
+  if (!bitmap) return blob; // unsupported in this browser — upload the original rather than fail
+  let width = bitmap.width;
+  let height = bitmap.height;
+  const initialScale = Math.min(1, AVATAR_MAX_DIMENSION / Math.max(width, height));
+  width = Math.max(1, Math.round(width * initialScale));
+  height = Math.max(1, Math.round(height * initialScale));
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  let quality = 0.92;
+  let best = null;
+  for (let attempt = 0; attempt < 14; attempt++){
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    const candidate = await new Promise(function(resolve){ canvas.toBlob(resolve, 'image/jpeg', quality); });
+    if (!candidate) break;
+    if (!best || candidate.size < best.size) best = candidate;
+    if (candidate.size <= AVATAR_MAX_BYTES) return candidate;
+    if (quality > 0.55){
+      quality -= 0.08; // spend quality headroom first…
+    } else {
+      // …then, once quality is already fairly low, shrink dimensions
+      // instead of degrading quality further — same aspect ratio,
+      // so still no distortion — and reset quality back up for the
+      // smaller size.
+      width = Math.max(24, Math.round(width * 0.85));
+      height = Math.max(24, Math.round(height * 0.85));
+      quality = 0.85;
+    }
+  }
+  return best || blob;
+}
 async function persistProviderProfileData(authUser, userId){
   if (!AUTH_LIVE || !authUser) return {};
   const meta = authUser.user_metadata || {};
@@ -1891,27 +1950,91 @@ async function persistProviderProfileData(authUser, userId){
     try{
       const res = await fetch(avatarSourceUrl);
       if (res.ok){
-        const blob = await res.blob();
-        const ext = (blob.type && blob.type.split('/')[1]) || 'jpg';
-        const path = userId + '/avatar.' + ext;
+        const rawBlob = await res.blob();
+        const compressed = await compressAvatarBlob(rawBlob);
+        // Fixed filename + fixed content-type now that every avatar is
+        // normalised to compressed JPEG here, regardless of what
+        // format the provider originally served.
+        const path = userId + '/avatar.jpg';
         const { error: uploadError } = await supabaseClient.storage.from('avatars')
-          .upload(path, blob, { upsert: true, contentType: blob.type || 'image/jpeg' });
+          .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' });
         if (!uploadError){
           const { data: pub } = supabaseClient.storage.from('avatars').getPublicUrl(path);
-          if (pub && pub.publicUrl) updates.avatar_url = pub.publicUrl;
+          // Cache-bust: the storage path is the same on every re-sync
+          // (upsert overwrites it), so without a changing query string
+          // browsers/CDN would keep showing a stale cached copy after
+          // the photo actually changed.
+          if (pub && pub.publicUrl) updates.avatar_url = pub.publicUrl + '?v=' + Date.now();
+        } else {
+          console.warn('Could not upload provider avatar:', uploadError);
         }
       }
     }catch(e){ console.warn('Could not fetch/store provider avatar:', e); }
   }
   if (Object.keys(updates).length){
-    try{ await supabaseClient.from('profiles').update(updates).eq('id', userId); }catch(e){ console.warn('Could not save provider profile data:', e); }
+    try{
+      // Same silent-failure trap as completeUsernameOnboarding's
+      // update — .select() + a row check turns a quietly-blocked RLS
+      // update into a visible warning instead of a no-op.
+      const { data, error } = await supabaseClient.from('profiles').update(updates).eq('id', userId).select('id');
+      if (error) throw error;
+      if (!data || !data.length) console.warn('Provider profile data not saved — check the profiles UPDATE RLS policy.');
+    }catch(e){ console.warn('Could not save provider profile data:', e); }
   }
   return updates;
 }
+const USERNAME_HINT_DEFAULT = '3–20 characters: lowercase letters, numbers or underscores.';
+function resetUsernameHint(){
+  const hint = qs('#onboard-username-hint');
+  hint.textContent = USERNAME_HINT_DEFAULT;
+  hint.style.color = '';
+}
 function openUsernameOnboarding(){
   qs('#onboard-username').value = '';
-  qs('#onboard-username-hint').textContent = '3–20 characters: lowercase letters, numbers or underscores.';
+  resetUsernameHint();
   openModal('username-modal-scrim');
+}
+/* Live availability check as the person types: pattern-invalid input
+   turns the hint red immediately (no network call needed); a
+   syntactically valid username is checked against `profiles` after a
+   short debounce, showing green "available" / red "taken". A request
+   token guards against a slow earlier check overwriting a faster,
+   more recent one if the person keeps typing. The actual submit still
+   re-checks availability server-side (see completeUsernameOnboarding)
+   in case someone else claims the name in the gap before submit. */
+let usernameCheckToken = 0;
+function wireUsernameLiveCheck(){
+  const input = qs('#onboard-username');
+  const hint = qs('#onboard-username-hint');
+  input.addEventListener('input', function(){
+    const raw = this.value.trim().toLowerCase();
+    const myToken = ++usernameCheckToken;
+    clearTimeout(input._debounceTimer);
+    if (!raw){
+      resetUsernameHint();
+      return;
+    }
+    if (!USERNAME_PATTERN.test(raw)){
+      hint.textContent = USERNAME_HINT_DEFAULT;
+      hint.style.color = '#c0392b';
+      return;
+    }
+    hint.textContent = 'Checking availability…';
+    hint.style.color = 'var(--ink-soft)';
+    input._debounceTimer = setTimeout(async function(){
+      let available;
+      try{ available = await isUsernameAvailable(raw); }
+      catch(e){ if (myToken === usernameCheckToken){ hint.textContent = 'Could not check availability — try again.'; hint.style.color = '#c0392b'; } return; }
+      if (myToken !== usernameCheckToken) return; // a newer keystroke has since fired — drop this stale result
+      if (available){
+        hint.textContent = '✓ Username available';
+        hint.style.color = '#2e7d32';
+      } else {
+        hint.textContent = '✗ Username not available';
+        hint.style.color = '#c0392b';
+      }
+    }, 400);
+  });
 }
 /* Validates + uniqueness-checks the chosen username, saves it (plus
    whatever avatar/email persistProviderProfileData can find), and
@@ -1925,10 +2048,22 @@ async function completeUsernameOnboarding(username){
     throw new Error('That username is already taken — try another.');
   }
   if (AUTH_LIVE){
-    const { error } = await supabaseClient.from('profiles')
+    // IMPORTANT: .select() here is load-bearing, not decoration. If the
+    // profiles UPDATE RLS policy doesn't match this row (missing policy,
+    // wrong `using`/`with check` clause, id type mismatch, etc.),
+    // PostgREST silently "succeeds" with zero rows updated and NO
+    // error — the call below would otherwise look fine, the modal
+    // would close, and the username would never actually be saved,
+    // which is exactly what makes it come back after every refresh.
+    // Asking for the row back lets us catch that and surface it.
+    const { data, error } = await supabaseClient.from('profiles')
       .update({ username: username, display_name: username })
-      .eq('id', state.currentUser.id);
+      .eq('id', state.currentUser.id)
+      .select('id, username');
     if (error) throw error;
+    if (!data || !data.length){
+      throw new Error('Your username couldn\'t be saved — check that the profiles table has an UPDATE policy allowing auth.uid() = id.');
+    }
     const providerUpdates = await persistProviderProfileData(state.pendingAuthUser, state.currentUser.id);
     if (providerUpdates && providerUpdates.avatar_url) state.currentUser.avatar_url = providerUpdates.avatar_url;
   }
@@ -1985,6 +2120,20 @@ async function restoreSession(){
             if (needsUsername(user)){
               state.pendingAuthUser = session.user;
               openUsernameOnboarding();
+            } else {
+              // Returning social-login user: keep their avatar in sync
+              // automatically (in case it changed at Google/Spotify/
+              // etc. since last time), not just the very first sign-in.
+              // This is the branch that actually completes reliably —
+              // unlike index.html, nothing navigates away mid-upload
+              // here since the person is already on this page.
+              persistProviderProfileData(session.user, user.id).then(function(updates){
+                if (updates && updates.avatar_url){
+                  state.currentUser.avatar_url = updates.avatar_url;
+                  AUTHOR_CACHE[user.id] = { id: user.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: updates.avatar_url };
+                  syncAuthUI();
+                }
+              });
             }
             hydrateUserActivity(user.id);
           });
@@ -3707,6 +3856,7 @@ function initAuthModal(){
   // Username onboarding: the mandatory step right after first sign-in
   // for anyone whose profile doesn't have a username yet (see
   // needsUsername()/openUsernameOnboarding() above).
+  wireUsernameLiveCheck();
   qs('#username-form').addEventListener('submit', async function(e){
     e.preventDefault();
     const input = qs('#onboard-username');
@@ -4200,16 +4350,38 @@ else init();
           on insert. The app now forces every first-time signed-in user
           (social or email) through the username onboarding modal
           (completeUsernameOnboarding()), which uniqueness-checks and
-          sets `username`/`display_name` itself via an UPDATE the
-          person's own RLS policy already allows (id = auth.uid()).
+          saves `username`/`display_name` via an UPDATE — which
+          REQUIRES an actual UPDATE policy on `profiles`:
+              create policy "profiles_owner_update"
+              on profiles for update
+              using (auth.uid() = id)
+              with check (auth.uid() = id);
+          Without this, PostgREST silently updates zero rows and
+          reports success with no error — the modal appears to work
+          but nothing is saved, and the person gets asked for a
+          username again on every refresh. completeUsernameOnboarding()
+          and persistProviderProfileData() both now chain .select()
+          on their updates specifically to catch this (a bare
+          .update() can't tell "0 rows, RLS blocked it" apart from
+          "1 row, saved fine" — .select() can), so a broken policy now
+          surfaces as a visible error instead of a silent no-op.
         - Storage: create a public bucket named `avatars` (Storage >
           New bucket, "Public bucket" on). Add policies so any
           authenticated user can INSERT/UPDATE only within their own
           folder — `(storage.foldername(name))[1] = auth.uid()::text`
           — since persistProviderProfileData() uploads to
-          `avatars/<user id>/avatar.<ext>`. Public SELECT on the bucket
+          `avatars/<user id>/avatar.jpg`. Public SELECT on the bucket
           is what lets avatarHTML() render the photo via getPublicUrl()
           without needing a signed URL.
+        - Avatars are resized/compressed client-side (canvas, in
+          compressAvatarBlob()) to under AVATAR_MAX_BYTES (20KB) before
+          upload — dimensions are always scaled by the same factor
+          (never stretched, so no distortion) and JPEG quality is only
+          traded down after size alone can't hit budget. This runs
+          automatically both right after username onboarding and on
+          every subsequent social sign-in (see restoreSession()'s
+          SIGNED_IN handler), so a changed provider photo re-syncs
+          without the person doing anything.
         - persistProviderProfileData() is best-effort: if the provider
           gave no photo, or the fetch/upload fails, the person just
           keeps the lettered avatar — nothing else in the app depends
