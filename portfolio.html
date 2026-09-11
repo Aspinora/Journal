@@ -384,8 +384,8 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .media-edit-row{ display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
 .media-edit-col{ text-align:center; }
 .media-edit-col .avatar{ width:76px; height:76px; font-size:1.5rem; margin:0 auto 8px; cursor:pointer; }
-.cover-preview-box{ width:150px; aspect-ratio:3/1; border-radius:10px; overflow:hidden; background:var(--cream-deep); cursor:pointer; margin-bottom:8px; }
-.cover-preview-box img{ width:100%; height:100%; object-fit:cover; }
+.cover-preview-box{ position:relative; width:150px; aspect-ratio:3/1; border-radius:10px; overflow:hidden; background:var(--cream-deep); cursor:pointer; margin-bottom:8px; }
+.cover-preview-box img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 .upload-hint-btn{ background:none; border:none; font-size:.76rem; font-weight:700; color:var(--orange-deep); }
 .identity-grid{ display:flex; flex-wrap:wrap; gap:8px; }
 .identity-btn{ padding:9px 15px; border-radius:999px; border:1.5px solid var(--line); background:var(--paper); font-weight:700; font-size:.84rem; color:var(--ink-soft); }
@@ -639,7 +639,7 @@ function showToast(msg){
 }
 function coverHTML(catId, visibility){
   const cat = categoryById(catId);
-  return '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);position:relative;overflow:hidden;">' +
+  return '<div style="position:absolute;inset:0;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);overflow:hidden;">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:60px;height:60px;right:16px;bottom:12px;opacity:.5;">' + cat.icon + '</svg>' +
     '<span class="cat-pill" style="color:' + cat.color + '">' + cat.name + '</span>' +
     (visibility && visibility !== 'public' ? '<span class="cat-pill vis-pill">' + (visibility === 'private' ? 'Private' : 'Unlisted') + '</span>' : '') +
