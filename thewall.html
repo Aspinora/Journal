@@ -110,6 +110,7 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
   padding:13px 24px; border-radius:999px; font-weight:700; font-size:.92rem; border:none;
   transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
   white-space:nowrap;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent; tap-highlight-color:transparent;
 }
 .btn:disabled{ opacity:.5; cursor:not-allowed; }
 .btn-primary{ background:var(--orange); color:#fff; box-shadow:0 8px 20px rgba(241,99,27,.30); }
@@ -300,73 +301,93 @@ section{ padding:36px 0; }
   --wall-gap: 18px;
 }
 
-/* ---------- composer trigger (opens the publish modal) ---------- */
+/* ---------- composer bar, stuck to the header ---------- */
+.wall-sticky-composer{
+  border-top:1px solid var(--line);
+  background:rgba(251,245,234,.92); backdrop-filter:blur(10px);
+  padding:10px 0;
+}
 .wall-composer-trigger{
   display:flex; align-items:center; gap:14px; width:100%; text-align:left; cursor:pointer;
   background:var(--paper); border:1.5px dashed var(--line-strong); border-radius:999px;
-  padding:14px 22px 14px 14px; margin-bottom:26px; color:var(--ink-soft); font-weight:600; font-size:.92rem;
+  padding:12px 22px 12px 12px; color:var(--ink-soft); font-weight:600; font-size:.9rem;
   transition:border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
 .wall-composer-trigger:hover{ border-color:var(--orange); color:var(--orange-deep); background:var(--orange-soft); }
 .wall-composer-trigger .wct-icon{
-  width:36px; height:36px; border-radius:50%; background:var(--orange-soft); color:var(--orange-deep);
+  width:34px; height:34px; border-radius:50%; background:var(--orange-soft); color:var(--orange-deep);
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
-.wall-composer-trigger .wct-icon svg{ width:17px; height:17px; }
+.wall-composer-trigger .wct-icon svg{ width:16px; height:16px; }
 
-/* ---------- the wall canvas: calm background + ambient motion ---- */
-.wall-canvas{
-  position:relative; border-radius:32px; padding:26px 18px 34px; overflow:hidden; isolation:isolate;
-  background:linear-gradient(160deg,#FEFDFA 0%,#F9F5EC 100%);
-  border:1px solid var(--line);
+/* ---------- the whole page (behind the header) slowly drifts
+   through the same curated pastel palette the Figures themselves use
+   — the header sits on its own opaque/blurred surface above it, so
+   it never shifts with the rest of the page. ---------- */
+html, body{ height:100%; }
+body{
+  background:linear-gradient(120deg,
+    #F7F3EA 0%, var(--fig-sage) 16%, var(--fig-sky) 32%, var(--fig-lavender) 48%,
+    var(--fig-butter) 64%, var(--fig-peach) 78%, var(--fig-blossom) 90%, #F7F3EA 100%);
+  background-size:340% 340%;
+  animation:wall-bg-shift 110s ease-in-out infinite;
 }
-.wall-canvas::before{
-  content:''; position:absolute; inset:-35%; z-index:0; pointer-events:none; filter:blur(46px);
-  background:
-    radial-gradient(circle at 18% 28%, rgba(127,184,217,.16), transparent 55%),
-    radial-gradient(circle at 82% 18%, rgba(167,155,209,.14), transparent 55%),
-    radial-gradient(circle at 55% 85%, rgba(127,200,169,.14), transparent 58%),
-    radial-gradient(circle at 90% 75%, rgba(240,180,41,.09), transparent 55%);
-  animation: wall-ambient 46s ease-in-out infinite alternate;
+@keyframes wall-bg-shift{
+  0%{ background-position:0% 30%; }
+  50%{ background-position:100% 70%; }
+  100%{ background-position:0% 30%; }
 }
-@keyframes wall-ambient{
-  0%{ transform:translate(0,0) scale(1); }
-  50%{ transform:translate(3%,-2.5%) scale(1.07); }
-  100%{ transform:translate(-2.5%,3%) scale(1.02); }
-}
+@media (prefers-reduced-motion: reduce){ body{ animation:none; } }
 
 /* ---------- the grid: responsive density, never hardcoded --------
    Column count is derived purely from viewport width ÷ cell size, so
    the number of visible Figures adapts naturally instead of being a
    fixed count. Cell size itself steps up at the tablet/desktop
    breakpoints below so larger screens read as a bigger canvas rather
-   than a stretched phone layout. */
+   than a stretched phone layout. Row spans are computed per-Figure
+   (see figureCardHTML/fitFigureCard in the script) from how much text
+   and formatting it holds, so longer Figures simply claim more grid
+   tracks — CSS Grid guarantees none of this can ever overlap. */
 .wall-grid{
-  position:relative; z-index:1;
+  position:relative; z-index:1; padding:22px 0 60px;
+  touch-action:manipulation; /* stops the double/triple-tap-to-like gesture from also triggering the browser's double-tap-zoom */
   display:grid; grid-auto-flow:dense;
   grid-template-columns:repeat(auto-fill, minmax(var(--wall-cell),1fr));
   grid-auto-rows:var(--wall-cell);
   gap:var(--wall-gap);
 }
+@media (max-width:980px){ .wall-grid{ --wall-cell:112px; --wall-gap:14px; } }
+@media (max-width:640px){ .wall-grid{ --wall-cell:94px; --wall-gap:11px; padding:16px 0 40px; } }
 
 /* ---------- a single Figure ---------- */
 .figure-card{
   position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; padding:16px; overflow:hidden; cursor:pointer; border:none; text-decoration:none;
+  text-align:center; padding:16px; cursor:pointer; border:none; text-decoration:none;
   box-shadow:0 6px 18px rgba(43,36,28,.06);
   transition:box-shadow var(--dur-fast) var(--ease);
   animation:figure-float var(--fdur,9s) ease-in-out var(--fdelay,0s) infinite alternate;
+  /* Figure sizing (grid-column/grid-row) is computed per-Figure in
+     JS from how much text + formatting it holds — see
+     figureCardHTML()/fitFigureCard() — so it's set inline, not here.
+     CSS Grid guarantees whatever size is chosen can never collide
+     with another Figure. */
+  touch-action:manipulation;       /* stop double/triple taps from also zooming the page */
+  -webkit-tap-highlight-color:transparent; tap-highlight-color:transparent; /* no blue flash on tap */
+  -webkit-user-select:none; user-select:none; /* rapid tapping shouldn't select text */
+  -webkit-touch-callout:none;
 }
 .figure-card:hover{ box-shadow:0 12px 30px rgba(43,36,28,.12); z-index:2; }
 .figure-card:focus-visible{ z-index:3; }
 @keyframes figure-float{ from{ transform:translate(0,0); } to{ transform:translate(var(--fx,3px), var(--fy,-4px)); } }
 
-/* shapes — grid spans create the mosaic; radii keep each form distinct */
-.figure-card.shape-circle{ border-radius:50%; grid-column:span 1; grid-row:span 1; aspect-ratio:1/1; }
-.figure-card.shape-square{ border-radius:24px; grid-column:span 1; grid-row:span 1; }
-.figure-card.shape-rounded{ border-radius:34px; grid-column:span 2; grid-row:span 1; }
-.figure-card.shape-wide{ border-radius:28px; grid-column:span 3; grid-row:span 1; }
-.figure-card.shape-tall{ border-radius:28px; grid-column:span 1; grid-row:span 2; }
+/* shapes — a light identity (radius/character) only; actual size
+   (grid-column/grid-row span) is computed dynamically in JS from
+   content length, never hardcoded per shape. */
+.figure-card.shape-circle{ border-radius:999px; }
+.figure-card.shape-square{ border-radius:22px; }
+.figure-card.shape-rounded{ border-radius:30px; }
+.figure-card.shape-wide{ border-radius:26px; }
+.figure-card.shape-tall{ border-radius:26px; }
 
 /* curated colours — each sits slightly brighter than the wall bg */
 .figure-card.color-sage{ background:var(--fig-sage); color:var(--fig-sage-ink); }
@@ -378,16 +399,17 @@ section{ padding:36px 0; }
 .figure-card.color-blossom{ background:var(--fig-blossom); color:var(--fig-blossom-ink); }
 .figure-card.color-fog{ background:var(--fig-fog); color:var(--fig-fog-ink); }
 
+/* The full Figure is always shown — no truncation. white-space:pre-wrap
+   keeps manually-typed line breaks and repeated spaces exactly as
+   written. fitFigureCard() (in the script) grows the card's row span
+   after render if this content is still taller than the space it was
+   given, so nothing is ever clipped and nothing ever overlaps. */
 .figure-text{
-  font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.32;
-  display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word;
+  font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.36;
+  white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; width:100%;
 }
-.figure-card.shape-circle .figure-text{ -webkit-line-clamp:4; font-size:.76rem; }
-.figure-card.shape-wide .figure-text, .figure-card.shape-rounded .figure-text{ -webkit-line-clamp:3; }
-.figure-meta{
-  margin-top:8px; font-family:var(--font-mono); font-size:.6rem; letter-spacing:.02em; opacity:.7;
-  max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-}
+.figure-text hr.fig-hr{ border:none; border-top:1.5px solid currentColor; opacity:.35; margin:6px 0; width:60%; }
+.figure-text span.fig-vr{ display:inline-block; width:0; height:.9em; border-left:1.5px solid currentColor; opacity:.35; margin:0 5px; vertical-align:middle; }
 
 /* subtle author-only pin — never shown to anyone else */
 .figure-pin{
@@ -395,16 +417,19 @@ section{ padding:36px 0; }
   background:var(--orange); box-shadow:0 0 0 3px rgba(241,99,27,.18);
 }
 
-/* like + appreciate controls, tucked away until the card is engaged with */
+/* Like is the only reaction control on the card itself — hearts are
+   given by double/triple-tapping the Figure (see handleWallTap in
+   the script), not a separate button. */
 .figure-actions{
-  position:absolute; bottom:9px; left:0; right:0; display:flex; justify-content:center; gap:6px;
+  position:absolute; bottom:9px; left:0; right:0; display:flex; justify-content:center;
   opacity:0; transform:translateY(4px); transition:opacity .2s var(--ease), transform .2s var(--ease); pointer-events:none;
 }
 .figure-card:hover .figure-actions, .figure-card:focus-within .figure-actions{ opacity:1; transform:translateY(0); pointer-events:auto; }
 @media (hover:none){ .figure-actions{ opacity:.9; pointer-events:auto; transform:none; } }
-.figure-like-btn, .figure-heart-btn{
+.figure-like-btn{
   background:rgba(255,255,255,.62); backdrop-filter:blur(4px); border:none; border-radius:999px;
   padding:4px 9px; font-size:.66rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; color:inherit;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
 .figure-like-btn.is-liked{ background:rgba(255,255,255,.92); }
 
@@ -427,16 +452,18 @@ section{ padding:36px 0; }
 @keyframes figure-leave{ to{ opacity:0; transform:scale(.82); } }
 
 /* wall canvas responsive density steps — tablet, then mobile */
-@media (max-width:980px){ .wall-canvas{ --wall-cell:112px; --wall-gap:14px; } }
-@media (max-width:640px){ .wall-canvas{ --wall-cell:94px; --wall-gap:11px; padding:20px 12px 28px; border-radius:24px; } }
 
-/* ---------- publish-a-figure modal: shape + colour pickers ---------- */
+
+/* ---------- publish-a-figure: shape/colour pickers stay up top,
+   but writing now happens directly inside the actual Figure — no
+   separate preview box, the editable card *is* the preview. ---------- */
 .wf-field{ margin-top:18px; }
 .wf-field > label{ display:block; font-weight:700; font-size:.82rem; margin-bottom:10px; }
 .wf-shape-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .wf-shape-opt{
   width:50px; height:50px; border:1.5px solid var(--line); background:var(--cream-deep); flex-shrink:0;
   transition:border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
 .wf-shape-opt.shape-circle{ border-radius:50%; }
 .wf-shape-opt.shape-square{ border-radius:14px; }
@@ -445,19 +472,43 @@ section{ padding:36px 0; }
 .wf-shape-opt.shape-tall{ border-radius:18px; height:64px; }
 .wf-shape-opt.is-selected{ border-color:var(--orange); box-shadow:0 0 0 3px var(--orange-soft); transform:translateY(-1px); }
 .wf-color-row{ display:flex; gap:10px; flex-wrap:wrap; }
-.wf-color-opt{ width:32px; height:32px; border-radius:50%; border:2px solid transparent; padding:0; }
+.wf-color-opt{ width:32px; height:32px; border-radius:50%; border:2px solid transparent; padding:0; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .wf-color-opt.is-selected{ border-color:var(--ink); transform:scale(1.1); }
 .wf-count{ font-family:var(--font-mono); font-size:.76rem; color:var(--ink-faint); }
 .wf-count.is-over{ color:#B3432B; font-weight:700; }
-.wf-preview-wrap{ display:flex; justify-content:center; padding:22px 0 4px; }
-.wf-preview{ width:160px; height:160px; display:flex; align-items:center; justify-content:center; padding:20px; transition:border-radius .25s var(--ease), background .25s var(--ease), color .25s var(--ease), width .25s var(--ease), height .25s var(--ease); box-shadow:0 8px 22px rgba(43,36,28,.08); }
-.wf-preview .figure-text{ -webkit-line-clamp:5; }
+
+/* the formatting toolbar: font family/size apply to the current text
+   selection; the two line buttons insert a divider at the cursor. */
+.wf-toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:18px 0 10px; }
+.wf-toolbar select, .wf-toolbar button{
+  border:1.5px solid var(--line); background:var(--paper); border-radius:10px; padding:6px 10px;
+  font-size:.78rem; font-weight:600; color:var(--ink-soft); cursor:pointer;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.wf-toolbar select:hover, .wf-toolbar button:hover{ border-color:var(--orange); color:var(--orange-deep); }
+.wf-toolbar .wf-tb-hint{ width:100%; font-size:.72rem; color:var(--ink-faint); margin-top:-2px; }
+
+/* the editable card itself — same shape/colour/animation classes as
+   a real Figure, sized generously for comfortable typing. */
+.wf-editor-wrap{ display:flex; justify-content:center; padding:6px 0; }
+.wf-editor{
+  width:100%; max-width:340px; min-height:170px; display:flex; align-items:center; justify-content:center;
+  padding:24px; box-shadow:0 8px 22px rgba(43,36,28,.08); animation:none !important;
+}
+.wf-editor .figure-text{ outline:none; min-height:1.4em; cursor:text; }
+.wf-editor .figure-text:empty:before{ content:attr(data-placeholder); opacity:.45; }
 
 /* ---------- figure detail / author-analytics modal ---------- */
 .figure-detail-body{
   font-family:var(--font-display); font-style:italic; font-size:1.2rem; line-height:1.52;
-  padding:24px; border-radius:22px; margin-bottom:18px; word-break:break-word;
+  padding:24px; border-radius:22px; margin-bottom:18px; word-break:break-word; white-space:pre-wrap;
 }
+.fd-author-row{
+  display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink);
+  font-weight:700; font-size:.9rem; margin-bottom:14px;
+}
+.fd-author-row:hover{ color:var(--orange-deep); }
+.fd-author-row .avatar{ width:28px; height:28px; font-size:.7rem; }
 .figure-detail-meta{ display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.82rem; color:var(--ink-soft); margin-bottom:16px; }
 .figure-detail-actions{ display:flex; gap:10px; align-items:center; }
 .figure-analytics{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0 20px; }
@@ -964,26 +1015,19 @@ section{ padding:36px 0; }
       <button type="button" class="btn btn-primary btn-sm" id="nav-login-btn">Log In</button>
     </div>
   </div>
+  <div class="wall-sticky-composer">
+    <div class="container">
+      <button type="button" class="wall-composer-trigger" id="wall-composer-trigger">
+        <span class="wct-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13.5 3.5 16.5 6.5 7 16H4v-3L13.5 3.5Z" stroke-linejoin="round"/></svg></span>
+        <span>Pin a Figure to the Wall — a fleeting thought, 40 words or less…</span>
+      </button>
+    </div>
+  </div>
 </header>
 
 <main id="app">
   <div class="view-inner container">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">THE WALL</p>
-        <h2>A living wall of fleeting thoughts.</h2>
-        <p>Small fragments from the Aspinora community — up to 40 words, pinned for 24 hours, then gone.</p>
-      </div>
-    </div>
-
-    <button type="button" class="wall-composer-trigger" id="wall-composer-trigger">
-      <span class="wct-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M13.5 3.5 16.5 6.5 7 16H4v-3L13.5 3.5Z" stroke-linejoin="round"/></svg></span>
-      <span>Pin a Figure to the Wall — a fleeting thought, 40 words or less…</span>
-    </button>
-
-    <div class="wall-canvas">
-      <div class="wall-grid" id="wall-grid"></div>
-    </div>
+    <div class="wall-grid" id="wall-grid"></div>
   </div>
 </main>
 
@@ -993,19 +1037,10 @@ section{ padding:36px 0; }
       <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
     <h2 id="figure-publish-title">Pin a Figure</h2>
-    <p class="modal-sub">A fleeting thought for the Wall. It lives for 24 hours, then quietly disappears.</p>
+    <p class="modal-sub">Pick a shape and colour, then write straight into it — it lives for 24 hours, then quietly disappears.</p>
 
     <form id="figure-publish-form">
-      <textarea id="fp-body" class="textarea" rows="3" maxlength="400" placeholder="What's on your mind, in 40 words or less…" aria-label="Figure text"></textarea>
-      <div style="text-align:right; margin-top:6px;"><span class="wf-count" id="fp-count">0 / 40 words</span></div>
-
-      <div class="wf-preview-wrap">
-        <div class="wf-preview figure-card shape-rounded color-sage" id="fp-preview">
-          <p class="figure-text" id="fp-preview-text">Your Figure will look something like this.</p>
-        </div>
-      </div>
-
-      <div class="wf-field">
+      <div class="wf-field" style="margin-top:0;">
         <label>Shape</label>
         <div class="wf-shape-row" id="fp-shape-row" role="radiogroup" aria-label="Figure shape"></div>
       </div>
@@ -1014,6 +1049,32 @@ section{ padding:36px 0; }
         <label>Colour</label>
         <div class="wf-color-row" id="fp-color-row" role="radiogroup" aria-label="Figure colour"></div>
       </div>
+
+      <div class="wf-toolbar" role="toolbar" aria-label="Text formatting">
+        <select id="fp-font-select" aria-label="Font">
+          <option value="">Font…</option>
+          <option value="var(--font-display)">Serif</option>
+          <option value="var(--font-body)">Sans</option>
+          <option value="var(--font-mono)">Mono</option>
+        </select>
+        <select id="fp-size-select" aria-label="Text size">
+          <option value="">Size…</option>
+          <option value=".72rem">Small</option>
+          <option value=".95rem">Medium</option>
+          <option value="1.2rem">Large</option>
+          <option value="1.5rem">Extra large</option>
+        </select>
+        <button type="button" id="fp-insert-hline">— Horizontal line</button>
+        <button type="button" id="fp-insert-vline">| Vertical line</button>
+        <span class="wf-tb-hint">Select some words first, then pick a font or size to apply it just to them.</span>
+      </div>
+
+      <div class="wf-editor-wrap">
+        <div class="wf-editor figure-card shape-rounded color-sage" id="fp-editor-card">
+          <p class="figure-text" id="fp-editor" contenteditable="true" data-placeholder="Write your Figure here — 40 words or less…" aria-label="Figure text"></p>
+        </div>
+      </div>
+      <div style="text-align:right; margin-top:8px;"><span class="wf-count" id="fp-count">0 / 40 words</span></div>
 
       <div class="modal-actions" style="margin-top:24px;">
         <button type="button" class="btn btn-secondary" id="figure-publish-cancel">Cancel</button>
@@ -1033,9 +1094,12 @@ section{ padding:36px 0; }
     </button>
     <h2 id="figure-detail-title" class="visually-hidden">Figure</h2>
     <span class="figure-own-badge" id="fd-own-badge" hidden>📌 Your Figure — only you see this</span>
+    <a class="fd-author-row" id="fd-author-row" href="#" aria-label="View author's portfolio">
+      <span class="avatar" id="fd-author-avatar"></span>
+      <span id="fd-author-name"></span>
+    </a>
     <div class="figure-detail-body" id="fd-body"></div>
     <div class="figure-detail-meta">
-      <span id="fd-meta-left"></span>
       <span id="fd-meta-right"></span>
     </div>
 
@@ -1051,10 +1115,9 @@ section{ padding:36px 0; }
       </div>
     </div>
 
-    <!-- Everyone-else reaction controls -->
+    <!-- Everyone-else: just Like — Hearts come from double/triple-tapping the Figure itself -->
     <div class="figure-detail-actions" id="fd-public-actions">
       <button type="button" class="btn btn-secondary btn-sm" id="fd-like-btn">🤍 Like</button>
-      <button type="button" class="btn btn-secondary btn-sm" id="fd-heart-btn">✨ Appreciate</button>
     </div>
   </div>
 </div>
@@ -1138,6 +1201,11 @@ function authorName(authorId){
   if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.display_name;
   return 'Aspinora Member';
 }
+function authorUsername(authorId){
+  if (AUTHOR_CACHE[authorId]) return AUTHOR_CACHE[authorId].username || '';
+  if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.username || '';
+  return '';
+}
 
 function formatRelativeTime(iso){
   const then = new Date(iso).getTime();
@@ -1178,7 +1246,7 @@ qsa('.modal-scrim').forEach(function(scrim){
   scrim.addEventListener('click', function(e){ if (e.target === scrim) closeAllModals(); });
 });
 
-/* Every protected action (publish, like, appreciate) funnels through
+/* Every protected action (publish, like, send a heart) funnels through
    here: if signed in, run the callback immediately; otherwise show
    the lightweight guest prompt, which sends them to index.html to
    log in (this page doesn't carry the full auth modal). */
@@ -1193,7 +1261,7 @@ qsa('[data-close-guest]').forEach(function(btn){
 
 /* ------------------------------------------------------------------
    3. SESSION — guests can browse The Wall read-only; signing in
-      (via index.html) unlocks publishing, liking and appreciating.
+      (via index.html) unlocks publishing, liking and sending hearts.
    ------------------------------------------------------------------ */
 async function loadProfile(authUser){
   const userId = typeof authUser === 'string' ? authUser : authUser.id;
@@ -1274,6 +1342,9 @@ async function signOutUser(){
    A Figure is a ≤40-word writing that lives on the Wall for 24 hours.
    Table: wall_figures (+ wall_figure_likes for persistent likes, and
    the wall_figure_send_heart() RPC for ephemeral heart reactions).
+   `body` is the plain-text version (word-count/validation, fallback
+   render). `body_html` is the sanitized rich version — line breaks,
+   dividers, per-word font/size — rendered as-is when present.
    ================================================================== */
 const FIGURE_WORD_LIMIT = 40;
 function wordCountOf(text){
@@ -1298,6 +1369,7 @@ const FIGURE_COLORS = [
   { key:'blossom',  label:'Pale pink',         swatch:'#F8DDE5' },
   { key:'fog',      label:'Pale fog',          swatch:'#E6ECEE' }
 ];
+/* Cycled through on rapid repeat-taps (see handleWallTap). */
 const HEART_REACTIONS = [
   { emoji:'❤️', hex:'232,84,74' },
   { emoji:'🧡', hex:'240,149,77' },
@@ -1316,7 +1388,8 @@ function normalizeFigureRow(row){
     AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '' };
   }
   return {
-    id: row.id, body: row.body, author_id: row.author_id, shape: row.shape, color_key: row.color_key,
+    id: row.id, body: row.body, body_html: row.body_html || null, author_id: row.author_id,
+    shape: row.shape, color_key: row.color_key,
     likes_count: row.likes_count || 0, hearts_count: row.hearts_count || 0,
     created_at: row.created_at, expires_at: row.expires_at
   };
@@ -1325,7 +1398,7 @@ function normalizeFigureRow(row){
 async function fetchWallFigures(){
   if (!supabaseClient) return [];
   const { data, error } = await supabaseClient.from('wall_figures')
-    .select('id, body, author_id, shape, color_key, likes_count, hearts_count, created_at, expires_at, profiles!wall_figures_author_id_fkey(display_name, username)')
+    .select('id, body, body_html, author_id, shape, color_key, likes_count, hearts_count, created_at, expires_at, profiles!wall_figures_author_id_fkey(display_name, username)')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending:false })
     .limit(120);
@@ -1333,10 +1406,10 @@ async function fetchWallFigures(){
   return data.map(normalizeFigureRow);
 }
 
-async function publishFigure(body, shapeKey, colorKey){
+async function publishFigure(plainBody, htmlBody, shapeKey, colorKey){
   const { data, error } = await supabaseClient.from('wall_figures')
-    .insert({ body: body, shape: shapeKey, color_key: colorKey, author_id: state.currentUser.id })
-    .select('id, body, author_id, shape, color_key, likes_count, hearts_count, created_at, expires_at').single();
+    .insert({ body: plainBody, body_html: htmlBody, shape: shapeKey, color_key: colorKey, author_id: state.currentUser.id })
+    .select('id, body, body_html, author_id, shape, color_key, likes_count, hearts_count, created_at, expires_at').single();
   if (error) throw error;
   AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username };
   return normalizeFigureRow(data);
@@ -1359,6 +1432,15 @@ async function toggleFigureLike(figureId){
   return !already;
 }
 
+/* Idempotent: only ever adds a like, never removes one. Used by the
+   double-tap gesture — "double tap = 1 like", not a toggle. Unliking
+   only happens via the explicit Like button. */
+async function likeFigureIfNeeded(figureId){
+  if (state.likedFigureIds.has(figureId)) return false;
+  await toggleFigureLike(figureId);
+  return true;
+}
+
 async function sendFigureHeart(figureId){
   const fig = state.wallFigures.find(function(f){ return f.id === figureId; });
   if (fig) fig.hearts_count++;
@@ -1377,11 +1459,97 @@ async function deleteFigureRow(figureId){
   if (error) throw error;
 }
 
+/* ------------------------------------------------------------------
+   RICH TEXT: a tiny whitelist sanitizer. Only <br>, <hr class="fig-hr">,
+   <span class="fig-vr"> (dividers) and <span style="font-family:…;
+   font-size:…"> survive; every other tag is unwrapped (its own text
+   kept) except script/style/iframe-type tags, which are dropped
+   entirely along with their content. Runs both before we store a
+   Figure and again right before we render anyone else's, so a
+   tampered payload (e.g. edited in devtools before submit) can never
+   reach another user's page as live markup.
+   ------------------------------------------------------------------ */
+const RICH_ALLOWED_FONTS = ['var(--font-display)','var(--font-body)','var(--font-mono)'];
+const RICH_SIZE_RE = /^\d+(\.\d+)?(px|rem|em)$/;
+const RICH_DANGEROUS_TAGS = ['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','svg','IMG'];
+function sanitizeRichHTML(html){
+  const container = document.createElement('div');
+  container.innerHTML = html || '';
+  sanitizeNode(container);
+  return container.innerHTML;
+}
+function sanitizeNode(parent){
+  const kids = Array.prototype.slice.call(parent.childNodes);
+  kids.forEach(function(node){
+    if (node.nodeType === Node.TEXT_NODE) return;
+    if (node.nodeType !== Node.ELEMENT_NODE){ parent.removeChild(node); return; }
+    const tag = node.tagName;
+    if (RICH_DANGEROUS_TAGS.indexOf(tag) !== -1){ parent.removeChild(node); return; }
+    if (tag === 'BR'){
+      Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
+      return;
+    }
+    if (tag === 'HR'){
+      Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
+      node.className = 'fig-hr';
+      return;
+    }
+    if (tag === 'SPAN'){
+      const isVr = node.classList.contains('fig-vr');
+      const style = node.getAttribute('style') || '';
+      const fam = /font-family:\s*([^;]+)/i.exec(style);
+      const size = /font-size:\s*([^;]+)/i.exec(style);
+      Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
+      if (isVr){
+        node.className = 'fig-vr';
+        node.textContent = ''; // purely decorative, never carries text
+      } else {
+        let newStyle = '';
+        if (fam && RICH_ALLOWED_FONTS.indexOf(fam[1].trim()) !== -1) newStyle += 'font-family:' + fam[1].trim() + ';';
+        if (size && RICH_SIZE_RE.test(size[1].trim())) newStyle += 'font-size:' + size[1].trim() + ';';
+        if (newStyle) node.setAttribute('style', newStyle);
+        sanitizeNode(node);
+      }
+      return;
+    }
+    // Any other tag: unwrap it, keeping its (recursively sanitized) content.
+    sanitizeNode(node);
+    while (node.firstChild) parent.insertBefore(node.firstChild, node);
+    parent.removeChild(node);
+  });
+}
+
 function seedFromId(id){
   let h = 0;
   const s = String(id || '');
   for (let i=0;i<s.length;i++){ h = (h * 31 + s.charCodeAt(i)) >>> 0; }
   return h;
+}
+
+/* ------------------------------------------------------------------
+   SIZING — a Figure's grid footprint scales with how much it holds
+   (words + explicit line breaks/dividers), then fitFigureCard() below
+   grows it further after real layout if it's still not enough. Since
+   this only ever *adds* grid tracks to that one card, CSS Grid's own
+   placement guarantees no two Figures can ever occupy the same cell.
+   ------------------------------------------------------------------ */
+function figureSizeScore(fig){
+  const words = wordCountOf(fig.body);
+  const breaks = (fig.body_html || '').split(/<br\s*\/?>/i).length - 1
+    + (fig.body_html || '').split(/<hr/i).length - 1;
+  return words + breaks * 4;
+}
+function figureBaseSpan(shapeKey, score){
+  const tier = score <= 8 ? 0 : score <= 16 ? 1 : score <= 28 ? 2 : 3;
+  const table = {
+    circle:  [[1,1],[2,2],[3,3],[3,4]],
+    square:  [[1,1],[2,2],[3,3],[3,4]],
+    rounded: [[2,1],[2,2],[3,2],[3,3]],
+    wide:    [[3,1],[3,2],[4,2],[4,3]],
+    tall:    [[1,2],[2,3],[2,4],[2,5]]
+  };
+  const cols = (table[shapeKey] || table.rounded)[tier];
+  return { col: cols[0], row: cols[1] };
 }
 
 function figureCardHTML(fig){
@@ -1394,20 +1562,43 @@ function figureCardHTML(fig){
   const fy = 3 + ((seed >> 4) % 7);
   const fdur = 7 + (seed % 5);
   const fdelay = -((seed >> 2) % 6);
-  const style = '--fx:' + fx + 'px; --fy:-' + fy + 'px; --fdur:' + fdur + 's; --fdelay:' + fdelay + 's;';
-  return '<article class="figure-card shape-' + shape.key + ' color-' + color.key + '" data-figure-id="' + fig.id + '" tabindex="0" role="button" aria-label="Open Figure by ' + escapeHtml(authorName(fig.author_id)) + '" style="' + style + '">' +
+  const span = figureBaseSpan(shape.key, figureSizeScore(fig));
+  const style = '--fx:' + fx + 'px; --fy:-' + fy + 'px; --fdur:' + fdur + 's; --fdelay:' + fdelay + 's; ' +
+    'grid-column:span ' + span.col + '; grid-row:span ' + span.row + ';';
+  const textHTML = fig.body_html ? sanitizeRichHTML(fig.body_html) : escapeHtml(fig.body).replace(/\n/g, '<br>');
+  return '<article class="figure-card shape-' + shape.key + ' color-' + color.key + '" data-figure-id="' + fig.id + '" data-row-span="' + span.row + '" tabindex="0" role="button" aria-label="Open Figure" style="' + style + '">' +
     (isOwn ? '<span class="figure-pin" title="Your Figure — only you see this"></span>' : '') +
-    '<p class="figure-text">' + escapeHtml(fig.body) + '</p>' +
-    '<span class="figure-meta">' + escapeHtml(authorName(fig.author_id)) + '</span>' +
+    '<p class="figure-text">' + textHTML + '</p>' +
     '<span class="figure-actions">' +
       '<button type="button" class="figure-like-btn' + (liked ? ' is-liked' : '') + '" data-figure-like="' + fig.id + '" aria-label="Like this Figure">' + (liked ? '❤️' : '🤍') + ' <span data-like-count>' + fig.likes_count + '</span></button>' +
-      '<button type="button" class="figure-heart-btn" data-figure-heart="' + fig.id + '" aria-label="Send appreciation">✨</button>' +
     '</span>' +
   '</article>';
 }
 
+/* Safety net: if the estimated span still isn't tall enough for the
+   actual rendered content (long words, big custom font sizes, extra
+   dividers…), grow the row span until it fits — capped, so a single
+   Figure can never grow without bound. Never touches column span or
+   any other card, so it can't cause a collision. */
+function fitFigureCard(cardEl){
+  if (!cardEl) return;
+  const maxRow = 8;
+  let rows = parseInt(cardEl.getAttribute('data-row-span') || '1', 10);
+  let guard = 0;
+  while (cardEl.scrollHeight > cardEl.clientHeight + 2 && rows < maxRow && guard < 10){
+    rows++;
+    cardEl.style.gridRowEnd = 'span ' + rows;
+    cardEl.setAttribute('data-row-span', String(rows));
+    guard++;
+  }
+}
+function fitAllFigureCards(){
+  qsa('.figure-card', qs('#wall-grid')).forEach(fitFigureCard);
+}
+
 let wallPruneTimer = null, wallRefreshTimer = null, wallChannel = null;
-let wallClickTimers = {}, figureHeartCycle = {};
+let wallTapState = {};
+const WALL_TAP_WINDOW_MS = 340;
 
 function stopWallView(){
   if (wallPruneTimer){ clearInterval(wallPruneTimer); wallPruneTimer = null; }
@@ -1447,6 +1638,7 @@ async function renderWallView(){
     state.wallFigures = await fetchWallFigures();
     grid.innerHTML = state.wallFigures.length ? state.wallFigures.map(figureCardHTML).join('') :
       '<div class="empty-state" style="grid-column:1/-1;"><p>The Wall is quiet right now — be the first to pin a Figure.</p></div>';
+    requestAnimationFrame(fitAllFigureCards);
   }catch(e){ grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">Couldn\'t load the Wall right now.</p>'; }
   wallPruneTimer = setInterval(pruneExpiredFigures, 30000);
   wallRefreshTimer = setInterval(function(){ renderWallView(); }, 90000);
@@ -1477,18 +1669,54 @@ function updateFigureLikeUI(cardEl, figureId){
   btn.innerHTML = (liked ? '❤️' : '🤍') + ' <span data-like-count>' + fig.likes_count + '</span>';
 }
 
-function handleFigureHeartTap(figureId, cardEl){
-  requireAuth('Log in to appreciate a Figure.', function(){
+let figureHeartCycle = {};
+function sendHeartTapFeedback(figureId, cardEl){
+  const fig = state.wallFigures.find(function(f){ return f.id === figureId; });
+  if (fig && state.currentUser && fig.author_id === state.currentUser.id) return; // can't heart your own Figure
+  requireAuth('Log in to send hearts.', function(){
     const idx = (figureHeartCycle[figureId] || 0) % HEART_REACTIONS.length;
     figureHeartCycle[figureId] = idx + 1;
     const r = HEART_REACTIONS[idx];
     triggerFigureReaction(cardEl, r.emoji, r.hex);
     sendFigureHeart(figureId).then(function(){
       if (wallChannel) wallChannel.send({ type:'broadcast', event:'heart', payload:{ figureId:figureId, emoji:r.emoji, hex:r.hex } });
-      const fig = state.wallFigures.find(function(f){ return f.id === figureId; });
-      if (fig && state.openFigureDetailId === figureId) renderFigureAnalytics(fig);
-    }).catch(function(){ showToast("Couldn't send that appreciation — please try again."); });
+      if (state.openFigureDetailId === figureId){
+        const f2 = state.wallFigures.find(function(x){ return x.id === figureId; });
+        if (f2) renderFigureAnalytics(f2);
+      }
+    }).catch(function(){ showToast("Couldn't send that heart — please try again."); });
   });
+}
+
+/* Tap-sequence for a Figure: 1 tap alone → open it to read. 2 taps
+   (double-tap) → add a like (never removes one — that's what the
+   explicit Like button is for). 3rd, 4th, 5th… taps while still
+   tapping rapidly → each one sends another heart, so hearts keep
+   climbing for as long as the taps keep coming. */
+function handleWallTap(figureId, cardEl){
+  let rec = wallTapState[figureId];
+  if (!rec){ rec = { count:0, openTimer:null, windowTimer:null }; wallTapState[figureId] = rec; }
+  rec.count++;
+  clearTimeout(rec.windowTimer);
+
+  if (rec.count === 1){
+    rec.openTimer = setTimeout(function(){
+      if (rec.count === 1) openFigureDetail(figureId);
+      rec.count = 0;
+    }, WALL_TAP_WINDOW_MS);
+  } else if (rec.count === 2){
+    clearTimeout(rec.openTimer);
+    requireAuth('Log in to like a Figure.', function(){
+      likeFigureIfNeeded(figureId).then(function(added){
+        updateFigureLikeUI(cardEl, figureId);
+        if (added) triggerFigureReaction(cardEl, '❤️', '232,84,74');
+      }).catch(function(){});
+    });
+  } else {
+    sendHeartTapFeedback(figureId, cardEl);
+  }
+
+  rec.windowTimer = setTimeout(function(){ rec.count = 0; }, WALL_TAP_WINDOW_MS);
 }
 
 function formatTimeRemaining(iso){
@@ -1521,7 +1749,6 @@ async function deleteFigureNow(figureId){
   }catch(err){ showToast("Couldn't delete that Figure — please try again."); }
 }
 
-const WALL_DOUBLE_TAP_MS = 280;
 function openFigureDetail(figureId){
   const fig = state.wallFigures.find(function(f){ return f.id === figureId; });
   if (!fig) return;
@@ -1530,10 +1757,16 @@ function openFigureDetail(figureId){
   const isOwn = !!(state.currentUser && fig.author_id === state.currentUser.id);
 
   const body = qs('#fd-body');
-  body.textContent = fig.body;
+  body.innerHTML = fig.body_html ? sanitizeRichHTML(fig.body_html) : escapeHtml(fig.body).replace(/\n/g, '<br>');
   body.style.background = 'var(--fig-' + color.key + ')';
   body.style.color = 'var(--fig-' + color.key + '-ink)';
-  qs('#fd-meta-left').textContent = authorName(fig.author_id);
+
+  const username = authorUsername(fig.author_id);
+  const authorRow = qs('#fd-author-row');
+  authorRow.href = username ? ('portfolio.html?u=' + encodeURIComponent(username)) : '#';
+  qs('#fd-author-avatar').outerHTML = avatarHTML(fig.author_id, authorName(fig.author_id), '').replace('<span class="avatar"', '<span class="avatar" id="fd-author-avatar"');
+  qs('#fd-author-name').textContent = authorName(fig.author_id);
+
   qs('#fd-meta-right').textContent = formatRelativeTime(fig.created_at);
   qs('#fd-own-badge').hidden = !isOwn;
   qs('#fd-analytics').hidden = !isOwn;
@@ -1555,9 +1788,6 @@ function openFigureDetail(figureId){
         }).catch(function(){});
       });
     };
-    qs('#fd-heart-btn').onclick = function(){
-      handleFigureHeartTap(fig.id, qs('[data-figure-id="' + fig.id + '"]') || body);
-    };
   }
   openModal('figure-detail-modal-scrim');
 }
@@ -1576,31 +1806,10 @@ function onWallGridClick(e){
     });
     return;
   }
-  const heartBtn = e.target.closest('[data-figure-heart]');
-  if (heartBtn){
-    e.stopPropagation();
-    handleFigureHeartTap(heartBtn.getAttribute('data-figure-heart'), heartBtn.closest('.figure-card'));
-    return;
-  }
   const card = e.target.closest('.figure-card');
   const grid = qs('#wall-grid');
   if (!card || !grid || !grid.contains(card)) return;
-  const figureId = card.getAttribute('data-figure-id');
-  if (wallClickTimers[figureId]){
-    clearTimeout(wallClickTimers[figureId]);
-    delete wallClickTimers[figureId];
-    requireAuth('Log in to like a Figure.', function(){
-      toggleFigureLike(figureId).then(function(nowLiked){
-        updateFigureLikeUI(card, figureId);
-        if (nowLiked) triggerFigureReaction(card, '❤️', '232,84,74');
-      }).catch(function(){});
-    });
-  } else {
-    wallClickTimers[figureId] = setTimeout(function(){
-      delete wallClickTimers[figureId];
-      openFigureDetail(figureId);
-    }, WALL_DOUBLE_TAP_MS);
-  }
+  handleWallTap(card.getAttribute('data-figure-id'), card);
 }
 document.addEventListener('click', onWallGridClick);
 document.addEventListener('keydown', function(e){
@@ -1610,14 +1819,54 @@ document.addEventListener('keydown', function(e){
   }
 });
 
+/* ------------------------------------------------------------------
+   PUBLISH — pick shape/colour, then write straight into the actual
+   Figure (contentEditable), with a small toolbar for line breaks,
+   dividers, and per-selection font/size. What's typed is what gets
+   published — no separate preview to keep in sync.
+   ------------------------------------------------------------------ */
 let fpState = { shape:'rounded', color:'sage' };
-function updateFigurePreview(){
-  const preview = qs('#fp-preview');
-  if (!preview) return;
-  preview.className = 'wf-preview figure-card shape-' + fpState.shape + ' color-' + fpState.color;
-  const text = qs('#fp-preview-text');
-  const bodyVal = qs('#fp-body').value.trim();
-  text.textContent = bodyVal || 'Your Figure will look something like this.';
+
+function applyStyleToSelection(prop, value){
+  const editor = qs('#fp-editor');
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if (range.collapsed || !editor.contains(range.commonAncestorContainer)) return;
+  const span = document.createElement('span');
+  span.style[prop] = value;
+  const frag = range.extractContents();
+  span.appendChild(frag);
+  range.insertNode(span);
+  sel.removeAllRanges();
+  const after = document.createRange();
+  after.selectNodeContents(span);
+  sel.addRange(after);
+}
+
+function insertAtCursor(node){
+  const editor = qs('#fp-editor');
+  editor.focus();
+  const sel = window.getSelection();
+  let range;
+  if (sel.rangeCount && editor.contains(sel.getRangeAt(0).commonAncestorContainer)){
+    range = sel.getRangeAt(0);
+  } else {
+    range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+  }
+  range.deleteContents();
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function updateFigureEditorCardStyle(){
+  const card = qs('#fp-editor-card');
+  if (card) card.className = 'wf-editor figure-card shape-' + fpState.shape + ' color-' + fpState.color;
 }
 
 function initFigurePublishForm(){
@@ -1634,37 +1883,68 @@ function initFigurePublishForm(){
     const btn = e.target.closest('[data-shape]'); if (!btn) return;
     fpState.shape = btn.getAttribute('data-shape');
     qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b === btn); });
-    updateFigurePreview();
+    updateFigureEditorCardStyle();
   });
   colorRow.addEventListener('click', function(e){
     const btn = e.target.closest('[data-color]'); if (!btn) return;
     fpState.color = btn.getAttribute('data-color');
     qsa('.wf-color-opt', colorRow).forEach(function(b){ b.classList.toggle('is-selected', b === btn); });
-    updateFigurePreview();
+    updateFigureEditorCardStyle();
   });
 
-  const bodyEl = qs('#fp-body');
+  const editor = qs('#fp-editor');
   const count = qs('#fp-count');
   const submitBtn = qs('#fp-submit-btn');
   function updateCount(){
-    const n = wordCountOf(bodyEl.value);
+    const n = wordCountOf(editor.innerText);
     count.textContent = n + ' / ' + FIGURE_WORD_LIMIT + ' words';
     const over = n > FIGURE_WORD_LIMIT;
     count.classList.toggle('is-over', over);
     submitBtn.disabled = over || n === 0;
-    updateFigurePreview();
   }
-  bodyEl.addEventListener('input', updateCount);
+  editor.addEventListener('input', updateCount);
+  editor.addEventListener('keydown', function(e){
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      insertAtCursor(document.createElement('br'));
+      updateCount();
+    }
+  });
+
+  qs('#fp-font-select').addEventListener('change', function(){
+    if (this.value) applyStyleToSelection('fontFamily', this.value);
+    this.value = '';
+    editor.focus();
+  });
+  qs('#fp-size-select').addEventListener('change', function(){
+    if (this.value) applyStyleToSelection('fontSize', this.value);
+    this.value = '';
+    editor.focus();
+  });
+  qs('#fp-insert-hline').addEventListener('click', function(){
+    const hr = document.createElement('hr');
+    hr.className = 'fig-hr';
+    insertAtCursor(hr);
+    insertAtCursor(document.createElement('br'));
+    updateCount();
+  });
+  qs('#fp-insert-vline').addEventListener('click', function(){
+    const vr = document.createElement('span');
+    vr.className = 'fig-vr';
+    insertAtCursor(vr);
+    updateCount();
+  });
 
   qs('#wall-composer-trigger').addEventListener('click', function(){
     requireAuth('Log in to pin a Figure to the Wall.', function(){
-      bodyEl.value = '';
+      editor.innerHTML = '';
       fpState = { shape:'rounded', color:'sage' };
       qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-shape') === 'rounded'); });
       qsa('.wf-color-opt', colorRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-color') === 'sage'); });
+      updateFigureEditorCardStyle();
       updateCount();
       openModal('figure-publish-modal-scrim');
-      setTimeout(function(){ bodyEl.focus(); }, 60);
+      setTimeout(function(){ editor.focus(); }, 60);
     });
   });
   qs('#figure-publish-close').addEventListener('click', function(){ closeModal('figure-publish-modal-scrim'); });
@@ -1672,17 +1952,19 @@ function initFigurePublishForm(){
 
   qs('#figure-publish-form').addEventListener('submit', async function(e){
     e.preventDefault();
-    const text = bodyEl.value.trim();
-    const n = wordCountOf(text);
-    if (!text || n > FIGURE_WORD_LIMIT){ updateCount(); return; }
+    const plain = editor.innerText.trim();
+    const n = wordCountOf(plain);
+    if (!plain || n > FIGURE_WORD_LIMIT){ updateCount(); return; }
     submitBtn.disabled = true;
     try{
-      const fig = await publishFigure(text, fpState.shape, fpState.color);
+      const html = sanitizeRichHTML(editor.innerHTML);
+      const fig = await publishFigure(plain, html, fpState.shape, fpState.color);
       state.wallFigures.unshift(fig);
       const grid = qs('#wall-grid');
       const empty = grid.querySelector('.empty-state');
       if (empty) empty.remove();
       grid.insertAdjacentHTML('afterbegin', figureCardHTML(fig));
+      requestAnimationFrame(function(){ fitFigureCard(qs('[data-figure-id="' + fig.id + '"]')); });
       closeModal('figure-publish-modal-scrim');
       showToast('Pinned to the Wall — live for the next 24 hours.');
     }catch(err){
@@ -1692,6 +1974,7 @@ function initFigurePublishForm(){
     }
   });
 
+  updateFigureEditorCardStyle();
   updateCount();
 }
 
