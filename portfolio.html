@@ -263,9 +263,9 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .mobile-back-btn{
   display:none; position:absolute; top:14px; left:14px; z-index:5;
   width:40px; height:40px; border-radius:50%; border:1.5px solid rgba(255,255,255,.5);
-  background:rgba(255,255,255,.20); color:#fff; align-items:center; justify-content:center;
-  backdrop-filter:blur(10px) saturate(160%); -webkit-backdrop-filter:blur(10px) saturate(160%);
-  box-shadow:0 4px 16px rgba(43,36,28,.18);
+  background:rgba(255,255,255,.18); color:#fff; align-items:center; justify-content:center;
+  backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:0 4px 16px rgba(43,36,28,.18), 0 1px 0 rgba(255,255,255,.35) inset;
 }
 
 .btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:999px; font-weight:700; font-size:.88rem; border:none; transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); white-space:nowrap; }
@@ -277,12 +277,12 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .btn-sm{ padding:9px 16px; font-size:.8rem; }
 .btn-follow{
   padding:12px 21px; font-size:1.04rem;
-  background:rgba(255,255,255,.22); color:#fff; border:1.5px solid rgba(255,255,255,.55);
-  backdrop-filter:blur(10px) saturate(160%); -webkit-backdrop-filter:blur(10px) saturate(160%);
-  box-shadow:0 4px 18px rgba(43,36,28,.14); text-shadow:0 1px 4px rgba(0,0,0,.25);
+  background:rgba(255,255,255,.18); color:#fff; border:1.5px solid rgba(255,255,255,.5);
+  backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:0 4px 18px rgba(43,36,28,.14), 0 1px 0 rgba(255,255,255,.35) inset; text-shadow:0 1px 4px rgba(0,0,0,.25);
 }
-.btn-follow:hover:not(:disabled){ background:rgba(255,255,255,.34); }
-.btn-follow.is-following{ background:rgba(255,255,255,.10); color:#fff; border:1.5px solid rgba(255,255,255,.4); box-shadow:none; }
+.btn-follow:hover:not(:disabled){ background:rgba(255,255,255,.30); }
+.btn-follow.is-following{ background:rgba(255,255,255,.10); color:#fff; border:1.5px solid rgba(255,255,255,.4); box-shadow:0 1px 0 rgba(255,255,255,.2) inset; }
 
 .avatar{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; overflow:hidden; }
 .avatar img{ width:100%; height:100%; object-fit:cover; }
@@ -1376,7 +1376,7 @@ async function initPortfolio(){
   wireHeader();
   const backBtn = document.getElementById('mobile-back-btn');
   if (backBtn) backBtn.addEventListener('click', function(){
-    window.location.href = state.currentUser ? 'userpostlogin.html' : 'index.html';
+    window.location.href = 'https://journal.aspinora.in';
   });
 
   const params = new URLSearchParams(window.location.search);
