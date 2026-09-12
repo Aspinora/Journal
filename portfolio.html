@@ -52,6 +52,8 @@
   --header-tint: 251,245,234;
   --cover-fg: #FFFFFF;
   --cover-fg-shadow: 0 1px 10px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.7);
+  --avatar-sz: 112px;
+  --avatar-font-sz: 2.1rem;
 }
 *,*::before,*::after{ box-sizing:border-box; }
 [hidden]{ display:none !important; }
@@ -257,13 +259,6 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 /* ============================================================
 
 
-.mobile-back-btn{
-  display:none; position:fixed; top:14px; left:14px; z-index:120;
-  width:40px; height:40px; border-radius:50%; border:none;
-  background:rgba(43,36,28,.55); color:#fff; align-items:center; justify-content:center;
-  backdrop-filter:blur(4px);
-}
-
 .btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:999px; font-weight:700; font-size:.88rem; border:none; transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); white-space:nowrap; }
 .btn:disabled{ opacity:.5; cursor:not-allowed; }
 .btn-primary{ background:var(--orange); color:#fff; box-shadow:0 8px 20px rgba(241,99,27,.30); }
@@ -437,9 +432,8 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
    ============================================================ */
 @media (max-width: 760px){
   .navbar{ display:none; }
-  .mobile-back-btn{ display:flex; }
   .cover-wrap{ aspect-ratio:1/1; margin-top:0; }
-  .cover-avatar{ width:88px !important; height:88px !important; min-width:88px !important; min-height:88px !important; max-width:88px !important; max-height:88px !important; font-size:1.7rem; }
+  :root{ --avatar-sz:88px; --avatar-font-sz:1.7rem; }
   .cover-stats{ gap:18px; }
   .underline-tabs{ overflow-x:auto; }
   .share-tab-label{ display:none; }
@@ -460,10 +454,6 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 <div id="page-loader" class="page-loader">
   <div class="page-loader-mark"><span class="page-loader-j">J</span><span class="page-loader-ring"></span></div>
 </div>
-
-<button type="button" class="mobile-back-btn" id="mobile-back-btn" aria-label="Back">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-</button>
 
 <header class="navbar pl-navbar" id="site-navbar">
   <div class="container pl-nav-inner">
@@ -979,7 +969,9 @@ function coverHeroHTML(profile, isOwner, isFollowing){
       '<div class="cover-scrim"></div>' +
       (isOwner ? '<button type="button" class="cover-edit-fab" id="cover-edit-fab" aria-label="Update portfolio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke-linejoin="round"/></svg></button>' : '') +
       '<div class="cover-center">' +
-        '<a href="' + portfolioHref + '" style="display:block;flex-shrink:0;"><span class="avatar cover-avatar" style="background:' + color + ';width:112px;height:112px;min-width:112px;min-height:112px;max-width:112px;max-height:112px;aspect-ratio:1/1;flex-shrink:0;flex-grow:0;border-radius:50%;overflow:hidden;">' + avatarInner + '</span></a>' +
+        '<a href="' + portfolioHref + '" style="display:inline-block;width:var(--avatar-sz,112px);height:var(--avatar-sz,112px);text-decoration:none;flex-shrink:0;">' +
+          '<span style="display:flex;align-items:center;justify-content:center;width:var(--avatar-sz,112px);height:var(--avatar-sz,112px);border-radius:50%;overflow:hidden;background:' + color + ';border:4px solid #FFFDF8;box-shadow:0 12px 40px rgba(43,36,28,.10);color:#fff;font-weight:700;font-family:var(--font-mono);font-size:var(--avatar-font-sz,2.1rem);box-sizing:border-box;">' + avatarInner + '</span>' +
+        '</a>' +
         '<a class="cover-username" href="' + portfolioHref + '">@' + escapeHtml(profile.username) + '</a>' +
         '<div class="cover-identities">' + identities.map(function(i){ return '<span class="identity-badge">' + escapeHtml(i) + '</span>'; }).join('') + '</div>' +
         '<div class="cover-stats">' +
@@ -1322,12 +1314,6 @@ async function init(){
 async function initPortfolio(){
   state.currentUser = await loadCurrentUser();
   wireHeader();
-  document.getElementById('mobile-back-btn').addEventListener('click', function(){
-    // Deterministic destination rather than history.back(): this page
-    // rewrites its own URL with replaceState (adding ?u=...), which made
-    // "back" land right back on itself instead of leaving the page.
-    window.location.href = state.currentUser ? 'userpostlogin.html' : 'index.html';
-  });
 
   const params = new URLSearchParams(window.location.search);
   let username = params.get('u');
