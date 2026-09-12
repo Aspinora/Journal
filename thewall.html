@@ -137,8 +137,8 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
 /* ============ NAVBAR ============ */
 .navbar{
   position:sticky; top:0; left:0; right:0; z-index:200;
-  background:rgba(251,245,234,.92); backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.14); backdrop-filter:blur(16px) saturate(160%); -webkit-backdrop-filter:blur(16px) saturate(160%);
+  border-bottom:1px solid rgba(255,255,255,.3);
 }
 .nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:24px; padding:14px 0; }
 .nav-brand{ display:flex; align-items:center; gap:10px; }
@@ -287,90 +287,98 @@ section{ padding:36px 0; }
    A live, temporary exhibition of 40-word writings ("Figures").
    ============================================================ */
 
-/* ---------- curated palette (author-selectable, DB: color_key) --- */
+/* ---------- curated palette (author-selectable, DB: color_key) ---
+   ~30% darker than the first pass so Figures read with more presence
+   against the (now much lighter) page background. ---------- */
 :root{
-  --fig-sage:      #E3EBD7; --fig-sage-ink:     #3E4A2C;
-  --fig-sky:       #DCEDF6; --fig-sky-ink:      #234F6A;
-  --fig-lavender:  #E9E3F5; --fig-lavender-ink: #493C70;
-  --fig-butter:    #FBF0CE; --fig-butter-ink:   #6A5510;
-  --fig-peach:     #FAE2D2; --fig-peach-ink:    #7A4222;
-  --fig-sand:      #F1E5D2; --fig-sand-ink:     #5A492C;
-  --fig-blossom:   #F8DDE5; --fig-blossom-ink:  #78334E;
-  --fig-fog:       #E6ECEE; --fig-fog-ink:      #3E4F57;
-  --wall-cell: 132px;
+  --fig-sage:      #C7D8B0; --fig-sage-ink:     #3E4A2C;
+  --fig-sky:       #B4DBEF; --fig-sky-ink:      #234F6A;
+  --fig-lavender:  #D1C1EC; --fig-lavender-ink: #493C70;
+  --fig-butter:    #F1DC8B; --fig-butter-ink:   #6A5510;
+  --fig-peach:     #F1C096; --fig-peach-ink:    #7A4222;
+  --fig-sand:      #E2CA9D; --fig-sand-ink:     #5A492C;
+  --fig-blossom:   #EFBDD0; --fig-blossom-ink:  #78334E;
+  --fig-fog:       #C3D0D4; --fig-fog-ink:      #3E4F57;
+  --wall-cell: 104px;
   --wall-gap: 18px;
 }
 
-/* ---------- composer bar, stuck to the header ---------- */
+/* ---------- composer bar, stuck to the header — both glass ---------- */
 .wall-sticky-composer{
-  border-top:1px solid var(--line);
-  background:rgba(251,245,234,.92); backdrop-filter:blur(10px);
+  border-top:1px solid rgba(255,255,255,.3);
+  background:transparent;
   padding:10px 0;
 }
 .wall-composer-trigger{
   display:flex; align-items:center; gap:14px; width:100%; text-align:left; cursor:pointer;
-  background:var(--paper); border:1.5px dashed var(--line-strong); border-radius:999px;
-  padding:12px 22px 12px 12px; color:var(--ink-soft); font-weight:600; font-size:.9rem;
-  transition:border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  background:rgba(255,255,255,.14); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border:1.5px solid rgba(255,255,255,.4); border-radius:999px;
+  padding:12px 22px 12px 12px; color:var(--ink); font-weight:600; font-size:.9rem;
+  transition:border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
-.wall-composer-trigger:hover{ border-color:var(--orange); color:var(--orange-deep); background:var(--orange-soft); }
+.wall-composer-trigger:hover{ border-color:var(--orange); background:rgba(255,255,255,.28); }
 .wall-composer-trigger .wct-icon{
   width:34px; height:34px; border-radius:50%; background:var(--orange-soft); color:var(--orange-deep);
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
 .wall-composer-trigger .wct-icon svg{ width:16px; height:16px; }
 
-/* ---------- the whole page (behind the header) slowly drifts
-   through the same curated pastel palette the Figures themselves use
-   — the header sits on its own opaque/blurred surface above it, so
-   it never shifts with the rest of the page. ---------- */
+/* ---------- the whole page — one continuous surface from top to
+   bottom. Colour steps to a new soft tint every 5s with a smooth
+   transition (JS drives this — see startWallBackgroundCycle). The
+   header/composer above are glass (blurred, translucent) rather than
+   opaque, so this same colour reads straight through them too;
+   logos/icons/buttons keep their own solid fills underneath so they
+   stay legible regardless of what the backdrop is doing. ---------- */
 html, body{ height:100%; }
 body{
-  background:linear-gradient(120deg,
-    #F7F3EA 0%, var(--fig-sage) 16%, var(--fig-sky) 32%, var(--fig-lavender) 48%,
-    var(--fig-butter) 64%, var(--fig-peach) 78%, var(--fig-blossom) 90%, #F7F3EA 100%);
-  background-size:340% 340%;
-  animation:wall-bg-shift 110s ease-in-out infinite;
+  background-color:#F7F3EA;
+  transition:background-color 4.5s ease;
 }
-@keyframes wall-bg-shift{
-  0%{ background-position:0% 30%; }
-  50%{ background-position:100% 70%; }
-  100%{ background-position:0% 30%; }
-}
-@media (prefers-reduced-motion: reduce){ body{ animation:none; } }
+@media (prefers-reduced-motion: reduce){ body{ transition:none; } }
 
 /* ---------- the grid: responsive density, never hardcoded --------
-   Column count is derived purely from viewport width ÷ cell size, so
-   the number of visible Figures adapts naturally instead of being a
-   fixed count. Cell size itself steps up at the tablet/desktop
-   breakpoints below so larger screens read as a bigger canvas rather
-   than a stretched phone layout. Row spans are computed per-Figure
-   (see figureCardHTML/fitFigureCard in the script) from how much text
-   and formatting it holds, so longer Figures simply claim more grid
-   tracks — CSS Grid guarantees none of this can ever overlap. */
+   Track size is fixed (not a stretchy 1fr) so an N×N span is always
+   exactly square — that's what keeps "circle"/"square" Figures true
+   circles/squares instead of ellipses. Column count still adapts
+   purely from viewport width ÷ cell size. Row spans are computed
+   per-Figure (see figureCardHTML/fitFigureCard) from how much text it
+   actually holds, so Figures claim only the space they need — CSS
+   Grid guarantees none of this can ever overlap regardless of the
+   small random per-Figure jitter layered on top for a less regimented
+   look (see --jx/--jy below). */
 .wall-grid{
-  position:relative; z-index:1; padding:22px 0 60px;
+  position:relative; z-index:1; padding:22px 0 70px;
   touch-action:manipulation; /* stops the double/triple-tap-to-like gesture from also triggering the browser's double-tap-zoom */
-  display:grid; grid-auto-flow:dense;
-  grid-template-columns:repeat(auto-fill, minmax(var(--wall-cell),1fr));
+  display:grid; grid-auto-flow:dense; justify-content:center;
+  grid-template-columns:repeat(auto-fill, var(--wall-cell));
   grid-auto-rows:var(--wall-cell);
   gap:var(--wall-gap);
 }
-@media (max-width:980px){ .wall-grid{ --wall-cell:112px; --wall-gap:14px; } }
-@media (max-width:640px){ .wall-grid{ --wall-cell:94px; --wall-gap:11px; padding:16px 0 40px; } }
+@media (max-width:980px){ .wall-grid{ --wall-cell:88px; --wall-gap:14px; } }
+@media (max-width:640px){ .wall-grid{ --wall-cell:76px; --wall-gap:11px; padding:16px 0 44px; } }
+
+/* the grid item — purely a positioning slot. It carries the grid
+   span, the random jitter, and (when a Figure is removed) the FLIP
+   reflow transform, all kept separate from the visible card's own
+   idle-float animation so the two transforms never fight each other. */
+.figure-slot{
+  position:relative;
+  transform:translate(var(--jx,0), var(--jy,0));
+}
+.figure-slot .figure-card{ position:absolute; inset:0; width:100%; height:100%; }
 
 /* ---------- a single Figure ---------- */
 .figure-card{
   position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; padding:16px; cursor:pointer; border:none; text-decoration:none;
+  text-align:center; padding:10px; cursor:pointer; border:none; text-decoration:none; overflow:hidden;
   box-shadow:0 6px 18px rgba(43,36,28,.06);
   transition:box-shadow var(--dur-fast) var(--ease);
-  animation:figure-float var(--fdur,9s) ease-in-out var(--fdelay,0s) infinite alternate;
-  /* Figure sizing (grid-column/grid-row) is computed per-Figure in
-     JS from how much text + formatting it holds — see
-     figureCardHTML()/fitFigureCard() — so it's set inline, not here.
-     CSS Grid guarantees whatever size is chosen can never collide
-     with another Figure. */
+  animation:figure-float var(--fdur,6.3s) ease-in-out var(--fdelay,0s) infinite alternate;
+  /* Figure sizing lives on the parent .figure-slot (grid-column/row),
+     computed per-Figure in JS from how much text it holds — see
+     figureCardHTML()/fitFigureCard() — so CSS Grid guarantees
+     whatever size is chosen can never collide with another Figure. */
   touch-action:manipulation;       /* stop double/triple taps from also zooming the page */
   -webkit-tap-highlight-color:transparent; tap-highlight-color:transparent; /* no blue flash on tap */
   -webkit-user-select:none; user-select:none; /* rapid tapping shouldn't select text */
@@ -381,13 +389,17 @@ body{
 @keyframes figure-float{ from{ transform:translate(0,0); } to{ transform:translate(var(--fx,3px), var(--fy,-4px)); } }
 
 /* shapes — a light identity (radius/character) only; actual size
-   (grid-column/grid-row span) is computed dynamically in JS from
-   content length, never hardcoded per shape. */
-.figure-card.shape-circle{ border-radius:999px; }
-.figure-card.shape-square{ border-radius:22px; }
-.figure-card.shape-rounded{ border-radius:30px; }
-.figure-card.shape-wide{ border-radius:26px; }
-.figure-card.shape-tall{ border-radius:26px; }
+   (grid-column/grid-row span, on the parent .figure-slot) is computed
+   dynamically in JS from content length, never hardcoded per shape.
+   Circle/square get extra, *percentage-based* padding so text always
+   sits inside the inscribed circle rather than poking past its edge
+   at any size — this is what keeps it looking like a true circle on
+   small mobile cells instead of spilling text past the curve. */
+.figure-card.shape-circle{ border-radius:999px; padding:22%; }
+.figure-card.shape-square{ border-radius:18%; padding:14%; }
+.figure-card.shape-rounded{ border-radius:26px; }
+.figure-card.shape-wide{ border-radius:22px; }
+.figure-card.shape-tall{ border-radius:22px; }
 
 /* curated colours — each sits slightly brighter than the wall bg */
 .figure-card.color-sage{ background:var(--fig-sage); color:var(--fig-sage-ink); }
@@ -402,14 +414,26 @@ body{
 /* The full Figure is always shown — no truncation. white-space:pre-wrap
    keeps manually-typed line breaks and repeated spaces exactly as
    written. fitFigureCard() (in the script) grows the card's row span
-   after render if this content is still taller than the space it was
-   given, so nothing is ever clipped and nothing ever overlaps. */
+   (and, for circle/square, column span too, to stay a true circle/
+   square) after render if this content is still taller than the
+   space it was given, so nothing is ever clipped and nothing ever
+   overlaps. */
 .figure-text{
+  position:relative;
   font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.36;
-  white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; width:100%;
+  white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;
 }
 .figure-text hr.fig-hr{ border:none; border-top:1.5px solid currentColor; opacity:.35; margin:6px 0; width:60%; }
 .figure-text span.fig-vr{ display:inline-block; width:0; height:.9em; border-left:1.5px solid currentColor; opacity:.35; margin:0 5px; vertical-align:middle; }
+
+/* Rich Figures (written in the drag-to-place editor) render as an
+   absolutely-positioned mini-canvas that exactly mirrors the editor —
+   every block keeps the %-based left/top/width the author dragged it
+   to, so what they saw while writing is exactly what's pinned. */
+.fig-canvas-abs{ position:absolute; inset:0; }
+.fig-canvas-abs .fig-text-block{ position:absolute; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; }
+.fig-canvas-abs .fig-hr-abs{ position:absolute; height:0; border-top:1.5px solid currentColor; opacity:.4; }
+.fig-canvas-abs .fig-vr-abs{ position:absolute; width:0; border-left:1.5px solid currentColor; opacity:.4; }
 
 /* subtle author-only pin — never shown to anyone else */
 .figure-pin{
@@ -487,16 +511,65 @@ body{
 }
 .wf-toolbar select:hover, .wf-toolbar button:hover{ border-color:var(--orange); color:var(--orange-deep); }
 .wf-toolbar .wf-tb-hint{ width:100%; font-size:.72rem; color:var(--ink-faint); margin-top:-2px; }
-
-/* the editable card itself — same shape/colour/animation classes as
-   a real Figure, sized generously for comfortable typing. */
-.wf-editor-wrap{ display:flex; justify-content:center; padding:6px 0; }
-.wf-editor{
-  width:100%; max-width:340px; min-height:170px; display:flex; align-items:center; justify-content:center;
-  padding:24px; box-shadow:0 8px 22px rgba(43,36,28,.08); animation:none !important;
+.wf-textcolor-row{ display:flex; gap:6px; align-items:center; padding:2px 4px; border:1.5px solid var(--line); border-radius:10px; }
+.wf-textcolor-opt{
+  width:20px; height:20px; border-radius:50%; border:2px solid transparent; padding:0; flex-shrink:0;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
-.wf-editor .figure-text{ outline:none; min-height:1.4em; cursor:text; }
-.wf-editor .figure-text:empty:before{ content:attr(data-placeholder); opacity:.45; }
+.wf-textcolor-opt.is-selected{ border-color:var(--ink); transform:scale(1.15); }
+.wf-textcolor-opt[data-textcolor="#FFFFFF"]{ box-shadow:inset 0 0 0 1px var(--line); }
+
+/* ---------- the writing canvas: exactly the shape being published,
+   nothing here can be dragged outside it — see clampToCanvas() in the
+   script — so the figure you see here is, pixel for pixel, the figure
+   that gets pinned. ---------- */
+.wf-editor-wrap{ display:flex; justify-content:center; padding:6px 0; }
+.wf-editor-canvas{
+  position:relative; box-shadow:0 8px 22px rgba(43,36,28,.08); overflow:hidden;
+  touch-action:none; /* this area is a drag surface, not a scroll/zoom surface */
+}
+.wf-editor-canvas.shape-circle{ border-radius:999px; }
+.wf-editor-canvas.shape-square{ border-radius:18%; }
+.wf-editor-canvas.shape-rounded{ border-radius:26px; }
+.wf-editor-canvas.shape-wide{ border-radius:22px; }
+.wf-editor-canvas.shape-tall{ border-radius:22px; }
+
+.wf-editor-canvas .fig-text-block{
+  position:absolute; cursor:text; padding:2px 4px; border-radius:4px;
+  font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.36;
+  white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;
+  outline:none;
+}
+.wf-editor-canvas .fig-text-block:focus, .wf-editor-canvas .fig-text-block.is-active{ box-shadow:0 0 0 1.5px dashed rgba(0,0,0,.25); }
+.wf-editor-canvas .fig-text-block:empty:before{ content:attr(data-placeholder); opacity:.45; }
+.fig-drag-handle{
+  position:absolute; top:-11px; left:-11px; width:22px; height:22px; border-radius:50%;
+  background:var(--ink); color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center;
+  cursor:grab; opacity:0; transition:opacity .15s var(--ease); touch-action:none; z-index:5;
+}
+.wf-editor-canvas .fig-text-block:focus .fig-drag-handle, .wf-editor-canvas .fig-text-block.is-active .fig-drag-handle, .wf-editor-canvas .fig-text-block:hover .fig-drag-handle{ opacity:1; }
+.fig-drag-handle:active{ cursor:grabbing; }
+.fig-text-remove{
+  position:absolute; top:-11px; right:-11px; width:20px; height:20px; border-radius:50%;
+  background:#B3432B; color:#fff; font-size:12px; line-height:20px; text-align:center; padding:0;
+  opacity:0; transition:opacity .15s var(--ease); z-index:5;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.wf-editor-canvas .fig-text-block:focus .fig-text-remove, .wf-editor-canvas .fig-text-block.is-active .fig-text-remove, .wf-editor-canvas .fig-text-block:hover .fig-text-remove{ opacity:1; }
+
+.wf-editor-canvas .fig-hr-abs, .wf-editor-canvas .fig-vr-abs{
+  position:absolute; cursor:grab; touch-action:none;
+}
+.wf-editor-canvas .fig-hr-abs{ height:6px; margin-top:-3px; }
+.wf-editor-canvas .fig-hr-abs::before{ content:''; position:absolute; left:0; right:0; top:50%; border-top:1.5px solid currentColor; opacity:.5; }
+.wf-editor-canvas .fig-vr-abs{ width:6px; margin-left:-3px; }
+.wf-editor-canvas .fig-vr-abs::before{ content:''; position:absolute; top:0; bottom:0; left:50%; border-left:1.5px solid currentColor; opacity:.5; }
+.wf-editor-canvas .fig-hr-abs:hover::before, .wf-editor-canvas .fig-vr-abs:hover::before{ opacity:.9; }
+.wf-editor-canvas .fig-hr-abs .fig-line-remove, .wf-editor-canvas .fig-vr-abs .fig-line-remove{
+  position:absolute; top:-9px; right:-9px; width:18px; height:18px; border-radius:50%;
+  background:#B3432B; color:#fff; font-size:11px; line-height:18px; text-align:center; opacity:0; transition:opacity .15s var(--ease);
+}
+.wf-editor-canvas .fig-hr-abs:hover .fig-line-remove, .wf-editor-canvas .fig-vr-abs:hover .fig-line-remove{ opacity:1; }
 
 /* ---------- figure detail / author-analytics modal ---------- */
 .figure-detail-body{
@@ -1037,7 +1110,7 @@ body{
       <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
     <h2 id="figure-publish-title">Pin a Figure</h2>
-    <p class="modal-sub">Pick a shape and colour, then write straight into it — it lives for 24 hours, then quietly disappears.</p>
+    <p class="modal-sub">Pick a shape and colour, write inside it, then drag the text or a line wherever you like — exactly what you see here is what gets pinned.</p>
 
     <form id="figure-publish-form">
       <div class="wf-field" style="margin-top:0;">
@@ -1064,15 +1137,15 @@ body{
           <option value="1.2rem">Large</option>
           <option value="1.5rem">Extra large</option>
         </select>
-        <button type="button" id="fp-insert-hline">— Horizontal line</button>
-        <button type="button" id="fp-insert-vline">| Vertical line</button>
-        <span class="wf-tb-hint">Select some words first, then pick a font or size to apply it just to them.</span>
+        <button type="button" id="fp-insert-hline">— Add horizontal line</button>
+        <button type="button" id="fp-insert-vline">| Add vertical line</button>
+        <button type="button" id="fp-add-text">+ Add text block</button>
+        <div class="wf-textcolor-row" id="fp-textcolor-row" role="group" aria-label="Text colour"></div>
+        <span class="wf-tb-hint">Add as many text blocks as you like — each one is independent. Click into one, select some words, then pick a font/size/colour to style just those. Drag the ⠿ handle to move a block; drag a line directly to reposition it.</span>
       </div>
 
       <div class="wf-editor-wrap">
-        <div class="wf-editor figure-card shape-rounded color-sage" id="fp-editor-card">
-          <p class="figure-text" id="fp-editor" contenteditable="true" data-placeholder="Write your Figure here — 40 words or less…" aria-label="Figure text"></p>
-        </div>
+        <div class="wf-editor-canvas shape-rounded color-sage" id="fp-canvas"></div>
       </div>
       <div style="text-align:right; margin-top:8px;"><span class="wf-count" id="fp-count">0 / 40 words</span></div>
 
@@ -1343,8 +1416,9 @@ async function signOutUser(){
    Table: wall_figures (+ wall_figure_likes for persistent likes, and
    the wall_figure_send_heart() RPC for ephemeral heart reactions).
    `body` is the plain-text version (word-count/validation, fallback
-   render). `body_html` is the sanitized rich version — line breaks,
-   dividers, per-word font/size — rendered as-is when present.
+   render). `body_html` holds the sanitized drag-canvas layout — every
+   block's exact %-position/size/font, so what the author saw while
+   writing is exactly what's pinned.
    ================================================================== */
 const FIGURE_WORD_LIMIT = 40;
 function wordCountOf(text){
@@ -1360,14 +1434,14 @@ const FIGURE_SHAPES = [
   { key:'tall',    label:'Tall panel' }
 ];
 const FIGURE_COLORS = [
-  { key:'sage',     label:'Light olive green', swatch:'#E3EBD7' },
-  { key:'sky',      label:'Soft blue',         swatch:'#DCEDF6' },
-  { key:'lavender', label:'Muted lavender',    swatch:'#E9E3F5' },
-  { key:'butter',   label:'Soft yellow',       swatch:'#FBF0CE' },
-  { key:'peach',    label:'Peach',             swatch:'#FAE2D2' },
-  { key:'sand',     label:'Warm beige',        swatch:'#F1E5D2' },
-  { key:'blossom',  label:'Pale pink',         swatch:'#F8DDE5' },
-  { key:'fog',      label:'Pale fog',          swatch:'#E6ECEE' }
+  { key:'sage',     label:'Light olive green', swatch:'#C7D8B0' },
+  { key:'sky',      label:'Soft blue',         swatch:'#B4DBEF' },
+  { key:'lavender', label:'Muted lavender',    swatch:'#D1C1EC' },
+  { key:'butter',   label:'Soft yellow',       swatch:'#F1DC8B' },
+  { key:'peach',    label:'Peach',             swatch:'#F1C096' },
+  { key:'sand',     label:'Warm beige',        swatch:'#E2CA9D' },
+  { key:'blossom',  label:'Pale pink',         swatch:'#EFBDD0' },
+  { key:'fog',      label:'Pale fog',          swatch:'#C3D0D4' }
 ];
 /* Cycled through on rapid repeat-taps (see handleWallTap). */
 const HEART_REACTIONS = [
@@ -1380,8 +1454,35 @@ const HEART_REACTIONS = [
   { emoji:'🤍', hex:'170,160,150' },
   { emoji:'🤎', hex:'169,121,90' }
 ];
+/* Text-colour swatches offered in the writing toolbar — every value
+   here is also in RICH_ALLOWED_TEXT_COLORS, which is what the
+   sanitizer actually enforces on both save and render. */
+const FIGURE_TEXT_COLORS = [
+  { key:'#2B241C', label:'Ink' },
+  { key:'#5A4632', label:'Umber' },
+  { key:'#7A4222', label:'Rust' },
+  { key:'#78334E', label:'Plum' },
+  { key:'#234F6A', label:'Deep blue' },
+  { key:'#3E4A2C', label:'Forest' },
+  { key:'#493C70', label:'Violet' },
+  { key:'#B3432B', label:'Brick' },
+  { key:'#F1631B', label:'Aspinora orange' },
+  { key:'#FFFFFF', label:'White' }
+];
+/* Every shape has one fixed width:height ratio. Grid tracks are a
+   fixed pixel size (not stretchy), so an integer col×row span in this
+   exact ratio is *always* that exact pixel ratio — which is what lets
+   "circle" stay a true circle at any size, and lets the editor canvas
+   (built with the same ratio, just a different absolute scale) map
+   %-based positions onto the wall with zero distortion. */
+const SHAPE_ASPECT = { circle:[1,1], square:[1,1], rounded:[2,1], wide:[3,1], tall:[1,2] };
+
 function figureShapeOf(key){ return FIGURE_SHAPES.find(function(s){ return s.key === key; }) || FIGURE_SHAPES[2]; }
 function figureColorOf(key){ return FIGURE_COLORS.find(function(c){ return c.key === key; }) || FIGURE_COLORS[0]; }
+function figureGridSpan(shapeKey){
+  const a = SHAPE_ASPECT[shapeKey] || SHAPE_ASPECT.rounded;
+  return { col:a[0], row:a[1] };
+}
 
 function normalizeFigureRow(row){
   if (row.profiles){
@@ -1432,9 +1533,8 @@ async function toggleFigureLike(figureId){
   return !already;
 }
 
-/* Idempotent: only ever adds a like, never removes one. Used by the
-   double-tap gesture — "double tap = 1 like", not a toggle. Unliking
-   only happens via the explicit Like button. */
+/* Idempotent: only ever adds a like, never removes one — "double tap
+   = 1 like", not a toggle. Unliking only happens via the Like button. */
 async function likeFigureIfNeeded(figureId){
   if (state.likedFigureIds.has(figureId)) return false;
   await toggleFigureLike(figureId);
@@ -1460,63 +1560,97 @@ async function deleteFigureRow(figureId){
 }
 
 /* ------------------------------------------------------------------
-   RICH TEXT: a tiny whitelist sanitizer. Only <br>, <hr class="fig-hr">,
-   <span class="fig-vr"> (dividers) and <span style="font-family:…;
-   font-size:…"> survive; every other tag is unwrapped (its own text
-   kept) except script/style/iframe-type tags, which are dropped
-   entirely along with their content. Runs both before we store a
-   Figure and again right before we render anyone else's, so a
-   tampered payload (e.g. edited in devtools before submit) can never
-   reach another user's page as live markup.
+   RICH CONTENT — a tiny whitelist sanitizer. The only shapes allowed
+   through are exactly what the editor itself can produce: one
+   .fig-text-block (left/top/width %, plus <br> and <span style=
+   "font-family/font-size"> inside it) and any number of .fig-hr-abs /
+   .fig-vr-abs dividers (left/top/width or left/top/height %). Every
+   other tag/attribute is stripped, so a payload tampered with in
+   devtools before submit can never reach another user's page as live
+   markup. Runs both before we store a Figure and again right before
+   we render anyone else's.
    ------------------------------------------------------------------ */
 const RICH_ALLOWED_FONTS = ['var(--font-display)','var(--font-body)','var(--font-mono)'];
 const RICH_SIZE_RE = /^\d+(\.\d+)?(px|rem|em)$/;
-const RICH_DANGEROUS_TAGS = ['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','svg','IMG'];
-function sanitizeRichHTML(html){
+const RICH_ALLOWED_TEXT_COLORS = ['#2B241C','#5A4632','#7A4222','#78334E','#234F6A','#3E4A2C','#493C70','#B3432B','#F1631B','#FFFFFF'];
+const RICH_PCT_RE = /^-?\d+(\.\d+)?%$/;
+const RICH_DANGEROUS_TAGS = ['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','IMG','SVG'];
+
+function readPosStyle(styleText, props){
+  let out = '';
+  props.forEach(function(p){
+    const re = new RegExp(p + ':\\s*([^;]+)', 'i');
+    const m = re.exec(styleText || '');
+    if (m && RICH_PCT_RE.test(m[1].trim())) out += p + ':' + m[1].trim() + ';';
+  });
+  return out;
+}
+function sanitizeInlineTextHTML(html){
   const container = document.createElement('div');
   container.innerHTML = html || '';
-  sanitizeNode(container);
-  return container.innerHTML;
-}
-function sanitizeNode(parent){
-  const kids = Array.prototype.slice.call(parent.childNodes);
-  kids.forEach(function(node){
-    if (node.nodeType === Node.TEXT_NODE) return;
-    if (node.nodeType !== Node.ELEMENT_NODE){ parent.removeChild(node); return; }
-    const tag = node.tagName;
-    if (RICH_DANGEROUS_TAGS.indexOf(tag) !== -1){ parent.removeChild(node); return; }
-    if (tag === 'BR'){
-      Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
-      return;
-    }
-    if (tag === 'HR'){
-      Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
-      node.className = 'fig-hr';
-      return;
-    }
-    if (tag === 'SPAN'){
-      const isVr = node.classList.contains('fig-vr');
-      const style = node.getAttribute('style') || '';
-      const fam = /font-family:\s*([^;]+)/i.exec(style);
-      const size = /font-size:\s*([^;]+)/i.exec(style);
-      Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
-      if (isVr){
-        node.className = 'fig-vr';
-        node.textContent = ''; // purely decorative, never carries text
-      } else {
+  (function walk(parent){
+    Array.prototype.slice.call(parent.childNodes).forEach(function(node){
+      if (node.nodeType === Node.TEXT_NODE) return;
+      if (node.nodeType !== Node.ELEMENT_NODE){ parent.removeChild(node); return; }
+      const tag = node.tagName;
+      if (RICH_DANGEROUS_TAGS.indexOf(tag) !== -1){ parent.removeChild(node); return; }
+      if (tag === 'BR'){
+        Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
+        return;
+      }
+      if (tag === 'SPAN'){
+        const style = node.getAttribute('style') || '';
+        const fam = /font-family:\s*([^;]+)/i.exec(style);
+        const size = /font-size:\s*([^;]+)/i.exec(style);
+        const col = /(?:^|;)\s*color:\s*([^;]+)/i.exec(style);
+        Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
         let newStyle = '';
         if (fam && RICH_ALLOWED_FONTS.indexOf(fam[1].trim()) !== -1) newStyle += 'font-family:' + fam[1].trim() + ';';
         if (size && RICH_SIZE_RE.test(size[1].trim())) newStyle += 'font-size:' + size[1].trim() + ';';
+        if (col && RICH_ALLOWED_TEXT_COLORS.indexOf(col[1].trim().toUpperCase()) !== -1) newStyle += 'color:' + col[1].trim() + ';';
         if (newStyle) node.setAttribute('style', newStyle);
-        sanitizeNode(node);
+        walk(node);
+        return;
       }
-      return;
+      // Any other inline tag: unwrap it, keep its sanitized content.
+      walk(node);
+      while (node.firstChild) parent.insertBefore(node.firstChild, node);
+      parent.removeChild(node);
+    });
+  })(container);
+  return container.innerHTML;
+}
+function sanitizeRichHTML(html){
+  const container = document.createElement('div');
+  container.innerHTML = html || '';
+  const source = container.querySelector('.fig-canvas-abs') || container;
+  const out = document.createElement('div');
+  out.className = 'fig-canvas-abs';
+  Array.prototype.slice.call(source.children).forEach(function(node){
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    if (node.classList.contains('fig-text-block')){
+      const clean = document.createElement('div');
+      clean.className = 'fig-text-block';
+      const pos = readPosStyle(node.getAttribute('style'), ['left','top','width']);
+      if (pos) clean.setAttribute('style', pos);
+      clean.innerHTML = sanitizeInlineTextHTML(node.innerHTML);
+      out.appendChild(clean);
+    } else if (node.classList.contains('fig-hr-abs')){
+      const clean = document.createElement('div');
+      clean.className = 'fig-hr-abs';
+      const pos = readPosStyle(node.getAttribute('style'), ['left','top','width']);
+      if (pos) clean.setAttribute('style', pos);
+      out.appendChild(clean);
+    } else if (node.classList.contains('fig-vr-abs')){
+      const clean = document.createElement('div');
+      clean.className = 'fig-vr-abs';
+      const pos = readPosStyle(node.getAttribute('style'), ['left','top','height']);
+      if (pos) clean.setAttribute('style', pos);
+      out.appendChild(clean);
     }
-    // Any other tag: unwrap it, keeping its (recursively sanitized) content.
-    sanitizeNode(node);
-    while (node.firstChild) parent.insertBefore(node.firstChild, node);
-    parent.removeChild(node);
+    // anything else at the top level is dropped entirely
   });
+  return out.outerHTML;
 }
 
 function seedFromId(id){
@@ -1524,32 +1658,6 @@ function seedFromId(id){
   const s = String(id || '');
   for (let i=0;i<s.length;i++){ h = (h * 31 + s.charCodeAt(i)) >>> 0; }
   return h;
-}
-
-/* ------------------------------------------------------------------
-   SIZING — a Figure's grid footprint scales with how much it holds
-   (words + explicit line breaks/dividers), then fitFigureCard() below
-   grows it further after real layout if it's still not enough. Since
-   this only ever *adds* grid tracks to that one card, CSS Grid's own
-   placement guarantees no two Figures can ever occupy the same cell.
-   ------------------------------------------------------------------ */
-function figureSizeScore(fig){
-  const words = wordCountOf(fig.body);
-  const breaks = (fig.body_html || '').split(/<br\s*\/?>/i).length - 1
-    + (fig.body_html || '').split(/<hr/i).length - 1;
-  return words + breaks * 4;
-}
-function figureBaseSpan(shapeKey, score){
-  const tier = score <= 8 ? 0 : score <= 16 ? 1 : score <= 28 ? 2 : 3;
-  const table = {
-    circle:  [[1,1],[2,2],[3,3],[3,4]],
-    square:  [[1,1],[2,2],[3,3],[3,4]],
-    rounded: [[2,1],[2,2],[3,2],[3,3]],
-    wide:    [[3,1],[3,2],[4,2],[4,3]],
-    tall:    [[1,2],[2,3],[2,4],[2,5]]
-  };
-  const cols = (table[shapeKey] || table.rounded)[tier];
-  return { col: cols[0], row: cols[1] };
 }
 
 function figureCardHTML(fig){
@@ -1560,40 +1668,87 @@ function figureCardHTML(fig){
   const seed = seedFromId(fig.id);
   const fx = 3 + (seed % 6);
   const fy = 3 + ((seed >> 4) % 7);
-  const fdur = 7 + (seed % 5);
+  const fdur = ((7 + (seed % 5)) * 0.7).toFixed(2); // 30% faster than the original 7–11s range
   const fdelay = -((seed >> 2) % 6);
-  const span = figureBaseSpan(shape.key, figureSizeScore(fig));
-  const style = '--fx:' + fx + 'px; --fy:-' + fy + 'px; --fdur:' + fdur + 's; --fdelay:' + fdelay + 's; ' +
-    'grid-column:span ' + span.col + '; grid-row:span ' + span.row + ';';
-  const textHTML = fig.body_html ? sanitizeRichHTML(fig.body_html) : escapeHtml(fig.body).replace(/\n/g, '<br>');
-  return '<article class="figure-card shape-' + shape.key + ' color-' + color.key + '" data-figure-id="' + fig.id + '" data-row-span="' + span.row + '" tabindex="0" role="button" aria-label="Open Figure" style="' + style + '">' +
-    (isOwn ? '<span class="figure-pin" title="Your Figure — only you see this"></span>' : '') +
-    '<p class="figure-text">' + textHTML + '</p>' +
-    '<span class="figure-actions">' +
-      '<button type="button" class="figure-like-btn' + (liked ? ' is-liked' : '') + '" data-figure-like="' + fig.id + '" aria-label="Like this Figure">' + (liked ? '❤️' : '🤍') + ' <span data-like-count>' + fig.likes_count + '</span></button>' +
-    '</span>' +
-  '</article>';
+  /* Small bounded jitter so the wall doesn't read as a rigid grid.
+     Capped well under half the smallest gap (11px on mobile) so two
+     neighbouring Figures can visually never actually touch. */
+  const jx = (seed % 11) - 5;
+  const jy = (((seed >> 6) % 11) - 5);
+  const span = figureGridSpan(shape.key);
+  const isRich = !!fig.body_html;
+  const slotStyle = '--fx:' + fx + 'px; --fy:-' + fy + 'px; --fdur:' + fdur + 's; --fdelay:' + fdelay + 's; ' +
+    '--jx:' + jx + 'px; --jy:' + jy + 'px; grid-column:span ' + span.col + '; grid-row:span ' + span.row + ';';
+  const textHTML = isRich ? sanitizeRichHTML(fig.body_html) : escapeHtml(fig.body).replace(/\n/g, '<br>');
+  const textStyle = isRich ? ' style="width:100%;height:100%;"' : '';
+  return '<div class="figure-slot" data-figure-id="' + fig.id + '" data-rich="' + (isRich ? '1' : '0') + '" data-col-span="' + span.col + '" data-row-span="' + span.row + '" style="' + slotStyle + '">' +
+    '<article class="figure-card shape-' + shape.key + ' color-' + color.key + '" tabindex="0" role="button" aria-label="Open Figure">' +
+      (isOwn ? '<span class="figure-pin" title="Your Figure — only you see this"></span>' : '') +
+      '<p class="figure-text"' + textStyle + '>' + textHTML + '</p>' +
+      '<span class="figure-actions">' +
+        '<button type="button" class="figure-like-btn' + (liked ? ' is-liked' : '') + '" data-figure-like="' + fig.id + '" aria-label="Like this Figure">' + (liked ? '❤️' : '🤍') + ' <span data-like-count>' + fig.likes_count + '</span></button>' +
+      '</span>' +
+    '</article>' +
+  '</div>';
 }
 
-/* Safety net: if the estimated span still isn't tall enough for the
-   actual rendered content (long words, big custom font sizes, extra
-   dividers…), grow the row span until it fits — capped, so a single
-   Figure can never grow without bound. Never touches column span or
-   any other card, so it can't cause a collision. */
-function fitFigureCard(cardEl){
-  if (!cardEl) return;
-  const maxRow = 8;
-  let rows = parseInt(cardEl.getAttribute('data-row-span') || '1', 10);
+/* Defensive-only: plain-text fallback Figures (no authored drag
+   canvas — e.g. a row saved without body_html) have no fixed layout
+   to preserve, so it's safe to grow them if the text doesn't fit yet.
+   Rich Figures are never touched here — their canvas is exactly what
+   the author designed, at exactly the aspect ratio they saw. */
+function fitFigureCard(slotEl){
+  if (!slotEl || slotEl.getAttribute('data-rich') === '1') return;
+  const card = slotEl.querySelector('.figure-card');
+  if (!card) return;
+  const isSquareish = card.classList.contains('shape-circle') || card.classList.contains('shape-square');
+  const maxSpan = 6;
+  let col = parseInt(slotEl.getAttribute('data-col-span') || '1', 10);
+  let row = parseInt(slotEl.getAttribute('data-row-span') || '1', 10);
   let guard = 0;
-  while (cardEl.scrollHeight > cardEl.clientHeight + 2 && rows < maxRow && guard < 10){
-    rows++;
-    cardEl.style.gridRowEnd = 'span ' + rows;
-    cardEl.setAttribute('data-row-span', String(rows));
+  while (card.scrollHeight > card.clientHeight + 2 && row < maxSpan && guard < 10){
+    row++;
+    if (isSquareish) col = row;
+    slotEl.style.gridColumnEnd = 'span ' + col;
+    slotEl.style.gridRowEnd = 'span ' + row;
+    slotEl.setAttribute('data-col-span', String(col));
+    slotEl.setAttribute('data-row-span', String(row));
     guard++;
   }
 }
 function fitAllFigureCards(){
-  qsa('.figure-card', qs('#wall-grid')).forEach(fitFigureCard);
+  qsa('.figure-slot', qs('#wall-grid')).forEach(fitFigureCard);
+}
+
+/* ---------- FLIP reflow: when a Figure leaves, the ones below slide
+   smoothly up into the gap instead of the wall just snapping into a
+   new layout with a hole in it. ---------- */
+function captureSlotRects(){
+  const map = {};
+  qsa('.figure-slot', qs('#wall-grid')).forEach(function(el){
+    map[el.getAttribute('data-figure-id')] = el.getBoundingClientRect();
+  });
+  return map;
+}
+function playFlip(beforeRects){
+  requestAnimationFrame(function(){
+    qsa('.figure-slot', qs('#wall-grid')).forEach(function(el){
+      const id = el.getAttribute('data-figure-id');
+      const before = beforeRects[id];
+      if (!before) return;
+      const after = el.getBoundingClientRect();
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      el.style.transition = 'none';
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      void el.offsetWidth; // force the browser to apply the jump before animating away from it
+      requestAnimationFrame(function(){
+        el.style.transition = 'transform 460ms cubic-bezier(.22,1,.36,1)';
+        el.style.transform = '';
+      });
+    });
+  });
 }
 
 let wallPruneTimer = null, wallRefreshTimer = null, wallChannel = null;
@@ -1606,15 +1761,30 @@ function stopWallView(){
   if (wallChannel && supabaseClient){ supabaseClient.removeChannel(wallChannel); wallChannel = null; }
 }
 
+/* Expired Figures fade out, then the rest FLIP smoothly into the gap
+   — never left blank. */
 function pruneExpiredFigures(){
   const now = Date.now();
   const stillLive = [];
+  const expiring = [];
   state.wallFigures.forEach(function(fig){
     if (new Date(fig.expires_at).getTime() > now){ stillLive.push(fig); return; }
-    const el = qs('[data-figure-id="' + fig.id + '"]');
-    if (el){ el.classList.add('is-leaving'); setTimeout(function(){ el.remove(); }, 420); }
+    expiring.push(fig.id);
   });
   state.wallFigures = stillLive;
+  if (!expiring.length) return;
+  expiring.forEach(function(id){
+    const el = qs('.figure-slot[data-figure-id="' + id + '"]');
+    if (el) el.classList.add('is-leaving');
+  });
+  setTimeout(function(){
+    const before = captureSlotRects();
+    expiring.forEach(function(id){
+      const el = qs('.figure-slot[data-figure-id="' + id + '"]');
+      if (el) el.remove();
+    });
+    playFlip(before);
+  }, 390);
 }
 
 function initWallRealtime(){
@@ -1624,7 +1794,7 @@ function initWallRealtime(){
     const payload = msg.payload || {};
     const fig = state.wallFigures.find(function(f){ return f.id === payload.figureId; });
     if (fig) fig.hearts_count++;
-    const card = qs('[data-figure-id="' + payload.figureId + '"]');
+    const card = qs('.figure-slot[data-figure-id="' + payload.figureId + '"] .figure-card');
     if (card) triggerFigureReaction(card, payload.emoji, payload.hex);
     if (fig && state.openFigureDetailId === payload.figureId) renderFigureAnalytics(fig);
   }).subscribe();
@@ -1633,12 +1803,17 @@ function initWallRealtime(){
 async function renderWallView(){
   const grid = qs('#wall-grid');
   if (!grid) return;
+  const isRefresh = grid.children.length > 0;
+  const before = isRefresh ? captureSlotRects() : null;
   stopWallView();
   try{
     state.wallFigures = await fetchWallFigures();
     grid.innerHTML = state.wallFigures.length ? state.wallFigures.map(figureCardHTML).join('') :
       '<div class="empty-state" style="grid-column:1/-1;"><p>The Wall is quiet right now — be the first to pin a Figure.</p></div>';
-    requestAnimationFrame(fitAllFigureCards);
+    requestAnimationFrame(function(){
+      fitAllFigureCards();
+      if (before) playFlip(before);
+    });
   }catch(e){ grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">Couldn\'t load the Wall right now.</p>'; }
   wallPruneTimer = setInterval(pruneExpiredFigures, 30000);
   wallRefreshTimer = setInterval(function(){ renderWallView(); }, 90000);
@@ -1739,12 +1914,19 @@ function renderFigureAnalytics(fig){
 }
 
 async function deleteFigureNow(figureId){
-  const card = qs('[data-figure-id="' + figureId + '"]');
+  const slot = qs('.figure-slot[data-figure-id="' + figureId + '"]');
   closeModal('figure-detail-modal-scrim');
   try{
     await deleteFigureRow(figureId);
     state.wallFigures = state.wallFigures.filter(function(f){ return f.id !== figureId; });
-    if (card){ card.classList.add('is-leaving'); setTimeout(function(){ card.remove(); }, 420); }
+    if (slot){
+      slot.classList.add('is-leaving');
+      setTimeout(function(){
+        const before = captureSlotRects();
+        slot.remove();
+        playFlip(before);
+      }, 390);
+    }
     showToast('Figure deleted.');
   }catch(err){ showToast("Couldn't delete that Figure — please try again."); }
 }
@@ -1757,7 +1939,26 @@ function openFigureDetail(figureId){
   const isOwn = !!(state.currentUser && fig.author_id === state.currentUser.id);
 
   const body = qs('#fd-body');
-  body.innerHTML = fig.body_html ? sanitizeRichHTML(fig.body_html) : escapeHtml(fig.body).replace(/\n/g, '<br>');
+  if (fig.body_html){
+    body.innerHTML = sanitizeRichHTML(fig.body_html);
+    body.style.position = 'relative';
+    const shape = figureShapeOf(fig.shape);
+    const a = SHAPE_ASPECT[shape.key] || SHAPE_ASPECT.rounded;
+    const maxW = 280;
+    let w = maxW, h = maxW * (a[1] / a[0]);
+    if (h > 320){ h = 320; w = h * (a[0] / a[1]); }
+    body.style.width = w + 'px';
+    body.style.height = h + 'px';
+    body.style.margin = '0 auto 18px';
+    body.style.padding = '0';
+    body.style.borderRadius = shape.key === 'circle' ? '999px' : shape.key === 'square' ? '18%' : '22px';
+    body.style.overflow = 'hidden';
+  } else {
+    body.innerHTML = escapeHtml(fig.body).replace(/\n/g, '<br>');
+    body.style.position = '';
+    body.style.width = ''; body.style.height = ''; body.style.margin = ''; body.style.overflow = '';
+    body.style.borderRadius = '22px'; body.style.padding = '24px';
+  }
   body.style.background = 'var(--fig-' + color.key + ')';
   body.style.color = 'var(--fig-' + color.key + '-ink)';
 
@@ -1784,7 +1985,7 @@ function openFigureDetail(figureId){
         toggleFigureLike(fig.id).then(function(nowLiked){
           likeBtn.innerHTML = nowLiked ? '❤️ Liked' : '🤍 Like';
           likeBtn.classList.toggle('is-liked', nowLiked);
-          updateFigureLikeUI(qs('[data-figure-id="' + fig.id + '"]'), fig.id);
+          updateFigureLikeUI(qs('.figure-slot[data-figure-id="' + fig.id + '"] .figure-card'), fig.id);
         }).catch(function(){});
       });
     };
@@ -1809,30 +2010,196 @@ function onWallGridClick(e){
   const card = e.target.closest('.figure-card');
   const grid = qs('#wall-grid');
   if (!card || !grid || !grid.contains(card)) return;
-  handleWallTap(card.getAttribute('data-figure-id'), card);
+  const slot = card.closest('.figure-slot');
+  handleWallTap(slot.getAttribute('data-figure-id'), card);
 }
 document.addEventListener('click', onWallGridClick);
 document.addEventListener('keydown', function(e){
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('figure-card')){
     e.preventDefault();
-    openFigureDetail(e.target.getAttribute('data-figure-id'));
+    const slot = e.target.closest('.figure-slot');
+    if (slot) openFigureDetail(slot.getAttribute('data-figure-id'));
   }
 });
 
 /* ------------------------------------------------------------------
-   PUBLISH — pick shape/colour, then write straight into the actual
-   Figure (contentEditable), with a small toolbar for line breaks,
-   dividers, and per-selection font/size. What's typed is what gets
-   published — no separate preview to keep in sync.
+   PUBLISH — a real drag-and-drop canvas. One text block (type into
+   it, drag it by its ⠿ handle, select words to change their font or
+   size) plus any number of horizontal/vertical lines (drag them
+   directly). Every drag is clamped to the canvas — there is no "off
+   the figure" to place anything, so nothing can ever be pinned
+   outside it. Whatever's visible here is serialized %-based and is
+   exactly what gets rendered on the Wall.
    ------------------------------------------------------------------ */
 let fpState = { shape:'rounded', color:'sage' };
+let fpLineSeq = 0;
 
-function applyStyleToSelection(prop, value){
-  const editor = qs('#fp-editor');
+function editorCanvasSize(shapeKey){
+  const a = SHAPE_ASPECT[shapeKey] || SHAPE_ASPECT.rounded;
+  const unit = 120, maxDim = 240;
+  let w = a[0] * unit, h = a[1] * unit;
+  const scale = Math.min(1, maxDim / Math.max(w, h));
+  return { w: Math.round(w * scale), h: Math.round(h * scale) };
+}
+
+function clampPercent(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+/* Generic drag-within-canvas: works for both the text block (dragged
+   only by its handle) and the line elements (dragged directly).
+   Everything is expressed in the canvas's own percentage coordinates
+   so it publishes exactly as authored regardless of screen size. */
+function makeCanvasDraggable(handleEl, moveTargetEl, canvas, onMove){
+  let dragging = false, startX = 0, startY = 0, startLeftPct = 0, startTopPct = 0;
+  handleEl.addEventListener('pointerdown', function(e){
+    e.preventDefault(); e.stopPropagation();
+    dragging = true;
+    handleEl.setPointerCapture(e.pointerId);
+    const rect = canvas.getBoundingClientRect();
+    const targetRect = moveTargetEl.getBoundingClientRect();
+    startX = e.clientX; startY = e.clientY;
+    startLeftPct = ((targetRect.left - rect.left) / rect.width) * 100;
+    startTopPct = ((targetRect.top - rect.top) / rect.height) * 100;
+  });
+  handleEl.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const dxPct = ((e.clientX - startX) / rect.width) * 100;
+    const dyPct = ((e.clientY - startY) / rect.height) * 100;
+    const targetRect = moveTargetEl.getBoundingClientRect();
+    const wPct = (targetRect.width / rect.width) * 100;
+    const hPct = (targetRect.height / rect.height) * 100;
+    const left = clampPercent(startLeftPct + dxPct, 0, Math.max(0, 100 - wPct));
+    const top = clampPercent(startTopPct + dyPct, 0, Math.max(0, 100 - hPct));
+    moveTargetEl.style.left = left + '%';
+    moveTargetEl.style.top = top + '%';
+    if (onMove) onMove();
+  });
+  ['pointerup','pointercancel'].forEach(function(evt){
+    handleEl.addEventListener(evt, function(){ dragging = false; });
+  });
+}
+
+function clampBlockWithinCanvas(block, canvas){
+  const rect = canvas.getBoundingClientRect();
+  const bRect = block.getBoundingClientRect();
+  const wPct = (bRect.width / rect.width) * 100;
+  const hPct = (bRect.height / rect.height) * 100;
+  const leftPct = clampPercent(((bRect.left - rect.left) / rect.width) * 100, 0, Math.max(0, 100 - wPct));
+  const topPct = clampPercent(((bRect.top - rect.top) / rect.height) * 100, 0, Math.max(0, 100 - hPct));
+  block.style.left = leftPct + '%';
+  block.style.top = topPct + '%';
+}
+function clampAllBlocks(canvas){
+  qsa('.fig-text-block', canvas).forEach(function(b){ clampBlockWithinCanvas(b, canvas); });
+}
+
+function buildEditorCanvas(){
+  const canvas = qs('#fp-canvas');
+  const size = editorCanvasSize(fpState.shape);
+  canvas.style.width = size.w + 'px';
+  canvas.style.height = size.h + 'px';
+  canvas.className = 'wf-editor-canvas shape-' + fpState.shape + ' color-' + fpState.color;
+  canvas.innerHTML = '';
+  addTextBlock({ left:10, top:35, width:80 });
+}
+
+/* Every text block is fully independent: its own position, its own
+   words, its own per-selection font/size/colour. Add as many as you
+   like and drag each one wherever it belongs inside the Figure. */
+function addTextBlock(pos){
+  const canvas = qs('#fp-canvas');
+  pos = pos || { left: 20 + (fpTextSeq % 3) * 10, top: 20 + (fpTextSeq % 4) * 12, width: 70 };
+  const block = document.createElement('div');
+  block.className = 'fig-text-block';
+  block.contentEditable = 'true';
+  block.dataset.blockId = 'b' + (++fpTextSeq);
+  block.dataset.placeholder = 'Write here…';
+  block.setAttribute('aria-label', 'Figure text block');
+  block.style.left = pos.left + '%'; block.style.top = pos.top + '%'; block.style.width = pos.width + '%';
+
+  const handle = document.createElement('span');
+  handle.className = 'fig-drag-handle';
+  handle.title = 'Drag to move this text';
+  handle.setAttribute('aria-hidden', 'true');
+  handle.contentEditable = 'false';
+  handle.textContent = '⠿';
+  block.appendChild(handle);
+
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'fig-text-remove';
+  remove.title = 'Remove this text block';
+  remove.textContent = '×';
+  remove.contentEditable = 'false';
+  remove.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+  remove.addEventListener('click', function(e){ e.stopPropagation(); block.remove(); updateFpCount(); });
+  block.appendChild(remove);
+
+  canvas.appendChild(block);
+  makeCanvasDraggable(handle, block, canvas);
+  return block;
+}
+
+/* Sums words across every independent text block — that's what the
+   40-word limit actually applies to. */
+function wordCountAllBlocks(){
+  const canvas = qs('#fp-canvas');
+  let total = 0;
+  qsa('.fig-text-block', canvas).forEach(function(block){
+    const clone = block.cloneNode(true);
+    const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
+    const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
+    total += wordCountOf(clone.innerText);
+  });
+  return total;
+}
+
+function updateFpCount(){
+  const count = qs('#fp-count');
+  const submitBtn = qs('#fp-submit-btn');
+  const n = wordCountAllBlocks();
+  count.textContent = n + ' / ' + FIGURE_WORD_LIMIT + ' words';
+  const over = n > FIGURE_WORD_LIMIT;
+  count.classList.toggle('is-over', over);
+  submitBtn.disabled = over || n === 0;
+}
+
+function insertLineElement(kind){
+  const canvas = qs('#fp-canvas');
+  const el = document.createElement('div');
+  el.className = kind === 'h' ? 'fig-hr-abs' : 'fig-vr-abs';
+  el.dataset.lineId = 'l' + (++fpLineSeq);
+  if (kind === 'h'){ el.style.left = '15%'; el.style.top = (45 + (fpLineSeq % 3) * 5) + '%'; el.style.width = '70%'; }
+  else { el.style.left = (45 + (fpLineSeq % 3) * 5) + '%'; el.style.top = '15%'; el.style.height = '70%'; }
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'fig-line-remove';
+  remove.title = 'Remove this line';
+  remove.textContent = '×';
+  remove.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+  remove.addEventListener('click', function(e){ e.stopPropagation(); el.remove(); });
+  el.appendChild(remove);
+  canvas.appendChild(el);
+  makeCanvasDraggable(el, el, canvas);
+}
+
+/* Applies to whichever text block the current selection is actually
+   inside — there's no single fixed block any more, so this looks it
+   up from the selection itself each time. */
+function activeTextBlockFromSelection(){
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  const node = sel.getRangeAt(0).commonAncestorContainer;
+  const el = node.nodeType === 1 ? node : node.parentElement;
+  return el ? el.closest('.fig-text-block') : null;
+}
+function applyStyleToActiveSelection(prop, value){
   const sel = window.getSelection();
   if (!sel.rangeCount) return;
   const range = sel.getRangeAt(0);
-  if (range.collapsed || !editor.contains(range.commonAncestorContainer)) return;
+  if (range.collapsed) return;
+  const block = activeTextBlockFromSelection();
+  if (!block) return;
   const span = document.createElement('span');
   span.style[prop] = value;
   const frag = range.extractContents();
@@ -1844,127 +2211,152 @@ function applyStyleToSelection(prop, value){
   sel.addRange(after);
 }
 
-function insertAtCursor(node){
-  const editor = qs('#fp-editor');
-  editor.focus();
+function insertBrAtCursor(block){
+  block.focus();
   const sel = window.getSelection();
   let range;
-  if (sel.rangeCount && editor.contains(sel.getRangeAt(0).commonAncestorContainer)){
+  if (sel.rangeCount && block.contains(sel.getRangeAt(0).commonAncestorContainer)){
     range = sel.getRangeAt(0);
   } else {
     range = document.createRange();
-    range.selectNodeContents(editor);
+    range.selectNodeContents(block);
     range.collapse(false);
   }
+  const br = document.createElement('br');
   range.deleteContents();
-  range.insertNode(node);
-  range.setStartAfter(node);
+  range.insertNode(br);
+  range.setStartAfter(br);
   range.collapse(true);
   sel.removeAllRanges();
   sel.addRange(range);
 }
 
-function updateFigureEditorCardStyle(){
-  const card = qs('#fp-editor-card');
-  if (card) card.className = 'wf-editor figure-card shape-' + fpState.shape + ' color-' + fpState.color;
-}
-
 function initFigurePublishForm(){
   const shapeRow = qs('#fp-shape-row');
   const colorRow = qs('#fp-color-row');
+  const textColorRow = qs('#fp-textcolor-row');
   shapeRow.innerHTML = FIGURE_SHAPES.map(function(s){
     return '<button type="button" class="wf-shape-opt shape-' + s.key + (s.key === fpState.shape ? ' is-selected' : '') + '" data-shape="' + s.key + '" aria-label="' + s.label + '" title="' + s.label + '"></button>';
   }).join('');
   colorRow.innerHTML = FIGURE_COLORS.map(function(c){
     return '<button type="button" class="wf-color-opt' + (c.key === fpState.color ? ' is-selected' : '') + '" data-color="' + c.key + '" style="background:' + c.swatch + '" aria-label="' + c.label + '" title="' + c.label + '"></button>';
   }).join('');
+  textColorRow.innerHTML = FIGURE_TEXT_COLORS.map(function(c){
+    return '<button type="button" class="wf-textcolor-opt" data-textcolor="' + c.key + '" style="background:' + c.key + '" aria-label="' + c.label + ' text" title="' + c.label + '"></button>';
+  }).join('');
 
   shapeRow.addEventListener('click', function(e){
     const btn = e.target.closest('[data-shape]'); if (!btn) return;
     fpState.shape = btn.getAttribute('data-shape');
     qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b === btn); });
-    updateFigureEditorCardStyle();
+    resetEditorCanvas();
   });
   colorRow.addEventListener('click', function(e){
     const btn = e.target.closest('[data-color]'); if (!btn) return;
     fpState.color = btn.getAttribute('data-color');
     qsa('.wf-color-opt', colorRow).forEach(function(b){ b.classList.toggle('is-selected', b === btn); });
-    updateFigureEditorCardStyle();
+    const canvas = qs('#fp-canvas');
+    if (canvas) canvas.className = 'wf-editor-canvas shape-' + fpState.shape + ' color-' + fpState.color;
   });
-
-  const editor = qs('#fp-editor');
-  const count = qs('#fp-count');
-  const submitBtn = qs('#fp-submit-btn');
-  function updateCount(){
-    const n = wordCountOf(editor.innerText);
-    count.textContent = n + ' / ' + FIGURE_WORD_LIMIT + ' words';
-    const over = n > FIGURE_WORD_LIMIT;
-    count.classList.toggle('is-over', over);
-    submitBtn.disabled = over || n === 0;
-  }
-  editor.addEventListener('input', updateCount);
-  editor.addEventListener('keydown', function(e){
-    if (e.key === 'Enter'){
-      e.preventDefault();
-      insertAtCursor(document.createElement('br'));
-      updateCount();
-    }
+  textColorRow.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-textcolor]'); if (!btn) return;
+    applyStyleToActiveSelection('color', btn.getAttribute('data-textcolor'));
+    qsa('.wf-textcolor-opt', textColorRow).forEach(function(b){ b.classList.toggle('is-selected', b === btn); });
   });
 
   qs('#fp-font-select').addEventListener('change', function(){
-    if (this.value) applyStyleToSelection('fontFamily', this.value);
+    if (this.value) applyStyleToActiveSelection('fontFamily', this.value);
     this.value = '';
-    editor.focus();
   });
   qs('#fp-size-select').addEventListener('change', function(){
-    if (this.value) applyStyleToSelection('fontSize', this.value);
+    if (this.value) applyStyleToActiveSelection('fontSize', this.value);
     this.value = '';
-    editor.focus();
   });
-  qs('#fp-insert-hline').addEventListener('click', function(){
-    const hr = document.createElement('hr');
-    hr.className = 'fig-hr';
-    insertAtCursor(hr);
-    insertAtCursor(document.createElement('br'));
-    updateCount();
-  });
-  qs('#fp-insert-vline').addEventListener('click', function(){
-    const vr = document.createElement('span');
-    vr.className = 'fig-vr';
-    insertAtCursor(vr);
-    updateCount();
+  qs('#fp-insert-hline').addEventListener('click', function(){ insertLineElement('h'); });
+  qs('#fp-insert-vline').addEventListener('click', function(){ insertLineElement('v'); });
+  qs('#fp-add-text').addEventListener('click', function(){
+    const b = addTextBlock();
+    updateFpCount();
+    setTimeout(function(){ b.focus(); }, 30);
   });
 
   qs('#wall-composer-trigger').addEventListener('click', function(){
     requireAuth('Log in to pin a Figure to the Wall.', function(){
-      editor.innerHTML = '';
       fpState = { shape:'rounded', color:'sage' };
       qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-shape') === 'rounded'); });
       qsa('.wf-color-opt', colorRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-color') === 'sage'); });
-      updateFigureEditorCardStyle();
-      updateCount();
+      qsa('.wf-textcolor-opt', textColorRow).forEach(function(b){ b.classList.remove('is-selected'); });
+      resetEditorCanvas();
       openModal('figure-publish-modal-scrim');
-      setTimeout(function(){ editor.focus(); }, 60);
+      setTimeout(function(){ const b = qs('.fig-text-block'); if (b) b.focus(); }, 60);
     });
   });
   qs('#figure-publish-close').addEventListener('click', function(){ closeModal('figure-publish-modal-scrim'); });
   qs('#figure-publish-cancel').addEventListener('click', function(){ closeModal('figure-publish-modal-scrim'); });
 
+  // Delegated: text blocks/lines are created and removed dynamically
+  // (any number of them), so wire typing/drag behaviour once here
+  // rather than per-element.
+  const canvasWrap = qs('#fp-canvas');
+  canvasWrap.addEventListener('input', function(e){
+    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block')) updateFpCount();
+  });
+  canvasWrap.addEventListener('keydown', function(e){
+    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block') && e.key === 'Enter'){
+      e.preventDefault();
+      insertBrAtCursor(e.target);
+      updateFpCount();
+    }
+  });
+  canvasWrap.addEventListener('focusout', function(e){
+    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block')) clampBlockWithinCanvas(e.target, canvasWrap);
+  });
+
   qs('#figure-publish-form').addEventListener('submit', async function(e){
     e.preventDefault();
-    const plain = editor.innerText.trim();
+    const blocks = qsa('.fig-text-block', canvasWrap);
+    const plainParts = blocks.map(function(block){
+      const clone = block.cloneNode(true);
+      const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
+      const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
+      return clone.innerText.trim();
+    }).filter(Boolean);
+    const plain = plainParts.join(' ');
     const n = wordCountOf(plain);
-    if (!plain || n > FIGURE_WORD_LIMIT){ updateCount(); return; }
+    if (!plain || n > FIGURE_WORD_LIMIT){ updateFpCount(); return; }
+    const submitBtn = qs('#fp-submit-btn');
     submitBtn.disabled = true;
     try{
-      const html = sanitizeRichHTML(editor.innerHTML);
+      clampAllBlocks(canvasWrap);
+      const layout = document.createElement('div');
+      layout.className = 'fig-canvas-abs';
+      blocks.forEach(function(block){
+        const clone = block.cloneNode(true);
+        const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
+        const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
+        const cleanBlock = document.createElement('div');
+        cleanBlock.className = 'fig-text-block';
+        cleanBlock.style.left = block.style.left; cleanBlock.style.top = block.style.top; cleanBlock.style.width = block.style.width;
+        cleanBlock.innerHTML = clone.innerHTML;
+        layout.appendChild(cleanBlock);
+      });
+      qsa('.fig-hr-abs, .fig-vr-abs', canvasWrap).forEach(function(lineEl){
+        const l = document.createElement('div');
+        l.className = lineEl.className.indexOf('fig-hr-abs') !== -1 ? 'fig-hr-abs' : 'fig-vr-abs';
+        l.style.left = lineEl.style.left; l.style.top = lineEl.style.top;
+        if (lineEl.style.width) l.style.width = lineEl.style.width;
+        if (lineEl.style.height) l.style.height = lineEl.style.height;
+        layout.appendChild(l);
+      });
+      const html = sanitizeRichHTML(layout.outerHTML);
       const fig = await publishFigure(plain, html, fpState.shape, fpState.color);
       state.wallFigures.unshift(fig);
       const grid = qs('#wall-grid');
       const empty = grid.querySelector('.empty-state');
       if (empty) empty.remove();
+      const before = captureSlotRects();
       grid.insertAdjacentHTML('afterbegin', figureCardHTML(fig));
-      requestAnimationFrame(function(){ fitFigureCard(qs('[data-figure-id="' + fig.id + '"]')); });
+      playFlip(before);
       closeModal('figure-publish-modal-scrim');
       showToast('Pinned to the Wall — live for the next 24 hours.');
     }catch(err){
@@ -1973,9 +2365,14 @@ function initFigurePublishForm(){
       submitBtn.disabled = false;
     }
   });
+}
 
-  updateFigureEditorCardStyle();
-  updateCount();
+let fpTextSeq = 0;
+function resetEditorCanvas(){
+  fpTextSeq = 0;
+  fpLineSeq = 0;
+  buildEditorCanvas();
+  updateFpCount();
 }
 
 function initWallView(){
@@ -1983,6 +2380,20 @@ function initWallView(){
   qs('#figure-detail-close').addEventListener('click', function(){ state.openFigureDetailId = null; closeModal('figure-detail-modal-scrim'); });
 }
 
+/* The whole page (header/composer included, since they're glass) eases
+   into a new soft tint every 5 seconds — a real CSS transition on
+   background-color, stepped by JS, rather than a continuous drift. */
+const WALL_BG_PALETTE = ['#F7F3EA','#ECF2E4','#E4EFF6','#EDE7F7','#FBF1DC','#FAE9DB','#F7E6EC','#E7EEF0'];
+let wallBgTimer = null;
+function startWallBackgroundCycle(){
+  let i = 0;
+  document.body.style.backgroundColor = WALL_BG_PALETTE[0];
+  if (wallBgTimer) clearInterval(wallBgTimer);
+  wallBgTimer = setInterval(function(){
+    i = (i + 1) % WALL_BG_PALETTE.length;
+    document.body.style.backgroundColor = WALL_BG_PALETTE[i];
+  }, 5000);
+}
 /* ------------------------------------------------------------------
    4. NAV WIRING + BOOTSTRAP
    ------------------------------------------------------------------ */
@@ -2004,6 +2415,7 @@ function initNav(){
 async function init(){
   initNav();
   initWallView();
+  startWallBackgroundCycle();
   await restoreSession();
   syncAuthUI();
   await renderWallView();
