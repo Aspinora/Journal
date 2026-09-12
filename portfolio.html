@@ -262,9 +262,10 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 
 .mobile-back-btn{
   display:none; position:absolute; top:14px; left:14px; z-index:5;
-  width:40px; height:40px; border-radius:50%; border:none;
-  background:rgba(43,36,28,.55); color:#fff; align-items:center; justify-content:center;
-  backdrop-filter:blur(4px);
+  width:40px; height:40px; border-radius:50%; border:1.5px solid rgba(255,255,255,.5);
+  background:rgba(255,255,255,.20); color:#fff; align-items:center; justify-content:center;
+  backdrop-filter:blur(10px) saturate(160%); -webkit-backdrop-filter:blur(10px) saturate(160%);
+  box-shadow:0 4px 16px rgba(43,36,28,.18);
 }
 
 .btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:999px; font-weight:700; font-size:.88rem; border:none; transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); white-space:nowrap; }
@@ -339,6 +340,16 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .underline-tabs button:hover{ color:var(--ink); }
 .underline-tabs button.is-active{ color:var(--orange-deep); border-bottom-color:var(--orange-deep); }
 .tab-follow-btn{ margin:0 4px 0 6px; flex-shrink:0; white-space:nowrap; }
+/* .underline-tabs button (element+class) otherwise beats .btn-follow
+   (single class) and strips its background/border — restate them here
+   at higher specificity so the Follow button keeps its pill styling. */
+.underline-tabs .tab-follow-btn.btn-follow{
+  background:rgba(241,99,27,.14); color:var(--orange-deep); border:1.5px solid rgba(241,99,27,.4);
+  border-radius:999px; padding:10px 20px; font-weight:700;
+  backdrop-filter:blur(10px) saturate(160%); -webkit-backdrop-filter:blur(10px) saturate(160%);
+}
+.underline-tabs .tab-follow-btn.btn-follow:hover{ background:rgba(241,99,27,.22); }
+.underline-tabs .tab-follow-btn.btn-follow.is-following{ background:rgba(43,36,28,.06); color:var(--ink-soft); border:1.5px solid var(--line-strong); }
 .share-tab-btn{ margin-left:auto; }
 .share-tab-btn svg{ width:17px; height:17px; }
 .share-tab-label{ }
