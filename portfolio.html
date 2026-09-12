@@ -54,6 +54,7 @@
   --cover-fg-shadow: 0 1px 10px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.7);
   --avatar-sz: 112px;
   --avatar-font-sz: 2.1rem;
+  --avatar-top-pct: 0%;
 }
 *,*::before,*::after{ box-sizing:border-box; }
 [hidden]{ display:none !important; }
@@ -266,8 +267,13 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .btn-secondary{ background:var(--paper); color:var(--ink); border:1.5px solid var(--line-strong); }
 .btn-secondary:hover{ border-color:var(--orange); color:var(--orange-deep); }
 .btn-sm{ padding:9px 16px; font-size:.8rem; }
-.btn-follow{ background:#fff; color:var(--orange-deep); box-shadow:var(--shadow-mid); }
-.btn-follow.is-following{ background:rgba(255,255,255,.15); color:#fff; border:1.5px solid rgba(255,255,255,.6); box-shadow:none; }
+.btn-follow{
+  background:rgba(255,255,255,.22); color:#fff; border:1.5px solid rgba(255,255,255,.55);
+  backdrop-filter:blur(10px) saturate(160%); -webkit-backdrop-filter:blur(10px) saturate(160%);
+  box-shadow:0 4px 18px rgba(43,36,28,.14); text-shadow:0 1px 4px rgba(0,0,0,.25);
+}
+.btn-follow:hover:not(:disabled){ background:rgba(255,255,255,.34); }
+.btn-follow.is-following{ background:rgba(255,255,255,.10); color:#fff; border:1.5px solid rgba(255,255,255,.4); box-shadow:none; }
 
 .avatar{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; overflow:hidden; }
 .avatar img{ width:100%; height:100%; object-fit:cover; }
@@ -278,22 +284,26 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .cover-wrap{ position:relative; width:100%; aspect-ratio:3/1; overflow:hidden; background:var(--cream-deep); z-index:0; margin-top:-64px; }
 .cover-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; display:block; z-index:1; }
 .cover-scrim{ position:absolute; inset:0; z-index:2; background:linear-gradient(180deg,rgba(43,36,28,.12),rgba(43,36,28,.30) 55%,rgba(43,36,28,.55)); }
+.cover-avatar-slot{
+  position:absolute; left:50%; top:var(--avatar-top-pct, 0%); z-index:4;
+  transform:translate(-50%, -50%);
+}
 .cover-center{
-  position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:absolute; left:0; right:0; z-index:3; display:flex; flex-direction:column; align-items:center;
   text-align:center; padding:16px; color:var(--cover-fg, #fff); pointer-events:none;
+  top:calc(var(--avatar-top-pct, 0%) + (var(--avatar-sz, 112px) / 2) + 14px);
 }
 .cover-center a, .cover-center button{ pointer-events:auto; }
-.cover-avatar{ width:112px; height:112px; font-size:2.1rem; border:4px solid var(--paper); box-shadow:var(--shadow-mid); }
 .cover-username{
-  margin-top:16px; font-family:var(--font-display); font-weight:600; font-style:italic; font-size:1.3rem;
+  margin-top:0; font-family:var(--font-display); font-weight:600; font-style:italic; font-size:1.3rem;
   color:var(--cover-fg, #fff); text-shadow:var(--cover-fg-shadow, 0 1px 8px rgba(0,0,0,.4));
 }
-.cover-identities{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-top:10px; }
+.cover-identities{ display:flex; gap:7px; flex-wrap:wrap; justify-content:center; margin-top:12px; }
 .identity-badge{
   padding:5px 13px; border-radius:999px; background:rgba(255,255,255,.94); color:var(--orange-deep);
   font-size:.72rem; font-weight:700; font-family:var(--font-body); letter-spacing:.03em; text-transform:uppercase;
 }
-.cover-stats{ display:flex; gap:34px; margin-top:22px; }
+.cover-stats{ display:flex; gap:34px; margin-top:20px; }
 .cover-stat{ color:var(--cover-fg, #fff); text-shadow:var(--cover-fg-shadow, 0 1px 8px rgba(0,0,0,.4)); }
 .cover-stat-btn{ background:none; border:none; font-family:inherit; cursor:pointer; }
 .cover-stat b{ display:block; font-family:var(--font-body); font-weight:800; font-size:1.2rem; }
@@ -404,7 +414,9 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
    ============================================================ */
 .cropper-box{ max-width:480px; }
 .followers-box{ max-width:420px; }
-.follower-row{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+.followers-search{ margin:16px 0 6px; }
+.followers-list{ max-height:56vh; overflow-y:auto; margin-top:10px; }
+.follower-row{ display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--line); }
 .follower-row:last-child{ border-bottom:none; }
 .follower-row .avatar{ width:44px; height:44px; font-size:.9rem; flex-shrink:0; }
 .follower-row-name{ flex:1; min-width:0; }
@@ -433,7 +445,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 @media (max-width: 760px){
   .navbar{ display:none; }
   .cover-wrap{ aspect-ratio:1/1; margin-top:0; }
-  :root{ --avatar-sz:88px; --avatar-font-sz:1.7rem; }
+  :root{ --avatar-sz:88px; --avatar-font-sz:1.7rem; --avatar-top-pct:50%; }
   .cover-stats{ gap:18px; }
   .underline-tabs{ overflow-x:auto; }
   .share-tab-label{ display:none; }
@@ -575,7 +587,8 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   <div class="modal-box followers-box">
     <button type="button" class="modal-close" id="followers-close-btn">✕</button>
     <h2>Followers</h2>
-    <div id="followers-list"><div class="empty-state"><p>Loading…</p></div></div>
+    <input type="search" id="followers-search" class="input followers-search" placeholder="Search by name or @username">
+    <div id="followers-list" class="followers-list"><div class="empty-state"><p>Loading…</p></div></div>
   </div>
 </div>
 
@@ -968,10 +981,14 @@ function coverHeroHTML(profile, isOwner, isFollowing){
         : '<div class="cover-img" style="background:linear-gradient(120deg,' + color + ',' + color + 'AA);"></div>') +
       '<div class="cover-scrim"></div>' +
       (isOwner ? '<button type="button" class="cover-edit-fab" id="cover-edit-fab" aria-label="Update portfolio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z" stroke-linejoin="round"/></svg></button>' : '') +
-      '<div class="cover-center">' +
+
+      '<div class="cover-avatar-slot">' +
         '<a href="' + portfolioHref + '" style="display:inline-block;width:var(--avatar-sz,112px);height:var(--avatar-sz,112px);text-decoration:none;flex-shrink:0;">' +
           '<span style="display:flex;align-items:center;justify-content:center;width:var(--avatar-sz,112px);height:var(--avatar-sz,112px);border-radius:50%;overflow:hidden;background:' + color + ';border:4px solid #FFFDF8;box-shadow:0 12px 40px rgba(43,36,28,.10);color:#fff;font-weight:700;font-family:var(--font-mono);font-size:var(--avatar-font-sz,2.1rem);box-sizing:border-box;">' + avatarInner + '</span>' +
         '</a>' +
+      '</div>' +
+
+      '<div class="cover-center">' +
         '<a class="cover-username" href="' + portfolioHref + '">@' + escapeHtml(profile.username) + '</a>' +
         '<div class="cover-identities">' + identities.map(function(i){ return '<span class="identity-badge">' + escapeHtml(i) + '</span>'; }).join('') + '</div>' +
         '<div class="cover-stats">' +
@@ -1153,6 +1170,8 @@ function followerRowHTML(p, isFollowing){
 async function openFollowersModal(profile){
   const modal = document.getElementById('followers-modal');
   const list = document.getElementById('followers-list');
+  const searchInput = document.getElementById('followers-search');
+  searchInput.value = '';
   list.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
   modal.classList.add('open');
 
@@ -1173,24 +1192,51 @@ async function openFollowersModal(profile){
     myFollowingIds = (mine || []).map(function(r){ return r.following_id; });
   }
 
-  list.innerHTML = followers.map(function(f){ return followerRowHTML(f, myFollowingIds.indexOf(f.id) !== -1); }).join('');
+  function renderList(items){
+    if (!items.length){
+      list.innerHTML = '<div class="empty-state"><p>No one matches that search.</p></div>';
+      return;
+    }
+    list.innerHTML = items.map(function(f){ return followerRowHTML(f, myFollowingIds.indexOf(f.id) !== -1); }).join('');
+    wireFollowerButtons();
+  }
 
-  Array.prototype.forEach.call(list.querySelectorAll('.follower-follow-btn'), function(btn){
-    btn.addEventListener('click', async function(){
-      if (!state.currentUser){ window.location.href = 'index.html'; return; }
-      const targetId = btn.getAttribute('data-target');
-      const nowFollowing = btn.classList.contains('is-following');
-      btn.disabled = true;
-      if (nowFollowing){
-        const { error: delErr } = await supabaseClient.from('follows').delete().eq('follower_id', state.currentUser.id).eq('following_id', targetId);
-        if (!delErr){ btn.classList.remove('is-following'); btn.textContent = 'Follow'; if (targetId === profile.id) updateFollowerCount(-1); }
-      } else {
-        const { error: insErr } = await supabaseClient.from('follows').insert({ follower_id: state.currentUser.id, following_id: targetId });
-        if (!insErr){ btn.classList.add('is-following'); btn.textContent = 'Following'; if (targetId === profile.id) updateFollowerCount(1); }
-      }
-      btn.disabled = false;
+  function wireFollowerButtons(){
+    Array.prototype.forEach.call(list.querySelectorAll('.follower-follow-btn'), function(btn){
+      btn.addEventListener('click', async function(){
+        if (!state.currentUser){ window.location.href = 'index.html'; return; }
+        const targetId = btn.getAttribute('data-target');
+        const nowFollowing = btn.classList.contains('is-following');
+        btn.disabled = true;
+        if (nowFollowing){
+          const { error: delErr } = await supabaseClient.from('follows').delete().eq('follower_id', state.currentUser.id).eq('following_id', targetId);
+          if (!delErr){
+            btn.classList.remove('is-following'); btn.textContent = 'Follow';
+            myFollowingIds = myFollowingIds.filter(function(id){ return id !== targetId; });
+            if (targetId === profile.id) updateFollowerCount(-1);
+          }
+        } else {
+          const { error: insErr } = await supabaseClient.from('follows').insert({ follower_id: state.currentUser.id, following_id: targetId });
+          if (!insErr){
+            btn.classList.add('is-following'); btn.textContent = 'Following';
+            myFollowingIds.push(targetId);
+            if (targetId === profile.id) updateFollowerCount(1);
+          }
+        }
+        btn.disabled = false;
+      });
     });
-  });
+  }
+
+  renderList(followers);
+
+  searchInput.oninput = function(){
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q){ renderList(followers); return; }
+    renderList(followers.filter(function(f){
+      return (f.username || '').toLowerCase().indexOf(q) !== -1 || (f.display_name || '').toLowerCase().indexOf(q) !== -1;
+    }));
+  };
 }
 
 /* ------------------------------------------------------------------
