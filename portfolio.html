@@ -258,15 +258,16 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 }
 
 /* ============================================================
-
-
+   BUTTONS
+   ============================================================ */
 .mobile-back-btn{
   display:none; position:absolute; top:14px; left:14px; z-index:5;
-  width:40px; height:40px; border-radius:50%; border:1.5px solid rgba(255,255,255,.5);
-  background:rgba(255,255,255,.18); color:#fff; align-items:center; justify-content:center;
-  backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
-  box-shadow:0 4px 16px rgba(43,36,28,.18), 0 1px 0 rgba(255,255,255,.35) inset;
+  width:40px; height:40px; border-radius:50%; border:none;
+  background:linear-gradient(150deg,#4a4034,#221c15); color:#fff; align-items:center; justify-content:center;
+  box-shadow:0 8px 20px rgba(0,0,0,.38), 0 1px 0 rgba(255,255,255,.10) inset;
+  transition:transform .15s ease, box-shadow .15s ease;
 }
+.mobile-back-btn:active{ transform:scale(.92); box-shadow:0 4px 12px rgba(0,0,0,.38), 0 1px 0 rgba(255,255,255,.10) inset; }
 
 .btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:999px; font-weight:700; font-size:.88rem; border:none; transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); white-space:nowrap; }
 .btn:disabled{ opacity:.5; cursor:not-allowed; }
@@ -276,13 +277,13 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .btn-secondary:hover{ border-color:var(--orange); color:var(--orange-deep); }
 .btn-sm{ padding:9px 16px; font-size:.8rem; }
 .btn-follow{
-  padding:12px 21px; font-size:1.04rem;
-  background:rgba(255,255,255,.18); color:#fff; border:1.5px solid rgba(255,255,255,.5);
-  backdrop-filter:blur(22px) saturate(180%); -webkit-backdrop-filter:blur(22px) saturate(180%);
-  box-shadow:0 4px 18px rgba(43,36,28,.14), 0 1px 0 rgba(255,255,255,.35) inset; text-shadow:0 1px 4px rgba(0,0,0,.25);
+  padding:12px 21px; font-size:1.04rem; border:none;
+  background:linear-gradient(135deg,var(--orange),var(--orange-deep)); color:#fff;
+  box-shadow:0 8px 22px rgba(241,99,27,.40), 0 1px 0 rgba(255,255,255,.25) inset;
+  text-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .15s ease, box-shadow .15s ease;
 }
-.btn-follow:hover:not(:disabled){ background:rgba(255,255,255,.30); }
-.btn-follow.is-following{ background:rgba(255,255,255,.10); color:#fff; border:1.5px solid rgba(255,255,255,.4); box-shadow:0 1px 0 rgba(255,255,255,.2) inset; }
+.btn-follow:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 10px 26px rgba(241,99,27,.48), 0 1px 0 rgba(255,255,255,.25) inset; }
+.btn-follow.is-following{ background:linear-gradient(150deg,#4a4034,#221c15); color:#fff; border:none; box-shadow:0 6px 16px rgba(0,0,0,.32); }
 
 .avatar{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; overflow:hidden; }
 .avatar img{ width:100%; height:100%; object-fit:cover; }
@@ -401,7 +402,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .media-edit-row{ display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
 .media-edit-col{ text-align:center; }
 .media-edit-col .avatar{ width:76px; height:76px; font-size:1.5rem; margin:0 auto 8px; cursor:pointer; }
-.cover-preview-box{ position:relative; width:150px; aspect-ratio:3/1; border-radius:10px; overflow:hidden; background:var(--cream-deep); cursor:pointer; margin-bottom:8px; }
+.cover-preview-box{ position:relative; width:220px; max-width:100%; aspect-ratio:3/1; border-radius:10px; overflow:hidden; background:var(--cream-deep); cursor:pointer; margin-bottom:8px; }
 .cover-preview-box img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
 .upload-hint-btn{ background:none; border:none; font-size:.76rem; font-weight:700; color:var(--orange-deep); }
 .identity-grid{ display:flex; flex-wrap:wrap; gap:8px; }
@@ -415,7 +416,9 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .social-edit-row button:hover{ color:#B3432B; }
 .add-social-btn{ background:none; border:1.5px dashed var(--line-strong); border-radius:10px; padding:9px; font-weight:700; font-size:.82rem; color:var(--ink-soft); width:100%; }
 .error-msg{ color:#B3432B; font-size:.8rem; margin-top:6px; font-weight:600; }
+.username-status{ font-size:.78rem; margin-top:6px; font-weight:600; min-height:1em; }
 .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+.modal-actions-lg .btn{ padding:16px 29px; font-size:1.14rem; }
 .spinner{ width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:spin .7s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 
@@ -569,6 +572,17 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
       </div>
 
       <div class="field">
+        <label for="f-displayname">Name</label>
+        <input type="text" class="input" id="f-displayname">
+      </div>
+
+      <div class="field">
+        <label for="f-username">Username</label>
+        <input type="text" class="input" id="f-username" autocomplete="off" spellcheck="false">
+        <p class="username-status" id="username-status"></p>
+      </div>
+
+      <div class="field">
         <label>Creative Identity <span style="font-weight:400;color:var(--ink-faint);">(pick any that fit)</span></label>
         <div class="identity-grid" id="identity-grid"></div>
       </div>
@@ -585,7 +599,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
       </div>
 
       <p class="error-msg" id="form-error" hidden></p>
-      <div class="modal-actions">
+      <div class="modal-actions modal-actions-lg">
         <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
         <button type="submit" class="btn btn-primary" id="save-btn">Save Changes</button>
       </div>
@@ -1269,6 +1283,9 @@ function openEditModal(profile){
   coverBox.innerHTML = profile.cover_image_url ? '<img src="' + escapeHtml(profile.cover_image_url) + '" alt="">' : '';
   if (!profile.cover_image_url) coverBox.style.background = 'linear-gradient(120deg,' + color + ',' + color + 'AA)';
 
+  document.getElementById('f-displayname').value = profile.display_name || '';
+  wireUsernameCheck(profile);
+
   const activeIdentities = profile.creative_identities && profile.creative_identities.length ? profile.creative_identities : ['Author'];
   document.getElementById('identity-grid').innerHTML = IDENTITIES.map(function(i){
     return '<button type="button" class="identity-btn' + (activeIdentities.indexOf(i) !== -1 ? ' is-active' : '') + '" data-identity="' + i + '">' + i + '</button>';
@@ -1289,6 +1306,29 @@ function openEditModal(profile){
 
   document.getElementById('form-error').hidden = true;
   document.getElementById('edit-modal').classList.add('open');
+}
+let usernameCheckTimer = null;
+function wireUsernameCheck(profile){
+  const input = document.getElementById('f-username');
+  const status = document.getElementById('username-status');
+  input.value = profile.username || '';
+  status.textContent = '';
+  input.oninput = function(){
+    const cleaned = input.value.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+    if (cleaned !== input.value) input.value = cleaned;
+    clearTimeout(usernameCheckTimer);
+    const val = input.value.trim();
+    if (!val || val === (profile.username || '').toLowerCase()){ status.textContent = ''; return; }
+    status.textContent = 'Checking…'; status.style.color = 'var(--ink-faint)';
+    usernameCheckTimer = setTimeout(async function(){
+      try{
+        const { data, error } = await supabaseClient.from('profiles').select('id').ilike('username', val).neq('id', profile.id).maybeSingle();
+        if (error) throw error;
+        if (data){ status.textContent = 'That username is taken'; status.style.color = '#B3432B'; }
+        else { status.textContent = 'Username available'; status.style.color = '#2E7D32'; }
+      } catch(e){ status.textContent = ''; }
+    }, 450);
+  };
 }
 function updateAboutCount(){
   const n = wordCount(document.getElementById('f-about').value);
@@ -1315,6 +1355,10 @@ async function saveProfileEdits(profile){
   formError.hidden = true;
   const saveBtn = document.getElementById('save-btn');
 
+  const displayName = document.getElementById('f-displayname').value.trim();
+  const usernameVal = document.getElementById('f-username').value.trim().toLowerCase();
+  if (!usernameVal){ formError.textContent = 'Username can\'t be empty.'; formError.hidden = false; return; }
+
   const about = document.getElementById('f-about').value.trim();
   if (wordCount(about) > 100){ formError.textContent = 'About needs to be 100 words or fewer.'; formError.hidden = false; return; }
 
@@ -1329,7 +1373,17 @@ async function saveProfileEdits(profile){
   saveBtn.innerHTML = '<span class="spinner"></span> Saving…';
 
   try{
-    const updates = { creative_identities: identities, bio: about || null, social_links: socialLinks, updated_at: new Date().toISOString() };
+    if (usernameVal !== (profile.username || '').toLowerCase()){
+      const { data: dupe, error: dupeErr } = await supabaseClient.from('profiles').select('id').ilike('username', usernameVal).neq('id', profile.id).maybeSingle();
+      if (dupeErr) throw dupeErr;
+      if (dupe){
+        formError.textContent = 'That username is already taken.'; formError.hidden = false;
+        saveBtn.disabled = false; saveBtn.textContent = 'Save Changes';
+        return;
+      }
+    }
+
+    const updates = { display_name: displayName || null, username: usernameVal, creative_identities: identities, bio: about || null, social_links: socialLinks, updated_at: new Date().toISOString() };
 
     if (state.pendingAvatarBlob){
       const path = profile.id + '/avatar.jpg';
