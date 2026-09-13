@@ -263,11 +263,12 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .mobile-back-btn{
   display:none; position:absolute; top:14px; left:14px; z-index:5;
   width:40px; height:40px; border-radius:50%; border:none;
-  background:linear-gradient(150deg,#4a4034,#221c15); color:#fff; align-items:center; justify-content:center;
-  box-shadow:0 8px 20px rgba(0,0,0,.38), 0 1px 0 rgba(255,255,255,.10) inset;
+  background:linear-gradient(135deg,var(--orange),var(--orange-deep)); color:#fff; align-items:center; justify-content:center;
+  box-shadow:0 8px 20px rgba(241,99,27,.40), 0 1px 0 rgba(255,255,255,.25) inset;
   transition:transform .15s ease, box-shadow .15s ease;
+  -webkit-tap-highlight-color:transparent;
 }
-.mobile-back-btn:active{ transform:scale(.92); box-shadow:0 4px 12px rgba(0,0,0,.38), 0 1px 0 rgba(255,255,255,.10) inset; }
+.mobile-back-btn:active{ transform:scale(.92); box-shadow:0 4px 12px rgba(241,99,27,.40), 0 1px 0 rgba(255,255,255,.25) inset; }
 
 .btn{ position:relative; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 22px; border-radius:999px; font-weight:700; font-size:.88rem; border:none; transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease); white-space:nowrap; }
 .btn:disabled{ opacity:.5; cursor:not-allowed; }
@@ -277,13 +278,13 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .btn-secondary:hover{ border-color:var(--orange); color:var(--orange-deep); }
 .btn-sm{ padding:9px 16px; font-size:.8rem; }
 .btn-follow{
-  padding:12px 21px; font-size:1.04rem; border:none;
+  padding:10.8px 18.9px; font-size:1.04rem; border:none;
   background:linear-gradient(135deg,var(--orange),var(--orange-deep)); color:#fff;
   box-shadow:0 8px 22px rgba(241,99,27,.40), 0 1px 0 rgba(255,255,255,.25) inset;
   text-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .15s ease, box-shadow .15s ease;
+  -webkit-tap-highlight-color:transparent;
 }
 .btn-follow:hover:not(:disabled){ transform:translateY(-1px); box-shadow:0 10px 26px rgba(241,99,27,.48), 0 1px 0 rgba(255,255,255,.25) inset; }
-.btn-follow.is-following{ background:linear-gradient(150deg,#4a4034,#221c15); color:#fff; border:none; box-shadow:0 6px 16px rgba(0,0,0,.32); }
 
 .avatar{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; overflow:hidden; }
 .avatar img{ width:100%; height:100%; object-fit:cover; }
@@ -1428,9 +1429,8 @@ async function init(){
 async function initPortfolio(){
   state.currentUser = await loadCurrentUser();
   wireHeader();
-  const backBtn = document.getElementById('mobile-back-btn');
-  if (backBtn) backBtn.addEventListener('click', function(){
-    window.location.href = 'https://journal.aspinora.in';
+  document.addEventListener('click', function(e){
+    if (e.target.closest('#mobile-back-btn')) window.location.href = 'https://journal.aspinora.in';
   });
 
   const params = new URLSearchParams(window.location.search);
