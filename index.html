@@ -564,17 +564,32 @@ section{ padding:36px 0; }
 .demo-note{ background:var(--sky-soft); color:#2E5A72; padding:12px 14px; border-radius:10px; font-size:.82rem; margin-bottom:18px; }
 .auth-illustration-panel{ display:none; }
 @media (min-width: 1040px){
-  #auth-modal-scrim{ gap:36px; }
+  /* Zero gap + align-items:stretch (overriding the scrim's default
+     center) so the illustration panel's flex height locks to the
+     modal box's actual rendered height (which varies by tab/content)
+     instead of floating at its own intrinsic size — combined with the
+     shared radius/shadow split below, the two read as one joined card
+     rather than two separate floating panels. */
+  #auth-modal-scrim{ gap:0; align-items:stretch; }
   .auth-illustration-panel{
-    display:block; flex-shrink:0; width:320px; align-self:center;
-    border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-deep);
+    display:block; flex-shrink:0; width:320px;
+    border-radius:var(--radius-lg) 0 0 var(--radius-lg); overflow:hidden;
   }
-  .auth-illustration-panel svg{ display:block; width:100%; height:auto; }
+  #auth-modal-scrim .modal-box{ border-radius:0 var(--radius-lg) var(--radius-lg) 0; }
+  /* One shadow for the whole joined unit (on the modal box, which is
+     always present) rather than each panel casting its own — two
+     separate shadows is what made them read as two things. */
+  .auth-illustration-panel{ box-shadow:none; }
+  /* preserveAspectRatio="xMidYMid slice" (set on the svg element
+     itself, not here) crops to fill rather than letterboxing, so the
+     illustration fills the panel's full stretched height edge-to-edge
+     no matter how tall the modal box ends up being. */
+  .auth-illustration-panel svg{ display:block; width:100%; height:100%; }
 }
 .auth-last-used{ background:var(--orange-soft); color:var(--ink); padding:10px 14px; border-radius:10px; font-size:.82rem; margin-bottom:18px; font-weight:600; }
 .auth-divider{ display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--ink-faint); font-size:.8rem; }
 .auth-divider::before, .auth-divider::after{ content:''; flex:1; height:1px; background:var(--line-strong); }
-.oauth-unavailable-hint{ text-align:center; margin:6px 0 0; font-size:.76rem; color:var(--ink-faint); }
+
 .publish-summary{ background:var(--cream-deep); border-radius:14px; padding:18px; margin:18px 0; display:flex; flex-direction:column; gap:8px; }
 .publish-summary-row{ display:flex; justify-content:space-between; font-size:.86rem; }
 .publish-summary-row .k{ color:var(--ink-faint); }
@@ -909,7 +924,7 @@ section{ padding:36px 0; }
      ============================================================ -->
 <div class="modal-scrim" id="auth-modal-scrim">
 <div class="auth-illustration-panel" aria-hidden="true">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="jillus-title jillus-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" role="img" aria-labelledby="jillus-title jillus-desc">
 <title id="jillus-title">Journals — creative writing illustration</title>
 <desc id="jillus-desc">A lightweight vector scene representing Journals categories: Journals, Stories, Poetry, Shayari, Thoughts, Articles, The Wall and Updates.</desc>
 <defs>
@@ -1108,13 +1123,10 @@ section{ padding:36px 0; }
         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#4285F4" d="M19.6 10.23c0-.68-.06-1.32-.17-1.94H10v3.68h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.26Z"/><path fill="#34A853" d="M10 20c2.7 0 4.96-.9 6.62-2.4l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.75-5.59-4.11H1.06v2.59A10 10 0 0 0 10 20Z"/><path fill="#FBBC05" d="M4.41 11.95a6 6 0 0 1 0-3.9V5.46H1.06a10 10 0 0 0 0 9.08l3.35-2.59Z"/><path fill="#EA4335" d="M10 3.96c1.47 0 2.78.5 3.82 1.5l2.87-2.87C14.95 1.02 12.69 0 10 0 6.1 0 2.73 2.24 1.06 5.46l3.35 2.59C5.2 5.7 7.4 3.96 10 3.96Z"/></svg>
         <span id="google-oauth-label">Sign in with Google</span>
       </button>
-      <div>
-        <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="facebook" id="facebook-oauth-btn" disabled aria-disabled="true">
-          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#1877F2" d="M20 10a10 10 0 1 0-11.56 9.88v-6.99H5.9V10h2.54V7.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V10h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 20 10Z"/></svg>
-          <span id="facebook-oauth-label">Sign in with Facebook</span>
-        </button>
-        <p class="oauth-unavailable-hint">Not available right now</p>
-      </div>
+      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="facebook" id="facebook-oauth-btn" disabled aria-disabled="true">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#1877F2" d="M20 10a10 10 0 1 0-11.56 9.88v-6.99H5.9V10h2.54V7.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V10h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 20 10Z"/></svg>
+        <span id="facebook-oauth-label">Sign in with Facebook</span>
+      </button>
     </div>
   </div>
 </div>
@@ -4263,7 +4275,7 @@ else init();
           they clicked a provider button on. (Facebook's app credentials
           can still be configured ahead of time if you want the button
           ready to re-enable later — just remove its `disabled` attribute
-          and the "Not available right now" note in the AUTH MODAL markup.)
+          in the AUTH MODAL markup.)
         - The `profiles` insert trigger (handle_new_user) always leaves
           username/display_name null on insert regardless of what's
           passed in signup metadata — confirmed directly against the
