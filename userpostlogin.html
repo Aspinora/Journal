@@ -1132,7 +1132,7 @@ section{ padding:36px 0; }
       <div class="field" id="signup-name-field" hidden>
         <label for="auth-username">Username</label>
         <input type="text" id="auth-username" class="input" placeholder="e.g. priya_writes" autocomplete="username" maxlength="20">
-        <p class="field-hint">This is your handle and Portfolio link — you can add your real name later in your profile.</p>
+        <p class="field-hint" id="auth-username-hint">This is your handle and Portfolio link — you can add your real name later in your profile.</p>
       </div>
       <div class="field">
         <label for="auth-email" id="auth-email-label">Email</label>
@@ -1717,6 +1717,45 @@ async function isUsernameAvailable(username){
   const { data } = await supabaseClient.from('profiles').select('id').eq('username', username).maybeSingle();
   return !data;
 }
+const USERNAME_HINT_DEFAULT = 'This is your handle and Portfolio link — you can add your real name later in your profile.';
+/* Same pattern as index.html's onboarding-modal live check: pattern
+   errors show instantly, a valid pattern is debounced then checked
+   against `profiles`. Submit (signUp) still re-checks server-side. */
+let usernameCheckToken = 0;
+function wireSignupUsernameLiveCheck(){
+  const input = qs('#auth-username');
+  const hint = qs('#auth-username-hint');
+  input.addEventListener('input', function(){
+    const raw = this.value.trim().toLowerCase();
+    const myToken = ++usernameCheckToken;
+    clearTimeout(input._debounceTimer);
+    if (!raw){
+      hint.textContent = USERNAME_HINT_DEFAULT;
+      hint.style.color = '';
+      return;
+    }
+    if (!USERNAME_PATTERN.test(raw)){
+      hint.textContent = '3–20 characters: lowercase letters, numbers or underscores.';
+      hint.style.color = '#c0392b';
+      return;
+    }
+    hint.textContent = 'Checking availability…';
+    hint.style.color = 'var(--ink-soft)';
+    input._debounceTimer = setTimeout(async function(){
+      let available;
+      try{ available = await isUsernameAvailable(raw); }
+      catch(e){ if (myToken === usernameCheckToken){ hint.textContent = 'Could not check availability — try again.'; hint.style.color = '#c0392b'; } return; }
+      if (myToken !== usernameCheckToken) return;
+      if (available){
+        hint.textContent = '✓ Username available';
+        hint.style.color = '#2e7d32';
+      } else {
+        hint.textContent = '✗ Username not available';
+        hint.style.color = '#c0392b';
+      }
+    }, 400);
+  });
+}
 async function signIn(identifier, password){
   if (!AUTH_LIVE){
     // Only reachable if the Supabase SDK failed to initialise at all.
@@ -1739,26 +1778,33 @@ async function signUp(username, email, password){
   if (!(await isUsernameAvailable(username))){
     throw new Error('That username is already taken — try another.');
   }
-  // A database trigger creates the matching `profiles` row for the new
-  // auth.users id. The
-  // real name isn't collected here on purpose (see product spec): the
-  // username doubles as the display name until it's changed later in
-  // profile settings.
-  const { data, error } = await supabaseClient.auth.signUp({
-    email, password,
-    options: { data: { display_name: username, username: username } }
-  });
+  // NOTE: the profiles row is created by a DB trigger (handle_new_user)
+  // that always leaves username/display_name null — confirmed directly
+  // against the live function — so passing username via options.data
+  // here would silently be ignored. The upsert below (once a session
+  // exists) is what actually persists it.
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
   if (error) throw error;
   const identities = data && data.user && data.user.identities;
   if (identities && identities.length === 0){
     throw new Error('An account with this email already exists. Try logging in instead.');
   }
-  // Email confirmation required — no session
-  // yet, so there's no one to log in as.
+  // Email confirmation required — no session yet, so there's no
+  // authenticated auth.uid() for RLS to let us write a profiles row.
+  // Stash the chosen username (shared key with index.html) so
+  // whichever page picks up the confirmed sign-in can pre-fill it.
   if (!data.session){
+    try{ localStorage.setItem('aspinora_pending_username', username); }catch(e){}
     return { user: null, needsVerification: true, email };
   }
-  return { user: await loadProfile(data.user) };
+  const { data: profileRow, error: profileErr } = await supabaseClient.from('profiles')
+    .upsert({ id: data.user.id, username: username, display_name: username }, { onConflict: 'id' })
+    .select('id, username, display_name, bio, avatar_url')
+    .single();
+  if (profileErr || !profileRow){
+    throw new Error('Account created, but saving your username failed — please try logging in and setting it again.');
+  }
+  return { user: profileRow };
 }
 /* Looks up the matching `profiles` row; if the row hasn't landed yet
    (trigger lag right after sign-up) or the query fails, falls back to
@@ -3408,6 +3454,7 @@ function initAuthModal(){
   });
   qs('#auth-modal-close').addEventListener('click', function(){ closeModal('auth-modal-scrim'); resetOtpPanel(); });
   qsa('[data-auth-tab]').forEach(function(btn){ btn.addEventListener('click', function(){ setAuthTab(this.getAttribute('data-auth-tab')); }); });
+  wireSignupUsernameLiveCheck();
 
   qs('#auth-password-toggle').addEventListener('click', function(){
     const input = qs('#auth-password');
