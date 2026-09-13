@@ -817,7 +817,6 @@ section{ padding:36px 0; }
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
           <div class="nav-dropdown-name" id="nav-dropdown-name"></div>
           <button type="button" id="nav-my-portfolio-btn" role="menuitem">🪪 Portfolio</button>
-          <button type="button" id="nav-update-profile-btn" role="menuitem">⚙️ Update Profile</button>
           <button type="button" data-nav="published" role="menuitem">📚 My Works</button>
           <button type="button" data-nav="notifications" role="menuitem">🔔 Notification<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
           <button type="button" data-nav="drafts" role="menuitem">📝 My Drafts</button>
@@ -1503,13 +1502,9 @@ function avatarColor(seed){
   for (let i=0;i<seed.length;i++){ hash = (hash * 31 + seed.charCodeAt(i)) >>> 0; }
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
-function avatarHTML(userId, name, sizeClass){
-  const color = avatarColor(userId || name);
-  return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + initials(name) + '</span>';
-}
 /* Populated from `profiles` joins whenever real Supabase rows come
-   back (journals, comments). Demo mode never touches this — it has
-   MOCK_AUTHORS instead — so authorName() checks both. */
+   back (journals, comments, notifications). Demo mode never touches
+   this — it has MOCK_AUTHORS instead — so authorName() checks both. */
 let AUTHOR_CACHE = {};
 function authorName(authorId){
   if (AUTHOR_CACHE[authorId]) return AUTHOR_CACHE[authorId].display_name;
@@ -1524,6 +1519,42 @@ function authorUsername(authorId){
   if (a) return a.username || '';
   if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.username || '';
   return '';
+}
+function authorAvatarUrl(authorId){
+  if (AUTHOR_CACHE[authorId]) return AUTHOR_CACHE[authorId].avatar_url || null;
+  const a = MOCK_AUTHORS[authorId];
+  if (a) return a.avatar_url || null;
+  if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.avatar_url || null;
+  return null;
+}
+/* Just the visual avatar (image or initials), no link — use this
+   wherever the avatar sits inside an element that already has its
+   own click behaviour (the nav dropdown trigger) or is already
+   wrapped in a portfolio link by the caller (journal cards). */
+function avatarSpanHTML(userId, name, sizeClass){
+  const color = avatarColor(userId || name);
+  const url = authorAvatarUrl(userId);
+  const inner = url
+    ? '<img src="' + escapeHtml(url) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;">'
+    : initials(name);
+  return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + inner + '</span>';
+}
+/* Avatar wrapped in a working link to that person's Portfolio.
+   Use this everywhere an avatar stands alone (comments, replies,
+   notifications, the read view byline) so it's always clickable. */
+function avatarHTML(userId, name, sizeClass){
+  const span = avatarSpanHTML(userId, name, sizeClass);
+  const username = authorUsername(userId);
+  if (!username) return span;
+  return '<a class="avatar-link" href="portfolio.html?u=' + encodeURIComponent(username) + '" onclick="event.stopPropagation();" style="display:inline-flex;">' + span + '</a>';
+}
+/* Author display name wrapped in the same kind of Portfolio link,
+   for the plain-text name labels next to an avatar. */
+function authorNameHTML(authorId){
+  const name = escapeHtml(authorName(authorId));
+  const username = authorUsername(authorId);
+  if (!username) return name;
+  return '<a class="author-name-link" href="portfolio.html?u=' + encodeURIComponent(username) + '" onclick="event.stopPropagation();">' + name + '</a>';
 }
 
 function formatRelativeTime(iso){
@@ -1738,7 +1769,7 @@ async function loadProfile(authUser){
   if (!AUTH_LIVE) return DEMO_USER;
   const userId = typeof authUser === 'string' ? authUser : authUser.id;
   try{
-    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio').eq('id', userId).single();
+    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio, avatar_url').eq('id', userId).single();
     if (error || !data) throw error || new Error('no profile row');
     return data;
   }catch(e){
@@ -1748,7 +1779,8 @@ async function loadProfile(authUser){
       id: userId,
       username: meta.username || (email ? email.split('@')[0] : userId),
       display_name: meta.display_name || meta.username || (email ? email.split('@')[0] : 'You'),
-      bio: ''
+      bio: '',
+      avatar_url: null
     };
   }
 }
@@ -1825,7 +1857,7 @@ async function signOutUser(){
 
 function syncAuthUI(){
   if (!state.currentUser) return;
-  qs('#nav-user-avatar').outerHTML = avatarHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="nav-user-avatar"');
+  qs('#nav-user-avatar').outerHTML = avatarSpanHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="nav-user-avatar"');
   qs('#nav-user-name').textContent = state.currentUser.display_name;
   qs('#nav-dropdown-name').textContent = state.currentUser.display_name;
   renderNotifBadge();
@@ -1891,7 +1923,8 @@ function normalizeJournalRow(row){
     AUTHOR_CACHE[row.author_id] = {
       id: row.author_id,
       display_name: row.profiles.display_name || 'Aspinora Member',
-      username: row.profiles.username || ''
+      username: row.profiles.username || '',
+      avatar_url: row.profiles.avatar_url || null
     };
   }
   const cat = categoryById(row.category_id);
@@ -1920,7 +1953,7 @@ function normalizeJournalRow(row){
   };
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
@@ -2089,13 +2122,13 @@ async function loadCommentsForJournal(journalId){
     return COMMENT_CACHE[journalId];
   }
   const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username)')
+    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username, avatar_url)')
     .eq('journal_id', journalId).eq('status', 'visible')
     .order('created_at', { ascending: true });
   if (error) throw error;
   data.forEach(function(row){
     if (row.profiles){
-      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username };
+      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username, avatar_url: row.profiles.avatar_url || null };
     }
   });
   COMMENT_CACHE[journalId] = data;
@@ -2464,7 +2497,7 @@ function journalCardHTML(j){
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(j.excerpt) + '</p>' +
-      '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarHTML(j.author_id, authorName(j.author_id)) +
+      '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarSpanHTML(j.author_id, authorName(j.author_id)) +
         '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
         '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
       '</a>' +
@@ -2598,7 +2631,7 @@ async function renderReadView(journalId, replace){
   const sub = qs('#read-subtitle');
   if (j.subtitle){ sub.textContent = j.subtitle; sub.hidden = false; } else { sub.hidden = true; }
   qs('#read-avatar').outerHTML = avatarHTML(j.author_id, authorName(j.author_id)).replace('<span class="avatar"','<span class="avatar" id="read-avatar"');
-  qs('#read-author').textContent = authorName(j.author_id);
+  qs('#read-author').innerHTML = authorNameHTML(j.author_id);
   qs('#read-date').textContent = formatDate(j.published_at);
   qs('#read-time').textContent = (j.reading_time || readingTimeMinutes(wordCount(j.body))) + ' min read';
 
@@ -2674,7 +2707,7 @@ function commentActionsHTML(journalId, c, isReply){
 function commentItemHTML(journalId, c){
   return '<div class="comment-item" data-comment-id="' + c.id + '">' + avatarHTML(c.author_id, authorName(c.author_id)) +
     '<div class="comment-main">' +
-      '<div class="comment-head"><span class="name">' + escapeHtml(authorName(c.author_id)) + '</span><span class="time">' + formatRelativeTime(c.created_at) + '</span></div>' +
+      '<div class="comment-head"><span class="name">' + authorNameHTML(c.author_id) + '</span><span class="time">' + formatRelativeTime(c.created_at) + '</span></div>' +
       '<div class="comment-body-text" data-comment-body>' + escapeHtml(c.body) + '</div>' +
       commentActionsHTML(journalId, c, false) +
       '<button type="button" class="comment-action-btn" data-view-replies="' + c.id + '" data-journal="' + journalId + '" hidden></button>' +
@@ -2685,7 +2718,7 @@ function commentItemHTML(journalId, c){
 function replyItemHTML(journalId, r){
   return '<div class="reply-item" data-comment-id="' + r.id + '">' + avatarHTML(r.author_id, authorName(r.author_id), '') +
     '<div class="comment-main">' +
-      '<div class="comment-head"><span class="name">' + escapeHtml(authorName(r.author_id)) + '</span><span class="time">' + formatRelativeTime(r.created_at) + '</span></div>' +
+      '<div class="comment-head"><span class="name">' + authorNameHTML(r.author_id) + '</span><span class="time">' + formatRelativeTime(r.created_at) + '</span></div>' +
       '<div class="comment-body-text" data-comment-body>' + escapeHtml(r.body) + '</div>' +
       commentActionsHTML(journalId, r, true) +
     '</div></div>';
@@ -2901,32 +2934,68 @@ async function renderSavedView(){
 }
 
 const NOTIF_COPY = {
-  like_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> appreciated your Work.'; },
-  comment_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> left an Impression on your Work.'; },
-  reply_comment: function(n){ return '<b>' + authorName(n.actor_id) + '</b> left a Response to your Impression.'; },
+  like_journal: function(n){ return authorNameHTML(n.actor_id) + ' appreciated your Work.'; },
+  comment_journal: function(n){ return authorNameHTML(n.actor_id) + ' left an Impression on your Work.'; },
+  reply_comment: function(n){ return authorNameHTML(n.actor_id) + ' left a Response to your Impression.'; },
+  follow_user: function(n){ return authorNameHTML(n.actor_id) + ' started following you.'; },
   journal_published: function(n){ return n.message || 'Your Work was published.'; }
 };
+/* Notifications can reference people the viewer has never otherwise
+   loaded a profile for (someone who only ever liked/followed them,
+   say), so AUTHOR_CACHE may not have them yet. Batch-fetch every
+   distinct actor up front so names/avatars/usernames are correct on
+   the very first render, instead of only filling in once some other
+   unrelated fetch happens to warm the cache. */
+async function hydrateNotificationActors(rows){
+  if (DEMO_MODE || !supabaseClient) return;
+  const ids = Array.from(new Set(rows.map(function(n){ return n.actor_id; }).filter(function(id){ return id && !AUTHOR_CACHE[id]; })));
+  if (!ids.length) return;
+  try{
+    const { data, error } = await supabaseClient.from('profiles').select('id, display_name, username, avatar_url').in('id', ids);
+    if (error) throw error;
+    (data||[]).forEach(function(p){
+      AUTHOR_CACHE[p.id] = { id: p.id, display_name: p.display_name || 'Aspinora Member', username: p.username || '', avatar_url: p.avatar_url || null };
+    });
+  }catch(e){ console.warn('Could not hydrate notification authors:', e); }
+}
 async function renderNotificationsView(){
   const list = qs('#notifications-list');
   if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your Updates.</p></div>'; return; }
   const rows = await fetchNotifications();
+  await hydrateNotificationActors(rows);
   if (!rows.length){
     list.innerHTML = '<div class="empty-state"><p>No new updates from the community yet.</p></div>';
+    renderNotifBadge();
     return;
   }
   list.innerHTML = rows.map(function(n){
     const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new update.'; };
-    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-journal="' + (n.journal_id||'') + '">' +
+    const actorUsername = n.actor_id ? authorUsername(n.actor_id) : '';
+    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-journal="' + (n.journal_id||'') + '" data-notif-username="' + escapeHtml(actorUsername) + '">' +
       (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:var(--ink-faint)">✦</span>') +
       '<div><div class="n-msg">' + copyFn(n) + '</div><div class="n-time">' + formatRelativeTime(n.created_at) + '</div></div>' +
       (!n.read_at ? '<span class="notif-dot"></span>' : '') +
     '</div>';
   }).join('');
-  renderNotifBadge();
   qsa('[data-notif-journal]').forEach(function(el){
     el.style.cursor = 'pointer';
-    el.onclick = function(){ const jid = this.getAttribute('data-notif-journal'); if (jid) navigateTo('read', { journalId: jid }); };
+    el.onclick = function(e){
+      if (e.target.closest('.avatar-link, .author-name-link')) return;
+      const jid = this.getAttribute('data-notif-journal');
+      const username = this.getAttribute('data-notif-username');
+      if (jid) navigateTo('read', { journalId: jid });
+      else if (username) window.location.href = 'portfolio.html?u=' + encodeURIComponent(username);
+    };
   });
+  wireGenericButtons();
+  /* Seeing the list is enough to clear the unread count — the
+     highlighting above still reflects what was unread at the moment
+     the page opened, but the badge itself should clear immediately
+     rather than waiting on a separate "Mark all as read" click. */
+  if (rows.some(function(n){ return !n.read_at; })){
+    await markAllNotificationsRead();
+  }
+  renderNotifBadge();
 }
 async function renderNotifBadge(){
   const n = state.currentUser ? await unreadNotifCount() : 0;
@@ -3294,9 +3363,6 @@ function initUserDropdown(){
   qs('#nav-my-portfolio-btn').addEventListener('click', function(){
     if (!state.currentUser) return;
     window.location.href = 'portfolio.html?u=' + encodeURIComponent(state.currentUser.username || '');
-  });
-  qs('#nav-update-profile-btn').addEventListener('click', function(){
-    window.location.href = 'updateprofile.html';
   });
 }
 
