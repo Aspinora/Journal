@@ -562,6 +562,19 @@ section{ padding:36px 0; }
 .auth-tabs button{ flex:1; background:none; border:none; padding:9px; border-radius:999px; font-weight:700; font-size:.86rem; color:var(--ink-soft); }
 .auth-tabs button.is-active{ background:var(--paper); color:var(--ink); box-shadow:var(--shadow-soft); }
 .demo-note{ background:var(--sky-soft); color:#2E5A72; padding:12px 14px; border-radius:10px; font-size:.82rem; margin-bottom:18px; }
+.auth-illustration-panel{ display:none; }
+@media (min-width: 1040px){
+  #auth-modal-scrim{ gap:36px; }
+  .auth-illustration-panel{
+    display:block; flex-shrink:0; width:320px; align-self:center;
+    border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-deep);
+  }
+  .auth-illustration-panel svg{ display:block; width:100%; height:auto; }
+}
+.auth-last-used{ background:var(--orange-soft); color:var(--ink); padding:10px 14px; border-radius:10px; font-size:.82rem; margin-bottom:18px; font-weight:600; }
+.auth-divider{ display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--ink-faint); font-size:.8rem; }
+.auth-divider::before, .auth-divider::after{ content:''; flex:1; height:1px; background:var(--line-strong); }
+.oauth-unavailable-hint{ text-align:center; margin:6px 0 0; font-size:.76rem; color:var(--ink-faint); }
 .publish-summary{ background:var(--cream-deep); border-radius:14px; padding:18px; margin:18px 0; display:flex; flex-direction:column; gap:8px; }
 .publish-summary-row{ display:flex; justify-content:space-between; font-size:.86rem; }
 .publish-summary-row .k{ color:var(--ink-faint); }
@@ -895,6 +908,141 @@ section{ padding:36px 0; }
      AUTH MODAL
      ============================================================ -->
 <div class="modal-scrim" id="auth-modal-scrim">
+<div class="auth-illustration-panel" aria-hidden="true">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" role="img" aria-labelledby="jillus-title jillus-desc">
+<title id="jillus-title">Journals — creative writing illustration</title>
+<desc id="jillus-desc">A lightweight vector scene representing Journals categories: Journals, Stories, Poetry, Shayari, Thoughts, Articles, The Wall and Updates.</desc>
+<defs>
+ <linearGradient id="jillus-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFDF8"/><stop offset="1" stop-color="#FFF5E8"/></linearGradient>
+ <linearGradient id="jillus-orange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8A24"/><stop offset="1" stop-color="#E85D00"/></linearGradient>
+ <filter id="jillus-shadow"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-opacity=".11"/></filter>
+ <style>
+ .jillus-ink{fill:#30302E}.jillus-muted{fill:#77736B}.jillus-line{stroke:#30302E;stroke-linecap:round;stroke-linejoin:round}
+ .jillus-float{animation:f 5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+ .jillus-float2{animation:g 6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+ .jillus-pulse{animation:p 3.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+ @keyframes f{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+ @keyframes g{0%,100%{transform:rotate(0)}50%{transform:translate(6px,-7px) rotate(-2deg)}}
+ @keyframes p{0%,100%{opacity:.65;transform:scale(1)}50%{opacity:1;transform:scale(1.07)}}
+ </style>
+</defs>
+
+<rect width="1200" height="900" rx="42" fill="url(#jillus-bg)"/>
+<circle cx="1030" cy="125" r="165" fill="#FFE7C6" opacity=".45"/>
+<circle cx="125" cy="160" r="105" fill="#FFF0D9"/>
+<path d="M75 590C300 565 475 592 650 570S980 568 1125 545" fill="none" stroke="#E8D9C7" stroke-width="3"/>
+
+<!-- THE WALL -->
+<g filter="url(#jillus-shadow)">
+ <rect x="575" y="70" width="550" height="445" rx="32" fill="#FBF9F4" stroke="#E6DCCF" stroke-width="3"/>
+</g>
+<text x="620" y="125" font-family="Georgia,serif" font-size="31" class="jillus-ink">the wall</text>
+<text x="620" y="151" font-family="Arial,sans-serif" font-size="12" letter-spacing="2" class="jillus-muted">small thoughts • shared moments</text>
+<circle cx="1065" cy="119" r="8" fill="#E85D00" class="jillus-pulse"/>
+
+<!-- WALL CARDS -->
+<g class="jillus-float" filter="url(#jillus-shadow)">
+ <rect x="620" y="185" width="190" height="125" rx="18" fill="#FFF0D6" transform="rotate(-3 715 247)"/>
+ <circle cx="715" cy="178" r="7" fill="#E85D00"/>
+ <text x="650" y="220" font-family="Georgia,serif" font-size="17" class="jillus-ink">Thoughts</text>
+ <path d="M650 248h125M650 270h96M650 290h110" stroke="#8A806F" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+</g>
+<g class="jillus-float2" filter="url(#jillus-shadow)">
+ <rect x="845" y="175" width="205" height="145" rx="18" fill="#EAF0DE" transform="rotate(4 948 247)"/>
+ <circle cx="948" cy="171" r="7" fill="#8C9A67"/>
+ <text x="875" y="215" font-family="Georgia,serif" font-size="17" class="jillus-ink">Stories</text>
+ <path d="M875 244h135M875 267h108M875 290h128" stroke="#687052" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+ <path d="M1010 300c-12-15-31-5-31 9 0 17 31 31 31 31s31-14 31-31c0-14-19-24-31-9Z" fill="#D98A6A" opacity=".7"/>
+</g>
+<g class="jillus-float2" filter="url(#jillus-shadow)">
+ <rect x="635" y="345" width="195" height="115" rx="18" fill="#F0E7F4" transform="rotate(3 732 402)"/>
+ <circle cx="733" cy="340" r="7" fill="#9B82AE"/>
+ <text x="667" y="382" font-family="Georgia,serif" font-size="17" class="jillus-ink">Poetry</text>
+ <path d="M667 410h128M667 431h92" stroke="#78677F" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+ <path d="M760 421q20-30 40 0q-20 32-40 0Z" fill="none" stroke="#9B82AE" stroke-width="3"/>
+</g>
+<g class="jillus-float" filter="url(#jillus-shadow)">
+ <rect x="865" y="350" width="205" height="110" rx="18" fill="#E4EEF7" transform="rotate(-3 967 405)"/>
+ <circle cx="967" cy="345" r="7" fill="#6D9DBB"/>
+ <text x="897" y="387" font-family="Georgia,serif" font-size="17" class="jillus-ink">Articles</text>
+ <path d="M897 415h138M897 436h115" stroke="#587B91" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+</g>
+
+<!-- floating category labels -->
+<g class="jillus-float2">
+ <rect x="520" y="190" width="42" height="42" rx="12" fill="#E85D00" opacity=".12"/>
+ <path d="M531 214h20M531 222h15M531 206h20" stroke="#E85D00" stroke-width="3" stroke-linecap="round"/>
+</g>
+<g class="jillus-pulse">
+ <circle cx="1090" cy="490" r="12" fill="#E85D00" opacity=".75"/>
+</g>
+
+<!-- BOOK STACK: all major categories -->
+<g filter="url(#jillus-shadow)">
+ <rect x="90" y="570" width="345" height="52" rx="10" fill="#30302E"/>
+ <rect x="110" y="622" width="365" height="54" rx="10" fill="#9A654B"/>
+ <rect x="85" y="676" width="385" height="57" rx="10" fill="url(#jillus-orange)"/>
+ <rect x="125" y="733" width="370" height="55" rx="10" fill="#68745E"/>
+ <rect x="105" y="788" width="400" height="52" rx="10" fill="#7A6B5D"/>
+</g>
+<g font-family="Arial,sans-serif" font-size="13" letter-spacing="2" fill="#FFF8ED">
+ <text x="125" y="602">THOUGHTS</text>
+ <text x="145" y="656">STORIES</text>
+ <text x="125" y="711">JOURNALS</text>
+ <text x="160" y="768">POETRY</text>
+ <text x="137" y="821">ARTICLES</text>
+</g>
+
+<!-- SHAYARI card -->
+<g class="jillus-float" filter="url(#jillus-shadow)">
+ <rect x="400" y="455" width="185" height="128" rx="20" fill="#FFE8D8" transform="rotate(-5 492 519)"/>
+ <circle cx="493" cy="445" r="7" fill="#E85D00"/>
+ <text x="432" y="495" font-family="Georgia,serif" font-size="19" class="jillus-ink">Shayari</text>
+ <path d="M432 520h115M432 542h98" stroke="#9A7762" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+ <path d="M542 558c-8-11-23-5-23 7 0 15 23 26 23 26s23-11 23-26c0-12-15-18-23-7Z" fill="#E85D00" opacity=".65"/>
+</g>
+
+<!-- UPDATES note -->
+<g class="jillus-float2" filter="url(#jillus-shadow)">
+ <rect x="915" y="555" width="165" height="102" rx="17" fill="#F4EEDB"/>
+ <circle cx="945" cy="580" r="8" fill="#D2A34E"/>
+ <text x="965" y="587" font-family="Arial,sans-serif" font-size="15" font-weight="600" class="jillus-ink">Updates</text>
+ <path d="M940 612h105M940 633h80" stroke="#847963" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+</g>
+
+<!-- OPEN JOURNAL -->
+<g filter="url(#jillus-shadow)">
+ <path d="M75 585Q250 530 420 595L448 795Q275 745 95 798Z" fill="#FFFDF8"/>
+ <path d="M448 795Q600 745 755 795L730 590Q585 535 420 595Z" fill="#FFFDF8"/>
+ <path d="M420 595Q440 690 448 795" fill="none" stroke="#C5B29C" stroke-width="5"/>
+</g>
+<g stroke="#777064" stroke-width="5" stroke-linecap="round" opacity=".6">
+ <path d="M135 635h215M130 659h240M140 683h185M150 707h205"/>
+ <path d="M495 635h165M485 659h195M500 683h145M495 707h175"/>
+</g>
+<!-- journal category constellation -->
+<g font-family="Georgia,serif" class="jillus-ink" font-size="15">
+ <text x="165" y="748">Journals</text>
+ <text x="505" y="748">write freely</text>
+</g>
+<path d="M570 765q22-36 45 0q22-36 45 0q-22 48-45 48q-23 0-45-48Z" fill="none" stroke="#E85D00" stroke-width="4" opacity=".7"/>
+
+<!-- PEN -->
+<g transform="rotate(-8 510 842)">
+ <rect x="320" y="830" width="330" height="18" rx="9" fill="#30302E"/>
+ <rect x="380" y="830" width="145" height="18" rx="9" fill="url(#jillus-orange)"/>
+ <path d="M650 830l43 9-43 9Z" fill="#B8A998"/>
+</g>
+
+<!-- floating leaves/paper -->
+<g class="jillus-float">
+ <path d="M180 280q-35-35 10-62q25 35-10 62Z" fill="#A7B286"/>
+ <path d="M1090 270q-30-28 8-50q22 29-8 50Z" fill="#D5A15C"/>
+ <path d="M510 90l45 12-22 42-42-15Z" fill="#FFF" stroke="#E6D9C8" stroke-width="2"/>
+</g>
+
+</svg>
+</div>
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
     <button type="button" class="modal-close" id="auth-modal-close" aria-label="Close">
       <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -911,40 +1059,24 @@ section{ padding:36px 0; }
       Supabase didn't load, so sign-in is simulated locally for this preview only.
     </div>
 
-    <!-- Social sign-in/sign-up. Same provider list and same buttons on
-         both tabs: Supabase's signInWithOAuth() transparently creates
-         the account on first use, so "continue with Google" IS the
-         sign-up for a new visitor and the log-in for a returning one.
-         See the SOCIAL LOGIN + USERNAME ONBOARDING notes at the bottom
-         of this file for the Supabase dashboard configuration this
-         needs (redirect URLs, each provider's client id/secret). -->
-    <div id="social-auth-buttons" style="display:flex;flex-direction:column;gap:10px;margin:18px 0;">
-      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="google">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#4285F4" d="M19.6 10.23c0-.68-.06-1.32-.17-1.94H10v3.68h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.26Z"/><path fill="#34A853" d="M10 20c2.7 0 4.96-.9 6.62-2.4l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.75-5.59-4.11H1.06v2.59A10 10 0 0 0 10 20Z"/><path fill="#FBBC05" d="M4.41 11.95a6 6 0 0 1 0-3.9V5.46H1.06a10 10 0 0 0 0 9.08l3.35-2.59Z"/><path fill="#EA4335" d="M10 3.96c1.47 0 2.78.5 3.82 1.5l2.87-2.87C14.95 1.02 12.69 0 10 0 6.1 0 2.73 2.24 1.06 5.46l3.35 2.59C5.2 5.7 7.4 3.96 10 3.96Z"/></svg>
-        Continue with Google
-      </button>
-      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="facebook">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#1877F2" d="M20 10a10 10 0 1 0-11.56 9.88v-6.99H5.9V10h2.54V7.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V10h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 20 10Z"/></svg>
-        Continue with Facebook
-      </button>
-      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="spotify">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><circle cx="10" cy="10" r="10" fill="#1ED760"/><path fill="#fff" d="M14.4 8.9c-2.44-1.45-6.47-1.58-8.8-.87a.66.66 0 1 1-.38-1.26c2.68-.81 7.13-.66 9.94 1.01a.66.66 0 1 1-.76 1.12Zm-.1 2.4c-2.03-1.25-5.13-1.61-7.53-.88a.55.55 0 1 1-.32-1.05c2.75-.83 6.17-.43 8.53 1.02a.55.55 0 1 1-.68.91Zm-.09 2.31c-1.78-1.09-4.02-1.34-6.66-.73a.46.46 0 0 1-.2-.9c2.89-.66 5.37-.38 7.38.86a.46.46 0 1 1-.52.77Z"/></svg>
-        Continue with Spotify
-      </button>
-      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="apple">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;color:var(--ink);"><path fill="currentColor" d="M14.1 10.6c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.5.7-3.1.7-.6 0-1.6-.7-2.7-.7-1.4 0-2.7.8-3.4 2-1.4 2.5-.4 6.2 1 8.2.7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.6-.7s1.6.7 2.7.6c1.1 0 1.8-1 2.5-2 .8-1.1 1.1-2.2 1.1-2.3-.1 0-2.1-.8-2.1-3ZM12.1 4.4c.6-.7 1-1.7.9-2.7-.9.1-1.9.6-2.6 1.3-.6.6-1.1 1.6-1 2.6 1 .1 1.9-.5 2.7-1.2Z"/></svg>
-        Continue with Apple
-      </button>
-      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" id="use-email-auth-btn">
-        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;color:var(--ink-soft);"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M3 5.5 10 11l7-5.5" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Continue with Email
-      </button>
-    </div>
+    <p class="auth-last-used" id="auth-last-used-note" style="display:none;"></p>
 
-    <form id="auth-form" hidden>
-      <p class="auth-alt-action" style="margin-top:0;">
-        <button type="button" class="link-btn" id="auth-back-to-social-btn">← Back to all options</button>
-      </p>
+    <!-- Email/username + password is the primary, always-open path —
+         no more "Continue with Email" button hiding it. Sign Up adds
+         a username field above Email (see #signup-username-field,
+         toggled by setAuthTab()) so the person picks their handle up
+         front and gets a live availability check, instead of being
+         sent to the separate username-onboarding modal afterward
+         (that modal still exists, but now only for OAuth sign-ups,
+         which don't collect a username themselves, and for the rare
+         case where email confirmation is required before a profile
+         row can be written). -->
+    <form id="auth-form">
+      <div class="field" id="signup-username-field" hidden>
+        <label for="auth-username">Username</label>
+        <input type="text" id="auth-username" class="input" placeholder="e.g. priya_writes" autocomplete="username" maxlength="20">
+        <p class="field-hint" id="auth-username-hint">3–20 characters: lowercase letters, numbers or underscores.</p>
+      </div>
       <div class="field">
         <label for="auth-email" id="auth-email-label">Email</label>
         <input type="text" id="auth-email" class="input" placeholder="you@example.com" autocomplete="username email">
@@ -960,6 +1092,30 @@ section{ padding:36px 0; }
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="auth-submit-btn">Continue as Demo User</button>
     </form>
+
+    <div class="auth-divider"><span>or</span></div>
+
+    <!-- Social sign-in/sign-up — Google only for now (Facebook is kept
+         visible but disabled per product decision; Spotify/Apple
+         removed entirely). Supabase's signInWithOAuth() transparently
+         creates the account on first use, so "Continue with Google"
+         IS the sign-up for a new visitor and the log-in for a
+         returning one — see the SOCIAL LOGIN + USERNAME ONBOARDING
+         notes at the bottom of this file for the Supabase dashboard
+         configuration this needs. -->
+    <div id="social-auth-buttons" style="display:flex;flex-direction:column;gap:10px;">
+      <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="google">
+        <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#4285F4" d="M19.6 10.23c0-.68-.06-1.32-.17-1.94H10v3.68h5.38a4.6 4.6 0 0 1-2 3.02v2.5h3.24c1.9-1.75 2.98-4.32 2.98-7.26Z"/><path fill="#34A853" d="M10 20c2.7 0 4.96-.9 6.62-2.4l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.75-5.59-4.11H1.06v2.59A10 10 0 0 0 10 20Z"/><path fill="#FBBC05" d="M4.41 11.95a6 6 0 0 1 0-3.9V5.46H1.06a10 10 0 0 0 0 9.08l3.35-2.59Z"/><path fill="#EA4335" d="M10 3.96c1.47 0 2.78.5 3.82 1.5l2.87-2.87C14.95 1.02 12.69 0 10 0 6.1 0 2.73 2.24 1.06 5.46l3.35 2.59C5.2 5.7 7.4 3.96 10 3.96Z"/></svg>
+        <span id="google-oauth-label">Sign in with Google</span>
+      </button>
+      <div>
+        <button type="button" class="btn btn-secondary" style="width:100%;justify-content:flex-start;gap:12px;" data-oauth-provider="facebook" id="facebook-oauth-btn" disabled aria-disabled="true">
+          <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#1877F2" d="M20 10a10 10 0 1 0-11.56 9.88v-6.99H5.9V10h2.54V7.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V10h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 20 10Z"/></svg>
+          <span id="facebook-oauth-label">Sign in with Facebook</span>
+        </button>
+        <p class="oauth-unavailable-hint">Not available right now</p>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1318,9 +1474,9 @@ function authorAvatarUrl(authorId){
   if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.avatar_url || '';
   return '';
 }
-/* Renders the fetched provider photo (Google/Facebook/Spotify/Apple
-   avatar, persisted to Supabase Storage — see persistProviderProfileData())
-   when one is on file; otherwise falls back to the lettered avatar. */
+/* Renders the fetched provider photo (Google avatar, persisted to
+   Supabase Storage — see persistProviderProfileData()) when one is
+   on file; otherwise falls back to the lettered avatar. */
 function avatarHTML(userId, name, sizeClass){
   const avatarUrl = authorAvatarUrl(userId);
   if (avatarUrl){
@@ -1494,6 +1650,18 @@ document.addEventListener('keydown', function(e){
    7. AUTH
    ------------------------------------------------------------------ */
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+// Chosen at signup time on the Email tab; only actually needed if
+// Supabase requires email confirmation before a session (and so a
+// profiles row) exists — see signUp() and openUsernameOnboarding().
+const PENDING_USERNAME_KEY = 'aspinora_pending_username';
+// Remembers which method last succeeded on this device (google /
+// facebook / email) purely so openAuthModal() can show a friendly
+// "you previously signed in with…" hint — never used to skip a real
+// auth check.
+const LAST_AUTH_METHOD_KEY = 'aspinora_last_auth_method';
+function setLastAuthMethod(method){
+  try{ localStorage.setItem(LAST_AUTH_METHOD_KEY, method); }catch(e){}
+}
 /* Login accepts either an email or a username. Supabase's own
    signInWithPassword only takes an email/phone, so a bare username
    has to be turned into its email first via the get_email_for_username
@@ -1526,27 +1694,52 @@ async function signIn(identifier, password){
   if (error) throw error;
   return { user: await loadProfile(data.user), authUser: data.user };
 }
-async function signUp(email, password){
-  if (!AUTH_LIVE){
-    return { user: Object.assign({}, DEMO_USER, { username: '' }) };
+async function signUp(username, email, password){
+  username = (username || '').trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(username)){
+    throw new Error('Usernames need to be 3–20 characters: lowercase letters, numbers or underscores.');
   }
-  // A database trigger creates the matching `profiles` row for the new
-  // auth.users id, with username left blank on purpose — see the
-  // USERNAME ONBOARDING MODAL: the person picks (and we uniqueness-
-  // check) their username right after this, once they're confirmed,
-  // rather than collecting it up front here.
+  if (!AUTH_LIVE){
+    return { user: Object.assign({}, DEMO_USER, { username: username, display_name: username }) };
+  }
+  // Check once up front so an already-taken name fails fast, before
+  // even hitting Supabase Auth — completeUsernameOnboarding()/the
+  // upsert below still re-check right before writing, in case someone
+  // else claims it in the gap between this check and that write.
+  if (!(await isUsernameAvailable(username))){
+    throw new Error('That username is already taken — try another.');
+  }
   const { data, error } = await supabaseClient.auth.signUp({ email, password });
   if (error) throw error;
   const identities = data && data.user && data.user.identities;
   if (identities && identities.length === 0){
     throw new Error('An account with this email already exists. Try logging in instead.');
   }
-  // Email confirmation required — no session
-  // yet, so there's no one to log in as.
+  // Email confirmation required — no session yet, so there's no
+  // authenticated auth.uid() for RLS to let us write a profiles row.
+  // Stash the chosen username so the (still-mandatory-for-this-case)
+  // username onboarding modal can pre-fill it once they confirm and
+  // land back signed in, instead of asking again from scratch.
   if (!data.session){
+    try{ localStorage.setItem(PENDING_USERNAME_KEY, username); }catch(e){}
     return { user: null, needsVerification: true, email };
   }
-  return { user: await loadProfile(data.user), authUser: data.user };
+  // Session established immediately (email confirmation off in this
+  // Supabase project) — claim the username right now via the same
+  // upsert completeUsernameOnboarding() uses, so this person skips
+  // that modal entirely. The database trigger that creates the
+  // profiles row on signup always leaves username/display_name null
+  // (confirmed against the live handle_new_user() function), so this
+  // upsert — not signUp()'s options.data metadata, which the trigger
+  // ignores — is what actually persists it.
+  const { data: profileRow, error: profileErr } = await supabaseClient.from('profiles')
+    .upsert({ id: data.user.id, username: username, display_name: username }, { onConflict: 'id' })
+    .select('id, username, display_name, bio, avatar_url')
+    .single();
+  if (profileErr || !profileRow){
+    throw new Error('Account created, but saving your username failed — please try logging in and setting it again.');
+  }
+  return { user: profileRow, authUser: data.user };
 }
 /* Looks up the matching `profiles` row; if the row hasn't landed yet
    (trigger lag right after sign-up) or the query fails, falls back to
@@ -1728,15 +1921,24 @@ async function persistProviderProfileData(authUser, userId){
   return updates;
 }
 const USERNAME_HINT_DEFAULT = '3–20 characters: lowercase letters, numbers or underscores.';
-function resetUsernameHint(){
-  const hint = qs('#onboard-username-hint');
+function resetUsernameHint(hintId){
+  const hint = qs('#' + (hintId || 'onboard-username-hint'));
   hint.textContent = USERNAME_HINT_DEFAULT;
   hint.style.color = '';
 }
 function openUsernameOnboarding(){
-  qs('#onboard-username').value = '';
-  resetUsernameHint();
+  // If a username was already chosen (and pattern/availability-checked)
+  // during signup but couldn't be saved yet because email confirmation
+  // was pending — see signUp() — pre-fill it here instead of asking
+  // again from scratch. Still goes through the same submit-time
+  // availability re-check either way.
+  let pending = '';
+  try{ pending = localStorage.getItem(PENDING_USERNAME_KEY) || ''; }catch(e){}
+  qs('#onboard-username').value = pending;
+  try{ localStorage.removeItem(PENDING_USERNAME_KEY); }catch(e){}
+  resetUsernameHint('onboard-username-hint');
   openModal('username-modal-scrim');
+  if (pending) qs('#onboard-username').dispatchEvent(new Event('input'));
 }
 /* Live availability check as the person types: pattern-invalid input
    turns the hint red immediately (no network call needed); a
@@ -1744,18 +1946,20 @@ function openUsernameOnboarding(){
    short debounce, showing green "available" / red "taken". A request
    token guards against a slow earlier check overwriting a faster,
    more recent one if the person keeps typing. The actual submit still
-   re-checks availability server-side (see completeUsernameOnboarding)
-   in case someone else claims the name in the gap before submit. */
+   re-checks availability server-side (see completeUsernameOnboarding/
+   signUp) in case someone else claims the name in the gap before
+   submit. Shared by the onboarding modal's username field AND the
+   inline username field on the Sign Up tab of the auth modal. */
 let usernameCheckToken = 0;
-function wireUsernameLiveCheck(){
-  const input = qs('#onboard-username');
-  const hint = qs('#onboard-username-hint');
+function wireUsernameLiveCheck(inputId, hintId){
+  const input = qs('#' + inputId);
+  const hint = qs('#' + hintId);
   input.addEventListener('input', function(){
     const raw = this.value.trim().toLowerCase();
     const myToken = ++usernameCheckToken;
     clearTimeout(input._debounceTimer);
     if (!raw){
-      resetUsernameHint();
+      resetUsernameHint(hintId);
       return;
     }
     if (!USERNAME_PATTERN.test(raw)){
@@ -1911,8 +2115,8 @@ async function restoreSession(){
             return;
           }
           // Returning social-login user: keep their avatar in sync
-          // automatically (in case it changed at Google/Spotify/etc.
-          // since last time), not just the very first sign-in.
+          // automatically (in case it changed at Google since last
+          // time), not just the very first sign-in.
           // AWAITED, not fire-and-forget: this page redirects to
           // userpostlogin.html right after this — a fire-and-forget
           // upload would routinely get cut off mid-flight by that
@@ -1977,12 +2181,30 @@ function openAuthModal(tab){
   // The note only matters if Supabase itself failed to load — real
   // sign-in/sign-up is always used otherwise, regardless of DEMO_MODE.
   qs('#demo-auth-note').style.display = AUTH_LIVE ? 'none' : 'block';
+  showLastAuthMethodNote();
+}
+/* Purely a courtesy hint — never used to skip or shortcut a real auth
+   check — so someone returning to this device knows which of their
+   sign-in options to reach for. */
+function showLastAuthMethodNote(){
+  const note = qs('#auth-last-used-note');
+  let method = '';
+  try{ method = localStorage.getItem(LAST_AUTH_METHOD_KEY) || ''; }catch(e){}
+  const label = { google: 'Google', facebook: 'Facebook', email: 'Email' }[method];
+  if (label){
+    note.textContent = 'You previously signed in with ' + label + ' on this device.';
+    note.style.display = 'block';
+  } else {
+    note.style.display = 'none';
+  }
 }
 function setAuthTab(tab){
   qsa('[data-auth-tab]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-auth-tab') === tab); });
   const emailLabel = qs('#auth-email-label');
   const emailInput = qs('#auth-email');
-  if (tab === 'signup'){
+  const isSignup = tab === 'signup';
+  qs('#signup-username-field').hidden = !isSignup;
+  if (isSignup){
     emailLabel.textContent = 'Email';
     emailInput.placeholder = 'you@example.com';
     emailInput.setAttribute('autocomplete', 'email');
@@ -1991,8 +2213,10 @@ function setAuthTab(tab){
     emailInput.placeholder = 'you@example.com or your_username';
     emailInput.setAttribute('autocomplete', 'username');
   }
-  qs('#auth-modal-title').textContent = tab === 'signup' ? 'Create your account' : 'Welcome back';
-  qs('#auth-submit-btn').textContent = !AUTH_LIVE ? 'Continue as Demo User' : (tab === 'signup' ? 'Sign Up' : 'Log In');
+  qs('#auth-modal-title').textContent = isSignup ? 'Create your account' : 'Welcome back';
+  qs('#auth-submit-btn').textContent = !AUTH_LIVE ? 'Continue as Demo User' : (isSignup ? 'Sign Up' : 'Log In');
+  qs('#google-oauth-label').textContent = isSignup ? 'Sign up with Google' : 'Sign in with Google';
+  qs('#facebook-oauth-label').textContent = isSignup ? 'Sign up with Facebook' : 'Sign in with Facebook';
   qs('#auth-form').setAttribute('data-mode', tab);
 }
 
@@ -3583,14 +3807,13 @@ async function completeLoginSuccess(form, result){
   }
 }
 
-/* Resets the auth modal back to its opening state: the social-button
-   list showing, the email/password form hidden. Replaces the old
-   OTP-panel reset now that the one-time email code option is gone. */
+/* Resets the auth modal back to its opening state: empty form fields
+   and a cleared username hint (the form itself now stays visible at
+   all times — no more social/email panel toggle to reset). */
 function resetAuthPanel(){
-  qs('#auth-form').hidden = true;
-  qs('#social-auth-buttons').hidden = false;
   qs('.auth-tabs').hidden = false;
   qs('#auth-form').reset();
+  resetUsernameHint('auth-username-hint');
 }
 
 function initAuthModal(){
@@ -3608,38 +3831,33 @@ function initAuthModal(){
     this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
   });
 
-  // Same provider buttons, same handler, on both the Log In and Sign
+  // Same provider button, same handler, on both the Log In and Sign
   // Up tabs — see signInWithOAuth()'s comment for why one call covers
-  // both cases.
+  // both cases. Disabled providers (Facebook, for now) never fire a
+  // click at all, so no extra guard is needed here.
   qsa('[data-oauth-provider]').forEach(function(btn){
     btn.addEventListener('click', function(){
       // #auth-form's data-mode tracks which tab (Log In / Sign Up) is
-      // selected regardless of whether the form itself is visible —
-      // set by setAuthTab() — so this reads the person's intent even
-      // though both tabs share the same row of provider buttons.
+      // selected — set by setAuthTab() — so this reads the person's
+      // intent even though both tabs share the same provider buttons.
       const intent = qs('#auth-form').getAttribute('data-mode') || 'login';
-      signInWithOAuth(this.getAttribute('data-oauth-provider'), intent);
+      const provider = this.getAttribute('data-oauth-provider');
+      setLastAuthMethod(provider);
+      signInWithOAuth(provider, intent);
     });
-  });
-  qs('#use-email-auth-btn').addEventListener('click', function(){
-    qs('#social-auth-buttons').hidden = true;
-    qs('#auth-form').hidden = false;
-    qs('#auth-email').focus();
-  });
-  qs('#auth-back-to-social-btn').addEventListener('click', function(){
-    qs('#auth-form').hidden = true;
-    qs('#social-auth-buttons').hidden = false;
   });
 
   qs('#auth-form').addEventListener('submit', async function(e){
     e.preventDefault();
     const mode = this.getAttribute('data-mode') || 'login';
     const identifier = qs('#auth-email').value.trim();
+    const username = qs('#auth-username').value.trim();
     const password = qs('#auth-password').value;
     const btn = qs('#auth-submit-btn');
     btn.disabled = true;
     try{
-      const result = mode === 'signup' ? await signUp(identifier, password) : await signIn(identifier, password);
+      const result = mode === 'signup' ? await signUp(username, identifier, password) : await signIn(identifier, password);
+      if (!result.needsVerification) setLastAuthMethod('email');
       if (result.needsVerification){
         closeModal('auth-modal-scrim');
         showToast('Check ' + result.email + ' for a confirmation link to finish signing up.');
@@ -3657,7 +3875,8 @@ function initAuthModal(){
   // Username onboarding: the mandatory step right after first sign-in
   // for anyone whose profile doesn't have a username yet (see
   // needsUsername()/openUsernameOnboarding() above).
-  wireUsernameLiveCheck();
+  wireUsernameLiveCheck('onboard-username', 'onboard-username-hint');
+  wireUsernameLiveCheck('auth-username', 'auth-username-hint');
   qs('#username-form').addEventListener('submit', async function(e){
     e.preventDefault();
     const input = qs('#onboard-username');
@@ -4031,26 +4250,38 @@ else init();
         frontend turns into a generic "no account found" message
         rather than confirming which usernames exist.
 
-     8. Social login (Google / Facebook / Spotify / Apple) +
+     8. Social login (Google only — Facebook is wired but disabled in
+        the UI pending its own app review; Spotify/Apple were removed) +
         username onboarding + avatar storage
         - In the Supabase dashboard under Authentication > Providers,
-          enable Google, Facebook, Spotify and Apple, and fill in each
-          provider's client id/secret from that provider's own developer
-          console. Under Authentication > URL Configuration, add this
-          site's userpostlogin.html URL (e.g.
+          enable Google and fill in its client id/secret from the
+          Google Cloud Console. Under Authentication > URL Configuration,
+          add this site's userpostlogin.html URL (e.g.
           https://yourdomain.com/userpostlogin.html) to the redirect
           allow-list — signInWithOAuth() always sends people back there
           regardless of which page (index.html or userpostlogin.html)
-          they clicked a provider button on.
-        - The `profiles` insert trigger should stop setting username/
-          display_name from signup metadata entirely — leave both null
-          on insert. The app now forces every first-time signed-in user
-          (social or email) through the username onboarding modal
-          (completeUsernameOnboarding()), which uniqueness-checks and
-          saves `username`/`display_name` via an UPSERT (not a plain
-          UPDATE — see the comment above that call for why: a missing
-          profiles row, e.g. deleted directly from the database while
-          testing, can only be recovered by an upsert). That upsert
+          they clicked a provider button on. (Facebook's app credentials
+          can still be configured ahead of time if you want the button
+          ready to re-enable later — just remove its `disabled` attribute
+          and the "Not available right now" note in the AUTH MODAL markup.)
+        - The `profiles` insert trigger (handle_new_user) always leaves
+          username/display_name null on insert regardless of what's
+          passed in signup metadata — confirmed directly against the
+          live function, this isn't optional/configurable, so don't rely
+          on options.data to set it. Email/password signups now collect
+          and uniqueness-check the username inline on the Sign Up tab and
+          claim it via an UPSERT immediately after signUp() returns a
+          session (see signUp()). Only two cases still fall through to
+          the separate username onboarding modal (completeUsernameOnboarding()):
+          (a) OAuth sign-ins, which never collect a username themselves,
+          and (b) email signups where Supabase required email
+          confirmation before a session existed — for that case the
+          chosen username is stashed in localStorage (PENDING_USERNAME_KEY)
+          and openUsernameOnboarding() pre-fills it once they confirm and
+          land back signed in. Either path ends in the same UPSERT (not a
+          plain UPDATE — see the comment above that call for why: a
+          missing profiles row, e.g. deleted directly from the database
+          while testing, can only be recovered by an upsert). That upsert
           REQUIRES both an INSERT and an UPDATE policy on `profiles`:
               create policy "profiles_owner_insert"
               on profiles for insert
