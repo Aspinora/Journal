@@ -307,8 +307,10 @@ section{ padding:36px 0; }
 .wall-sticky-composer{
   border-top:1px solid rgba(255,255,255,.3);
   background:transparent;
-  padding:10px 0;
+  padding:10px 0; max-height:80px; overflow:hidden; opacity:1;
+  transition:max-height .28s ease, opacity .2s ease, padding .28s ease, border-color .28s ease;
 }
+.wall-sticky-composer.is-hidden{ max-height:0; opacity:0; padding-top:0; padding-bottom:0; border-top-color:transparent; }
 .wall-composer-trigger{
   display:flex; align-items:center; gap:14px; width:100%; text-align:left; cursor:pointer;
   background:rgba(255,255,255,.14); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
@@ -324,18 +326,21 @@ section{ padding:36px 0; }
 .wall-composer-trigger .wct-icon svg{ width:16px; height:16px; }
 
 /* ---------- the whole page — one continuous surface from top to
-   bottom. Colour steps to a new soft tint every 5s with a smooth
-   transition (JS drives this — see startWallBackgroundCycle). The
+   bottom. Two full-viewport gradient layers cross-fade into each
+   other every 5-10s (JS drives this — see startWallBackgroundCycle),
+   giving a real moving gradient rather than a flat colour swap. The
    header/composer above are glass (blurred, translucent) rather than
-   opaque, so this same colour reads straight through them too;
+   opaque, so this same backdrop reads straight through them too;
    logos/icons/buttons keep their own solid fills underneath so they
-   stay legible regardless of what the backdrop is doing. ---------- */
+   stay legible regardless of what it's doing. ---------- */
 html, body{ height:100%; }
-body{
-  background-color:#F7F3EA;
-  transition:background-color 4.5s ease;
+body{ background:#F7F3EA; }
+.wall-bg-layer{
+  position:fixed; inset:0; z-index:-1; opacity:0;
+  transition:opacity 6s ease;
 }
-@media (prefers-reduced-motion: reduce){ body{ transition:none; } }
+.wall-bg-layer.is-on{ opacity:1; }
+@media (prefers-reduced-motion: reduce){ .wall-bg-layer{ transition:none; } }
 
 /* ---------- the grid: responsive density, never hardcoded --------
    Track size is fixed (not a stretchy 1fr) so an N×N span is always
@@ -370,11 +375,15 @@ body{
 
 /* ---------- a single Figure ---------- */
 .figure-card{
-  position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
-  text-align:center; padding:10px; cursor:pointer; border:none; text-decoration:none; overflow:hidden;
+  position:relative; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+  text-align:center; cursor:pointer; border:none; text-decoration:none; overflow:hidden;
   box-shadow:0 6px 18px rgba(43,36,28,.06);
   transition:box-shadow var(--dur-fast) var(--ease);
   animation:figure-float var(--fdur,6.3s) ease-in-out var(--fdelay,0s) infinite alternate;
+  /* One line of breathing room on top/sides, two lines reserved at
+     the bottom for the like button strip so it can never sit on top
+     of the text above it. */
+  padding:1em 1em 0;
   /* Figure sizing lives on the parent .figure-slot (grid-column/row),
      computed per-Figure in JS from how much text it holds — see
      figureCardHTML()/fitFigureCard() — so CSS Grid guarantees
@@ -391,12 +400,12 @@ body{
 /* shapes — a light identity (radius/character) only; actual size
    (grid-column/grid-row span, on the parent .figure-slot) is computed
    dynamically in JS from content length, never hardcoded per shape.
-   Circle/square get extra, *percentage-based* padding so text always
-   sits inside the inscribed circle rather than poking past its edge
-   at any size — this is what keeps it looking like a true circle on
-   small mobile cells instead of spilling text past the curve. */
-.figure-card.shape-circle{ border-radius:999px; padding:22%; }
-.figure-card.shape-square{ border-radius:18%; padding:14%; }
+   Circle needs a much bigger inset (its inscribed safe area is far
+   smaller than its bounding box) so text and the like-button strip
+   both stay inside the visible disc rather than poking past the
+   curve — square gets a smaller version of the same treatment. */
+.figure-card.shape-circle{ border-radius:999px; padding:20% 20% 0; }
+.figure-card.shape-square{ border-radius:18%; padding:13% 13% 0; }
 .figure-card.shape-rounded{ border-radius:26px; }
 .figure-card.shape-wide{ border-radius:22px; }
 .figure-card.shape-tall{ border-radius:22px; }
@@ -417,9 +426,12 @@ body{
    (and, for circle/square, column span too, to stay a true circle/
    square) after render if this content is still taller than the
    space it was given, so nothing is ever clipped and nothing ever
-   overlaps. */
+   overlaps. This is a flex child that grows to fill whatever space
+   is left above the like-button strip — never sized to the full card
+   height, which is what used to let the button sit over the text. */
 .figure-text{
-  position:relative;
+  position:relative; flex:1 1 auto; min-height:0;
+  display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.36;
   white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;
 }
@@ -429,11 +441,16 @@ body{
 /* Rich Figures (written in the drag-to-place editor) render as an
    absolutely-positioned mini-canvas that exactly mirrors the editor —
    every block keeps the %-based left/top/width the author dragged it
-   to, so what they saw while writing is exactly what's pinned. */
+   to, so what they saw while writing is exactly what's pinned. This
+   fills whatever height .figure-text ends up with from the flex
+   layout above — it never forces its own height, which is what
+   used to let it spill down into the like-button strip. */
 .fig-canvas-abs{ position:absolute; inset:0; }
 .fig-canvas-abs .fig-text-block{ position:absolute; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; }
 .fig-canvas-abs .fig-hr-abs{ position:absolute; height:0; border-top:1.5px solid currentColor; opacity:.4; }
 .fig-canvas-abs .fig-vr-abs{ position:absolute; width:0; border-left:1.5px solid currentColor; opacity:.4; }
+.fig-text-block ul, .fig-text-block ol{ margin:0; padding-left:1.3em; text-align:left; }
+.fig-text-block li{ margin:.1em 0; }
 
 /* subtle author-only pin — never shown to anyone else */
 .figure-pin{
@@ -441,20 +458,19 @@ body{
   background:var(--orange); box-shadow:0 0 0 3px rgba(241,99,27,.18);
 }
 
-/* Like is the only reaction control on the card itself — hearts are
-   given by double/triple-tapping the Figure (see handleWallTap in
-   the script), not a separate button. */
+/* A dedicated bottom strip (about two lines tall), always present in
+   normal flow rather than floating over the text — the like button
+   lives here, horizontally centred, and can never overlap a word. */
 .figure-actions{
-  position:absolute; bottom:9px; left:0; right:0; display:flex; justify-content:center;
-  opacity:0; transform:translateY(4px); transition:opacity .2s var(--ease), transform .2s var(--ease); pointer-events:none;
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center;
+  height:2.4em; padding-bottom:.3em;
 }
-.figure-card:hover .figure-actions, .figure-card:focus-within .figure-actions{ opacity:1; transform:translateY(0); pointer-events:auto; }
-@media (hover:none){ .figure-actions{ opacity:.9; pointer-events:auto; transform:none; } }
 .figure-like-btn{
   background:rgba(255,255,255,.62); backdrop-filter:blur(4px); border:none; border-radius:999px;
   padding:4px 9px; font-size:.66rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; color:inherit;
   touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
+.figure-like-btn:hover{ background:rgba(255,255,255,.9); }
 .figure-like-btn.is-liked{ background:rgba(255,255,255,.92); }
 
 /* ephemeral colourful-heart reaction: heartbeat pulse + glow + rising heart */
@@ -478,61 +494,137 @@ body{
 /* wall canvas responsive density steps — tablet, then mobile */
 
 
-/* ---------- publish-a-figure: shape/colour pickers stay up top,
-   but writing now happens directly inside the actual Figure — no
-   separate preview box, the editable card *is* the preview. ---------- */
-.wf-field{ margin-top:18px; }
-.wf-field > label{ display:block; font-weight:700; font-size:.82rem; margin-bottom:10px; }
-.wf-shape-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+/* ---------- publish-a-figure: icon-only pickers, no labels — the
+   shape/colour buttons are self-explanatory, and writing happens
+   directly inside the actual Figure — no separate preview box, the
+   editable canvas *is* the preview. ---------- */
+.wf-modal-box{ max-width:420px; }
+.wf-picker-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.wf-picker-sep{ width:1px; height:28px; background:var(--line); flex-shrink:0; }
+.wf-shape-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .wf-shape-opt{
-  width:50px; height:50px; border:1.5px solid var(--line); background:var(--cream-deep); flex-shrink:0;
+  width:34px; height:34px; border:1.5px solid var(--line); background:var(--cream-deep); flex-shrink:0;
   transition:border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
   touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
 .wf-shape-opt.shape-circle{ border-radius:50%; }
-.wf-shape-opt.shape-square{ border-radius:14px; }
-.wf-shape-opt.shape-rounded{ border-radius:20px; width:64px; }
-.wf-shape-opt.shape-wide{ border-radius:16px; width:80px; height:40px; }
-.wf-shape-opt.shape-tall{ border-radius:18px; height:64px; }
+.wf-shape-opt.shape-square{ border-radius:9px; }
+.wf-shape-opt.shape-rounded{ border-radius:12px; width:42px; }
+.wf-shape-opt.shape-wide{ border-radius:10px; width:48px; height:26px; }
+.wf-shape-opt.shape-tall{ border-radius:11px; height:42px; }
 .wf-shape-opt.is-selected{ border-color:var(--orange); box-shadow:0 0 0 3px var(--orange-soft); transform:translateY(-1px); }
-.wf-color-row{ display:flex; gap:10px; flex-wrap:wrap; }
-.wf-color-opt{ width:32px; height:32px; border-radius:50%; border:2px solid transparent; padding:0; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.wf-color-row{ display:flex; gap:7px; flex-wrap:wrap; }
+.wf-color-opt{ width:24px; height:24px; border-radius:50%; border:2px solid transparent; padding:0; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .wf-color-opt.is-selected{ border-color:var(--ink); transform:scale(1.1); }
-.wf-count{ font-family:var(--font-mono); font-size:.76rem; color:var(--ink-faint); }
+.wf-count-row{ text-align:right; margin-top:6px; }
+.wf-count{ font-family:var(--font-mono); font-size:.72rem; color:var(--ink-faint); }
 .wf-count.is-over{ color:#B3432B; font-weight:700; }
 
-/* the formatting toolbar: font family/size apply to the current text
-   selection; the two line buttons insert a divider at the cursor. */
-.wf-toolbar{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:18px 0 10px; }
-.wf-toolbar select, .wf-toolbar button{
-  border:1.5px solid var(--line); background:var(--paper); border-radius:10px; padding:6px 10px;
-  font-size:.78rem; font-weight:600; color:var(--ink-soft); cursor:pointer;
+/* Canvas-structure actions (new text block / new line) — small,
+   always available regardless of keyboard/toolbar state. */
+.wf-canvas-tools{ display:flex; justify-content:center; gap:8px; margin-top:10px; }
+.wf-canvas-tools button{
+  border:1.5px solid var(--line); background:var(--paper); border-radius:10px; padding:6px 11px;
+  font-size:.78rem; font-weight:700; color:var(--ink-soft); cursor:pointer;
   touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
-.wf-toolbar select:hover, .wf-toolbar button:hover{ border-color:var(--orange); color:var(--orange-deep); }
-.wf-toolbar .wf-tb-hint{ width:100%; font-size:.72rem; color:var(--ink-faint); margin-top:-2px; }
-.wf-textcolor-row{ display:flex; gap:6px; align-items:center; padding:2px 4px; border:1.5px solid var(--line); border-radius:10px; }
-.wf-textcolor-opt{
-  width:20px; height:20px; border-radius:50%; border:2px solid transparent; padding:0; flex-shrink:0;
-  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
-}
-.wf-textcolor-opt.is-selected{ border-color:var(--ink); transform:scale(1.15); }
-.wf-textcolor-opt[data-textcolor="#FFFFFF"]{ box-shadow:inset 0 0 0 1px var(--line); }
+.wf-canvas-tools button:hover{ border-color:var(--orange); color:var(--orange-deep); }
 
 /* ---------- the writing canvas: exactly the shape being published,
    nothing here can be dragged outside it — see clampToCanvas() in the
    script — so the figure you see here is, pixel for pixel, the figure
    that gets pinned. ---------- */
-.wf-editor-wrap{ display:flex; justify-content:center; padding:6px 0; }
+.wf-editor-wrap{ position:relative; display:flex; justify-content:center; padding:10px 0 22px; }
 .wf-editor-canvas{
-  position:relative; box-shadow:0 8px 22px rgba(43,36,28,.08); overflow:hidden;
+  position:relative; box-shadow:0 8px 22px rgba(43,36,28,.08);
+  /* No overflow:hidden here on purpose — it would clip the resize
+     handle and any block's drag-handle/remove-button whenever they
+     sit near an edge. The published content itself is guaranteed to
+     fit (everything is clamped to the canvas in %), so only the
+     final wall card (.figure-card) needs to actually clip. */
   touch-action:none; /* this area is a drag surface, not a scroll/zoom surface */
+  transition:width .2s var(--ease), height .2s var(--ease);
 }
-.wf-editor-canvas.shape-circle{ border-radius:999px; }
-.wf-editor-canvas.shape-square{ border-radius:18%; }
-.wf-editor-canvas.shape-rounded{ border-radius:26px; }
-.wf-editor-canvas.shape-wide{ border-radius:22px; }
-.wf-editor-canvas.shape-tall{ border-radius:22px; }
+.wf-editor-canvas.shape-circle{ --shape-radius:999px; }
+.wf-editor-canvas.shape-square{ --shape-radius:18%; }
+.wf-editor-canvas.shape-rounded{ --shape-radius:26px; }
+.wf-editor-canvas.shape-wide{ --shape-radius:22px; }
+.wf-editor-canvas.shape-tall{ --shape-radius:22px; }
+.wf-editor-canvas{ border-radius:var(--shape-radius,26px); }
+/* The actual content-clipping layer — sized exactly to the canvas via
+   inset:0 and rounded to match it (--shape-radius inherits down from
+   the canvas above), so text near an edge previews its real, final
+   clipping. Handles/remove-buttons/the resize handle live outside
+   this layer (direct children of .wf-editor-canvas) specifically so
+   *they* are never clipped, even right at a corner. */
+.wf-editor-content{ position:absolute; inset:0; overflow:hidden; border-radius:var(--shape-radius,26px); }
+/* The actual bug fix: these colour rules never existed before, so the
+   canvas had no background and text had no guaranteed contrast colour
+   — that's why colour picks looked like they did nothing and typed
+   text could be hard to see. */
+.wf-editor-canvas.color-sage{ background:var(--fig-sage); color:var(--fig-sage-ink); }
+.wf-editor-canvas.color-sky{ background:var(--fig-sky); color:var(--fig-sky-ink); }
+.wf-editor-canvas.color-lavender{ background:var(--fig-lavender); color:var(--fig-lavender-ink); }
+.wf-editor-canvas.color-butter{ background:var(--fig-butter); color:var(--fig-butter-ink); }
+.wf-editor-canvas.color-peach{ background:var(--fig-peach); color:var(--fig-peach-ink); }
+.wf-editor-canvas.color-sand{ background:var(--fig-sand); color:var(--fig-sand-ink); }
+.wf-editor-canvas.color-blossom{ background:var(--fig-blossom); color:var(--fig-blossom-ink); }
+.wf-editor-canvas.color-fog{ background:var(--fig-fog); color:var(--fig-fog-ink); }
+.wf-editor-resize-handle{
+  position:absolute; right:-6px; bottom:-6px; width:22px; height:22px; border-radius:50%;
+  background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center;
+  font-size:11px; cursor:nwse-resize; touch-action:none; z-index:6; box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+
+/* ---------- compact rich-text toolbar ----------
+   Small, icon-only, horizontally scrollable — never a full Word-style
+   ribbon. Sits inline in the modal on desktop; on mobile it switches
+   to position:fixed and docks itself directly above the keyboard the
+   instant a text block is focused (see positionRtToolbar). */
+.rt-toolbar{
+  display:flex; align-items:center; gap:2px; margin-top:12px; padding:6px 8px;
+  background:var(--paper); border:1px solid var(--line); border-radius:14px;
+  overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  white-space:nowrap;
+}
+.rt-toolbar::-webkit-scrollbar{ display:none; }
+.rt-toolbar.rt-fixed{
+  position:fixed; left:12px; right:12px; margin-top:0; z-index:600;
+  box-shadow:0 -6px 20px rgba(43,36,28,.16); border-radius:14px;
+}
+.rt-btn{
+  flex:0 0 auto; width:34px; height:34px; display:flex; align-items:center; justify-content:center;
+  border:none; background:transparent; border-radius:9px; font-size:.86rem; font-weight:700; color:var(--ink-soft);
+  cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.rt-btn:hover, .rt-btn.is-active{ background:var(--orange-soft); color:var(--orange-deep); }
+.rt-sep{ flex:0 0 auto; width:1px; height:20px; background:var(--line); margin:0 4px; }
+.rt-swatch-icon{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--line); background:var(--ink); display:block; }
+.rt-hl-icon{ background:#FDF3B0; }
+
+/* the shared popover surface for font/size/colour/highlight/emoji/more */
+.rt-popover{
+  margin-top:8px; padding:10px; background:var(--paper); border:1px solid var(--line); border-radius:14px;
+  box-shadow:0 10px 28px rgba(43,36,28,.14); max-height:220px; overflow-y:auto;
+}
+.rt-popover.rt-fixed{ position:fixed; left:12px; right:12px; z-index:601; margin-top:0; }
+.rt-pop-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.rt-pop-row + .rt-pop-row{ margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+.rt-pop-label{ width:100%; font-family:var(--font-mono); font-size:.62rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:2px; }
+.rt-pop-btn{
+  border:1.5px solid var(--line); background:var(--cream-deep); border-radius:9px; padding:6px 10px;
+  font-size:.8rem; font-weight:600; color:var(--ink-soft); cursor:pointer;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.rt-pop-btn:hover, .rt-pop-btn.is-active{ border-color:var(--orange); color:var(--orange-deep); }
+.rt-pop-swatch{ width:26px; height:26px; border-radius:50%; border:2px solid transparent; padding:0; cursor:pointer; touch-action:manipulation; }
+.rt-pop-swatch.is-active{ border-color:var(--ink); transform:scale(1.1); }
+.rt-pop-swatch[data-swatch="#FFFFFF"]{ box-shadow:inset 0 0 0 1px var(--line); }
+.rt-pop-emoji{
+  width:34px; height:34px; font-size:1.15rem; border:none; background:transparent; border-radius:8px; cursor:pointer;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.rt-pop-emoji:hover{ background:var(--cream-deep); }
 
 .wf-editor-canvas .fig-text-block{
   position:absolute; cursor:text; padding:2px 4px; border-radius:4px;
@@ -1044,6 +1136,9 @@ body{
 </head>
 <body>
 
+<div class="wall-bg-layer" id="wall-bg-a"></div>
+<div class="wall-bg-layer" id="wall-bg-b"></div>
+
 <!-- Shown until the session check finishes, so the page never
      flashes guest/empty content or a jarring layout shift. -->
 <div id="page-loader" class="page-loader">
@@ -1066,12 +1161,9 @@ body{
       </span>
     </a>
 
-    <div style="text-align:center;">
-      <span class="eyebrow" style="letter-spacing:.14em;">THE WALL</span>
-    </div>
+    <nav class="pl-center-nav" id="pl-center-nav" aria-label="Sections"></nav>
 
     <div class="nav-right pl-nav-right" style="gap:14px;">
-      <a href="userpostlogin.html" class="btn btn-secondary btn-sm" style="white-space:nowrap;">← Aspinora</a>
       <div class="nav-user" id="nav-user" hidden>
         <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-haspopup="true" aria-expanded="false">
           <span class="avatar" id="nav-user-avatar"></span>
@@ -1105,51 +1197,55 @@ body{
 </main>
 
 <div class="modal-scrim" id="figure-publish-modal-scrim">
-  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="figure-publish-title">
+  <div class="modal-box wf-modal-box" role="dialog" aria-modal="true" aria-labelledby="figure-publish-title">
     <button type="button" class="modal-close" id="figure-publish-close" aria-label="Close">
       <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
-    <h2 id="figure-publish-title">Pin a Figure</h2>
-    <p class="modal-sub">Pick a shape and colour, write inside it, then drag the text or a line wherever you like — exactly what you see here is what gets pinned.</p>
+    <h2 id="figure-publish-title" class="visually-hidden">Pin a Figure</h2>
 
     <form id="figure-publish-form">
-      <div class="wf-field" style="margin-top:0;">
-        <label>Shape</label>
+      <div class="wf-picker-row">
         <div class="wf-shape-row" id="fp-shape-row" role="radiogroup" aria-label="Figure shape"></div>
-      </div>
-
-      <div class="wf-field">
-        <label>Colour</label>
+        <span class="wf-picker-sep" aria-hidden="true"></span>
         <div class="wf-color-row" id="fp-color-row" role="radiogroup" aria-label="Figure colour"></div>
-      </div>
-
-      <div class="wf-toolbar" role="toolbar" aria-label="Text formatting">
-        <select id="fp-font-select" aria-label="Font">
-          <option value="">Font…</option>
-          <option value="var(--font-display)">Serif</option>
-          <option value="var(--font-body)">Sans</option>
-          <option value="var(--font-mono)">Mono</option>
-        </select>
-        <select id="fp-size-select" aria-label="Text size">
-          <option value="">Size…</option>
-          <option value=".72rem">Small</option>
-          <option value=".95rem">Medium</option>
-          <option value="1.2rem">Large</option>
-          <option value="1.5rem">Extra large</option>
-        </select>
-        <button type="button" id="fp-insert-hline">— Add horizontal line</button>
-        <button type="button" id="fp-insert-vline">| Add vertical line</button>
-        <button type="button" id="fp-add-text">+ Add text block</button>
-        <div class="wf-textcolor-row" id="fp-textcolor-row" role="group" aria-label="Text colour"></div>
-        <span class="wf-tb-hint">Add as many text blocks as you like — each one is independent. Click into one, select some words, then pick a font/size/colour to style just those. Drag the ⠿ handle to move a block; drag a line directly to reposition it.</span>
       </div>
 
       <div class="wf-editor-wrap">
         <div class="wf-editor-canvas shape-rounded color-sage" id="fp-canvas"></div>
+        <div class="wf-canvas-tools">
+          <button type="button" id="fp-add-text" title="Add a text block" aria-label="Add a text block">＋Aa</button>
+          <button type="button" id="fp-insert-hline" title="Add a horizontal line" aria-label="Add a horizontal line">＋—</button>
+          <button type="button" id="fp-insert-vline" title="Add a vertical line" aria-label="Add a vertical line">＋｜</button>
+        </div>
       </div>
-      <div style="text-align:right; margin-top:8px;"><span class="wf-count" id="fp-count">0 / 40 words</span></div>
+      <div class="wf-count-row"><span class="wf-count" id="fp-count">0/40</span></div>
 
-      <div class="modal-actions" style="margin-top:24px;">
+      <!-- Compact rich-text toolbar: shows itself the moment a text
+           block is focused, floats just above the mobile keyboard
+           (see positionRtToolbar), sits inline on desktop. -->
+      <div class="rt-toolbar" id="rt-toolbar" role="toolbar" aria-label="Text formatting" hidden>
+        <button type="button" class="rt-btn" data-rt="undo" title="Undo" aria-label="Undo">↶</button>
+        <button type="button" class="rt-btn" data-rt="redo" title="Redo" aria-label="Redo">↷</button>
+        <span class="rt-sep"></span>
+        <button type="button" class="rt-btn" data-rt="bold" title="Bold" aria-label="Bold"><b>B</b></button>
+        <button type="button" class="rt-btn" data-rt="italic" title="Italic" aria-label="Italic"><i>I</i></button>
+        <button type="button" class="rt-btn" data-rt="underline" title="Underline" aria-label="Underline"><u>U</u></button>
+        <button type="button" class="rt-btn" data-rt="strike" title="Strikethrough" aria-label="Strikethrough"><s>S</s></button>
+        <span class="rt-sep"></span>
+        <button type="button" class="rt-btn" data-rt="font" title="Font" aria-label="Font">Aa</button>
+        <button type="button" class="rt-btn" data-rt="size" title="Text size" aria-label="Text size">A<small>A</small></button>
+        <button type="button" class="rt-btn" data-rt="color" title="Text colour" aria-label="Text colour"><span class="rt-swatch-icon" id="rt-color-icon"></span></button>
+        <button type="button" class="rt-btn" data-rt="highlight" title="Highlight" aria-label="Highlight"><span class="rt-swatch-icon rt-hl-icon" id="rt-hl-icon"></span></button>
+        <span class="rt-sep"></span>
+        <button type="button" class="rt-btn" data-rt="align" title="Alignment" aria-label="Alignment"><span id="rt-align-icon">≡</span></button>
+        <button type="button" class="rt-btn" data-rt="list" title="Bullets / numbering" aria-label="Bullets / numbering"><span id="rt-list-icon">☰</span></button>
+        <button type="button" class="rt-btn" data-rt="emoji" title="Emoji" aria-label="Emoji">🙂</button>
+        <span class="rt-sep"></span>
+        <button type="button" class="rt-btn" data-rt="more" title="More" aria-label="More formatting options">⋯</button>
+      </div>
+      <div class="rt-popover" id="rt-popover" hidden></div>
+
+      <div class="modal-actions" style="margin-top:16px;">
         <button type="button" class="btn btn-secondary" id="figure-publish-cancel">Cancel</button>
         <button type="submit" class="btn btn-primary" id="fp-submit-btn">Pin to Wall</button>
       </div>
@@ -1479,9 +1575,10 @@ const SHAPE_ASPECT = { circle:[1,1], square:[1,1], rounded:[2,1], wide:[3,1], ta
 
 function figureShapeOf(key){ return FIGURE_SHAPES.find(function(s){ return s.key === key; }) || FIGURE_SHAPES[2]; }
 function figureColorOf(key){ return FIGURE_COLORS.find(function(c){ return c.key === key; }) || FIGURE_COLORS[0]; }
-function figureGridSpan(shapeKey){
+function figureGridSpan(shapeKey, sizeTier){
   const a = SHAPE_ASPECT[shapeKey] || SHAPE_ASPECT.rounded;
-  return { col:a[0], row:a[1] };
+  const tier = sizeTier === 2 || sizeTier === 3 ? sizeTier : 1;
+  return { col:a[0] * tier, row:a[1] * tier };
 }
 
 function normalizeFigureRow(row){
@@ -1490,7 +1587,7 @@ function normalizeFigureRow(row){
   }
   return {
     id: row.id, body: row.body, body_html: row.body_html || null, author_id: row.author_id,
-    shape: row.shape, color_key: row.color_key,
+    shape: row.shape, color_key: row.color_key, size_tier: row.size_tier || 1,
     likes_count: row.likes_count || 0, hearts_count: row.hearts_count || 0,
     created_at: row.created_at, expires_at: row.expires_at
   };
@@ -1499,7 +1596,7 @@ function normalizeFigureRow(row){
 async function fetchWallFigures(){
   if (!supabaseClient) return [];
   const { data, error } = await supabaseClient.from('wall_figures')
-    .select('id, body, body_html, author_id, shape, color_key, likes_count, hearts_count, created_at, expires_at, profiles!wall_figures_author_id_fkey(display_name, username)')
+    .select('id, body, body_html, author_id, shape, color_key, size_tier, likes_count, hearts_count, created_at, expires_at, profiles!wall_figures_author_id_fkey(display_name, username)')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending:false })
     .limit(120);
@@ -1507,10 +1604,10 @@ async function fetchWallFigures(){
   return data.map(normalizeFigureRow);
 }
 
-async function publishFigure(plainBody, htmlBody, shapeKey, colorKey){
+async function publishFigure(plainBody, htmlBody, shapeKey, colorKey, sizeTier){
   const { data, error } = await supabaseClient.from('wall_figures')
-    .insert({ body: plainBody, body_html: htmlBody, shape: shapeKey, color_key: colorKey, author_id: state.currentUser.id })
-    .select('id, body, body_html, author_id, shape, color_key, likes_count, hearts_count, created_at, expires_at').single();
+    .insert({ body: plainBody, body_html: htmlBody, shape: shapeKey, color_key: colorKey, size_tier: sizeTier || 1, author_id: state.currentUser.id })
+    .select('id, body, body_html, author_id, shape, color_key, size_tier, likes_count, hearts_count, created_at, expires_at').single();
   if (error) throw error;
   AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username };
   return normalizeFigureRow(data);
@@ -1573,8 +1670,16 @@ async function deleteFigureRow(figureId){
 const RICH_ALLOWED_FONTS = ['var(--font-display)','var(--font-body)','var(--font-mono)'];
 const RICH_SIZE_RE = /^\d+(\.\d+)?(px|rem|em)$/;
 const RICH_ALLOWED_TEXT_COLORS = ['#2B241C','#5A4632','#7A4222','#78334E','#234F6A','#3E4A2C','#493C70','#B3432B','#F1631B','#FFFFFF'];
+const RICH_ALLOWED_HIGHLIGHTS = ['#FDF3B0','#C9EAD3','#CFE8F3','#F6D9C9','#EAD9F3','#F3D6E0','TRANSPARENT'];
+const RICH_ALLOWED_WEIGHTS = ['700','normal'];
+const RICH_ALLOWED_STYLES = ['italic','normal'];
+const RICH_ALLOWED_DECORATIONS = ['underline','line-through','underline line-through','line-through underline','none'];
+const RICH_ALLOWED_ALIGN = ['left','center','right'];
+const RICH_ALLOWED_LETTERSPACE = ['normal','.03em','.08em','.16em'];
+const RICH_ALLOWED_LINEHEIGHT = ['1.15','1.4','1.7','2'];
 const RICH_PCT_RE = /^-?\d+(\.\d+)?%$/;
 const RICH_DANGEROUS_TAGS = ['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','IMG','SVG'];
+const RICH_LIST_TAGS = ['UL','OL','LI'];
 
 function readPosStyle(styleText, props){
   let out = '';
@@ -1583,6 +1688,20 @@ function readPosStyle(styleText, props){
     const m = re.exec(styleText || '');
     if (m && RICH_PCT_RE.test(m[1].trim())) out += p + ':' + m[1].trim() + ';';
   });
+  return out;
+}
+/* Block-level formatting (alignment / letter-spacing / line-height)
+   lives on the .fig-text-block itself, not on a span — same
+   whitelist-only approach as everything else here. */
+function readBlockStyle(styleText){
+  let out = readPosStyle(styleText, ['left','top','width']);
+  const style = styleText || '';
+  const align = /text-align:\s*([^;]+)/i.exec(style);
+  const ls = /letter-spacing:\s*([^;]+)/i.exec(style);
+  const lh = /line-height:\s*([^;]+)/i.exec(style);
+  if (align && RICH_ALLOWED_ALIGN.indexOf(align[1].trim()) !== -1) out += 'text-align:' + align[1].trim() + ';';
+  if (ls && RICH_ALLOWED_LETTERSPACE.indexOf(ls[1].trim()) !== -1) out += 'letter-spacing:' + ls[1].trim() + ';';
+  if (lh && RICH_ALLOWED_LINEHEIGHT.indexOf(lh[1].trim()) !== -1) out += 'line-height:' + lh[1].trim() + ';';
   return out;
 }
 function sanitizeInlineTextHTML(html){
@@ -1598,16 +1717,31 @@ function sanitizeInlineTextHTML(html){
         Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
         return;
       }
+      if (RICH_LIST_TAGS.indexOf(tag) !== -1){
+        Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
+        walk(node);
+        return;
+      }
       if (tag === 'SPAN'){
         const style = node.getAttribute('style') || '';
         const fam = /font-family:\s*([^;]+)/i.exec(style);
         const size = /font-size:\s*([^;]+)/i.exec(style);
         const col = /(?:^|;)\s*color:\s*([^;]+)/i.exec(style);
+        const bg = /background-color:\s*([^;]+)/i.exec(style);
+        const weight = /font-weight:\s*([^;]+)/i.exec(style);
+        const fstyle = /font-style:\s*([^;]+)/i.exec(style);
+        const decoration = /text-decoration-line:\s*([^;]+)/i.exec(style);
+        const ls = /letter-spacing:\s*([^;]+)/i.exec(style);
         Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
         let newStyle = '';
         if (fam && RICH_ALLOWED_FONTS.indexOf(fam[1].trim()) !== -1) newStyle += 'font-family:' + fam[1].trim() + ';';
         if (size && RICH_SIZE_RE.test(size[1].trim())) newStyle += 'font-size:' + size[1].trim() + ';';
         if (col && RICH_ALLOWED_TEXT_COLORS.indexOf(col[1].trim().toUpperCase()) !== -1) newStyle += 'color:' + col[1].trim() + ';';
+        if (bg && RICH_ALLOWED_HIGHLIGHTS.indexOf(bg[1].trim().toUpperCase()) !== -1) newStyle += 'background-color:' + bg[1].trim() + ';';
+        if (weight && RICH_ALLOWED_WEIGHTS.indexOf(weight[1].trim()) !== -1) newStyle += 'font-weight:' + weight[1].trim() + ';';
+        if (fstyle && RICH_ALLOWED_STYLES.indexOf(fstyle[1].trim()) !== -1) newStyle += 'font-style:' + fstyle[1].trim() + ';';
+        if (decoration && RICH_ALLOWED_DECORATIONS.indexOf(decoration[1].trim()) !== -1) newStyle += 'text-decoration-line:' + decoration[1].trim() + ';';
+        if (ls && RICH_ALLOWED_LETTERSPACE.indexOf(ls[1].trim()) !== -1) newStyle += 'letter-spacing:' + ls[1].trim() + ';';
         if (newStyle) node.setAttribute('style', newStyle);
         walk(node);
         return;
@@ -1631,7 +1765,7 @@ function sanitizeRichHTML(html){
     if (node.classList.contains('fig-text-block')){
       const clean = document.createElement('div');
       clean.className = 'fig-text-block';
-      const pos = readPosStyle(node.getAttribute('style'), ['left','top','width']);
+      const pos = readBlockStyle(node.getAttribute('style'));
       if (pos) clean.setAttribute('style', pos);
       clean.innerHTML = sanitizeInlineTextHTML(node.innerHTML);
       out.appendChild(clean);
@@ -1675,12 +1809,12 @@ function figureCardHTML(fig){
      neighbouring Figures can visually never actually touch. */
   const jx = (seed % 11) - 5;
   const jy = (((seed >> 6) % 11) - 5);
-  const span = figureGridSpan(shape.key);
+  const span = figureGridSpan(shape.key, fig.size_tier);
   const isRich = !!fig.body_html;
   const slotStyle = '--fx:' + fx + 'px; --fy:-' + fy + 'px; --fdur:' + fdur + 's; --fdelay:' + fdelay + 's; ' +
     '--jx:' + jx + 'px; --jy:' + jy + 'px; grid-column:span ' + span.col + '; grid-row:span ' + span.row + ';';
   const textHTML = isRich ? sanitizeRichHTML(fig.body_html) : escapeHtml(fig.body).replace(/\n/g, '<br>');
-  const textStyle = isRich ? ' style="width:100%;height:100%;"' : '';
+  const textStyle = isRich ? ' style="width:100%;"' : '';
   return '<div class="figure-slot" data-figure-id="' + fig.id + '" data-rich="' + (isRich ? '1' : '0') + '" data-col-span="' + span.col + '" data-row-span="' + span.row + '" style="' + slotStyle + '">' +
     '<article class="figure-card shape-' + shape.key + ' color-' + color.key + '" tabindex="0" role="button" aria-label="Open Figure">' +
       (isOwn ? '<span class="figure-pin" title="Your Figure — only you see this"></span>' : '') +
@@ -1797,7 +1931,55 @@ function initWallRealtime(){
     const card = qs('.figure-slot[data-figure-id="' + payload.figureId + '"] .figure-card');
     if (card) triggerFigureReaction(card, payload.emoji, payload.hex);
     if (fig && state.openFigureDetailId === payload.figureId) renderFigureAnalytics(fig);
-  }).subscribe();
+  });
+  /* The real fix for slow delete/expiry propagation: instead of only
+     ever finding out about a deletion on the next 90s poll, listen
+     directly to the database's own DELETE event (works for both a
+     manual delete and, once a cleanup job removes expired rows,
+     expiry too) and to INSERT for Figures other people publish. Both
+     arrive in about a second. */
+  wallChannel.on('postgres_changes', { event:'DELETE', schema:'public', table:'wall_figures' }, function(payload){
+    const oldRow = payload.old || {};
+    const id = oldRow.id;
+    if (!id || !state.wallFigures.some(function(f){ return f.id === id; })) return;
+    state.wallFigures = state.wallFigures.filter(function(f){ return f.id !== id; });
+    const el = qs('.figure-slot[data-figure-id="' + id + '"]');
+    if (!el) return;
+    el.classList.add('is-leaving');
+    setTimeout(function(){
+      const before = captureSlotRects();
+      el.remove();
+      playFlip(before);
+    }, 390);
+  });
+  wallChannel.on('postgres_changes', { event:'INSERT', schema:'public', table:'wall_figures' }, function(payload){
+    const row = payload.new;
+    if (!row || state.wallFigures.some(function(f){ return f.id === row.id; })) return;
+    addIncomingFigure(row);
+  });
+  wallChannel.subscribe();
+}
+
+async function addIncomingFigure(row){
+  if (!AUTHOR_CACHE[row.author_id]){
+    try{
+      const { data } = await supabaseClient.from('profiles').select('display_name, username').eq('id', row.author_id).single();
+      if (data) AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: data.display_name || 'Aspinora Member', username: data.username || '' };
+    }catch(e){ /* fall back to the generic author label */ }
+  }
+  const fig = normalizeFigureRow(row);
+  if (new Date(fig.expires_at).getTime() <= Date.now()) return;
+  const grid = qs('#wall-grid');
+  if (!grid) return;
+  const before = captureSlotRects();
+  state.wallFigures.unshift(fig);
+  const empty = grid.querySelector('.empty-state');
+  if (empty) empty.remove();
+  grid.insertAdjacentHTML('afterbegin', figureCardHTML(fig));
+  requestAnimationFrame(function(){
+    fitFigureCard(qs('.figure-slot[data-figure-id="' + fig.id + '"]'));
+    playFlip(before);
+  });
 }
 
 async function renderWallView(){
@@ -2031,15 +2213,17 @@ document.addEventListener('keydown', function(e){
    outside it. Whatever's visible here is serialized %-based and is
    exactly what gets rendered on the Wall.
    ------------------------------------------------------------------ */
-let fpState = { shape:'rounded', color:'sage' };
+let fpState = { shape:'rounded', color:'sage', sizeTier:1 };
 let fpLineSeq = 0;
+let fpTextSeq = 0;
 
-function editorCanvasSize(shapeKey){
+function editorCanvasSize(shapeKey, tier){
   const a = SHAPE_ASPECT[shapeKey] || SHAPE_ASPECT.rounded;
-  const unit = 120, maxDim = 240;
+  const scale = tier === 3 ? 1.7 : tier === 2 ? 1.35 : 1;
+  const unit = 120 * scale, maxDim = 240 * scale;
   let w = a[0] * unit, h = a[1] * unit;
-  const scale = Math.min(1, maxDim / Math.max(w, h));
-  return { w: Math.round(w * scale), h: Math.round(h * scale) };
+  const cap = Math.min(1, maxDim / Math.max(w, h));
+  return { w: Math.round(w * cap), h: Math.round(h * cap) };
 }
 
 function clampPercent(v, min, max){ return Math.max(min, Math.min(max, v)); }
@@ -2048,11 +2232,11 @@ function clampPercent(v, min, max){ return Math.max(min, Math.min(max, v)); }
    only by its handle) and the line elements (dragged directly).
    Everything is expressed in the canvas's own percentage coordinates
    so it publishes exactly as authored regardless of screen size. */
-function makeCanvasDraggable(handleEl, moveTargetEl, canvas, onMove){
-  let dragging = false, startX = 0, startY = 0, startLeftPct = 0, startTopPct = 0;
+function makeCanvasDraggable(handleEl, moveTargetEl, canvas, onDragEnd){
+  let dragging = false, startX = 0, startY = 0, startLeftPct = 0, startTopPct = 0, moved = false;
   handleEl.addEventListener('pointerdown', function(e){
     e.preventDefault(); e.stopPropagation();
-    dragging = true;
+    dragging = true; moved = false;
     handleEl.setPointerCapture(e.pointerId);
     const rect = canvas.getBoundingClientRect();
     const targetRect = moveTargetEl.getBoundingClientRect();
@@ -2062,6 +2246,7 @@ function makeCanvasDraggable(handleEl, moveTargetEl, canvas, onMove){
   });
   handleEl.addEventListener('pointermove', function(e){
     if (!dragging) return;
+    if (!moved){ moved = true; pushHistory(); }
     const rect = canvas.getBoundingClientRect();
     const dxPct = ((e.clientX - startX) / rect.width) * 100;
     const dyPct = ((e.clientY - startY) / rect.height) * 100;
@@ -2072,10 +2257,12 @@ function makeCanvasDraggable(handleEl, moveTargetEl, canvas, onMove){
     const top = clampPercent(startTopPct + dyPct, 0, Math.max(0, 100 - hPct));
     moveTargetEl.style.left = left + '%';
     moveTargetEl.style.top = top + '%';
-    if (onMove) onMove();
   });
   ['pointerup','pointercancel'].forEach(function(evt){
-    handleEl.addEventListener(evt, function(){ dragging = false; });
+    handleEl.addEventListener(evt, function(){
+      dragging = false;
+      if (moved && onDragEnd) onDragEnd();
+    });
   });
 }
 
@@ -2093,22 +2280,126 @@ function clampAllBlocks(canvas){
   qsa('.fig-text-block', canvas).forEach(function(b){ clampBlockWithinCanvas(b, canvas); });
 }
 
-function buildEditorCanvas(){
+/* ------------------------------------------------------------------
+   UNDO / REDO — a plain snapshot stack of the canvas's own HTML.
+   Discrete actions (formatting, inserts, drag-end, resize) push
+   immediately; typing pushes once per pause (~700ms) rather than per
+   keystroke, so undo steps stay meaningful instead of one-per-letter.
+   ------------------------------------------------------------------ */
+let rtUndoStack = [], rtRedoStack = [];
+let rtSessionSnapshot = null, rtTypingTimer = null;
+function pushHistory(){
   const canvas = qs('#fp-canvas');
-  const size = editorCanvasSize(fpState.shape);
-  canvas.style.width = size.w + 'px';
-  canvas.style.height = size.h + 'px';
-  canvas.className = 'wf-editor-canvas shape-' + fpState.shape + ' color-' + fpState.color;
-  canvas.innerHTML = '';
-  addTextBlock({ left:10, top:35, width:80 });
+  if (!canvas) return;
+  rtUndoStack.push(canvas.innerHTML);
+  if (rtUndoStack.length > 50) rtUndoStack.shift();
+  rtRedoStack = [];
+  /* Re-baseline once the caller's own (synchronous) mutation has
+     actually applied — not right now, before it — so a debounced
+     typing-push right afterwards compares against the post-mutation
+     state instead of duplicating what was just pushed above. */
+  setTimeout(function(){ rtSessionSnapshot = canvas.innerHTML; }, 0);
+}
+function rewireCanvasChildren(){
+  const canvas = qs('#fp-canvas');
+  qsa('.fig-text-block', canvas).forEach(function(block){
+    const handle = block.querySelector('.fig-drag-handle');
+    if (handle) makeCanvasDraggable(handle, block, canvas, function(){ clampBlockWithinCanvas(block, canvas); });
+  });
+  qsa('.fig-hr-abs, .fig-vr-abs', canvas).forEach(function(line){
+    makeCanvasDraggable(line, line, canvas);
+  });
+  initResizeHandle();
+}
+function undoHistory(){
+  const canvas = qs('#fp-canvas');
+  if (!canvas || !rtUndoStack.length) return;
+  rtRedoStack.push(canvas.innerHTML);
+  canvas.innerHTML = rtUndoStack.pop();
+  rtSessionSnapshot = canvas.innerHTML;
+  rewireCanvasChildren();
+  updateFpCount();
+}
+function redoHistory(){
+  const canvas = qs('#fp-canvas');
+  if (!canvas || !rtRedoStack.length) return;
+  rtUndoStack.push(canvas.innerHTML);
+  canvas.innerHTML = rtRedoStack.pop();
+  rtSessionSnapshot = canvas.innerHTML;
+  rewireCanvasChildren();
+  updateFpCount();
 }
 
+/* ------------------------------------------------------------------
+   CANVAS BUILD + RESIZE (drag-to-resize, snaps to one of 3 tiers —
+   both dimensions always scale together, so the shape's exact aspect
+   ratio — and therefore every %-based position inside it — never
+   distorts, only its overall scale changes)
+   ------------------------------------------------------------------ */
+function applyCanvasSize(tier){
+  fpState.sizeTier = tier;
+  const canvas = qs('#fp-canvas');
+  const size = editorCanvasSize(fpState.shape, tier);
+  canvas.style.width = size.w + 'px';
+  canvas.style.height = size.h + 'px';
+}
+function initResizeHandle(){
+  const canvas = qs('#fp-canvas');
+  let handle = canvas.querySelector('.wf-editor-resize-handle');
+  if (!handle){
+    handle = document.createElement('div');
+    handle.className = 'wf-editor-resize-handle';
+    handle.contentEditable = 'false';
+    handle.title = 'Drag to resize';
+    handle.setAttribute('aria-label', 'Resize this Figure');
+    handle.textContent = '⤡';
+    canvas.appendChild(handle);
+  }
+  let dragging = false, startDist = 1, startTier = 1;
+  handle.onpointerdown = function(e){
+    e.preventDefault(); e.stopPropagation();
+    dragging = true;
+    handle.setPointerCapture(e.pointerId);
+    const rect = canvas.getBoundingClientRect();
+    startDist = Math.max(1, Math.hypot(e.clientX - rect.left, e.clientY - rect.top));
+    startTier = fpState.sizeTier;
+    pushHistory();
+  };
+  handle.onpointermove = function(e){
+    if (!dragging) return;
+    const rect = canvas.getBoundingClientRect();
+    const dist = Math.hypot(e.clientX - rect.left, e.clientY - rect.top);
+    const ratio = dist / startDist;
+    let candidate = Math.max(1, Math.min(3, Math.round(startTier * ratio)));
+    if (candidate !== fpState.sizeTier){
+      applyCanvasSize(candidate);
+      clampAllBlocks(canvas);
+    }
+  };
+  ['pointerup','pointercancel'].forEach(function(evt){
+    handle.addEventListener(evt, function(){ dragging = false; });
+  });
+}
+
+function buildEditorCanvas(){
+  const canvas = qs('#fp-canvas');
+  canvas.className = 'wf-editor-canvas shape-' + fpState.shape + ' color-' + fpState.color;
+  const size = editorCanvasSize(fpState.shape, fpState.sizeTier);
+  canvas.style.width = size.w + 'px';
+  canvas.style.height = size.h + 'px';
+  canvas.innerHTML = '<div class="wf-editor-content" id="fp-canvas-content"></div>';
+  addTextBlock({ left:10, top:35, width:80 });
+  initResizeHandle();
+}
+function canvasContent(){ return qs('#fp-canvas-content'); }
+
 /* Every text block is fully independent: its own position, its own
-   words, its own per-selection font/size/colour. Add as many as you
-   like and drag each one wherever it belongs inside the Figure. */
+   words, its own per-selection font/size/colour/etc. Add as many as
+   you like and drag each one wherever it belongs inside the Figure. */
 function addTextBlock(pos){
   const canvas = qs('#fp-canvas');
-  pos = pos || { left: 20 + (fpTextSeq % 3) * 10, top: 20 + (fpTextSeq % 4) * 12, width: 70 };
+  const content = canvasContent();
+  pos = pos || { left: 15 + (fpTextSeq % 3) * 12, top: 15 + (fpTextSeq % 4) * 14, width: 70 };
   const block = document.createElement('div');
   block.className = 'fig-text-block';
   block.contentEditable = 'true';
@@ -2132,12 +2423,28 @@ function addTextBlock(pos){
   remove.textContent = '×';
   remove.contentEditable = 'false';
   remove.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
-  remove.addEventListener('click', function(e){ e.stopPropagation(); block.remove(); updateFpCount(); });
+  remove.addEventListener('click', function(e){
+    e.stopPropagation();
+    pushHistory();
+    block.remove();
+    if (rtActiveBlock === block) rtActiveBlock = null;
+    updateFpCount();
+  });
   block.appendChild(remove);
 
-  canvas.appendChild(block);
-  makeCanvasDraggable(handle, block, canvas);
+  content.appendChild(block);
+  makeCanvasDraggable(handle, block, canvas, function(){ clampBlockWithinCanvas(block, canvas); });
   return block;
+}
+
+/* Strips the handle/remove-button chrome and returns just the block's
+   own plain text — used for word counting, list conversion, and
+   "clear formatting". */
+function getPlainTextOfBlock(block){
+  const clone = block.cloneNode(true);
+  const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
+  const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
+  return clone.innerText;
 }
 
 /* Sums words across every independent text block — that's what the
@@ -2145,12 +2452,7 @@ function addTextBlock(pos){
 function wordCountAllBlocks(){
   const canvas = qs('#fp-canvas');
   let total = 0;
-  qsa('.fig-text-block', canvas).forEach(function(block){
-    const clone = block.cloneNode(true);
-    const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
-    const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
-    total += wordCountOf(clone.innerText);
-  });
+  qsa('.fig-text-block', canvas).forEach(function(block){ total += wordCountOf(getPlainTextOfBlock(block)); });
   return total;
 }
 
@@ -2158,14 +2460,16 @@ function updateFpCount(){
   const count = qs('#fp-count');
   const submitBtn = qs('#fp-submit-btn');
   const n = wordCountAllBlocks();
-  count.textContent = n + ' / ' + FIGURE_WORD_LIMIT + ' words';
+  count.textContent = n + '/' + FIGURE_WORD_LIMIT;
   const over = n > FIGURE_WORD_LIMIT;
   count.classList.toggle('is-over', over);
   submitBtn.disabled = over || n === 0;
 }
 
 function insertLineElement(kind){
+  pushHistory();
   const canvas = qs('#fp-canvas');
+  const content = canvasContent();
   const el = document.createElement('div');
   el.className = kind === 'h' ? 'fig-hr-abs' : 'fig-vr-abs';
   el.dataset.lineId = 'l' + (++fpLineSeq);
@@ -2177,41 +2481,30 @@ function insertLineElement(kind){
   remove.title = 'Remove this line';
   remove.textContent = '×';
   remove.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
-  remove.addEventListener('click', function(e){ e.stopPropagation(); el.remove(); });
+  remove.addEventListener('click', function(e){ e.stopPropagation(); pushHistory(); el.remove(); });
   el.appendChild(remove);
-  canvas.appendChild(el);
+  content.appendChild(el);
   makeCanvasDraggable(el, el, canvas);
 }
 
-/* Applies to whichever text block the current selection is actually
-   inside — there's no single fixed block any more, so this looks it
-   up from the selection itself each time. */
+/* ------------------------------------------------------------------
+   FORMATTING COMMANDS — all manual (no document.execCommand), so
+   behaviour is exactly the same and fully predictable across every
+   browser rather than relying on each browser's own quirky built-in
+   command implementations.
+   ------------------------------------------------------------------ */
+let rtActiveBlock = null;
+
 function activeTextBlockFromSelection(){
   const sel = window.getSelection();
-  if (!sel.rangeCount) return null;
+  if (!sel.rangeCount) return rtActiveBlock;
   const node = sel.getRangeAt(0).commonAncestorContainer;
   const el = node.nodeType === 1 ? node : node.parentElement;
-  return el ? el.closest('.fig-text-block') : null;
-}
-function applyStyleToActiveSelection(prop, value){
-  const sel = window.getSelection();
-  if (!sel.rangeCount) return;
-  const range = sel.getRangeAt(0);
-  if (range.collapsed) return;
-  const block = activeTextBlockFromSelection();
-  if (!block) return;
-  const span = document.createElement('span');
-  span.style[prop] = value;
-  const frag = range.extractContents();
-  span.appendChild(frag);
-  range.insertNode(span);
-  sel.removeAllRanges();
-  const after = document.createRange();
-  after.selectNodeContents(span);
-  sel.addRange(after);
+  const found = el ? el.closest('.fig-text-block') : null;
+  return found || rtActiveBlock;
 }
 
-function insertBrAtCursor(block){
+function insertNodeAtCursor(block, node){
   block.focus();
   const sel = window.getSelection();
   let range;
@@ -2222,27 +2515,378 @@ function insertBrAtCursor(block){
     range.selectNodeContents(block);
     range.collapse(false);
   }
-  const br = document.createElement('br');
   range.deleteContents();
-  range.insertNode(br);
-  range.setStartAfter(br);
+  range.insertNode(node);
+  range.setStartAfter(node);
   range.collapse(true);
   sel.removeAllRanges();
   sel.addRange(range);
+  updateFpCount();
+}
+function insertTextAtCursor(block, text){ insertNodeAtCursor(block, document.createTextNode(text)); }
+function insertStickerAtCursor(block, emoji){
+  const span = document.createElement('span');
+  span.style.fontSize = '1.8rem';
+  span.textContent = emoji;
+  insertNodeAtCursor(block, span);
+}
+function insertBrAtCursor(block){ insertNodeAtCursor(block, document.createElement('br')); }
+
+function applyStyleToActiveSelection(prop, value){
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if (range.collapsed) return;
+  const block = activeTextBlockFromSelection();
+  if (!block) return;
+  pushHistory();
+  const span = document.createElement('span');
+  if (value) span.style[prop] = value; else span.style[prop] = '';
+  const frag = range.extractContents();
+  span.appendChild(frag);
+  range.insertNode(span);
+  sel.removeAllRanges();
+  const after = document.createRange();
+  after.selectNodeContents(span);
+  sel.addRange(after);
 }
 
+/* Toggles a single style property between two values by checking the
+   nearest already-styled ancestor span within the block. */
+function toggleSpanStyle(prop, onValue, offValue){
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if (range.collapsed) return;
+  const block = activeTextBlockFromSelection();
+  if (!block) return;
+  let el = range.commonAncestorContainer;
+  el = el.nodeType === 1 ? el : el.parentElement;
+  let existing = null;
+  while (el && el !== block){
+    if (el.tagName === 'SPAN' && el.style[prop]) { existing = el; break; }
+    el = el.parentElement;
+  }
+  const isOn = !!(existing && existing.style[prop] === onValue);
+  pushHistory();
+  const span = document.createElement('span');
+  span.style[prop] = isOn ? offValue : onValue;
+  const frag = range.extractContents();
+  span.appendChild(frag);
+  range.insertNode(span);
+  sel.removeAllRanges();
+  const after = document.createRange();
+  after.selectNodeContents(span);
+  sel.addRange(after);
+}
+/* Underline/strikethrough can combine, so this toggles just the one
+   line-type in or out of the (possibly two-part) decoration value. */
+function toggleDecoration(lineType){
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  if (range.collapsed) return;
+  const block = activeTextBlockFromSelection();
+  if (!block) return;
+  let el = range.commonAncestorContainer;
+  el = el.nodeType === 1 ? el : el.parentElement;
+  let existing = null;
+  while (el && el !== block){
+    if (el.tagName === 'SPAN' && el.style.textDecorationLine){ existing = el; break; }
+    el = el.parentElement;
+  }
+  const current = existing ? existing.style.textDecorationLine.split(' ').filter(Boolean) : [];
+  const idx = current.indexOf(lineType);
+  if (idx !== -1) current.splice(idx, 1); else current.push(lineType);
+  pushHistory();
+  const span = document.createElement('span');
+  span.style.textDecorationLine = current.length ? current.join(' ') : 'none';
+  const frag = range.extractContents();
+  span.appendChild(frag);
+  range.insertNode(span);
+  sel.removeAllRanges();
+  const after = document.createRange();
+  after.selectNodeContents(span);
+  sel.addRange(after);
+}
+
+function cycleAlign(){
+  const block = rtActiveBlock;
+  if (!block) return;
+  pushHistory();
+  const order = ['left','center','right'];
+  const idx = (order.indexOf(block.style.textAlign || 'left') + 1) % order.length;
+  block.style.textAlign = order[idx];
+}
+function cycleLetterLineSpacing(kind, value){
+  const block = rtActiveBlock;
+  if (!block) return;
+  pushHistory();
+  if (kind === 'ls') block.style.letterSpacing = value;
+  else block.style.lineHeight = value;
+}
+
+/* Manual, deterministic list handling — cycles none → bullets →
+   numbers → none. Converts the block's current lines into <li>s (as
+   plain text; per-character formatting inside a converted line is
+   intentionally not preserved, keeping this predictable rather than
+   trying to splice rich spans across list items). */
+function convertBlockToList(block, tag){
+  const handle = block.querySelector('.fig-drag-handle');
+  const remove = block.querySelector('.fig-text-remove');
+  const plain = getPlainTextOfBlock(block);
+  const lines = plain.split('\n').filter(function(l){ return l.trim() !== ''; });
+  if (!lines.length) lines.push('');
+  const list = document.createElement(tag);
+  lines.forEach(function(line){
+    const li = document.createElement('li');
+    li.textContent = line;
+    list.appendChild(li);
+  });
+  block.innerHTML = '';
+  if (handle) block.appendChild(handle);
+  if (remove) block.appendChild(remove);
+  block.appendChild(list);
+}
+function convertListToPlainLines(block, listEl){
+  const handle = block.querySelector('.fig-drag-handle');
+  const remove = block.querySelector('.fig-text-remove');
+  const items = Array.prototype.slice.call(listEl.querySelectorAll('li')).map(function(li){ return li.textContent; });
+  block.innerHTML = '';
+  if (handle) block.appendChild(handle);
+  if (remove) block.appendChild(remove);
+  items.forEach(function(text, i){
+    if (i > 0) block.appendChild(document.createElement('br'));
+    block.appendChild(document.createTextNode(text));
+  });
+}
+function cycleList(){
+  const block = rtActiveBlock;
+  if (!block) return;
+  pushHistory();
+  const existingList = block.querySelector('ul, ol');
+  if (!existingList) convertBlockToList(block, 'ul');
+  else if (existingList.tagName === 'UL'){
+    const ol = document.createElement('ol');
+    ol.innerHTML = existingList.innerHTML;
+    existingList.replaceWith(ol);
+  } else {
+    convertListToPlainLines(block, existingList);
+  }
+  updateFpCount();
+}
+
+function clearFormatting(){
+  const block = rtActiveBlock;
+  if (!block) return;
+  pushHistory();
+  const handle = block.querySelector('.fig-drag-handle');
+  const remove = block.querySelector('.fig-text-remove');
+  const plain = getPlainTextOfBlock(block);
+  block.innerHTML = '';
+  if (handle) block.appendChild(handle);
+  if (remove) block.appendChild(remove);
+  block.style.textAlign = ''; block.style.letterSpacing = ''; block.style.lineHeight = '';
+  const lines = plain.split('\n');
+  lines.forEach(function(line, i){
+    if (i > 0) block.appendChild(document.createElement('br'));
+    block.appendChild(document.createTextNode(line));
+  });
+  updateFpCount();
+}
+
+/* ------------------------------------------------------------------
+   TOOLBAR + POPOVERS
+   ------------------------------------------------------------------ */
+const RT_EMOJI = ['😀','😂','🥰','😍','😊','🙂','😉','🥲','😢','😭','😡','🤔','👍','🙏','❤️','✨','🔥','🎉','💯','👏'];
+const RT_STICKERS = ['✨','🌙','⭐','💫','🕊️','🌿','🌊','☁️','🦋','🌼'];
+const RT_SPECIAL_CHARS = ['—','–','…','“','”','‘','’','•','→','←','↑','↓','§','©','®','™','∞','♥','★','☆'];
+
+function popoverFontHTML(){
+  return '<div class="rt-pop-row">' +
+    '<button type="button" class="rt-pop-btn" data-font="var(--font-display)">Serif</button>' +
+    '<button type="button" class="rt-pop-btn" data-font="var(--font-body)">Sans</button>' +
+    '<button type="button" class="rt-pop-btn" data-font="var(--font-mono)">Mono</button>' +
+  '</div>';
+}
+function popoverSizeHTML(){
+  return '<div class="rt-pop-row">' +
+    '<button type="button" class="rt-pop-btn" data-size=".72rem">Small</button>' +
+    '<button type="button" class="rt-pop-btn" data-size=".95rem">Medium</button>' +
+    '<button type="button" class="rt-pop-btn" data-size="1.2rem">Large</button>' +
+    '<button type="button" class="rt-pop-btn" data-size="1.5rem">XL</button>' +
+  '</div>';
+}
+function popoverColorHTML(){
+  return '<div class="rt-pop-row">' + FIGURE_TEXT_COLORS.map(function(c){
+    return '<button type="button" class="rt-pop-swatch" data-swatch="' + c.key + '" style="background:' + c.key + '" title="' + c.label + '"></button>';
+  }).join('') + '</div>';
+}
+function popoverHighlightHTML(){
+  let html = '<div class="rt-pop-row"><button type="button" class="rt-pop-btn" data-hl="none">None</button>';
+  RICH_ALLOWED_HIGHLIGHTS.forEach(function(h){
+    html += '<button type="button" class="rt-pop-swatch" data-hl="' + h + '" style="background:' + h + '"></button>';
+  });
+  return html + '</div>';
+}
+function popoverEmojiHTML(){
+  return '<div class="rt-pop-row">' + RT_EMOJI.map(function(e){
+    return '<button type="button" class="rt-pop-emoji" data-emoji="' + e + '">' + e + '</button>';
+  }).join('') + '</div>';
+}
+function popoverMoreHTML(){
+  return (
+    '<div class="rt-pop-row"><span class="rt-pop-label">Letter spacing</span>' +
+      '<button type="button" class="rt-pop-btn" data-ls="normal">Normal</button>' +
+      '<button type="button" class="rt-pop-btn" data-ls=".03em">Wide</button>' +
+      '<button type="button" class="rt-pop-btn" data-ls=".08em">Wider</button>' +
+      '<button type="button" class="rt-pop-btn" data-ls=".16em">Widest</button>' +
+    '</div>' +
+    '<div class="rt-pop-row"><span class="rt-pop-label">Line spacing</span>' +
+      '<button type="button" class="rt-pop-btn" data-lh="1.15">Tight</button>' +
+      '<button type="button" class="rt-pop-btn" data-lh="1.4">Normal</button>' +
+      '<button type="button" class="rt-pop-btn" data-lh="1.7">Relaxed</button>' +
+      '<button type="button" class="rt-pop-btn" data-lh="2">Loose</button>' +
+    '</div>' +
+    '<div class="rt-pop-row"><span class="rt-pop-label">Wall stickers</span>' +
+      RT_STICKERS.map(function(s){ return '<button type="button" class="rt-pop-emoji" data-sticker="' + s + '">' + s + '</button>'; }).join('') +
+    '</div>' +
+    '<div class="rt-pop-row"><span class="rt-pop-label">Special characters</span>' +
+      RT_SPECIAL_CHARS.map(function(c){ return '<button type="button" class="rt-pop-emoji" data-special="' + c + '">' + c + '</button>'; }).join('') +
+    '</div>' +
+    '<div class="rt-pop-row">' +
+      '<button type="button" class="rt-pop-btn" data-action="clear-formatting">Clear formatting</button>' +
+    '</div>'
+  );
+}
+function wireRtPopoverContent(tool){
+  const pop = qs('#rt-popover');
+  if (tool === 'font'){
+    qsa('[data-font]', pop).forEach(function(b){ b.addEventListener('click', function(){ applyStyleToActiveSelection('fontFamily', b.getAttribute('data-font')); closeRtPopover(); }); });
+  } else if (tool === 'size'){
+    qsa('[data-size]', pop).forEach(function(b){ b.addEventListener('click', function(){ applyStyleToActiveSelection('fontSize', b.getAttribute('data-size')); closeRtPopover(); }); });
+  } else if (tool === 'color'){
+    qsa('[data-swatch]', pop).forEach(function(b){ b.addEventListener('click', function(){
+      const v = b.getAttribute('data-swatch');
+      applyStyleToActiveSelection('color', v);
+      qs('#rt-color-icon').style.background = v;
+      closeRtPopover();
+    }); });
+  } else if (tool === 'highlight'){
+    qsa('[data-hl]', pop).forEach(function(b){ b.addEventListener('click', function(){
+      const v = b.getAttribute('data-hl');
+      if (v === 'none'){ applyStyleToActiveSelection('backgroundColor', 'transparent'); qs('#rt-hl-icon').style.background = 'transparent'; }
+      else { applyStyleToActiveSelection('backgroundColor', v); qs('#rt-hl-icon').style.background = v; }
+      closeRtPopover();
+    }); });
+  } else if (tool === 'emoji'){
+    qsa('[data-emoji]', pop).forEach(function(b){ b.addEventListener('click', function(){
+      if (rtActiveBlock){ pushHistory(); insertTextAtCursor(rtActiveBlock, b.getAttribute('data-emoji')); }
+      closeRtPopover();
+    }); });
+  } else if (tool === 'more'){
+    qsa('[data-ls]', pop).forEach(function(b){ b.addEventListener('click', function(){ cycleLetterLineSpacing('ls', b.getAttribute('data-ls')); closeRtPopover(); }); });
+    qsa('[data-lh]', pop).forEach(function(b){ b.addEventListener('click', function(){ cycleLetterLineSpacing('lh', b.getAttribute('data-lh')); closeRtPopover(); }); });
+    qsa('[data-sticker]', pop).forEach(function(b){ b.addEventListener('click', function(){
+      if (rtActiveBlock){ pushHistory(); insertStickerAtCursor(rtActiveBlock, b.getAttribute('data-sticker')); }
+      closeRtPopover();
+    }); });
+    qsa('[data-special]', pop).forEach(function(b){ b.addEventListener('click', function(){
+      if (rtActiveBlock){ pushHistory(); insertTextAtCursor(rtActiveBlock, b.getAttribute('data-special')); }
+      closeRtPopover();
+    }); });
+    qsa('[data-action="clear-formatting"]', pop).forEach(function(b){ b.addEventListener('click', function(){ clearFormatting(); closeRtPopover(); }); });
+  }
+}
+let rtOpenTool = null;
+function closeRtPopover(){
+  const pop = qs('#rt-popover');
+  pop.hidden = true;
+  pop.innerHTML = '';
+  pop.classList.remove('rt-fixed');
+  rtOpenTool = null;
+  qsa('.rt-btn', qs('#rt-toolbar')).forEach(function(b){ b.classList.remove('is-active'); });
+}
+function toggleRtPopover(tool, builderFn){
+  const pop = qs('#rt-popover');
+  const btn = qs('#rt-toolbar').querySelector('[data-rt="' + tool + '"]');
+  if (rtOpenTool === tool){ closeRtPopover(); return; }
+  closeRtPopover();
+  rtOpenTool = tool;
+  if (btn) btn.classList.add('is-active');
+  pop.innerHTML = builderFn();
+  pop.hidden = false;
+  wireRtPopoverContent(tool);
+  positionRtToolbar();
+}
+
+/* ------------------------------------------------------------------
+   KEYBOARD-AWARE POSITIONING — on mobile, once the on-screen keyboard
+   opens (detected via visualViewport shrinking), the toolbar docks
+   itself directly above it instead of getting pushed out of view
+   underneath it; the focused block is also scrolled into view so
+   typing never happens hidden behind the keyboard.
+   ------------------------------------------------------------------ */
+function isMobileViewport(){ return window.innerWidth <= 680; }
+function positionRtToolbar(){
+  const toolbar = qs('#rt-toolbar');
+  const pop = qs('#rt-popover');
+  if (!toolbar || toolbar.hidden) return;
+  if (!isMobileViewport() || !window.visualViewport){
+    toolbar.classList.remove('rt-fixed');
+    toolbar.style.bottom = '';
+    pop.classList.remove('rt-fixed');
+    pop.style.bottom = '';
+    return;
+  }
+  const vv = window.visualViewport;
+  const keyboardGap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  if (keyboardGap > 60){
+    toolbar.classList.add('rt-fixed');
+    toolbar.style.bottom = keyboardGap + 'px';
+    if (!pop.hidden){
+      pop.classList.add('rt-fixed');
+      pop.style.bottom = (keyboardGap + toolbar.offsetHeight + 8) + 'px';
+    }
+  } else {
+    toolbar.classList.remove('rt-fixed');
+    toolbar.style.bottom = '';
+    pop.classList.remove('rt-fixed');
+    pop.style.bottom = '';
+  }
+}
+function scrollBlockAboveKeyboard(block){
+  setTimeout(function(){
+    if (block && block.scrollIntoView) block.scrollIntoView({ block:'center', behavior:'smooth' });
+  }, 320);
+}
+
+let rtInteracting = false;
+function showRtToolbar(){
+  qs('#rt-toolbar').hidden = false;
+  positionRtToolbar();
+}
+function hideRtToolbarMaybe(){
+  setTimeout(function(){
+    if (rtInteracting) return;
+    const active = document.activeElement;
+    if (active && active.classList && active.classList.contains('fig-text-block')) return;
+    qs('#rt-toolbar').hidden = true;
+    closeRtPopover();
+  }, 160);
+}
+
+/* ------------------------------------------------------------------
+   FORM WIRING
+   ------------------------------------------------------------------ */
 function initFigurePublishForm(){
   const shapeRow = qs('#fp-shape-row');
   const colorRow = qs('#fp-color-row');
-  const textColorRow = qs('#fp-textcolor-row');
   shapeRow.innerHTML = FIGURE_SHAPES.map(function(s){
     return '<button type="button" class="wf-shape-opt shape-' + s.key + (s.key === fpState.shape ? ' is-selected' : '') + '" data-shape="' + s.key + '" aria-label="' + s.label + '" title="' + s.label + '"></button>';
   }).join('');
   colorRow.innerHTML = FIGURE_COLORS.map(function(c){
     return '<button type="button" class="wf-color-opt' + (c.key === fpState.color ? ' is-selected' : '') + '" data-color="' + c.key + '" style="background:' + c.swatch + '" aria-label="' + c.label + '" title="' + c.label + '"></button>';
-  }).join('');
-  textColorRow.innerHTML = FIGURE_TEXT_COLORS.map(function(c){
-    return '<button type="button" class="wf-textcolor-opt" data-textcolor="' + c.key + '" style="background:' + c.key + '" aria-label="' + c.label + ' text" title="' + c.label + '"></button>';
   }).join('');
 
   shapeRow.addEventListener('click', function(e){
@@ -2258,34 +2902,50 @@ function initFigurePublishForm(){
     const canvas = qs('#fp-canvas');
     if (canvas) canvas.className = 'wf-editor-canvas shape-' + fpState.shape + ' color-' + fpState.color;
   });
-  textColorRow.addEventListener('click', function(e){
-    const btn = e.target.closest('[data-textcolor]'); if (!btn) return;
-    applyStyleToActiveSelection('color', btn.getAttribute('data-textcolor'));
-    qsa('.wf-textcolor-opt', textColorRow).forEach(function(b){ b.classList.toggle('is-selected', b === btn); });
-  });
 
-  qs('#fp-font-select').addEventListener('change', function(){
-    if (this.value) applyStyleToActiveSelection('fontFamily', this.value);
-    this.value = '';
-  });
-  qs('#fp-size-select').addEventListener('change', function(){
-    if (this.value) applyStyleToActiveSelection('fontSize', this.value);
-    this.value = '';
-  });
   qs('#fp-insert-hline').addEventListener('click', function(){ insertLineElement('h'); });
   qs('#fp-insert-vline').addEventListener('click', function(){ insertLineElement('v'); });
   qs('#fp-add-text').addEventListener('click', function(){
+    pushHistory();
     const b = addTextBlock();
     updateFpCount();
     setTimeout(function(){ b.focus(); }, 30);
   });
 
+  // Toolbar + popover: prevent the default mousedown focus-shift so a
+  // button tap never collapses the text selection it's about to act on.
+  const toolbar = qs('#rt-toolbar');
+  const popover = qs('#rt-popover');
+  [toolbar, popover].forEach(function(el){
+    el.addEventListener('mousedown', function(e){ e.preventDefault(); });
+    el.addEventListener('pointerdown', function(){ rtInteracting = true; });
+  });
+  window.addEventListener('pointerup', function(){ rtInteracting = false; });
+
+  toolbar.addEventListener('click', function(e){
+    const btn = e.target.closest('.rt-btn'); if (!btn) return;
+    const tool = btn.getAttribute('data-rt');
+    if (tool === 'undo') return undoHistory();
+    if (tool === 'redo') return redoHistory();
+    if (tool === 'bold') return toggleSpanStyle('fontWeight', '700', 'normal');
+    if (tool === 'italic') return toggleSpanStyle('fontStyle', 'italic', 'normal');
+    if (tool === 'underline') return toggleDecoration('underline');
+    if (tool === 'strike') return toggleDecoration('line-through');
+    if (tool === 'align') return cycleAlign();
+    if (tool === 'list') return cycleList();
+    if (tool === 'font') return toggleRtPopover('font', popoverFontHTML);
+    if (tool === 'size') return toggleRtPopover('size', popoverSizeHTML);
+    if (tool === 'color') return toggleRtPopover('color', popoverColorHTML);
+    if (tool === 'highlight') return toggleRtPopover('highlight', popoverHighlightHTML);
+    if (tool === 'emoji') return toggleRtPopover('emoji', popoverEmojiHTML);
+    if (tool === 'more') return toggleRtPopover('more', popoverMoreHTML);
+  });
+
   qs('#wall-composer-trigger').addEventListener('click', function(){
     requireAuth('Log in to pin a Figure to the Wall.', function(){
-      fpState = { shape:'rounded', color:'sage' };
+      fpState = { shape:'rounded', color:'sage', sizeTier:1 };
       qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-shape') === 'rounded'); });
       qsa('.wf-color-opt', colorRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-color') === 'sage'); });
-      qsa('.wf-textcolor-opt', textColorRow).forEach(function(b){ b.classList.remove('is-selected'); });
       resetEditorCanvas();
       openModal('figure-publish-modal-scrim');
       setTimeout(function(){ const b = qs('.fig-text-block'); if (b) b.focus(); }, 60);
@@ -2295,32 +2955,48 @@ function initFigurePublishForm(){
   qs('#figure-publish-cancel').addEventListener('click', function(){ closeModal('figure-publish-modal-scrim'); });
 
   // Delegated: text blocks/lines are created and removed dynamically
-  // (any number of them), so wire typing/drag behaviour once here
-  // rather than per-element.
+  // (any number of them), so wire typing/drag/focus behaviour once
+  // here rather than per-element.
   const canvasWrap = qs('#fp-canvas');
+  canvasWrap.addEventListener('focusin', function(e){
+    if (!e.target.classList || !e.target.classList.contains('fig-text-block')) return;
+    rtActiveBlock = e.target;
+    if (rtSessionSnapshot === null) rtSessionSnapshot = canvasWrap.innerHTML;
+    showRtToolbar();
+    scrollBlockAboveKeyboard(e.target);
+  });
+  canvasWrap.addEventListener('focusout', function(e){
+    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block')) hideRtToolbarMaybe();
+  });
   canvasWrap.addEventListener('input', function(e){
-    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block')) updateFpCount();
+    if (!e.target.classList || !e.target.classList.contains('fig-text-block')) return;
+    clearTimeout(rtTypingTimer);
+    rtTypingTimer = setTimeout(function(){
+      if (rtSessionSnapshot !== null && rtSessionSnapshot !== canvasWrap.innerHTML){
+        rtUndoStack.push(rtSessionSnapshot);
+        if (rtUndoStack.length > 50) rtUndoStack.shift();
+        rtRedoStack = [];
+      }
+      rtSessionSnapshot = canvasWrap.innerHTML;
+    }, 700);
+    updateFpCount();
   });
   canvasWrap.addEventListener('keydown', function(e){
     if (e.target && e.target.classList && e.target.classList.contains('fig-text-block') && e.key === 'Enter'){
       e.preventDefault();
       insertBrAtCursor(e.target);
-      updateFpCount();
     }
   });
-  canvasWrap.addEventListener('focusout', function(e){
-    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block')) clampBlockWithinCanvas(e.target, canvasWrap);
-  });
+
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', positionRtToolbar);
+    window.visualViewport.addEventListener('scroll', positionRtToolbar);
+  }
 
   qs('#figure-publish-form').addEventListener('submit', async function(e){
     e.preventDefault();
     const blocks = qsa('.fig-text-block', canvasWrap);
-    const plainParts = blocks.map(function(block){
-      const clone = block.cloneNode(true);
-      const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
-      const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
-      return clone.innerText.trim();
-    }).filter(Boolean);
+    const plainParts = blocks.map(getPlainTextOfBlock).map(function(t){ return t.trim(); }).filter(Boolean);
     const plain = plainParts.join(' ');
     const n = wordCountOf(plain);
     if (!plain || n > FIGURE_WORD_LIMIT){ updateFpCount(); return; }
@@ -2336,7 +3012,11 @@ function initFigurePublishForm(){
         const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
         const cleanBlock = document.createElement('div');
         cleanBlock.className = 'fig-text-block';
-        cleanBlock.style.left = block.style.left; cleanBlock.style.top = block.style.top; cleanBlock.style.width = block.style.width;
+        let styleAttr = 'left:' + block.style.left + ';top:' + block.style.top + ';width:' + block.style.width + ';';
+        if (block.style.textAlign) styleAttr += 'text-align:' + block.style.textAlign + ';';
+        if (block.style.letterSpacing) styleAttr += 'letter-spacing:' + block.style.letterSpacing + ';';
+        if (block.style.lineHeight) styleAttr += 'line-height:' + block.style.lineHeight + ';';
+        cleanBlock.setAttribute('style', styleAttr);
         cleanBlock.innerHTML = clone.innerHTML;
         layout.appendChild(cleanBlock);
       });
@@ -2349,14 +3029,17 @@ function initFigurePublishForm(){
         layout.appendChild(l);
       });
       const html = sanitizeRichHTML(layout.outerHTML);
-      const fig = await publishFigure(plain, html, fpState.shape, fpState.color);
+      const fig = await publishFigure(plain, html, fpState.shape, fpState.color, fpState.sizeTier);
       state.wallFigures.unshift(fig);
       const grid = qs('#wall-grid');
       const empty = grid.querySelector('.empty-state');
       if (empty) empty.remove();
       const before = captureSlotRects();
       grid.insertAdjacentHTML('afterbegin', figureCardHTML(fig));
-      playFlip(before);
+      requestAnimationFrame(function(){
+        fitFigureCard(qs('.figure-slot[data-figure-id="' + fig.id + '"]'));
+        playFlip(before);
+      });
       closeModal('figure-publish-modal-scrim');
       showToast('Pinned to the Wall — live for the next 24 hours.');
     }catch(err){
@@ -2367,10 +3050,14 @@ function initFigurePublishForm(){
   });
 }
 
-let fpTextSeq = 0;
 function resetEditorCanvas(){
   fpTextSeq = 0;
   fpLineSeq = 0;
+  rtUndoStack = []; rtRedoStack = [];
+  rtSessionSnapshot = null;
+  rtActiveBlock = null;
+  qs('#rt-toolbar').hidden = true;
+  closeRtPopover();
   buildEditorCanvas();
   updateFpCount();
 }
@@ -2383,21 +3070,85 @@ function initWallView(){
 /* The whole page (header/composer included, since they're glass) eases
    into a new soft tint every 5 seconds — a real CSS transition on
    background-color, stepped by JS, rather than a continuous drift. */
-const WALL_BG_PALETTE = ['#F7F3EA','#ECF2E4','#E4EFF6','#EDE7F7','#FBF1DC','#FAE9DB','#F7E6EC','#E7EEF0'];
+const WALL_BG_PALETTE = [
+  'linear-gradient(135deg,#F7F3EA 0%,#E4EFCF 45%,#DCEFE0 100%)',
+  'linear-gradient(135deg,#E6F0F8 0%,#DCE7F6 45%,#EDE7F7 100%)',
+  'linear-gradient(135deg,#F7ECFA 0%,#F3E4EF 45%,#FBEEDE 100%)',
+  'linear-gradient(135deg,#FBF3DC 0%,#F6E7D2 45%,#F3E0DC 100%)',
+  'linear-gradient(135deg,#FAE9DB 0%,#F6DEDD 45%,#F1E3EC 100%)',
+  'linear-gradient(135deg,#F7E6EC 0%,#EEE1EF 45%,#E5EAF3 100%)',
+  'linear-gradient(135deg,#E7EEF0 0%,#E2ECE4 45%,#EAF0E2 100%)'
+];
 let wallBgTimer = null;
 function startWallBackgroundCycle(){
-  let i = 0;
-  document.body.style.backgroundColor = WALL_BG_PALETTE[0];
+  const a = qs('#wall-bg-a'), b = qs('#wall-bg-b');
+  let i = 0, onTop = 'a';
+  a.style.backgroundImage = WALL_BG_PALETTE[0];
+  a.classList.add('is-on');
   if (wallBgTimer) clearInterval(wallBgTimer);
   wallBgTimer = setInterval(function(){
     i = (i + 1) % WALL_BG_PALETTE.length;
-    document.body.style.backgroundColor = WALL_BG_PALETTE[i];
-  }, 5000);
+    const incoming = onTop === 'a' ? b : a;
+    const outgoing = onTop === 'a' ? a : b;
+    incoming.style.backgroundImage = WALL_BG_PALETTE[i];
+    incoming.classList.add('is-on');
+    outgoing.classList.remove('is-on');
+    onTop = onTop === 'a' ? 'b' : 'a';
+  }, 7000);
 }
 /* ------------------------------------------------------------------
    4. NAV WIRING + BOOTSTRAP
    ------------------------------------------------------------------ */
+const HOME_NAV_ICON = '<path d="M4 11.5 12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h5v-5h2v5h5v-9" stroke-linecap="round" stroke-linejoin="round"/>';
+const NAV_CATEGORIES = [
+  { slug:'journals', name:'Journals', color:'#8A6B3D',
+    icon:'<path d="M7 4.5h8A1.5 1.5 0 0 1 16.5 6v13.5A1.5 1.5 0 0 1 15 21H8.5A1.5 1.5 0 0 1 7 19.5V4.5Z" stroke-linejoin="round"/><rect x="10.2" y="7.2" width="3.6" height="2.6" rx="0.4"/><path d="M9.2 17.8v2.6l1.3-1 1.3 1v-2.6" stroke-linejoin="round"/>' },
+  { slug:'stories', name:'Stories', color:'#3D5A73',
+    icon:'<path d="M6.5 4h7l4 4v12h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/><path d="M9 12.2c1.6-1.4 3.2-.9 3.2.6s-1.6 2-3.2.6" stroke-linecap="round"/>' },
+  { slug:'poetry', name:'Poetry', color:'#5B4A7A',
+    icon:'<path d="M18 4c-7 .8-11.5 5-13 12 1-1.3 2.3-2 3.7-2C10 8.5 13.7 5 18 4Z" stroke-linejoin="round"/><path d="M4 20c1.6-2.3 3.4-3 5.2-2.5" stroke-linecap="round"/>' },
+  { slug:'shayari', name:'Shayari', color:'#8A3A45',
+    icon:'<path d="M8.5 6h7A3.2 3.2 0 0 1 18.7 9.2v1.6A3.2 3.2 0 0 1 15.5 14h-1l-2.8 2.8V14h-3.2a3.2 3.2 0 0 1-3.2-3.2V9.2A3.2 3.2 0 0 1 8.5 6Z" stroke-linejoin="round"/><path d="M12 11.3c.4-.9 1.7-.8 1.9.2.4-1 1.7-1.1 2 0 .4.9-.5 1.7-2 2.6-1.5-.9-2.3-1.9-1.9-2.8Z" fill="currentColor" stroke="none"/>' },
+  { slug:'thoughts', name:'Thoughts', color:'#7A6B2E',
+    icon:'<path d="M9.3 20v-2.4c-2.1-1-3.5-3.1-3.5-5.5A6.2 6.2 0 0 1 12 6a6.2 6.2 0 0 1 6.2 6.1c0 2.4-1.4 4.5-3.5 5.5V20" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.4 6c0-1.2.6-1.9 1.6-2.3" stroke-linecap="round"/><path d="M14 3.7c.8-.2 1.6.1 1.8.9" stroke-linecap="round"/>' },
+  { slug:'articles', name:'Articles', color:'#3D5A73',
+    icon:'<path d="M6.5 4h7l4 4v13h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/><path d="M9 11.5h6M9 14.3h6M9 17h3.8" stroke-linecap="round"/>' }
+];
+function topNavIconHTML(c){
+  return '<span class="pl-nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="color:' + (c.color || 'currentColor') + '">' + c.icon + '</svg></span>';
+}
+function renderWallHeaderNav(){
+  const nav = qs('#pl-center-nav');
+  const items = [{ slug:'all', name:'Home', icon:HOME_NAV_ICON }].concat(NAV_CATEGORIES);
+  nav.innerHTML = items.map(function(c){
+    return '<button type="button" class="pl-nav-item" data-go-section="' + c.slug + '">' +
+      topNavIconHTML(c) + '<span class="pl-nav-label">' + c.name + '</span></button>';
+  }).join('');
+  nav.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-go-section]'); if (!btn) return;
+    const slug = btn.getAttribute('data-go-section');
+    window.location.href = slug === 'all' ? 'userpostlogin.html' : ('userpostlogin.html?category=' + encodeURIComponent(slug));
+  });
+}
+
+/* The composer bar collapses out of the way once you start scrolling
+   down (more reading room), and slides back the moment you scroll
+   back up — same behaviour as the "Write something…" bar in the main
+   app. */
+function initComposerScrollHide(){
+  const bar = qs('.wall-sticky-composer');
+  let lastY = window.scrollY;
+  window.addEventListener('scroll', function(){
+    const y = window.scrollY;
+    if (y > lastY && y > 80) bar.classList.add('is-hidden');
+    else bar.classList.remove('is-hidden');
+    lastY = y;
+  }, { passive:true });
+}
+
 function initNav(){
+  renderWallHeaderNav();
+  initComposerScrollHide();
   qs('#nav-login-btn').addEventListener('click', function(){ window.location.href = 'index.html'; });
   qs('#nav-user-trigger').addEventListener('click', function(e){
     e.stopPropagation();
@@ -2406,7 +3157,7 @@ function initNav(){
   document.addEventListener('click', function(){ qs('#nav-dropdown').classList.remove('open'); });
   qs('#nav-back-home-btn').addEventListener('click', function(){ window.location.href = 'userpostlogin.html'; });
   qs('#nav-my-portfolio-btn').addEventListener('click', function(){
-    if (state.currentUser && state.currentUser.username) window.location.href = 'userpostlogin.html/' + state.currentUser.username;
+    if (state.currentUser && state.currentUser.username) window.location.href = 'portfolio.html?u=' + encodeURIComponent(state.currentUser.username);
     else window.location.href = 'userpostlogin.html';
   });
   qs('#sign-out-btn').addEventListener('click', signOutUser);
