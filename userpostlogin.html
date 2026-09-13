@@ -3717,8 +3717,12 @@ async function init(){
   // its clean-URL path scheme.
   const entryParams = new URLSearchParams(window.location.search);
   const readId = entryParams.get('read');
+  const entryCategory = entryParams.get('category');
   if (readId){
     navigateTo('read', { journalId: readId, replace: true });
+  } else if (entryCategory){
+    state.activeFilter = entryCategory;
+    navigateTo('explore', { replace: true });
   } else {
     await routeFromPath(true);
   }
