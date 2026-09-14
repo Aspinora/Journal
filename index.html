@@ -1569,7 +1569,7 @@ function markdownToHtml(md){
 
   function flushParagraph(){
     if (paragraph.length){
-      html += '<p>' + inlineMd(paragraph.join(' ')) + '</p>';
+      html += '<p>' + paragraph.map(inlineMd).join('<br>') + '</p>';
       paragraph = [];
     }
   }
@@ -1653,6 +1653,14 @@ function hexToRgba(hex, alpha){
   const h = (hex || '').replace('#','');
   const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
   return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
+/* Nudges a hex colour toward white by `amount` (0-1) — keeps the
+   open-Work page tint soft rather than the full-strength category pastel. */
+function lightenHex(hex, amount){
+  const h = (hex || '').replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  const mix = function(c){ return Math.round(c + (255 - c) * amount); };
+  return '#' + [mix(r), mix(g), mix(b)].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
 }
 
 /* ---------- toasts ---------- */
@@ -3082,7 +3090,7 @@ async function renderReadView(journalId, replace){
 
   qs('#read-cover').innerHTML = coverHTML(j.category, j.cover_url);
   const readCat = categoryByName(j.category);
-  document.body.style.setProperty('--page-tint-bg', readCat.soft);
+  document.body.style.setProperty('--page-tint-bg', lightenHex(readCat.soft, 0.2));
   document.body.style.setProperty('--page-tint-nav', hexToRgba(readCat.soft, .85));
   qs('#read-title').textContent = j.title;
   const sub = qs('#read-subtitle');
