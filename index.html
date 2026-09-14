@@ -157,7 +157,13 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
   position:sticky; top:0; left:0; right:0; z-index:200;
   background:rgba(251,245,234,.92); backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);
+  transition:background .35s ease;
 }
+body.is-reading{ background:var(--page-tint-bg, var(--cream)); transition:background .35s ease; }
+body.is-reading .navbar{ background:var(--page-tint-nav, rgba(251,245,234,.92)); }
+.body-img-16x9{ margin:26px 0; }
+.body-img-16x9 img{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:var(--radius-lg); display:block; }
+@media (max-width:640px){ .body-img-16x9{ margin:18px 0; } }
 .nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:24px; padding:14px 0; }
 .nav-brand{ display:flex; align-items:center; gap:10px; margin-left:10px; }
 .nav-logo{ width:38px; height:38px; border-radius:11px; overflow:hidden; flex-shrink:0; }
@@ -429,7 +435,7 @@ section{ padding:36px 0; }
 .read-shell{ max-width:720px; margin:0 auto; }
 .read-back{ display:inline-flex; align-items:center; gap:8px; font-weight:700; color:var(--ink-soft); margin-bottom:22px; font-size:.88rem; }
 .read-back:hover{ color:var(--orange-deep); }
-.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:2.4/1; position:relative; }
+.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:5/2; position:relative; }
 .read-cover .cat-pill{ position:absolute; left:18px; top:18px; }
 .read-header h1{ font-size:clamp(1.9rem,4vw,2.7rem); }
 .read-subtitle{ font-size:1.12rem; color:var(--ink-soft); margin-top:14px; font-family:var(--font-display); font-style:italic; }
@@ -1593,6 +1599,11 @@ function markdownToHtml(md){
       html += '<blockquote>' + inlineMd(m[1]) + '</blockquote>';
       return;
     }
+    if ((m = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/))){
+      flushParagraph(); closeList();
+      html += '<figure class="body-img-16x9"><img src="' + m[2] + '" alt="' + m[1] + '" loading="lazy" decoding="async"></figure>';
+      return;
+    }
     if ((m = trimmed.match(/^[-*]\s+(.*)$/))){
       flushParagraph();
       if (inList !== 'ul'){ closeList(); html += '<ul>'; inList = 'ul'; }
@@ -1620,14 +1631,28 @@ function readingTimeMinutes(words){
   return Math.max(1, Math.round(words / 200));
 }
 
-/* ---------- category cover (CSS gradient + inline SVG icon) ---------- */
-function coverHTML(categoryName){
+/* ---------- category cover: real cover image (object-fit:cover does
+   the "intelligent" 5:2→2:1 re-crop for free) when the Work has one,
+   else the original CSS gradient + icon placeholder. ---------- */
+function coverHTML(categoryName, coverUrl){
   const cat = categoryByName(categoryName);
+  if (coverUrl){
+    return '<div style="width:100%;height:100%;position:relative;overflow:hidden;background:' + cat.soft + ';">' +
+      '<img src="' + escapeHtml(coverUrl) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+      '<span class="cat-pill" style="position:absolute;left:14px;top:14px;color:' + cat.color + ';background:rgba(255,253,248,.88);">' + cat.name + '</span>' +
+    '</div>';
+  }
   return '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);position:relative;overflow:hidden;">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:64px;height:64px;right:18px;bottom:14px;opacity:.5;">' + cat.icon + '</svg>' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:110px;height:110px;left:-24px;top:-24px;opacity:.12;">' + cat.icon + '</svg>' +
     '<span class="cat-pill" style="position:absolute;left:14px;top:14px;color:' + cat.color + '">' + cat.name + '</span>' +
   '</div>';
+}
+/* #RRGGBB -> rgba(...) string, used for the page/header category tint. */
+function hexToRgba(hex, alpha){
+  const h = (hex || '').replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
 
 /* ---------- toasts ---------- */
@@ -2263,6 +2288,7 @@ function normalizeJournalRow(row){
     subtitle: row.subtitle,
     excerpt: row.excerpt,
     body: row.body_markdown || '',
+    cover_url: row.cover_url || null,
     category: cat.name,
     script: row.script || null,
     tags: row.tags || [],
@@ -2280,7 +2306,7 @@ function normalizeJournalRow(row){
   };
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
@@ -2886,6 +2912,11 @@ function navigateTo(view, params){
   if (targetEl) targetEl.classList.add('active');
   qsa('[data-nav]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-nav') === view); });
   window.scrollTo({ top:0, behavior:'auto' });
+  document.body.classList.toggle('is-reading', view === 'read');
+  if (view !== 'read'){
+    document.body.style.removeProperty('--page-tint-bg');
+    document.body.style.removeProperty('--page-tint-nav');
+  }
 
   if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
   if (view === 'read') renderReadView(params.journalId, replace);
@@ -2902,7 +2933,7 @@ function navigateTo(view, params){
 function journalCardHTML(j){
   const words = j.body ? wordCount(j.body) : null;
   return '<article class="j-card" data-open-journal="' + j.id + '">' +
-    '<div class="j-cover">' + coverHTML(j.category) + '</div>' +
+    '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(j.excerpt) + '</p>' +
@@ -3049,7 +3080,10 @@ async function renderReadView(journalId, replace){
   }
   recordRead(j);
 
-  qs('#read-cover').innerHTML = coverHTML(j.category);
+  qs('#read-cover').innerHTML = coverHTML(j.category, j.cover_url);
+  const readCat = categoryByName(j.category);
+  document.body.style.setProperty('--page-tint-bg', readCat.soft);
+  document.body.style.setProperty('--page-tint-nav', hexToRgba(readCat.soft, .85));
   qs('#read-title').textContent = j.title;
   const sub = qs('#read-subtitle');
   if (j.subtitle){ sub.textContent = j.subtitle; sub.hidden = false; } else { sub.hidden = true; }
@@ -3346,7 +3380,7 @@ async function renderSavedView(){
     return;
   }
   list.innerHTML = rows.map(function(j){
-    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category) + '</div>' +
+    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category, j.cover_url) + '</div>' +
       '<div class="draft-info"><h3>' + escapeHtml(j.title) + '</h3><p>' + escapeHtml(j.excerpt) + '</p>' +
       '<div class="draft-meta"><span>' + authorName(j.author_id) + '</span></div>' +
       '<div class="draft-actions"><button type="button" class="btn btn-primary btn-sm" data-open-journal="' + j.id + '">Read Work</button>' +
