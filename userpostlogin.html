@@ -89,7 +89,11 @@
 html{ scroll-behavior:smooth; }
 html,body{ margin:0; padding:0; height:100%; }
 body{
-  background:var(--cream);
+  background:
+    radial-gradient(1100px 650px at 108% -8%, var(--orange-soft) 0%, transparent 58%),
+    radial-gradient(950px 620px at -8% 106%, var(--lavender-soft) 0%, transparent 55%),
+    linear-gradient(180deg, var(--cream) 0%, var(--cream-deep) 100%);
+  background-attachment:fixed, fixed, fixed;
   color:var(--ink);
   font-family:var(--font-body);
   font-size:16px;
@@ -310,7 +314,10 @@ section{ padding:36px 0; }
 /* ============ SITE FOOTER ============ */
 .site-footer{
   margin:40px 0 0; padding:26px 7%; text-align:center;
-  border-top:1px solid var(--line); background:var(--paper);
+  border-top:1px solid var(--line); background:linear-gradient(180deg,var(--cream) 0%,var(--cream-deep) 100%);
+}
+body.is-reading .site-footer{
+  background:linear-gradient(180deg, color-mix(in srgb, var(--page-tint-bg, var(--cream)) 35%, var(--cream)) 0%, var(--cream-deep) 100%);
 }
 .site-footer-links{ display:flex; flex-wrap:wrap; justify-content:center; gap:22px; margin:0 0 12px; }
 .site-footer-links a{ color:var(--ink-soft); font-size:.8rem; font-weight:700; text-decoration:none; }
@@ -432,6 +439,28 @@ section{ padding:36px 0; }
   padding:24px; font-family:var(--font-display); font-size:1.12rem; line-height:1.75; resize:vertical; background:var(--paper);
 }
 .editor-textarea:focus{ outline:none; border-color:var(--line); }
+/* ============ PARAGRAPH BLOCK EDITOR (Journals/Stories/Articles) ============ */
+.block-editor{ display:flex; flex-direction:column; gap:14px; }
+.block-editor .block-textarea{
+  width:100%; min-height:160px; border:1px solid var(--line); border-radius:14px;
+  padding:20px; font-family:var(--font-display); font-size:1.12rem; line-height:1.75; resize:vertical; background:var(--paper);
+}
+.block-editor .block-textarea:focus{ outline:none; border-color:var(--orange); }
+.block-image{ position:relative; border-radius:var(--radius-lg); overflow:hidden; aspect-ratio:16/9; }
+.block-image img{ width:100%; height:100%; object-fit:cover; display:block; }
+.block-image .block-image-remove{
+  position:absolute; top:10px; right:10px; width:32px; height:32px; border-radius:50%;
+  background:rgba(43,36,28,.55); color:#fff; display:flex; align-items:center; justify-content:center;
+}
+.block-image .block-image-uploading{ position:absolute; inset:0; background:rgba(251,245,234,.85); display:flex; align-items:center; justify-content:center; font-size:.84rem; font-weight:700; color:var(--ink-soft); }
+.block-controls{ display:flex; gap:10px; flex-wrap:wrap; }
+.block-controls button{
+  display:flex; align-items:center; gap:6px; padding:9px 16px; border-radius:999px; border:1.5px dashed var(--line-strong);
+  background:var(--cream); color:var(--ink-soft); font-size:.86rem; font-weight:700;
+}
+.block-controls button:hover:not(:disabled){ border-color:var(--orange); color:var(--orange); }
+.block-controls button:disabled{ opacity:.45; cursor:not-allowed; }
+.ai-image-note{ font-size:.76rem; color:var(--ink-faint); margin-top:10px; }
 .write-footer-bar{
   display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:10px 4px;
   font-family:var(--font-mono); font-size:.76rem; color:var(--ink-faint); flex-wrap:wrap; gap:8px;
@@ -489,6 +518,16 @@ section{ padding:36px 0; }
 .like-btn svg{ width:18px; height:18px; }
 .like-btn.is-liked{ background:var(--orange-soft); border-color:var(--orange); color:var(--orange-deep); }
 .like-btn.is-liked svg{ fill:var(--orange); }
+/* While a Work is open, the action icons/like button/comment box pick up
+   a soft wash of the category colour instead of sitting as flat white
+   cards on a now-colourful page. */
+body.is-reading .btn-icon,
+body.is-reading .like-btn:not(.is-liked),
+body.is-reading .guest-cta,
+body.is-reading .comment-form textarea{
+  background:color-mix(in srgb, var(--page-tint-bg, var(--paper)) 42%, var(--paper));
+  border-color:color-mix(in srgb, var(--page-tint-bg, var(--paper)) 55%, var(--line-strong));
+}
 
 /* ============ COMMENTS ============ */
 .comments-section{ margin-top:10px; }
@@ -951,7 +990,7 @@ section{ padding:36px 0; }
         </div>
 
         <div class="field">
-          <div class="editor-toolbar" role="toolbar" aria-label="Formatting toolbar">
+          <div class="editor-toolbar" id="write-toolbar" role="toolbar" aria-label="Formatting toolbar">
             <button type="button" data-md="bold" title="Bold" aria-label="Bold"><svg viewBox="0 0 20 20" fill="none"><path d="M6 4h5a3 3 0 0 1 0 6H6V4Zm0 6h6a3 3 0 0 1 0 6H6v-6Z" stroke="currentColor" stroke-width="1.6"/></svg></button>
             <button type="button" data-md="italic" title="Italic" aria-label="Italic"><svg viewBox="0 0 20 20" fill="none"><path d="M9 4h6M5 16h6M11 4 9 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
             <button type="button" data-md="heading" title="Heading" aria-label="Heading"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4v12M13 4v12M5 10h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
@@ -960,12 +999,13 @@ section{ padding:36px 0; }
             <button type="button" data-md="ol" title="Numbered list" aria-label="Numbered list"><svg viewBox="0 0 20 20" fill="none"><text x="2" y="7" font-size="5" fill="currentColor">1</text><text x="2" y="12" font-size="5" fill="currentColor">2</text><path d="M8 5h8M8 10h8M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
             <button type="button" data-md="divider" title="Divider" aria-label="Divider"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
             <button type="button" data-md="link" title="Link" aria-label="Link"><svg viewBox="0 0 20 20" fill="none"><path d="M8 12l4-4M7 13a3 3 0 0 1 0-4l2-2a3 3 0 0 1 4 4M13 7a3 3 0 0 1 0 4l-2 2a3 3 0 0 1-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-            <button type="button" id="insert-image-btn" title="Insert image" aria-label="Insert image" hidden><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="8.2" r="1.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 14.5 8 10.3l2.4 2.3 2.2-2.2 3.6 3.6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
             <span class="tb-sep"></span>
             <button type="button" id="undo-btn" title="Undo" aria-label="Undo"><svg viewBox="0 0 20 20" fill="none"><path d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8h-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <button type="button" id="redo-btn" title="Redo" aria-label="Redo"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l4 4-4 4M17 9H8a4 4 0 0 0 0 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
           <textarea id="write-body" class="editor-textarea" placeholder="Start wherever you are. A thought, a question, a moment worth keeping…" aria-label="Work body"></textarea>
+          <div class="block-editor" id="block-editor" hidden aria-label="Paragraphs and images"></div>
+          <p class="ai-image-note" id="ai-image-note" hidden>Please only add AI-generated images you have the rights to use — no copyrighted or downloaded photos.</p>
           <div class="error-msg" id="err-body" hidden>Your Work can't be empty.</div>
           <input type="file" id="paragraph-file-input" accept="image/*" hidden>
         </div>
@@ -1676,7 +1716,7 @@ function markdownToHtml(md){
 
   function flushParagraph(){
     if (paragraph.length){
-      html += '<p>' + inlineMd(paragraph.join(' ')) + '</p>';
+      html += '<p>' + paragraph.map(inlineMd).join('<br>') + '</p>';
       paragraph = [];
     }
   }
@@ -1740,6 +1780,15 @@ function hexToRgba(hex, alpha){
   const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
   return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
+/* Nudges a hex colour toward white by `amount` (0-1) — used to keep the
+   open-Work page tint soft rather than the full-strength category
+   pastel, which read a touch heavy across a whole page. */
+function lightenHex(hex, amount){
+  const h = (hex || '').replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  const mix = function(c){ return Math.round(c + (255 - c) * amount); };
+  return '#' + [mix(r), mix(g), mix(b)].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
+}
 function wordCount(text){
   const trimmed = (text || '').trim();
   return trimmed ? trimmed.split(/\s+/).length : 0;
@@ -1786,14 +1835,47 @@ function loadImageFromFile(file){
     img.src = url;
   });
 }
+/* Encodes a canvas as WebP at a given quality, resolving to null if the
+   browser can't produce a blob at all (vanishingly rare). */
+function encodeCanvasWebp(canvas, quality){
+  return new Promise(function(res){ canvas.toBlob(res, 'image/webp', quality); });
+}
+/* Redraws a canvas at `factor` of its current size (min 240px wide),
+   used as a fallback when quality alone can't hit the byte budget —
+   either the source is very detailed, or (rarely, on older browsers)
+   canvas.toBlob silently ignores the requested WebP quality and falls
+   back to an uncompressed format, in which case only shrinking the
+   pixel count actually reduces file size. */
+function shrinkCanvas(canvas, factor){
+  const w = Math.max(240, Math.round(canvas.width * factor));
+  const h = Math.max(1, Math.round(w * canvas.height / canvas.width));
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const ctx = out.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(canvas, 0, 0, w, h);
+  return out;
+}
+/* Compresses a canvas to WebP under targetBytes. Steps quality down
+   first; if that alone isn't enough (or this browser doesn't actually
+   honour WebP encoding), progressively shrinks the canvas and tries
+   again, so this always converges on something under budget rather
+   than surfacing a confusing "image too large" error to the user. */
 async function canvasToCompressedWebp(canvas, targetBytes){
-  let quality = 0.9;
-  let blob = await new Promise(function(res){ canvas.toBlob(res, 'image/webp', quality); });
-  while (blob && blob.size > targetBytes && quality > 0.35){
-    quality -= 0.1;
-    blob = await new Promise(function(res){ canvas.toBlob(res, 'image/webp', quality); });
+  let working = canvas;
+  let best = null;
+  for (let round = 0; round < 7; round++){
+    for (let quality = 0.92; quality >= 0.35; quality -= 0.09){
+      const blob = await encodeCanvasWebp(working, quality);
+      if (blob && blob.size > 0){
+        if (!best || blob.size < best.size) best = blob;
+        if (blob.type === 'image/webp' && blob.size <= targetBytes) return blob;
+      }
+    }
+    if (working.width <= 240) break;
+    working = shrinkCanvas(working, 0.75);
   }
-  return blob;
+  return best;
 }
 /* Crops `img` to ratioW:ratioH. If cropRect (source-pixel {sx,sy,sw,sh})
    is given (from the pan/zoom cropper), uses it; otherwise falls back
@@ -1907,7 +1989,8 @@ async function cleanupOrphanedImages(coverUrl, bodyMarkdown, deletedJournalId){
 async function processAndUploadImage(img, ratioW, ratioH, purpose, cropRect, maxLongEdge){
   const canvas = cropToCanvas(img, ratioW, ratioH, maxLongEdge || 1600, cropRect);
   const blob = await canvasToCompressedWebp(canvas, MEDIA_TARGET_BYTES);
-  if (!blob) throw new Error('Could not process that image.');
+  if (!blob) throw new Error('Could not process that image — try a different photo.');
+  if (blob.type !== 'image/webp') throw new Error("Your browser couldn't convert that image to WebP — try a different browser.");
   return uploadImageBlob(blob, purpose);
 }
 
@@ -3025,7 +3108,7 @@ async function renderReadView(journalId, replace){
 
   qs('#read-cover').innerHTML = coverHTML(j.category, j.cover_url);
   const readCat = categoryByName(j.category);
-  document.body.style.setProperty('--page-tint-bg', readCat.soft);
+  document.body.style.setProperty('--page-tint-bg', lightenHex(readCat.soft, 0.2));
   document.body.style.setProperty('--page-tint-nav', hexToRgba(readCat.soft, .85));
   qs('#read-title').textContent = j.title;
   const sub = qs('#read-subtitle');
@@ -3435,6 +3518,7 @@ function wireGenericButtons(){
    ------------------------------------------------------------------ */
 let writeDraft = { category:'', title:'', subtitle:'', body:'', cover_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' };
 const PARAGRAPH_IMAGE_CATEGORIES = ['Journals','Stories','Articles'];
+const MAX_INLINE_IMAGES = 5;
 
 function localDraftKey(){ return 'aspinora_draft_' + (state.currentDraftId || 'new'); }
 function saveDraftToLocalStorage(){
@@ -3471,6 +3555,7 @@ async function renderWriteView(draftId, presetCategory){
   writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', cover_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' });
   if (writeDraft.cover_url === undefined) writeDraft.cover_url = null;
   if (!existing && !localCopy && presetCategory) writeDraft.category = presetCategory;
+  writeDraft.blocks = null; // rebuilt fresh from body by updateEditorModeUI below
 
   qs('#write-title').value = writeDraft.title || '';
   qs('#write-subtitle').value = writeDraft.subtitle || '';
@@ -3483,7 +3568,7 @@ async function renderWriteView(draftId, presetCategory){
   syncSettingsRadios();
   updateWriteFooterCounts();
   renderCoverUploadBox();
-  updateInsertImageVisibility();
+  updateEditorModeUI();
   qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
   setSaveStatus(draftHasContent(writeDraft) ? 'saved' : 'unsaved');
   clearWriteErrors();
@@ -3505,6 +3590,12 @@ function renderCoverUploadBox(){
       '<span>Add a cover image</span></div>';
   }
 }
+/* A photo that isn't the writer's to use is the single easiest way a
+   Work gets a copyright strike. One lightweight, hard-to-miss check at
+   the moment of picking a file — not buried in a caption underneath. */
+function confirmAiOnlyImages(){
+  return window.confirm('Only add AI-generated images you have the rights to use — no copyrighted or downloaded photos.\n\nContinue?');
+}
 (function wireCoverUpload(){
   document.addEventListener('DOMContentLoaded', function(){
     const box = qs('#cover-upload-box');
@@ -3512,16 +3603,17 @@ function renderCoverUploadBox(){
     if (!box || !fileInput) return;
     box.addEventListener('click', function(e){
       if (e.target.closest('#cu-remove-btn')) return;
+      if (!confirmAiOnlyImages()) return;
       fileInput.click();
     });
-    box.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fileInput.click(); } });
+    box.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); if (confirmAiOnlyImages()) fileInput.click(); } });
     fileInput.addEventListener('change', function(){
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = '';
       if (!file) return;
       openCropModal(file, 5, 2, async function(img, cropRect){
         const box2 = qs('#cover-upload-box');
-        box2.innerHTML = '<div class="cu-uploading">Uploading…</div>';
+        box2.innerHTML = '<div class="cu-uploading">Compressing &amp; uploading…</div>';
         try{
           const url = await processAndUploadImage(img, 5, 2, 'cover', cropRect, 1400);
           writeDraft.cover_url = url;
@@ -3536,41 +3628,147 @@ function renderCoverUploadBox(){
   });
 })();
 
-/* ---------- inline paragraph images (Journals/Stories/Articles) ---------- */
-function updateInsertImageVisibility(){
-  const btn = qs('#insert-image-btn');
-  if (!btn) return;
-  btn.hidden = PARAGRAPH_IMAGE_CATEGORIES.indexOf(writeDraft.category) === -1;
+/* ---------- paragraph block editor (Journals/Stories/Articles) ----------
+   Storage stays a single markdown string (writeDraft.body) so the reader
+   and the plain single-textarea mode (other categories) don't need to
+   know blocks exist — bodyToBlocks/blocksToBody are the only two places
+   that translate between the two shapes. */
+let blockIdCounter = 0;
+function newBlockId(){ return 'blk' + (++blockIdCounter) + '_' + Date.now().toString(36); }
+function bodyToBlocks(body){
+  const blocks = [];
+  const re = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+  let lastIndex = 0, m;
+  while ((m = re.exec(body || '')) !== null){
+    const textChunk = body.slice(lastIndex, m.index).replace(/^\n+|\n+$/g, '');
+    if (textChunk.trim()) blocks.push({ type:'text', id:newBlockId(), content:textChunk });
+    blocks.push({ type:'image', id:newBlockId(), url:m[1] });
+    lastIndex = m.index + m[0].length;
+  }
+  const rest = (body || '').slice(lastIndex).replace(/^\n+|\n+$/g, '');
+  if (rest.trim() || blocks.length === 0) blocks.push({ type:'text', id:newBlockId(), content:rest });
+  return blocks;
+}
+function blocksToBody(blocks){
+  return (blocks || []).map(function(b){
+    return b.type === 'image' ? '![](' + b.url + ')' : (b.content || '').trim();
+  }).filter(function(s){ return s !== ''; }).join('\n\n');
+}
+function inlineImageCount(){
+  return (writeDraft.blocks || []).filter(function(b){ return b.type === 'image'; }).length;
+}
+function isParagraphCategory(){ return PARAGRAPH_IMAGE_CATEGORIES.indexOf(writeDraft.category) !== -1; }
+/* Switches the write view between the single free-form textarea
+   (Poetry/Shayari/Thoughts/…) and the paragraph+image block editor
+   (Journals/Stories/Articles), converting writeDraft.body <-> .blocks
+   as needed so nothing typed is lost when the category changes. */
+function updateEditorModeUI(){
+  const legacyArea = qs('#write-body');
+  const toolbar = qs('#write-toolbar');
+  const blockContainer = qs('#block-editor');
+  const aiNote = qs('#ai-image-note');
+  const blockMode = isParagraphCategory();
+  if (blockMode){
+    if (!writeDraft.blocks) writeDraft.blocks = bodyToBlocks(writeDraft.body);
+    if (legacyArea) legacyArea.hidden = true;
+    if (toolbar) toolbar.hidden = true;
+    if (blockContainer) blockContainer.hidden = false;
+    if (aiNote) aiNote.hidden = false;
+    renderBlockEditor();
+  } else {
+    if (legacyArea){ legacyArea.hidden = false; legacyArea.value = writeDraft.body || ''; }
+    if (toolbar) toolbar.hidden = false;
+    if (blockContainer) blockContainer.hidden = true;
+    if (aiNote) aiNote.hidden = true;
+  }
+}
+function renderBlockEditor(){
+  const container = qs('#block-editor');
+  if (!container) return;
+  const imgCount = inlineImageCount();
+  container.innerHTML = (writeDraft.blocks || []).map(function(b, i){
+    if (b.type === 'text'){
+      const placeholder = i === 0 ? 'Start wherever you are. A thought, a question, a moment worth keeping…' : 'Continue writing…';
+      return '<textarea class="block-textarea" data-block-id="' + b.id + '" placeholder="' + placeholder + '" aria-label="Paragraph">' + escapeHtml(b.content) + '</textarea>';
+    }
+    return '<div class="block-image" data-block-id="' + b.id + '">' +
+      '<img src="' + escapeHtml(b.url) + '" alt="" loading="lazy" decoding="async">' +
+      '<button type="button" class="block-image-remove" data-remove-block="' + b.id + '" aria-label="Remove image">' +
+      '<svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>' +
+    '</div>';
+  }).join('') +
+  '<div class="block-controls">' +
+    '<button type="button" id="add-paragraph-btn"><svg viewBox="0 0 20 20" fill="none" width="14" height="14"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add paragraph</button>' +
+    '<button type="button" id="add-block-image-btn"' + (imgCount >= MAX_INLINE_IMAGES ? ' disabled' : '') + '><svg viewBox="0 0 20 20" fill="none" width="14" height="14"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Add image (' + imgCount + '/' + MAX_INLINE_IMAGES + ')</button>' +
+  '</div>';
+
+  qsa('.block-textarea', container).forEach(function(ta){
+    ta.addEventListener('input', function(){
+      const block = (writeDraft.blocks || []).find(function(b){ return b.id === ta.getAttribute('data-block-id'); });
+      if (block) block.content = ta.value;
+      writeDraft.body = blocksToBody(writeDraft.blocks);
+      updateWriteFooterCounts();
+      markUnsavedImmediately();
+    });
+  });
+  qsa('[data-remove-block]', container).forEach(function(btn){
+    btn.onclick = function(){
+      writeDraft.blocks = (writeDraft.blocks || []).filter(function(b){ return b.id !== btn.getAttribute('data-remove-block'); });
+      if (!writeDraft.blocks.length) writeDraft.blocks.push({ type:'text', id:newBlockId(), content:'' });
+      writeDraft.body = blocksToBody(writeDraft.blocks);
+      renderBlockEditor();
+      updateWriteFooterCounts();
+      scheduleAutosave();
+    };
+  });
+  const addParaBtn = qs('#add-paragraph-btn');
+  if (addParaBtn) addParaBtn.onclick = function(){
+    writeDraft.blocks.push({ type:'text', id:newBlockId(), content:'' });
+    renderBlockEditor();
+    const areas = qsa('.block-textarea', qs('#block-editor'));
+    const last = areas[areas.length - 1];
+    if (last) last.focus();
+  };
+  const addImgBtn = qs('#add-block-image-btn');
+  if (addImgBtn) addImgBtn.onclick = function(){
+    if (inlineImageCount() >= MAX_INLINE_IMAGES) return;
+    if (!confirmAiOnlyImages()) return;
+    qs('#paragraph-file-input').click();
+  };
 }
 (function wireParagraphImage(){
   document.addEventListener('DOMContentLoaded', function(){
-    const btn = qs('#insert-image-btn');
     const fileInput = qs('#paragraph-file-input');
-    if (!btn || !fileInput) return;
-    btn.addEventListener('click', function(){ fileInput.click(); });
+    if (!fileInput) return;
     fileInput.addEventListener('change', function(){
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = '';
-      if (!file) return;
-      showToast('Uploading image…');
+      if (!file || inlineImageCount() >= MAX_INLINE_IMAGES) return;
+      // Placeholder block shows a spinner in-place while it uploads.
+      const pendingId = newBlockId();
+      writeDraft.blocks.push({ type:'image', id:pendingId, url:'', uploading:true });
+      renderBlockEditor();
+      const pendingEl = qs('#block-editor').querySelector('[data-block-id="' + pendingId + '"]');
+      if (pendingEl) pendingEl.innerHTML = '<div class="block-image-uploading">Compressing &amp; uploading…</div>';
       loadImageFromFile(file).then(async function(img){
         try{
           const url = await processAndUploadImage(img, 16, 9, 'paragraph', null, 1400);
-          const bodyArea = qs('#write-body');
-          const insert = '\n\n![](' + url + ')\n\n';
-          const pos = bodyArea.selectionStart || bodyArea.value.length;
-          const before = bodyArea.value.slice(0, pos), after = bodyArea.value.slice(pos);
-          bodyArea.value = (before + insert + after).slice(0, 30000);
-          writeDraft.body = bodyArea.value;
-          state.writeMdHistory.push(writeDraft.body);
-          state.writeMdHistoryIndex = state.writeMdHistory.length - 1;
+          const block = writeDraft.blocks.find(function(b){ return b.id === pendingId; });
+          if (block){ block.url = url; delete block.uploading; }
+          writeDraft.body = blocksToBody(writeDraft.blocks);
+          renderBlockEditor();
           updateWriteFooterCounts();
           scheduleAutosave();
-          showToast('Image added.');
         }catch(err){
+          writeDraft.blocks = writeDraft.blocks.filter(function(b){ return b.id !== pendingId; });
+          renderBlockEditor();
           showToast(err.message || 'Could not upload that image.');
         }
-      }).catch(function(){ showToast('Could not open that image.'); });
+      }).catch(function(){
+        writeDraft.blocks = writeDraft.blocks.filter(function(b){ return b.id !== pendingId; });
+        renderBlockEditor();
+        showToast('Could not open that image.');
+      });
     });
   });
 })();
@@ -3583,7 +3781,7 @@ function renderCatPicker(){
       '<span class="dot" style="background:' + c.color + '"></span>' + c.name + '</button>';
   }).join('');
   qsa('[data-pick-category]').forEach(function(b){
-    b.onclick = function(){ writeDraft.category = this.getAttribute('data-pick-category'); renderCatPicker(); updateInsertImageVisibility(); scheduleAutosave(); };
+    b.onclick = function(){ writeDraft.category = this.getAttribute('data-pick-category'); renderCatPicker(); updateEditorModeUI(); scheduleAutosave(); };
   });
 }
 
