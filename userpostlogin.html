@@ -157,7 +157,14 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
   position:sticky; top:0; left:0; right:0; z-index:200;
   background:rgba(251,245,234,.92); backdrop-filter:blur(10px);
   border-bottom:1px solid var(--line);
+  transition:background .35s ease;
 }
+/* ============ CATEGORY PAGE TINT (open-Work theming) ============
+   Set on <body> from renderReadView via --page-tint-bg / --page-tint-nav
+   (derived from the Work's category colour). Cleared on any other view. */
+body.is-reading{ background:var(--page-tint-bg, var(--cream)); transition:background .35s ease; }
+body.is-reading .navbar{ background:var(--page-tint-nav, rgba(251,245,234,.92)); }
+body.is-reading .write-header{ background:var(--page-tint-bg, var(--cream)); }
 .nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:24px; padding:14px 0; }
 .nav-brand{ display:flex; align-items:center; gap:10px; }
 .nav-logo{ width:38px; height:38px; border-radius:11px; overflow:hidden; flex-shrink:0; }
@@ -353,6 +360,37 @@ section{ padding:36px 0; }
 .tag-input-row input{ border:none; background:none; flex:1; min-width:100px; font-size:.88rem; }
 .tag-input-row input:focus{ outline:none; }
 
+/* ============ COVER IMAGE (write view + reader) ============ */
+.cover-upload-box{
+  width:100%; aspect-ratio:5/2; border-radius:var(--radius-lg); border:1.5px dashed var(--line-strong);
+  background:var(--paper); display:flex; align-items:center; justify-content:center; cursor:pointer;
+  position:relative; overflow:hidden; color:var(--ink-faint); transition:border-color .2s ease;
+}
+.cover-upload-box:hover{ border-color:var(--orange); }
+.cover-upload-box .cu-empty{ display:flex; flex-direction:column; align-items:center; gap:8px; font-size:.86rem; font-weight:600; pointer-events:none; }
+.cover-upload-box img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+.cover-upload-box .cu-remove{
+  position:absolute; top:10px; right:10px; width:32px; height:32px; border-radius:50%;
+  background:rgba(43,36,28,.55); color:#fff; display:flex; align-items:center; justify-content:center; z-index:2;
+}
+.cover-upload-box .cu-uploading{ position:absolute; inset:0; background:rgba(251,245,234,.85); display:flex; align-items:center; justify-content:center; font-size:.84rem; font-weight:700; color:var(--ink-soft); z-index:3; }
+
+/* ============ IMAGE CROP MODAL (5:2 cover, or any fixed ratio) ============ */
+.crop-viewport{
+  position:relative; width:100%; max-width:520px; margin:0 auto; overflow:hidden; border-radius:14px;
+  background:#111; touch-action:none; cursor:grab; aspect-ratio:var(--crop-ratio, 5/2);
+}
+.crop-viewport.is-dragging{ cursor:grabbing; }
+.crop-viewport img{ position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none; pointer-events:none; }
+.crop-controls{ display:flex; align-items:center; gap:12px; margin-top:16px; }
+.crop-controls input[type="range"]{ flex:1; }
+.crop-hint{ text-align:center; font-size:.78rem; color:var(--ink-faint); margin-top:8px; }
+
+/* ============ INLINE PARAGRAPH IMAGES (Journals/Stories/Articles) ============ */
+.body-img-16x9{ margin:26px 0; }
+.body-img-16x9 img{ width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:var(--radius-lg); display:block; }
+@media (max-width:640px){ .body-img-16x9{ margin:18px 0; } }
+
 /* ============ CATEGORY CHIP PICKER ============ */
 .cat-picker{ display:flex; flex-wrap:wrap; gap:10px; }
 .cat-chip-btn{
@@ -412,7 +450,7 @@ section{ padding:36px 0; }
 .read-shell{ max-width:720px; margin:0 auto; }
 .read-back{ display:inline-flex; align-items:center; gap:8px; font-weight:700; color:var(--ink-soft); margin-bottom:22px; font-size:.88rem; }
 .read-back:hover{ color:var(--orange-deep); }
-.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:2.4/1; position:relative; }
+.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:5/2; position:relative; }
 .read-cover .cat-pill{ position:absolute; left:18px; top:18px; }
 .read-header h1{ font-size:clamp(1.9rem,4vw,2.7rem); }
 .read-subtitle{ font-size:1.12rem; color:var(--ink-soft); margin-top:14px; font-family:var(--font-display); font-style:italic; }
@@ -890,6 +928,17 @@ section{ padding:36px 0; }
           <div class="error-msg" id="err-category" hidden>Please choose a category for this Work.</div>
         </div>
 
+        <div class="field" id="write-cover-field">
+          <label>Cover image <span style="font-weight:400;color:var(--ink-faint);">(optional)</span></label>
+          <div class="cover-upload-box" id="cover-upload-box" role="button" tabindex="0" aria-label="Add a cover image">
+            <div class="cu-empty" id="cu-empty-state">
+              <svg viewBox="0 0 20 20" fill="none" width="26" height="26"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="8.2" r="1.3" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 14.5 8 10.3l2.4 2.3 2.2-2.2 3.6 3.6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+              <span>Add a cover image</span>
+            </div>
+          </div>
+          <input type="file" id="cover-file-input" accept="image/*" hidden>
+        </div>
+
         <div class="field">
           <input type="text" id="write-title" class="field-title-input" placeholder="Give your thought a title" maxlength="140" aria-label="Work title">
           <span class="count"><span id="title-count">0</span>/140</span>
@@ -911,12 +960,14 @@ section{ padding:36px 0; }
             <button type="button" data-md="ol" title="Numbered list" aria-label="Numbered list"><svg viewBox="0 0 20 20" fill="none"><text x="2" y="7" font-size="5" fill="currentColor">1</text><text x="2" y="12" font-size="5" fill="currentColor">2</text><path d="M8 5h8M8 10h8M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
             <button type="button" data-md="divider" title="Divider" aria-label="Divider"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
             <button type="button" data-md="link" title="Link" aria-label="Link"><svg viewBox="0 0 20 20" fill="none"><path d="M8 12l4-4M7 13a3 3 0 0 1 0-4l2-2a3 3 0 0 1 4 4M13 7a3 3 0 0 1 0 4l-2 2a3 3 0 0 1-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+            <button type="button" id="insert-image-btn" title="Insert image" aria-label="Insert image" hidden><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="8.2" r="1.2" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 14.5 8 10.3l2.4 2.3 2.2-2.2 3.6 3.6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg></button>
             <span class="tb-sep"></span>
             <button type="button" id="undo-btn" title="Undo" aria-label="Undo"><svg viewBox="0 0 20 20" fill="none"><path d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8h-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <button type="button" id="redo-btn" title="Redo" aria-label="Redo"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l4 4-4 4M17 9H8a4 4 0 0 0 0 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           </div>
           <textarea id="write-body" class="editor-textarea" placeholder="Start wherever you are. A thought, a question, a moment worth keeping…" aria-label="Work body"></textarea>
           <div class="error-msg" id="err-body" hidden>Your Work can't be empty.</div>
+          <input type="file" id="paragraph-file-input" accept="image/*" hidden>
         </div>
 
         <div class="field">
@@ -1206,6 +1257,29 @@ section{ padding:36px 0; }
     <div class="modal-actions" style="justify-content:center;">
       <button type="button" class="btn btn-secondary" id="guest-modal-cancel">Not now</button>
       <button type="button" class="btn btn-primary" id="guest-modal-login">Log In / Sign Up</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     IMAGE CROP MODAL (reused for cover images; fixed-ratio pan+zoom)
+     ============================================================ -->
+<div class="modal-scrim" id="crop-modal-scrim">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="crop-modal-title" style="max-width:560px;">
+    <button type="button" class="modal-close" id="crop-modal-close" aria-label="Close">
+      <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <h2 id="crop-modal-title" style="text-align:center;">Position your cover image</h2>
+    <div class="crop-viewport" id="crop-viewport"><img id="crop-img" src="" alt=""></div>
+    <div class="crop-controls">
+      <svg viewBox="0 0 20 20" fill="none" width="16" height="16" style="flex-shrink:0;color:var(--ink-faint);"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M9 6.5v5M6.5 9h5" stroke="currentColor" stroke-width="1.5"/></svg>
+      <input type="range" id="crop-zoom" min="0" max="100" value="0" aria-label="Zoom">
+      <svg viewBox="0 0 20 20" fill="none" width="18" height="18" style="flex-shrink:0;color:var(--ink-faint);"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 9h5" stroke="currentColor" stroke-width="1.5"/></svg>
+    </div>
+    <p class="crop-hint">Drag to reposition, use the slider to zoom.</p>
+    <div class="modal-actions" style="justify-content:center;">
+      <button type="button" class="btn btn-secondary" id="crop-modal-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="crop-modal-confirm">Use this crop</button>
     </div>
   </div>
 </div>
@@ -1632,6 +1706,15 @@ function markdownToHtml(md){
       html += '<blockquote>' + inlineMd(m[1]) + '</blockquote>';
       return;
     }
+    /* A whole line that's just `![alt](https://...)` is a 16:9 inline
+       paragraph image (inserted via the toolbar's image button) —
+       distinct from an inline link, which can't take up a whole line
+       on its own in normal writing. */
+    if ((m = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/))){
+      flushParagraph(); closeList();
+      html += '<figure class="body-img-16x9"><img src="' + m[2] + '" alt="' + m[1] + '" loading="lazy" decoding="async"></figure>';
+      return;
+    }
     if ((m = trimmed.match(/^[-*]\s+(.*)$/))){
       flushParagraph();
       if (inList !== 'ul'){ closeList(); html += '<ul>'; inList = 'ul'; }
@@ -1651,6 +1734,12 @@ function markdownToHtml(md){
   return html;
 }
 
+/* #RRGGBB -> rgba(...) string, used for the page/header category tint. */
+function hexToRgba(hex, alpha){
+  const h = (hex || '').replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
 function wordCount(text){
   const trimmed = (text || '').trim();
   return trimmed ? trimmed.split(/\s+/).length : 0;
@@ -1659,15 +1748,260 @@ function readingTimeMinutes(words){
   return Math.max(1, Math.round(words / 200));
 }
 
-/* ---------- category cover (CSS gradient + inline SVG icon) ---------- */
-function coverHTML(categoryName){
+/* ---------- category cover: real cover image (object-fit:cover does
+   the "intelligent" 5:2→2:1 etc. re-crop for free) when the Work has
+   one, else the original CSS gradient + icon placeholder. ---------- */
+function coverHTML(categoryName, coverUrl){
   const cat = categoryByName(categoryName);
+  if (coverUrl){
+    return '<div style="width:100%;height:100%;position:relative;overflow:hidden;background:' + cat.soft + ';">' +
+      '<img src="' + escapeHtml(coverUrl) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+      '<span class="cat-pill" style="position:absolute;left:14px;top:14px;color:' + cat.color + ';background:rgba(255,253,248,.88);">' + cat.name + '</span>' +
+    '</div>';
+  }
   return '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);position:relative;overflow:hidden;">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:64px;height:64px;right:18px;bottom:14px;opacity:.5;">' + cat.icon + '</svg>' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:110px;height:110px;left:-24px;top:-24px;opacity:.12;">' + cat.icon + '</svg>' +
     '<span class="cat-pill" style="position:absolute;left:14px;top:14px;color:' + cat.color + '">' + cat.name + '</span>' +
   '</div>';
 }
+
+/* ------------------------------------------------------------------
+   MEDIA PIPELINE — crop/compress-to-WebP/upload-to-R2, all client
+   side except the actual PUT, which happens inside the `upload-image`
+   Supabase Edge Function (holds the R2 credentials; this app never
+   sees them). Uploaded images are content-addressed (SHA-256 of the
+   bytes → filename), so the same image is only ever stored once and
+   is served with an immutable Cache-Control — the browser (and any
+   CDN in front of the R2 public URL) caches it permanently and never
+   re-fetches it once loaded. ------------------------------------- */
+const MEDIA_TARGET_BYTES = 80 * 1024; // per-image budget
+
+function loadImageFromFile(file){
+  return new Promise(function(resolve, reject){
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function(){ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = function(e){ URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+async function canvasToCompressedWebp(canvas, targetBytes){
+  let quality = 0.9;
+  let blob = await new Promise(function(res){ canvas.toBlob(res, 'image/webp', quality); });
+  while (blob && blob.size > targetBytes && quality > 0.35){
+    quality -= 0.1;
+    blob = await new Promise(function(res){ canvas.toBlob(res, 'image/webp', quality); });
+  }
+  return blob;
+}
+/* Crops `img` to ratioW:ratioH. If cropRect (source-pixel {sx,sy,sw,sh})
+   is given (from the pan/zoom cropper), uses it; otherwise falls back
+   to a centred crop — this is the "intelligent crop" used wherever an
+   already-5:2 cover is redrawn at 2:1 for feed cards. */
+function cropToCanvas(img, ratioW, ratioH, maxLongEdge, cropRect){
+  const targetRatio = ratioW / ratioH;
+  let sx, sy, sw, sh;
+  if (cropRect){
+    sx = cropRect.sx; sy = cropRect.sy; sw = cropRect.sw; sh = cropRect.sh;
+  } else {
+    const srcRatio = img.naturalWidth / img.naturalHeight;
+    if (srcRatio > targetRatio){ sh = img.naturalHeight; sw = sh * targetRatio; sx = (img.naturalWidth - sw) / 2; sy = 0; }
+    else { sw = img.naturalWidth; sh = sw / targetRatio; sx = 0; sy = (img.naturalHeight - sh) / 2; }
+  }
+  let outW = maxLongEdge, outH = Math.round(maxLongEdge / targetRatio);
+  if (ratioH > ratioW){ outH = maxLongEdge; outW = Math.round(maxLongEdge * targetRatio); }
+  const canvas = document.createElement('canvas');
+  canvas.width = outW; canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
+  return canvas;
+}
+function blobToBase64(blob){
+  return new Promise(function(resolve, reject){
+    const reader = new FileReader();
+    reader.onload = function(){ resolve(reader.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+async function uploadImageBlob(blob, purpose){
+  if (!supabaseClient) throw new Error('Not connected.');
+  const sessionRes = await supabaseClient.auth.getSession();
+  const token = sessionRes && sessionRes.data && sessionRes.data.session && sessionRes.data.session.access_token;
+  if (!token) throw new Error('Please log in again to upload images.');
+  const dataBase64 = await blobToBase64(blob);
+  const res = await fetch(SUPABASE_URL + '/functions/v1/upload-image', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY },
+    body: JSON.stringify({ dataBase64: dataBase64, purpose: purpose })
+  });
+  const out = await res.json().catch(function(){ return {}; });
+  if (!res.ok || !out.url) throw new Error(out.error || 'Upload failed. Try again.');
+  return out.url;
+}
+
+/* ---------- image cleanup on delete ---------- */
+/* Pulls every image URL a journal/draft references: its cover, plus any
+   `![](url)` paragraph images in the body. */
+function extractParagraphImageUrls(bodyMarkdown){
+  const urls = [];
+  const re = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
+  let m;
+  while ((m = re.exec(bodyMarkdown || '')) !== null) urls.push(m[1]);
+  return urls;
+}
+function imagesUsedByJournal(coverUrl, bodyMarkdown){
+  const urls = extractParagraphImageUrls(bodyMarkdown);
+  if (coverUrl) urls.push(coverUrl);
+  return Array.from(new Set(urls));
+}
+/* Uploaded images are content-addressed, so the exact same file could in
+   principle be reused across two different Works (or two different
+   users' Works). Before actually deleting anything from R2, checks
+   whether any OTHER journal row (any status, any author) still
+   references this URL — only true orphans get removed from storage. */
+async function imageStillReferencedElsewhere(url, excludeJournalId){
+  if (DEMO_MODE || !supabaseClient) return false;
+  try{
+    const query = supabaseClient.from('journals').select('id', { count:'exact', head:true })
+      .or('cover_url.eq.' + url + ',body_markdown.ilike.%' + url + '%');
+    const { count, error } = excludeJournalId ? await query.neq('id', excludeJournalId) : await query;
+    if (error) throw error;
+    return (count || 0) > 0;
+  }catch(e){
+    // If we can't confirm it's safe, err on the side of NOT deleting —
+    // an orphaned image left in R2 is harmless; wrongly deleting a
+    // still-used one breaks another Work.
+    console.warn('Could not check image references, skipping cleanup for', url, e);
+    return true;
+  }
+}
+async function deleteImagesFromR2(urls){
+  if (!urls.length || !supabaseClient) return;
+  try{
+    const sessionRes = await supabaseClient.auth.getSession();
+    const token = sessionRes && sessionRes.data && sessionRes.data.session && sessionRes.data.session.access_token;
+    if (!token) return;
+    await fetch(SUPABASE_URL + '/functions/v1/upload-image', {
+      method:'DELETE',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ urls: urls })
+    });
+  }catch(e){ console.warn('Image cleanup request failed (non-fatal):', e); }
+}
+/* Call after a journal/draft row has actually been deleted from the DB.
+   Never blocks or fails the delete flow itself — storage cleanup is
+   best-effort and happens after the fact. */
+async function cleanupOrphanedImages(coverUrl, bodyMarkdown, deletedJournalId){
+  const candidates = imagesUsedByJournal(coverUrl, bodyMarkdown);
+  if (!candidates.length) return;
+  const orphaned = [];
+  for (const url of candidates){
+    const stillUsed = await imageStillReferencedElsewhere(url, deletedJournalId);
+    if (!stillUsed) orphaned.push(url);
+  }
+  if (orphaned.length) await deleteImagesFromR2(orphaned);
+}
+async function processAndUploadImage(img, ratioW, ratioH, purpose, cropRect, maxLongEdge){
+  const canvas = cropToCanvas(img, ratioW, ratioH, maxLongEdge || 1600, cropRect);
+  const blob = await canvasToCompressedWebp(canvas, MEDIA_TARGET_BYTES);
+  if (!blob) throw new Error('Could not process that image.');
+  return uploadImageBlob(blob, purpose);
+}
+
+/* ---------- pan/zoom crop modal (currently used for covers, 5:2) ---------- */
+const cropState = { img:null, ratioW:5, ratioH:2, baseScale:1, scale:1, minScale:1, maxScale:4, offsetX:0, offsetY:0, dragging:false, lastX:0, lastY:0, onConfirm:null };
+function openCropModal(file, ratioW, ratioH, onConfirm){
+  loadImageFromFile(file).then(function(img){
+    cropState.img = img; cropState.ratioW = ratioW; cropState.ratioH = ratioH; cropState.onConfirm = onConfirm; cropState.scale = 1;
+    qs('#crop-viewport').style.setProperty('--crop-ratio', ratioW + '/' + ratioH);
+    const cropImg = qs('#crop-img');
+    cropImg.src = img.src || '';
+    cropImg.onload = null;
+    // Re-decode from the same file for the <img> element (object URL was revoked).
+    const url = URL.createObjectURL(file);
+    cropImg.src = url;
+    cropState._revokeUrl = url;
+    openModal('crop-modal-scrim');
+    requestAnimationFrame(function(){
+      const rect = qs('#crop-viewport').getBoundingClientRect();
+      cropState.baseScale = Math.max(rect.width / img.naturalWidth, rect.height / img.naturalHeight);
+      cropState.minScale = 1;
+      qs('#crop-zoom').value = 0;
+      centerCropImage(rect);
+      applyCropTransform();
+    });
+  }).catch(function(){ showToast('Could not open that image.'); });
+}
+function centerCropImage(rect){
+  const scale = cropState.baseScale * cropState.scale;
+  const dispW = cropState.img.naturalWidth * scale, dispH = cropState.img.naturalHeight * scale;
+  cropState.offsetX = (rect.width - dispW) / 2;
+  cropState.offsetY = (rect.height - dispH) / 2;
+}
+function clampCropOffset(rect){
+  const scale = cropState.baseScale * cropState.scale;
+  const dispW = cropState.img.naturalWidth * scale, dispH = cropState.img.naturalHeight * scale;
+  cropState.offsetX = Math.min(0, Math.max(rect.width - dispW, cropState.offsetX));
+  cropState.offsetY = Math.min(0, Math.max(rect.height - dispH, cropState.offsetY));
+}
+function applyCropTransform(){
+  const scale = cropState.baseScale * cropState.scale;
+  qs('#crop-img').style.transform = 'translate(' + cropState.offsetX + 'px,' + cropState.offsetY + 'px) scale(' + scale + ')';
+}
+(function wireCropInteractions(){
+  const viewport = document.getElementById('crop-viewport');
+  if (!viewport) return;
+  viewport.addEventListener('pointerdown', function(e){
+    cropState.dragging = true; cropState.lastX = e.clientX; cropState.lastY = e.clientY;
+    viewport.classList.add('is-dragging'); viewport.setPointerCapture(e.pointerId);
+  });
+  viewport.addEventListener('pointermove', function(e){
+    if (!cropState.dragging || !cropState.img) return;
+    const dx = e.clientX - cropState.lastX, dy = e.clientY - cropState.lastY;
+    cropState.lastX = e.clientX; cropState.lastY = e.clientY;
+    cropState.offsetX += dx; cropState.offsetY += dy;
+    clampCropOffset(viewport.getBoundingClientRect());
+    applyCropTransform();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){
+    viewport.addEventListener(ev, function(){ cropState.dragging = false; viewport.classList.remove('is-dragging'); });
+  });
+  const zoomInput = document.getElementById('crop-zoom');
+  if (zoomInput) zoomInput.addEventListener('input', function(){
+    if (!cropState.img) return;
+    const t = Number(zoomInput.value) / 100; // 0..1
+    cropState.scale = 1 + t * (cropState.maxScale - 1);
+    clampCropOffset(viewport.getBoundingClientRect());
+    applyCropTransform();
+  });
+})();
+function closeCropModal(){
+  closeModal('crop-modal-scrim');
+  if (cropState._revokeUrl){ URL.revokeObjectURL(cropState._revokeUrl); cropState._revokeUrl = null; }
+  cropState.img = null; cropState.onConfirm = null;
+}
+document.addEventListener('DOMContentLoaded', function(){
+  const cancelBtn = document.getElementById('crop-modal-cancel');
+  const closeBtn = document.getElementById('crop-modal-close');
+  const confirmBtn = document.getElementById('crop-modal-confirm');
+  if (cancelBtn) cancelBtn.addEventListener('click', closeCropModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeCropModal);
+  if (confirmBtn) confirmBtn.addEventListener('click', function(){
+    if (!cropState.img || !cropState.onConfirm) return;
+    const rect = qs('#crop-viewport').getBoundingClientRect();
+    const scale = cropState.baseScale * cropState.scale;
+    const cropRect = {
+      sx: -cropState.offsetX / scale, sy: -cropState.offsetY / scale,
+      sw: rect.width / scale, sh: rect.height / scale
+    };
+    const img = cropState.img, cb = cropState.onConfirm;
+    closeCropModal();
+    cb(img, cropRect);
+  });
+});
 
 /* ---------- toasts ---------- */
 function showToast(message){
@@ -1982,6 +2316,7 @@ function normalizeJournalRow(row){
     subtitle: row.subtitle,
     excerpt: row.excerpt,
     body: row.body_markdown || '',
+    cover_url: row.cover_url || null,
     category: cat.name,
     script: row.script || null,
     tags: row.tags || [],
@@ -1999,7 +2334,7 @@ function normalizeJournalRow(row){
   };
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
@@ -2240,6 +2575,7 @@ function toSupabaseJournalRow(payload){
     subtitle: payload.subtitle || null,
     excerpt: payload.excerpt || payload.subtitle || (payload.body || '').slice(0,140),
     body_markdown: payload.body || '',
+    cover_url: payload.cover_url || null,
     category_id: cat ? cat.id : null,
     script: payload.script || null,
     tags: payload.tags || [],
@@ -2258,6 +2594,7 @@ function fromSupabaseJournalRow(row){
     title: row.title || '',
     subtitle: row.subtitle || '',
     body: row.body_markdown || '',
+    cover_url: row.cover_url || null,
     tags: row.tags || [],
     visibility: row.visibility || 'public',
     allow_comments: row.allow_comments !== false,
@@ -2457,7 +2794,14 @@ async function persistDraft(draftPayload, showSavingState){
 }
 async function deleteDraft(draftId){
   if (DEMO_MODE){ MOCK_DRAFTS = MOCK_DRAFTS.filter(function(d){ return d.id !== draftId; }); persistDemoDB(); }
-  else { await supabaseClient.from('journals').delete().eq('id', draftId).eq('author_id', state.currentUser.id); }
+  else {
+    // .select() on a delete returns the row(s) just removed, so we know
+    // what images it referenced without a separate fetch first.
+    const { data } = await supabaseClient.from('journals').delete()
+      .eq('id', draftId).eq('author_id', state.currentUser.id)
+      .select('cover_url, body_markdown').maybeSingle();
+    if (data) cleanupOrphanedImages(data.cover_url, data.body_markdown, draftId);
+  }
   localStorage.removeItem('aspinora_draft_' + draftId);
 }
 function slugify(title){
@@ -2512,6 +2856,13 @@ function navigateTo(view, params){
   qs(targetId).classList.add('active');
   qsa('[data-nav]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-nav') === view); });
   window.scrollTo({ top:0, behavior:'auto' });
+  /* Category-colour page theming only applies while an actual Work is
+     open; leaving the read view always resets it. */
+  document.body.classList.toggle('is-reading', view === 'read');
+  if (view !== 'read'){
+    document.body.style.removeProperty('--page-tint-bg');
+    document.body.style.removeProperty('--page-tint-nav');
+  }
   qs('#pl-cta-bar').hidden = (view !== 'home' && view !== 'explore');
   qs('#pl-search-panel').hidden = true;
   qs('#pl-search-btn').setAttribute('aria-expanded', 'false');
@@ -2539,7 +2890,7 @@ function navigateTo(view, params){
 function journalCardHTML(j){
   const words = j.body ? wordCount(j.body) : null;
   return '<article class="j-card" data-open-journal="' + j.id + '">' +
-    '<div class="j-cover">' + coverHTML(j.category) + '</div>' +
+    '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(j.excerpt) + '</p>' +
@@ -2672,7 +3023,10 @@ async function renderReadView(journalId, replace){
   }
   recordRead(j);
 
-  qs('#read-cover').innerHTML = coverHTML(j.category);
+  qs('#read-cover').innerHTML = coverHTML(j.category, j.cover_url);
+  const readCat = categoryByName(j.category);
+  document.body.style.setProperty('--page-tint-bg', readCat.soft);
+  document.body.style.setProperty('--page-tint-nav', hexToRgba(readCat.soft, .85));
   qs('#read-title').textContent = j.title;
   const sub = qs('#read-subtitle');
   if (j.subtitle){ sub.textContent = j.subtitle; sub.hidden = false; } else { sub.hidden = true; }
@@ -2969,7 +3323,7 @@ async function renderSavedView(){
     return;
   }
   list.innerHTML = rows.map(function(j){
-    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category) + '</div>' +
+    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category, j.cover_url) + '</div>' +
       '<div class="draft-info"><h3>' + escapeHtml(j.title) + '</h3><p>' + escapeHtml(j.excerpt) + '</p>' +
       '<div class="draft-meta"><span>' + authorName(j.author_id) + '</span></div>' +
       '<div class="draft-actions"><button type="button" class="btn btn-primary btn-sm" data-open-journal="' + j.id + '">Read Work</button>' +
@@ -3079,7 +3433,8 @@ function wireGenericButtons(){
 /* ------------------------------------------------------------------
    14. WRITE VIEW (the writing workspace)
    ------------------------------------------------------------------ */
-let writeDraft = { category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'' };
+let writeDraft = { category:'', title:'', subtitle:'', body:'', cover_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' };
+const PARAGRAPH_IMAGE_CATEGORIES = ['Journals','Stories','Articles'];
 
 function localDraftKey(){ return 'aspinora_draft_' + (state.currentDraftId || 'new'); }
 function saveDraftToLocalStorage(){
@@ -3113,7 +3468,8 @@ async function renderWriteView(draftId, presetCategory){
     }
   }
   const localCopy = loadDraftFromLocalStorage('aspinora_draft_' + (draftId || 'new'));
-  writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'' });
+  writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', cover_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' });
+  if (writeDraft.cover_url === undefined) writeDraft.cover_url = null;
   if (!existing && !localCopy && presetCategory) writeDraft.category = presetCategory;
 
   qs('#write-title').value = writeDraft.title || '';
@@ -3126,10 +3482,98 @@ async function renderWriteView(draftId, presetCategory){
   renderTagChips();
   syncSettingsRadios();
   updateWriteFooterCounts();
+  renderCoverUploadBox();
+  updateInsertImageVisibility();
   qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
   setSaveStatus(draftHasContent(writeDraft) ? 'saved' : 'unsaved');
   clearWriteErrors();
 }
+
+/* ---------- cover image box (write view) ---------- */
+function renderCoverUploadBox(){
+  const box = qs('#cover-upload-box');
+  if (!box) return;
+  if (writeDraft.cover_url){
+    box.innerHTML = '<img src="' + escapeHtml(writeDraft.cover_url) + '" alt="" loading="lazy" decoding="async">' +
+      '<button type="button" class="cu-remove" id="cu-remove-btn" aria-label="Remove cover image">' +
+      '<svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
+    const removeBtn = qs('#cu-remove-btn');
+    if (removeBtn) removeBtn.onclick = function(e){ e.stopPropagation(); writeDraft.cover_url = null; renderCoverUploadBox(); scheduleAutosave(); };
+  } else {
+    box.innerHTML = '<div class="cu-empty" id="cu-empty-state">' +
+      '<svg viewBox="0 0 20 20" fill="none" width="26" height="26"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="8.2" r="1.3" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 14.5 8 10.3l2.4 2.3 2.2-2.2 3.6 3.6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>' +
+      '<span>Add a cover image</span></div>';
+  }
+}
+(function wireCoverUpload(){
+  document.addEventListener('DOMContentLoaded', function(){
+    const box = qs('#cover-upload-box');
+    const fileInput = qs('#cover-file-input');
+    if (!box || !fileInput) return;
+    box.addEventListener('click', function(e){
+      if (e.target.closest('#cu-remove-btn')) return;
+      fileInput.click();
+    });
+    box.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fileInput.click(); } });
+    fileInput.addEventListener('change', function(){
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = '';
+      if (!file) return;
+      openCropModal(file, 5, 2, async function(img, cropRect){
+        const box2 = qs('#cover-upload-box');
+        box2.innerHTML = '<div class="cu-uploading">Uploading…</div>';
+        try{
+          const url = await processAndUploadImage(img, 5, 2, 'cover', cropRect, 1400);
+          writeDraft.cover_url = url;
+          renderCoverUploadBox();
+          scheduleAutosave();
+        }catch(err){
+          showToast(err.message || 'Could not upload that image.');
+          renderCoverUploadBox();
+        }
+      });
+    });
+  });
+})();
+
+/* ---------- inline paragraph images (Journals/Stories/Articles) ---------- */
+function updateInsertImageVisibility(){
+  const btn = qs('#insert-image-btn');
+  if (!btn) return;
+  btn.hidden = PARAGRAPH_IMAGE_CATEGORIES.indexOf(writeDraft.category) === -1;
+}
+(function wireParagraphImage(){
+  document.addEventListener('DOMContentLoaded', function(){
+    const btn = qs('#insert-image-btn');
+    const fileInput = qs('#paragraph-file-input');
+    if (!btn || !fileInput) return;
+    btn.addEventListener('click', function(){ fileInput.click(); });
+    fileInput.addEventListener('change', function(){
+      const file = fileInput.files && fileInput.files[0];
+      fileInput.value = '';
+      if (!file) return;
+      showToast('Uploading image…');
+      loadImageFromFile(file).then(async function(img){
+        try{
+          const url = await processAndUploadImage(img, 16, 9, 'paragraph', null, 1400);
+          const bodyArea = qs('#write-body');
+          const insert = '\n\n![](' + url + ')\n\n';
+          const pos = bodyArea.selectionStart || bodyArea.value.length;
+          const before = bodyArea.value.slice(0, pos), after = bodyArea.value.slice(pos);
+          bodyArea.value = (before + insert + after).slice(0, 30000);
+          writeDraft.body = bodyArea.value;
+          state.writeMdHistory.push(writeDraft.body);
+          state.writeMdHistoryIndex = state.writeMdHistory.length - 1;
+          updateWriteFooterCounts();
+          scheduleAutosave();
+          showToast('Image added.');
+        }catch(err){
+          showToast(err.message || 'Could not upload that image.');
+        }
+      }).catch(function(){ showToast('Could not open that image.'); });
+    });
+  });
+})();
 
 function renderCatPicker(){
   const wrap = qs('#write-cat-picker');
@@ -3139,7 +3583,7 @@ function renderCatPicker(){
       '<span class="dot" style="background:' + c.color + '"></span>' + c.name + '</button>';
   }).join('');
   qsa('[data-pick-category]').forEach(function(b){
-    b.onclick = function(){ writeDraft.category = this.getAttribute('data-pick-category'); renderCatPicker(); scheduleAutosave(); };
+    b.onclick = function(){ writeDraft.category = this.getAttribute('data-pick-category'); renderCatPicker(); updateInsertImageVisibility(); scheduleAutosave(); };
   });
 }
 
