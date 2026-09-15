@@ -132,7 +132,9 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
 .avatar{
   display:inline-flex; align-items:center; justify-content:center; border-radius:50%;
   color:#fff; font-weight:700; font-family:var(--font-mono); flex-shrink:0; letter-spacing:.02em;
+  overflow:hidden;
 }
+.avatar-link{ text-decoration:none; }
 
 /* ============ NAVBAR ============ */
 .navbar{
@@ -169,7 +171,8 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
 .nav-dropdown{
   position:absolute; top:calc(100% + 10px); right:0; width:230px; background:var(--paper);
   border:1px solid var(--line); border-radius:var(--radius-sm); box-shadow:var(--shadow-mid);
-  padding:8px; display:none; flex-direction:column; gap:2px;
+  padding:8px; display:none; flex-direction:column; gap:2px; z-index:300;
+  max-height:70vh; overflow-y:auto;
 }
 .nav-dropdown.open{ display:flex; }
 .nav-dropdown-name{ display:none; padding:8px 12px 10px; font-family:var(--font-display); font-weight:700; font-size:.98rem; color:var(--ink); border-bottom:1px solid var(--line); margin-bottom:4px; }
@@ -403,12 +406,9 @@ body{ background:#F7F3EA; }
    Circle needs a much bigger inset (its inscribed safe area is far
    smaller than its bounding box) so text and the like-button strip
    both stay inside the visible disc rather than poking past the
-   curve — square gets a smaller version of the same treatment. */
+   curve. */
 .figure-card.shape-circle{ border-radius:999px; padding:20% 20% 0; }
-.figure-card.shape-square{ border-radius:18%; padding:13% 13% 0; }
-.figure-card.shape-rounded{ border-radius:26px; }
-.figure-card.shape-wide{ border-radius:22px; }
-.figure-card.shape-tall{ border-radius:22px; }
+.figure-card.shape-quad{ border-radius:22px; }
 
 /* curated colours — each sits slightly brighter than the wall bg */
 .figure-card.color-sage{ background:var(--fig-sage); color:var(--fig-sage-ink); }
@@ -446,7 +446,7 @@ body{ background:#F7F3EA; }
    layout above — it never forces its own height, which is what
    used to let it spill down into the like-button strip. */
 .fig-canvas-abs{ position:absolute; inset:0; }
-.fig-canvas-abs .fig-text-block{ position:absolute; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; }
+.fig-canvas-abs .fig-text-block{ position:absolute; text-align:left; white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere; }
 .fig-canvas-abs .fig-hr-abs{ position:absolute; height:0; border-top:1.5px solid currentColor; opacity:.4; }
 .fig-canvas-abs .fig-vr-abs{ position:absolute; width:0; border-left:1.5px solid currentColor; opacity:.4; }
 .fig-text-block ul, .fig-text-block ol{ margin:0; padding-left:1.3em; text-align:left; }
@@ -499,6 +499,22 @@ body{ background:#F7F3EA; }
    directly inside the actual Figure — no separate preview box, the
    editable canvas *is* the preview. ---------- */
 .wf-modal-box{ max-width:420px; }
+/* The publish flow is a full page, not a small popup — much more
+   room to see the shape, drag things around, and use the toolbar. */
+.wf-fullpage-scrim{ padding:0 !important; align-items:stretch !important; justify-content:stretch !important; background:var(--ink) !important; }
+.wf-fullpage-scrim .wf-modal-box{
+  max-width:none; width:100%; height:100%; max-height:none; border-radius:0; padding:0;
+  display:flex; flex-direction:column; box-shadow:none; background:var(--cream);
+}
+.wf-page-header{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex:0 0 auto;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px; border-bottom:1px solid var(--line);
+  background:var(--paper); position:sticky; top:0; z-index:5;
+}
+.wf-page-body{ flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 30px); }
+@media (min-width:760px){
+  .wf-fullpage-scrim .wf-modal-box{ max-width:640px; margin:0 auto; border-left:1px solid var(--line); border-right:1px solid var(--line); }
+}
 .wf-picker-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .wf-picker-sep{ width:1px; height:28px; background:var(--line); flex-shrink:0; }
 .wf-shape-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -508,10 +524,7 @@ body{ background:#F7F3EA; }
   touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
 .wf-shape-opt.shape-circle{ border-radius:50%; }
-.wf-shape-opt.shape-square{ border-radius:9px; }
-.wf-shape-opt.shape-rounded{ border-radius:12px; width:42px; }
-.wf-shape-opt.shape-wide{ border-radius:10px; width:48px; height:26px; }
-.wf-shape-opt.shape-tall{ border-radius:11px; height:42px; }
+.wf-shape-opt.shape-quad{ border-radius:9px; width:42px; }
 .wf-shape-opt.is-selected{ border-color:var(--orange); box-shadow:0 0 0 3px var(--orange-soft); transform:translateY(-1px); }
 .wf-color-row{ display:flex; gap:7px; flex-wrap:wrap; }
 .wf-color-opt{ width:24px; height:24px; border-radius:50%; border:2px solid transparent; padding:0; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
@@ -542,14 +555,10 @@ body{ background:#F7F3EA; }
      sit near an edge. The published content itself is guaranteed to
      fit (everything is clamped to the canvas in %), so only the
      final wall card (.figure-card) needs to actually clip. */
-  touch-action:none; /* this area is a drag surface, not a scroll/zoom surface */
   transition:width .2s var(--ease), height .2s var(--ease);
 }
 .wf-editor-canvas.shape-circle{ --shape-radius:999px; }
-.wf-editor-canvas.shape-square{ --shape-radius:18%; }
-.wf-editor-canvas.shape-rounded{ --shape-radius:26px; }
-.wf-editor-canvas.shape-wide{ --shape-radius:22px; }
-.wf-editor-canvas.shape-tall{ --shape-radius:22px; }
+.wf-editor-canvas.shape-quad{ --shape-radius:22px; }
 .wf-editor-canvas{ border-radius:var(--shape-radius,26px); }
 /* The actual content-clipping layer — sized exactly to the canvas via
    inset:0 and rounded to match it (--shape-radius inherits down from
@@ -627,7 +636,7 @@ body{ background:#F7F3EA; }
 .rt-pop-emoji:hover{ background:var(--cream-deep); }
 
 .wf-editor-canvas .fig-text-block{
-  position:absolute; cursor:text; padding:2px 4px; border-radius:4px;
+  position:absolute; cursor:text; padding:2px 4px; border-radius:4px; text-align:left;
   font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.36;
   white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;
   outline:none;
@@ -668,14 +677,16 @@ body{ background:#F7F3EA; }
   font-family:var(--font-display); font-style:italic; font-size:1.2rem; line-height:1.52;
   padding:24px; border-radius:22px; margin-bottom:18px; word-break:break-word; white-space:pre-wrap;
 }
+.fd-author-strip{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px; }
+.fd-author-strip.is-owner{ justify-content:space-between; }
 .fd-author-row{
   display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink);
-  font-weight:700; font-size:.9rem; margin-bottom:14px;
+  font-weight:700; font-size:.9rem;
 }
 .fd-author-row:hover{ color:var(--orange-deep); }
 .fd-author-row .avatar{ width:28px; height:28px; font-size:.7rem; }
-.figure-detail-meta{ display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.82rem; color:var(--ink-soft); margin-bottom:16px; }
-.figure-detail-actions{ display:flex; gap:10px; align-items:center; }
+.figure-detail-actions{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:14px; }
+.fd-time{ font-size:.78rem; color:var(--ink-faint); }
 .figure-analytics{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:18px 0 20px; }
 .figure-analytics .fa-box{ background:var(--cream-deep); border-radius:14px; padding:14px 8px; text-align:center; }
 .figure-analytics .fa-num{ font-family:var(--font-display); font-size:1.32rem; font-weight:700; line-height:1; }
@@ -982,6 +993,7 @@ body{ background:#F7F3EA; }
 .pl-j{ color:var(--orange); }
 .pl-wordmark .t2{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-top:3px; }
 .pl-center-nav{ display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+.wall-mobile-label{ display:none; }
 .pl-center-nav::-webkit-scrollbar{ display:none; }
 .pl-nav-item{
   display:flex; flex-direction:column; align-items:center; gap:5px;
@@ -1068,6 +1080,10 @@ body{ background:#F7F3EA; }
     padding:8px 0 4px;
   }
   .pl-brand{ grid-column:1; grid-row:1; margin-left:6px; }
+  .wall-mobile-label{
+    display:block; grid-column:2; grid-row:1; justify-self:center; align-self:center;
+    font-family:var(--font-display); font-weight:700; font-size:1.05rem; letter-spacing:.01em; color:var(--ink);
+  }
   .pl-cta-mini-mobile{
     display:flex; align-items:center; gap:6px;
     grid-column:2; grid-row:1; justify-self:center;
@@ -1162,6 +1178,7 @@ body{ background:#F7F3EA; }
     </a>
 
     <nav class="pl-center-nav" id="pl-center-nav" aria-label="Sections"></nav>
+    <span class="wall-mobile-label" aria-hidden="true">The Wall</span>
 
     <div class="nav-right pl-nav-right" style="gap:14px;">
       <div class="nav-user" id="nav-user" hidden>
@@ -1172,6 +1189,10 @@ body{ background:#F7F3EA; }
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
           <div class="nav-dropdown-name" id="nav-dropdown-name"></div>
           <button type="button" id="nav-my-portfolio-btn" role="menuitem">🪪 Portfolio</button>
+          <button type="button" id="nav-published-btn" role="menuitem">📚 My Works</button>
+          <button type="button" id="nav-notifications-btn" role="menuitem">🔔 Notifications<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
+          <button type="button" id="nav-drafts-btn" role="menuitem">📝 My Drafts</button>
+          <button type="button" id="nav-saved-btn" role="menuitem">🗂️ Archive</button>
           <button type="button" id="nav-back-home-btn" role="menuitem">🏠 Back to Aspinora</button>
           <hr>
           <button type="button" class="danger" id="sign-out-btn" role="menuitem">Sign Out</button>
@@ -1196,14 +1217,15 @@ body{ background:#F7F3EA; }
   </div>
 </main>
 
-<div class="modal-scrim" id="figure-publish-modal-scrim">
+<div class="modal-scrim wf-fullpage-scrim" id="figure-publish-modal-scrim">
   <div class="modal-box wf-modal-box" role="dialog" aria-modal="true" aria-labelledby="figure-publish-title">
-    <button type="button" class="modal-close" id="figure-publish-close" aria-label="Close">
-      <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    </button>
-    <h2 id="figure-publish-title" class="visually-hidden">Pin a Figure</h2>
+    <div class="wf-page-header">
+      <button type="button" class="btn btn-secondary btn-sm" id="figure-publish-cancel">Cancel</button>
+      <h2 id="figure-publish-title" class="visually-hidden">Pin a Figure</h2>
+      <button type="submit" form="figure-publish-form" class="btn btn-primary btn-sm" id="fp-submit-btn">Pin to Wall</button>
+    </div>
 
-    <form id="figure-publish-form">
+    <form id="figure-publish-form" class="wf-page-body">
       <div class="wf-picker-row">
         <div class="wf-shape-row" id="fp-shape-row" role="radiogroup" aria-label="Figure shape"></div>
         <span class="wf-picker-sep" aria-hidden="true"></span>
@@ -1211,7 +1233,7 @@ body{ background:#F7F3EA; }
       </div>
 
       <div class="wf-editor-wrap">
-        <div class="wf-editor-canvas shape-rounded color-sage" id="fp-canvas"></div>
+        <div class="wf-editor-canvas shape-quad color-sage" id="fp-canvas"></div>
         <div class="wf-canvas-tools">
           <button type="button" id="fp-add-text" title="Add a text block" aria-label="Add a text block">＋Aa</button>
           <button type="button" id="fp-insert-hline" title="Add a horizontal line" aria-label="Add a horizontal line">＋—</button>
@@ -1244,11 +1266,6 @@ body{ background:#F7F3EA; }
         <button type="button" class="rt-btn" data-rt="more" title="More" aria-label="More formatting options">⋯</button>
       </div>
       <div class="rt-popover" id="rt-popover" hidden></div>
-
-      <div class="modal-actions" style="margin-top:16px;">
-        <button type="button" class="btn btn-secondary" id="figure-publish-cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="fp-submit-btn">Pin to Wall</button>
-      </div>
     </form>
   </div>
 </div>
@@ -1263,14 +1280,19 @@ body{ background:#F7F3EA; }
     </button>
     <h2 id="figure-detail-title" class="visually-hidden">Figure</h2>
     <span class="figure-own-badge" id="fd-own-badge" hidden>📌 Your Figure — only you see this</span>
-    <a class="fd-author-row" id="fd-author-row" href="#" aria-label="View author's portfolio">
-      <span class="avatar" id="fd-author-avatar"></span>
-      <span id="fd-author-name"></span>
-    </a>
-    <div class="figure-detail-body" id="fd-body"></div>
-    <div class="figure-detail-meta">
-      <span id="fd-meta-right"></span>
+
+    <!-- Owner: avatar+name on the left, Delete on the right, same row.
+         Public: avatar+name alone, centered (justify-content flips
+         via the is-owner class — see .fd-author-strip CSS). -->
+    <div class="fd-author-strip" id="fd-author-strip">
+      <a class="fd-author-row" id="fd-author-row" href="#" aria-label="View author's portfolio">
+        <span class="avatar" id="fd-author-avatar"></span>
+        <span id="fd-author-name"></span>
+      </a>
+      <button type="button" class="btn btn-danger btn-sm" id="fd-delete-btn" hidden>Delete Figure</button>
     </div>
+
+    <div class="figure-detail-body" id="fd-body"></div>
 
     <!-- Author-only analytics -->
     <div id="fd-analytics" hidden>
@@ -1279,14 +1301,12 @@ body{ background:#F7F3EA; }
         <div class="fa-box"><div class="fa-num" id="fd-hearts-num">0</div><div class="fa-label">Hearts</div></div>
         <div class="fa-box"><div class="fa-num" id="fd-time-num">—</div><div class="fa-label">Remaining</div></div>
       </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-danger" id="fd-delete-btn">Delete Figure</button>
-      </div>
     </div>
 
-    <!-- Everyone-else: just Like — Hearts come from double/triple-tapping the Figure itself -->
+    <!-- Public: Like on the left, posted-time on the far right, same row. -->
     <div class="figure-detail-actions" id="fd-public-actions">
       <button type="button" class="btn btn-secondary btn-sm" id="fd-like-btn">🤍 Like</button>
+      <span class="fd-time" id="fd-meta-right"></span>
     </div>
   </div>
 </div>
@@ -1357,11 +1377,6 @@ function avatarColor(seed){
   for (let i=0;i<seed.length;i++){ hash = (hash * 31 + seed.charCodeAt(i)) >>> 0; }
   return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
 }
-function avatarHTML(userId, name, sizeClass){
-  const color = avatarColor(userId || name);
-  return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + initials(name) + '</span>';
-}
-
 /* Populated from `profiles` joins whenever a wall_figures row comes
    back with its author attached. */
 let AUTHOR_CACHE = {};
@@ -1374,6 +1389,30 @@ function authorUsername(authorId){
   if (AUTHOR_CACHE[authorId]) return AUTHOR_CACHE[authorId].username || '';
   if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.username || '';
   return '';
+}
+function authorAvatarUrl(authorId){
+  if (AUTHOR_CACHE[authorId]) return AUTHOR_CACHE[authorId].avatar_url || null;
+  if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.avatar_url || null;
+  return null;
+}
+/* Just the visual avatar (image or initials), no link — use this
+   wherever the avatar sits inside an element that already has its own
+   click behaviour (the nav dropdown trigger). */
+function avatarSpanHTML(userId, name, sizeClass){
+  const color = avatarColor(userId || name);
+  const url = authorAvatarUrl(userId);
+  const inner = url
+    ? '<img src="' + escapeHtml(url) + '" alt="" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;">'
+    : initials(name);
+  return '<span class="avatar' + (sizeClass ? ' ' + sizeClass : '') + '" style="background:' + color + '">' + inner + '</span>';
+}
+/* Avatar wrapped in a working link to that person's Portfolio — use
+   this everywhere an avatar stands alone so it's always clickable. */
+function avatarHTML(userId, name, sizeClass){
+  const span = avatarSpanHTML(userId, name, sizeClass);
+  const username = authorUsername(userId);
+  if (!username) return span;
+  return '<a class="avatar-link" href="portfolio.html?u=' + encodeURIComponent(username) + '" onclick="event.stopPropagation();" style="display:inline-flex;">' + span + '</a>';
 }
 
 function formatRelativeTime(iso){
@@ -1435,7 +1474,7 @@ qsa('[data-close-guest]').forEach(function(btn){
 async function loadProfile(authUser){
   const userId = typeof authUser === 'string' ? authUser : authUser.id;
   try{
-    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio').eq('id', userId).single();
+    const { data, error } = await supabaseClient.from('profiles').select('id, username, display_name, bio, avatar_url').eq('id', userId).single();
     if (error || !data) throw error || new Error('no profile row');
     return data;
   }catch(e){
@@ -1445,7 +1484,7 @@ async function loadProfile(authUser){
       id: userId,
       username: meta.username || (email ? email.split('@')[0] : userId),
       display_name: meta.display_name || meta.username || (email ? email.split('@')[0] : 'You'),
-      bio: ''
+      bio: '', avatar_url: meta.avatar_url || null
     };
   }
 }
@@ -1462,7 +1501,7 @@ function syncAuthUI(){
   qs('#nav-login-btn').hidden = !!state.currentUser;
   qs('#nav-user').hidden = !state.currentUser;
   if (!state.currentUser) return;
-  qs('#nav-user-avatar').outerHTML = avatarHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="nav-user-avatar"');
+  qs('#nav-user-avatar').outerHTML = avatarSpanHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="nav-user-avatar"');
   qs('#nav-user-name').textContent = state.currentUser.display_name;
   qs('#nav-dropdown-name').textContent = state.currentUser.display_name;
 }
@@ -1523,11 +1562,8 @@ function wordCountOf(text){
 }
 
 const FIGURE_SHAPES = [
-  { key:'circle',  label:'Circle' },
-  { key:'square',  label:'Square' },
-  { key:'rounded', label:'Rounded rectangle' },
-  { key:'wide',    label:'Wide rectangle' },
-  { key:'tall',    label:'Tall panel' }
+  { key:'circle', label:'Circle' },
+  { key:'quad',   label:'Quadrilateral' }
 ];
 const FIGURE_COLORS = [
   { key:'sage',     label:'Light olive green', swatch:'#C7D8B0' },
@@ -1570,24 +1606,28 @@ const FIGURE_TEXT_COLORS = [
    exact ratio is *always* that exact pixel ratio — which is what lets
    "circle" stay a true circle at any size, and lets the editor canvas
    (built with the same ratio, just a different absolute scale) map
-   %-based positions onto the wall with zero distortion. */
-const SHAPE_ASPECT = { circle:[1,1], square:[1,1], rounded:[2,1], wide:[3,1], tall:[1,2] };
+   %-based positions onto the wall with zero distortion. Quad can
+   have its width and height tiers set independently (a real
+   rectangle); circle always keeps them equal (a true circle at every
+   size). */
+const SHAPE_ASPECT = { circle:[1,1], quad:[1,1] };
 
-function figureShapeOf(key){ return FIGURE_SHAPES.find(function(s){ return s.key === key; }) || FIGURE_SHAPES[2]; }
+function figureShapeOf(key){ return FIGURE_SHAPES.find(function(s){ return s.key === key; }) || FIGURE_SHAPES[1]; }
 function figureColorOf(key){ return FIGURE_COLORS.find(function(c){ return c.key === key; }) || FIGURE_COLORS[0]; }
-function figureGridSpan(shapeKey, sizeTier){
-  const a = SHAPE_ASPECT[shapeKey] || SHAPE_ASPECT.rounded;
-  const tier = sizeTier === 2 || sizeTier === 3 ? sizeTier : 1;
-  return { col:a[0] * tier, row:a[1] * tier };
+function clampTier(t){ return Math.max(1, Math.min(4, Math.round(t) || 1)); }
+function figureGridSpan(shapeKey, widthTier, heightTier){
+  const w = clampTier(widthTier);
+  const h = shapeKey === 'circle' ? w : clampTier(heightTier);
+  return { col:w, row:h };
 }
 
 function normalizeFigureRow(row){
   if (row.profiles){
-    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '' };
+    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '', avatar_url: row.profiles.avatar_url || null };
   }
   return {
     id: row.id, body: row.body, body_html: row.body_html || null, author_id: row.author_id,
-    shape: row.shape, color_key: row.color_key, size_tier: row.size_tier || 1,
+    shape: row.shape, color_key: row.color_key, width_tier: row.width_tier || 1, height_tier: row.height_tier || 1,
     likes_count: row.likes_count || 0, hearts_count: row.hearts_count || 0,
     created_at: row.created_at, expires_at: row.expires_at
   };
@@ -1596,7 +1636,7 @@ function normalizeFigureRow(row){
 async function fetchWallFigures(){
   if (!supabaseClient) return [];
   const { data, error } = await supabaseClient.from('wall_figures')
-    .select('id, body, body_html, author_id, shape, color_key, size_tier, likes_count, hearts_count, created_at, expires_at, profiles!wall_figures_author_id_fkey(display_name, username)')
+    .select('id, body, body_html, author_id, shape, color_key, width_tier, height_tier, likes_count, hearts_count, created_at, expires_at, profiles!wall_figures_author_id_fkey(display_name, username, avatar_url)')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending:false })
     .limit(120);
@@ -1604,12 +1644,13 @@ async function fetchWallFigures(){
   return data.map(normalizeFigureRow);
 }
 
-async function publishFigure(plainBody, htmlBody, shapeKey, colorKey, sizeTier){
+async function publishFigure(plainBody, htmlBody, shapeKey, colorKey, widthTier, heightTier){
+  const w = clampTier(widthTier), h = shapeKey === 'circle' ? w : clampTier(heightTier);
   const { data, error } = await supabaseClient.from('wall_figures')
-    .insert({ body: plainBody, body_html: htmlBody, shape: shapeKey, color_key: colorKey, size_tier: sizeTier || 1, author_id: state.currentUser.id })
-    .select('id, body, body_html, author_id, shape, color_key, size_tier, likes_count, hearts_count, created_at, expires_at').single();
+    .insert({ body: plainBody, body_html: htmlBody, shape: shapeKey, color_key: colorKey, width_tier: w, height_tier: h, author_id: state.currentUser.id })
+    .select('id, body, body_html, author_id, shape, color_key, width_tier, height_tier, likes_count, hearts_count, created_at, expires_at').single();
   if (error) throw error;
-  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username };
+  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: state.currentUser.avatar_url };
   return normalizeFigureRow(data);
 }
 
@@ -1809,7 +1850,7 @@ function figureCardHTML(fig){
      neighbouring Figures can visually never actually touch. */
   const jx = (seed % 11) - 5;
   const jy = (((seed >> 6) % 11) - 5);
-  const span = figureGridSpan(shape.key, fig.size_tier);
+  const span = figureGridSpan(shape.key, fig.width_tier, fig.height_tier);
   const isRich = !!fig.body_html;
   const slotStyle = '--fx:' + fx + 'px; --fy:-' + fy + 'px; --fdur:' + fdur + 's; --fdelay:' + fdelay + 's; ' +
     '--jx:' + jx + 'px; --jy:' + jy + 'px; grid-column:span ' + span.col + '; grid-row:span ' + span.row + ';';
@@ -1835,14 +1876,14 @@ function fitFigureCard(slotEl){
   if (!slotEl || slotEl.getAttribute('data-rich') === '1') return;
   const card = slotEl.querySelector('.figure-card');
   if (!card) return;
-  const isSquareish = card.classList.contains('shape-circle') || card.classList.contains('shape-square');
+  const isCircle = card.classList.contains('shape-circle');
   const maxSpan = 6;
   let col = parseInt(slotEl.getAttribute('data-col-span') || '1', 10);
   let row = parseInt(slotEl.getAttribute('data-row-span') || '1', 10);
   let guard = 0;
   while (card.scrollHeight > card.clientHeight + 2 && row < maxSpan && guard < 10){
     row++;
-    if (isSquareish) col = row;
+    if (isCircle) col = row;
     slotEl.style.gridColumnEnd = 'span ' + col;
     slotEl.style.gridRowEnd = 'span ' + row;
     slotEl.setAttribute('data-col-span', String(col));
@@ -2125,15 +2166,15 @@ function openFigureDetail(figureId){
     body.innerHTML = sanitizeRichHTML(fig.body_html);
     body.style.position = 'relative';
     const shape = figureShapeOf(fig.shape);
-    const a = SHAPE_ASPECT[shape.key] || SHAPE_ASPECT.rounded;
-    const maxW = 280;
-    let w = maxW, h = maxW * (a[1] / a[0]);
-    if (h > 320){ h = 320; w = h * (a[0] / a[1]); }
+    const span = figureGridSpan(shape.key, fig.width_tier, fig.height_tier);
+    const maxW = 280, maxH = 320;
+    let w = maxW, h = maxW * (span.row / span.col);
+    if (h > maxH){ h = maxH; w = maxH * (span.col / span.row); }
     body.style.width = w + 'px';
     body.style.height = h + 'px';
     body.style.margin = '0 auto 18px';
     body.style.padding = '0';
-    body.style.borderRadius = shape.key === 'circle' ? '999px' : shape.key === 'square' ? '18%' : '22px';
+    body.style.borderRadius = shape.key === 'circle' ? '999px' : '22px';
     body.style.overflow = 'hidden';
   } else {
     body.innerHTML = escapeHtml(fig.body).replace(/\n/g, '<br>');
@@ -2147,11 +2188,16 @@ function openFigureDetail(figureId){
   const username = authorUsername(fig.author_id);
   const authorRow = qs('#fd-author-row');
   authorRow.href = username ? ('portfolio.html?u=' + encodeURIComponent(username)) : '#';
-  qs('#fd-author-avatar').outerHTML = avatarHTML(fig.author_id, authorName(fig.author_id), '').replace('<span class="avatar"', '<span class="avatar" id="fd-author-avatar"');
+  // avatarSpanHTML (not avatarHTML) — this sits inside fd-author-row,
+  // which is already an <a>, so it must NOT wrap itself in another
+  // link (nested <a> tags are invalid HTML and behave unpredictably).
+  qs('#fd-author-avatar').outerHTML = avatarSpanHTML(fig.author_id, authorName(fig.author_id), '').replace('<span class="avatar"', '<span class="avatar" id="fd-author-avatar"');
   qs('#fd-author-name').textContent = authorName(fig.author_id);
 
   qs('#fd-meta-right').textContent = formatRelativeTime(fig.created_at);
   qs('#fd-own-badge').hidden = !isOwn;
+  qs('#fd-author-strip').classList.toggle('is-owner', isOwn);
+  qs('#fd-delete-btn').hidden = !isOwn;
   qs('#fd-analytics').hidden = !isOwn;
   qs('#fd-public-actions').hidden = isOwn;
 
@@ -2213,17 +2259,15 @@ document.addEventListener('keydown', function(e){
    outside it. Whatever's visible here is serialized %-based and is
    exactly what gets rendered on the Wall.
    ------------------------------------------------------------------ */
-let fpState = { shape:'rounded', color:'sage', sizeTier:1 };
+let fpState = { shape:'quad', color:'sage', widthTier:2, heightTier:1 };
 let fpLineSeq = 0;
 let fpTextSeq = 0;
 
-function editorCanvasSize(shapeKey, tier){
-  const a = SHAPE_ASPECT[shapeKey] || SHAPE_ASPECT.rounded;
-  const scale = tier === 3 ? 1.7 : tier === 2 ? 1.35 : 1;
-  const unit = 120 * scale, maxDim = 240 * scale;
-  let w = a[0] * unit, h = a[1] * unit;
-  const cap = Math.min(1, maxDim / Math.max(w, h));
-  return { w: Math.round(w * cap), h: Math.round(h * cap) };
+function editorCanvasSize(shapeKey, widthTier, heightTier){
+  const m = wallCellMetrics();
+  const w = tierToPx(widthTier, m);
+  const h = shapeKey === 'circle' ? w : tierToPx(heightTier, m);
+  return { w: Math.round(w), h: Math.round(h) };
 }
 
 function clampPercent(v, min, max){ return Math.max(min, Math.min(max, v)); }
@@ -2262,6 +2306,63 @@ function makeCanvasDraggable(handleEl, moveTargetEl, canvas, onDragEnd){
     handleEl.addEventListener(evt, function(){
       dragging = false;
       if (moved && onDragEnd) onDragEnd();
+    });
+  });
+}
+
+/* Lines are draggable with one finger (reposition) and pinch-
+   resizable with two (stretch/shrink their length) — both on the
+   same element, coordinated by how many pointers are currently down
+   on it. */
+function makeLineInteractive(el, canvas, kind){
+  const pointers = new Map();
+  let mode = null, moved = false, historyPushed = false;
+  let dragStartX = 0, dragStartY = 0, dragStartLeft = 0, dragStartTop = 0;
+  let pinchStartDist = 0, pinchStartSize = 0;
+
+  el.addEventListener('pointerdown', function(e){
+    e.preventDefault(); e.stopPropagation();
+    el.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if (pointers.size === 1){
+      mode = 'drag'; moved = false; historyPushed = false;
+      dragStartX = e.clientX; dragStartY = e.clientY;
+      dragStartLeft = parseFloat(el.style.left) || 0;
+      dragStartTop = parseFloat(el.style.top) || 0;
+    } else if (pointers.size === 2){
+      mode = 'pinch';
+      if (!historyPushed){ pushHistory(); historyPushed = true; }
+      const pts = Array.from(pointers.values());
+      pinchStartDist = Math.max(1, Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y));
+      pinchStartSize = kind === 'h' ? (parseFloat(el.style.width) || 50) : (parseFloat(el.style.height) || 50);
+    }
+  });
+  el.addEventListener('pointermove', function(e){
+    if (!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if (mode === 'pinch' && pointers.size === 2){
+      const pts = Array.from(pointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const ratio = dist / pinchStartDist;
+      const size = clampPercent(pinchStartSize * ratio, 8, 100);
+      if (kind === 'h') el.style.width = size + '%'; else el.style.height = size + '%';
+    } else if (mode === 'drag' && pointers.size === 1){
+      if (!moved){ moved = true; if (!historyPushed){ pushHistory(); historyPushed = true; } }
+      const rect = canvas.getBoundingClientRect();
+      const dxPct = ((e.clientX - dragStartX) / rect.width) * 100;
+      const dyPct = ((e.clientY - dragStartY) / rect.height) * 100;
+      el.style.left = clampPercent(dragStartLeft + dxPct, 0, 100) + '%';
+      el.style.top = clampPercent(dragStartTop + dyPct, 0, 100) + '%';
+    }
+  });
+  ['pointerup','pointercancel'].forEach(function(evt){
+    el.addEventListener(evt, function(e){
+      pointers.delete(e.pointerId);
+      // Once a gesture ends (drops below its required finger count),
+      // require a fresh pointerdown to start the next one rather than
+      // trying to seamlessly hand off mid-gesture — simpler and
+      // avoids a whole class of hand-off glitches.
+      if (pointers.size < 2) mode = null;
     });
   });
 }
@@ -2307,7 +2408,7 @@ function rewireCanvasChildren(){
     if (handle) makeCanvasDraggable(handle, block, canvas, function(){ clampBlockWithinCanvas(block, canvas); });
   });
   qsa('.fig-hr-abs, .fig-vr-abs', canvas).forEach(function(line){
-    makeCanvasDraggable(line, line, canvas);
+    makeLineInteractive(line, canvas, line.classList.contains('fig-hr-abs') ? 'h' : 'v');
   });
   initResizeHandle();
 }
@@ -2334,12 +2435,28 @@ function redoHistory(){
    CANVAS BUILD + RESIZE (drag-to-resize, snaps to one of 3 tiers —
    both dimensions always scale together, so the shape's exact aspect
    ratio — and therefore every %-based position inside it — never
-   distorts, only its overall scale changes)
+   distorts, only its overall scale changes). Sizing reads the page's
+   own --wall-cell/--wall-gap live, so the editor renders each tier at
+   the *exact* pixel size that shape will have on the Wall — not an
+   approximation, a literal match.
    ------------------------------------------------------------------ */
-function applyCanvasSize(tier){
-  fpState.sizeTier = tier;
+const FIGURE_MIN_TIER = 1, FIGURE_MAX_TIER = 4;
+function wallCellMetrics(){
+  const grid = qs('.wall-grid');
+  const cs = getComputedStyle(grid || document.body);
+  const cell = parseFloat(cs.getPropertyValue('--wall-cell')) || 104;
+  const gap = parseFloat(cs.getPropertyValue('--wall-gap')) || 18;
+  return { cell:cell, gap:gap };
+}
+function tierToPx(tier, metrics){
+  const t = clampTier(tier);
+  return t * metrics.cell + (t - 1) * metrics.gap;
+}
+function applyCanvasSize(widthTier, heightTier){
+  fpState.widthTier = clampTier(widthTier);
+  fpState.heightTier = fpState.shape === 'circle' ? fpState.widthTier : clampTier(heightTier);
   const canvas = qs('#fp-canvas');
-  const size = editorCanvasSize(fpState.shape, tier);
+  const size = editorCanvasSize(fpState.shape, fpState.widthTier, fpState.heightTier);
   canvas.style.width = size.w + 'px';
   canvas.style.height = size.h + 'px';
 }
@@ -2350,29 +2467,30 @@ function initResizeHandle(){
     handle = document.createElement('div');
     handle.className = 'wf-editor-resize-handle';
     handle.contentEditable = 'false';
-    handle.title = 'Drag to resize';
     handle.setAttribute('aria-label', 'Resize this Figure');
     handle.textContent = '⤡';
     canvas.appendChild(handle);
   }
-  let dragging = false, startDist = 1, startTier = 1;
+  handle.title = fpState.shape === 'circle' ? 'Drag to resize' : 'Drag to resize — width and height move independently';
+  let dragging = false, startX = 0, startY = 0, startW = 1, startH = 1, metrics = wallCellMetrics();
   handle.onpointerdown = function(e){
     e.preventDefault(); e.stopPropagation();
     dragging = true;
     handle.setPointerCapture(e.pointerId);
-    const rect = canvas.getBoundingClientRect();
-    startDist = Math.max(1, Math.hypot(e.clientX - rect.left, e.clientY - rect.top));
-    startTier = fpState.sizeTier;
+    metrics = wallCellMetrics();
+    startX = e.clientX; startY = e.clientY;
+    startW = fpState.widthTier; startH = fpState.heightTier;
     pushHistory();
   };
   handle.onpointermove = function(e){
     if (!dragging) return;
-    const rect = canvas.getBoundingClientRect();
-    const dist = Math.hypot(e.clientX - rect.left, e.clientY - rect.top);
-    const ratio = dist / startDist;
-    let candidate = Math.max(1, Math.min(3, Math.round(startTier * ratio)));
-    if (candidate !== fpState.sizeTier){
-      applyCanvasSize(candidate);
+    const step = metrics.cell + metrics.gap;
+    const dCellsX = (e.clientX - startX) / step;
+    const dCellsY = (e.clientY - startY) / step;
+    const newW = clampTier(startW + Math.round(dCellsX));
+    const newH = fpState.shape === 'circle' ? newW : clampTier(startH + Math.round(dCellsY));
+    if (newW !== fpState.widthTier || newH !== fpState.heightTier){
+      applyCanvasSize(newW, newH);
       clampAllBlocks(canvas);
     }
   };
@@ -2384,7 +2502,7 @@ function initResizeHandle(){
 function buildEditorCanvas(){
   const canvas = qs('#fp-canvas');
   canvas.className = 'wf-editor-canvas shape-' + fpState.shape + ' color-' + fpState.color;
-  const size = editorCanvasSize(fpState.shape, fpState.sizeTier);
+  const size = editorCanvasSize(fpState.shape, fpState.widthTier, fpState.heightTier);
   canvas.style.width = size.w + 'px';
   canvas.style.height = size.h + 'px';
   canvas.innerHTML = '<div class="wf-editor-content" id="fp-canvas-content"></div>';
@@ -2484,7 +2602,7 @@ function insertLineElement(kind){
   remove.addEventListener('click', function(e){ e.stopPropagation(); pushHistory(); el.remove(); });
   el.appendChild(remove);
   content.appendChild(el);
-  makeCanvasDraggable(el, el, canvas);
+  makeLineInteractive(el, canvas, kind);
 }
 
 /* ------------------------------------------------------------------
@@ -2892,6 +3010,8 @@ function initFigurePublishForm(){
   shapeRow.addEventListener('click', function(e){
     const btn = e.target.closest('[data-shape]'); if (!btn) return;
     fpState.shape = btn.getAttribute('data-shape');
+    fpState.widthTier = 2;
+    fpState.heightTier = fpState.shape === 'circle' ? 2 : 1;
     qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b === btn); });
     resetEditorCanvas();
   });
@@ -2943,15 +3063,14 @@ function initFigurePublishForm(){
 
   qs('#wall-composer-trigger').addEventListener('click', function(){
     requireAuth('Log in to pin a Figure to the Wall.', function(){
-      fpState = { shape:'rounded', color:'sage', sizeTier:1 };
-      qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-shape') === 'rounded'); });
+      fpState = { shape:'quad', color:'sage', widthTier:2, heightTier:1 };
+      qsa('.wf-shape-opt', shapeRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-shape') === 'quad'); });
       qsa('.wf-color-opt', colorRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-color') === 'sage'); });
       resetEditorCanvas();
       openModal('figure-publish-modal-scrim');
       setTimeout(function(){ const b = qs('.fig-text-block'); if (b) b.focus(); }, 60);
     });
   });
-  qs('#figure-publish-close').addEventListener('click', function(){ closeModal('figure-publish-modal-scrim'); });
   qs('#figure-publish-cancel').addEventListener('click', function(){ closeModal('figure-publish-modal-scrim'); });
 
   // Delegated: text blocks/lines are created and removed dynamically
@@ -3029,7 +3148,7 @@ function initFigurePublishForm(){
         layout.appendChild(l);
       });
       const html = sanitizeRichHTML(layout.outerHTML);
-      const fig = await publishFigure(plain, html, fpState.shape, fpState.color, fpState.sizeTier);
+      const fig = await publishFigure(plain, html, fpState.shape, fpState.color, fpState.widthTier, fpState.heightTier);
       state.wallFigures.unshift(fig);
       const grid = qs('#wall-grid');
       const empty = grid.querySelector('.empty-state');
@@ -3071,13 +3190,13 @@ function initWallView(){
    into a new soft tint every 5 seconds — a real CSS transition on
    background-color, stepped by JS, rather than a continuous drift. */
 const WALL_BG_PALETTE = [
-  'linear-gradient(135deg,#F7F3EA 0%,#E4EFCF 45%,#DCEFE0 100%)',
-  'linear-gradient(135deg,#E6F0F8 0%,#DCE7F6 45%,#EDE7F7 100%)',
-  'linear-gradient(135deg,#F7ECFA 0%,#F3E4EF 45%,#FBEEDE 100%)',
-  'linear-gradient(135deg,#FBF3DC 0%,#F6E7D2 45%,#F3E0DC 100%)',
-  'linear-gradient(135deg,#FAE9DB 0%,#F6DEDD 45%,#F1E3EC 100%)',
-  'linear-gradient(135deg,#F7E6EC 0%,#EEE1EF 45%,#E5EAF3 100%)',
-  'linear-gradient(135deg,#E7EEF0 0%,#E2ECE4 45%,#EAF0E2 100%)'
+  'linear-gradient(135deg,#F2EBD3 0%,#C9E2A0 45%,#A9DFC0 100%)',
+  'linear-gradient(135deg,#C7E3F5 0%,#AECBF2 45%,#D2C3EF 100%)',
+  'linear-gradient(135deg,#F0D4F5 0%,#EBC0DE 45%,#F7DBAE 100%)',
+  'linear-gradient(135deg,#F8E29A 0%,#F0C591 45%,#E9B29C 100%)',
+  'linear-gradient(135deg,#F6C9AE 0%,#EFB4B8 45%,#E9C3E3 100%)',
+  'linear-gradient(135deg,#F3C3D6 0%,#DFB8E3 45%,#C4CDF0 100%)',
+  'linear-gradient(135deg,#C3DDE3 0%,#B7DCC0 45%,#D8ECB5 100%)'
 ];
 let wallBgTimer = null;
 function startWallBackgroundCycle(){
@@ -3160,7 +3279,28 @@ function initNav(){
     if (state.currentUser && state.currentUser.username) window.location.href = 'portfolio.html?u=' + encodeURIComponent(state.currentUser.username);
     else window.location.href = 'userpostlogin.html';
   });
+  qs('#nav-published-btn').addEventListener('click', function(){ window.location.href = 'userpostlogin.html?nav=published'; });
+  qs('#nav-notifications-btn').addEventListener('click', function(){ window.location.href = 'userpostlogin.html?nav=notifications'; });
+  qs('#nav-drafts-btn').addEventListener('click', function(){ window.location.href = 'userpostlogin.html?nav=drafts'; });
+  qs('#nav-saved-btn').addEventListener('click', function(){ window.location.href = 'userpostlogin.html?nav=saved'; });
   qs('#sign-out-btn').addEventListener('click', signOutUser);
+}
+
+async function unreadNotifCount(){
+  if (!supabaseClient || !state.currentUser) return 0;
+  const { count, error } = await supabaseClient.from('notifications')
+    .select('id', { count:'exact', head:true })
+    .eq('recipient_id', state.currentUser.id)
+    .is('read_at', null);
+  if (error) return 0;
+  return count || 0;
+}
+async function refreshNotifBadge(){
+  const n = await unreadNotifCount();
+  const badge = qs('#nav-notif-badge');
+  if (!badge) return;
+  badge.hidden = n === 0;
+  badge.textContent = n > 99 ? '99+' : String(n);
 }
 
 async function init(){
@@ -3169,6 +3309,7 @@ async function init(){
   startWallBackgroundCycle();
   await restoreSession();
   syncAuthUI();
+  refreshNotifBadge();
   await renderWallView();
   const loader = qs('#page-loader');
   if (loader){ loader.style.opacity = '0'; setTimeout(function(){ loader.style.display = 'none'; }, 250); }
