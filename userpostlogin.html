@@ -203,7 +203,7 @@ body.is-reading .write-header{ background:var(--page-tint-bg, var(--cream)); }
 }
 .nav-user-trigger:hover{ border-color:var(--orange); }
 .nav-user-trigger .avatar{ width:30px; height:30px; font-size:.72rem; }
-.nav-user-name{ max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nav-user-name{ max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle; }
 .nav-dropdown{
   position:absolute; top:calc(100% + 10px); right:0; width:230px; background:var(--paper);
   border:1px solid var(--line); border-radius:var(--radius-sm); box-shadow:var(--shadow-mid);
@@ -274,15 +274,21 @@ section{ padding:36px 0; }
 .j-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-mid); }
 .j-cover{ position:relative; aspect-ratio:2/1; }
 .j-cover .cat-pill{ position:absolute; left:14px; top:14px; }
-.j-body{ padding:20px 20px 22px; display:flex; flex-direction:column; gap:12px; flex:1; }
-.j-body h3{ font-size:1.18rem; line-height:1.28; }
-.j-excerpt{ color:var(--ink-soft); font-size:.9rem; line-height:1.55; margin:0; flex:1; }
-.j-meta{ display:flex; align-items:center; gap:10px; }
-.j-meta .avatar{ width:32px; height:32px; font-size:.72rem; }
-.j-meta-text{ display:flex; flex-direction:column; line-height:1.3; }
-.j-meta-text .author{ font-weight:700; font-size:.84rem; }
+.j-body{ padding:20px 20px 22px; display:flex; flex-direction:column; gap:14px; flex:1; }
+.j-body h3{ font-size:1.18rem; line-height:1.34; white-space:normal; }
+.j-excerpt{ color:var(--ink-soft); font-size:.9rem; line-height:1.7; margin:0; flex:1; white-space:normal; }
+/* Footer row: avatar/name/date pinned bottom-left, like/comment stats
+   pinned bottom-right on the same line — was two separate stacked
+   rows before, each left-aligned. margin-top:auto (with j-excerpt's
+   flex:1 above) keeps the whole row anchored to the card's bottom
+   regardless of excerpt length. */
+.j-card-footer{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:auto; }
+.j-meta{ display:flex; align-items:center; gap:10px; min-width:0; }
+.j-meta .avatar{ width:32px; height:32px; font-size:.72rem; flex-shrink:0; }
+.j-meta-text{ display:flex; flex-direction:column; line-height:1.35; min-width:0; }
+.j-meta-text .author{ font-weight:700; font-size:.84rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .j-meta-text .sub{ font-size:.76rem; color:var(--ink-faint); }
-.j-stats{ display:flex; gap:14px; font-size:.78rem; color:var(--ink-faint); font-family:var(--font-mono); }
+.j-stats{ display:flex; gap:14px; font-size:.78rem; color:var(--ink-faint); font-family:var(--font-mono); flex-shrink:0; }
 .j-stats span{ display:inline-flex; align-items:center; gap:5px; }
 .j-read{ margin-top:2px; align-self:flex-start; font-weight:700; font-size:.86rem; color:var(--orange-deep); display:inline-flex; align-items:center; gap:6px; }
 
@@ -735,7 +741,7 @@ body.is-reading .comment-form textarea{
 /* ============================================================
    POST-LOGIN HEADER, CENTER NAV, SEARCH PANEL, CTA BAR
    ============================================================ */
-.pl-nav-inner{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:18px; padding:10px 0; }
+.pl-nav-inner{ display:grid; grid-template-columns:auto minmax(260px,1fr) auto; align-items:center; gap:14px; padding:10px 0; }
 .pl-brand{ background:none; border:none; padding:0; margin-left:10px; }
 .pl-wordmark{ display:flex; flex-direction:column; line-height:1; }
 .brand-logo-img{ height:34px; width:140px; display:block; }
@@ -759,8 +765,9 @@ body.is-reading .comment-form textarea{
   content:''; position:absolute; left:26%; right:26%; bottom:-2px;
   height:3px; border-radius:3px; background:var(--orange-deep);
 }
-.pl-nav-right{ display:flex; align-items:center; gap:10px; justify-self:end; margin-right:10px; }
-.pl-search-wrap{ position:relative; display:flex; align-items:center; }
+.pl-nav-right{ display:flex; align-items:center; gap:8px; justify-self:end; margin-right:10px; min-width:0; }
+.pl-nav-right .pl-nav-item, .pl-nav-right #nav-user{ flex-shrink:0; }
+.pl-search-wrap{ position:relative; display:flex; align-items:center; flex:0 1 auto; min-width:0; }
 .pl-icon-btn{
   display:inline-flex; align-items:center; justify-content:center;
   width:40px; height:40px; border-radius:50%; border:none; background:none; color:var(--ink-soft);
@@ -773,11 +780,13 @@ body.is-reading .comment-form textarea{
 /* Desktop: a real, always-open search bar (not just an icon). */
 .pl-search-bar-inline{
   display:flex; align-items:center; gap:8px; border:1px solid var(--line-strong); border-radius:999px;
-  padding:7px 14px; width:230px; color:var(--ink-faint); background:var(--paper);
+  padding:7px 14px; width:clamp(120px,14vw,230px); color:var(--ink-faint); background:var(--paper);
 }
 .pl-search-bar-inline input{ flex:1; min-width:0; border:none; background:none; font-size:.86rem; color:var(--ink); }
 .pl-search-bar-inline input:focus{ outline:none; }
 .pl-messaging-btn{ /* sizing/label inherited from .pl-nav-item, same as .pl-wall-btn */ }
+.pl-messaging-btn .pl-nav-icon{ position:relative; display:inline-flex; }
+.pl-messaging-badge{ position:absolute; top:-5px; right:-7px; margin-left:0; }
 
 .pl-cta-bar{
   display:block; width:70%; margin:10px auto 0; background:linear-gradient(135deg,var(--paper) 0%,var(--orange-soft) 180%);
@@ -798,6 +807,11 @@ body.is-reading .comment-form textarea{
 .pl-cta-section-label{ display:none; }
 
 .mh-feed{ padding-top:28px; }
+/* Clips the home content pane while it's being dragged/animated by
+   the swipe-between-sections gesture below — scoped to just the home
+   view's own wrapper so no other view is affected. */
+#view-home > .view-inner{ overflow-x:hidden; }
+#member-home{ will-change:transform; }
 
 @media (max-width:760px){
   /* Facebook-style two-row header: brand + mini-CTA + Wall/search/avatar
@@ -852,6 +866,22 @@ body.is-reading .comment-form textarea{
 }
 @media (max-width:520px){
   .pl-search-bar-inline{ padding:6px 10px; }
+}
+/* Between mobile (≤760px, its own layout above) and full desktop, the
+   header has enough auto-column pressure (search bar + Wall + Messages
+   + avatar/username) to starve the center nav's 1fr track down to its
+   260px floor — which used to just silently clip Home/Articles off
+   each end via the track's own overflow-x:auto with no scrollbar.
+   Shed weight from the edges first (icon-only center nav, narrower
+   search bar) so every section stays reachable at any desktop width. */
+@media (min-width:761px) and (max-width:1180px){
+  .pl-center-nav{ gap:0; }
+  .pl-nav-item{ padding:8px 8px; }
+  .pl-nav-item .pl-nav-label{ display:none; }
+}
+@media (min-width:761px) and (max-width:980px){
+  .pl-search-bar-inline{ width:clamp(90px,10vw,160px); }
+  .nav-user-name{ max-width:64px; }
 }
 
 /* ============================================================
@@ -915,7 +945,7 @@ body.is-reading .comment-form textarea{
       </div>
 
       <button type="button" class="pl-nav-item pl-messaging-btn" id="pl-messaging-btn" aria-label="Messages">
-        <span class="pl-nav-icon"><svg viewBox="0 0 24 24" fill="none" width="27" height="27"><path d="M4 12a8 8 0 1 1 3.2 6.4L4 19.2l.9-3.2A7.96 7.96 0 0 1 4 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/><circle cx="8.6" cy="12" r="1.15" fill="currentColor"/><circle cx="12" cy="12" r="1.15" fill="currentColor"/><circle cx="15.4" cy="12" r="1.15" fill="currentColor"/></svg></span>
+        <span class="pl-nav-icon"><svg viewBox="0 0 24 24" fill="none" width="27" height="27"><path d="M4 12a8 8 0 1 1 3.2 6.4L4 19.2l.9-3.2A7.96 7.96 0 0 1 4 12Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/><circle cx="8.6" cy="12" r="1.15" fill="currentColor"/><circle cx="12" cy="12" r="1.15" fill="currentColor"/><circle cx="15.4" cy="12" r="1.15" fill="currentColor"/></svg><span class="nav-badge pl-messaging-badge" id="pl-messaging-badge" hidden>0</span></span>
         <span class="pl-nav-label pl-messaging-label">Messages</span>
       </button>
 
@@ -1637,7 +1667,6 @@ const state = {
   currentView: 'home',
   activeFilter: 'all',
   activeSort: 'latest',
-  writeCategoryLocked: false,
   searchQuery: '',
   latestPage: 1,
   latestPageSize: 6,
@@ -2489,6 +2518,8 @@ function syncAuthUI(){
   qs('#nav-user-name').textContent = state.currentUser.display_name;
   qs('#nav-dropdown-name').textContent = state.currentUser.display_name;
   renderNotifBadge();
+  renderMessagesBadge();
+  subscribeMessagesRealtime();
 }
 
 /* Any protected action funnels through here: if logged in, run the
@@ -2655,12 +2686,20 @@ async function fetchLatestJournals(opts){
     }
   }
 
+  // A second, unique tie-breaker (id) is required alongside every sort
+  // column here: Postgres does not guarantee stable ordering for rows
+  // that tie on the primary sort value (two Works published in the
+  // same second, equal like_count, etc.), and range()-based pagination
+  // re-runs the query per page — without a unique tie-breaker, ties can
+  // land on either side of a page boundary differently each time,
+  // which is exactly what caused a Work to show up twice on one page
+  // and never appear on another.
   if (opts.sort === 'appreciated') {
-    query = query.order('like_count', { ascending: false });
+    query = query.order('like_count', { ascending: false }).order('id', { ascending: false });
   } else if (opts.sort === 'discussed') {
-    query = query.order('comment_count', { ascending: false });
+    query = query.order('comment_count', { ascending: false }).order('id', { ascending: false });
   } else {
-    query = query.order('published_at', { ascending: false });
+    query = query.order('published_at', { ascending: false }).order('id', { ascending: false });
   }
 
   const from = (page - 1) * pageSize;
@@ -2889,6 +2928,56 @@ async function markAllNotificationsRead(){
   const { error } = await supabaseClient.from('notifications').update({ read_at:new Date().toISOString() }).eq('recipient_id', state.currentUser.id).is('read_at', null);
   if (error) throw error;
 }
+/* ---------- messages unread badge (header icon) ---------- */
+/* Counts CONVERSATIONS with at least one unread message, not total
+   messages — matches the requested "3 people messaged me → show 3".
+   Small per-user conversation counts make the per-conversation lookup
+   cheap; there's no single-query way to do this "unread since my own
+   last_read_at, per row" comparison in PostgREST without an RPC. */
+async function unreadConversationCount(){
+  if (DEMO_MODE || !state.currentUser || !supabaseClient) return 0;
+  try{
+    const { data: parts, error: partsErr } = await supabaseClient.from('conversation_participants')
+      .select('conversation_id, last_read_at').eq('user_id', state.currentUser.id);
+    if (partsErr || !parts || !parts.length) return 0;
+    const counts = await Promise.all(parts.map(async function(p){
+      const { count } = await supabaseClient.from('messages')
+        .select('id', { count:'exact', head:true })
+        .eq('conversation_id', p.conversation_id)
+        .neq('sender_id', state.currentUser.id)
+        .is('deleted_at', null)
+        .gt('created_at', p.last_read_at || '1970-01-01T00:00:00Z');
+      return count || 0;
+    }));
+    return counts.filter(function(c){ return c > 0; }).length;
+  }catch(e){ return 0; }
+}
+async function renderMessagesBadge(){
+  const badge = qs('#pl-messaging-badge');
+  if (!badge) return;
+  const n = await unreadConversationCount();
+  badge.textContent = n > 99 ? '99+' : n;
+  badge.hidden = n === 0;
+}
+/* Live updates: rather than filtering the realtime subscription itself
+   (Supabase realtime filters only do simple equality, and the set of
+   conversation ids this user is in can change), listen to every new
+   message and just re-check membership + re-run the badge count —
+   conversation volume is low enough that this is cheap, and it means
+   a message that arrives *right now* updates the badge immediately
+   without waiting for a page reload. */
+let messagesRealtimeChannel = null;
+function subscribeMessagesRealtime(){
+  if (DEMO_MODE || !state.currentUser || !supabaseClient || messagesRealtimeChannel) return;
+  messagesRealtimeChannel = supabaseClient.channel('messages-badge-' + state.currentUser.id)
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages' }, function(payload){
+      const row = payload && payload.new;
+      if (row && row.sender_id === state.currentUser.id) return; // my own message, not unread
+      renderMessagesBadge();
+    })
+    .subscribe();
+}
+
 async function unreadNotifCount(){
   if (DEMO_MODE) return MOCK_NOTIFICATIONS.filter(function(n){ return !n.read_at; }).length;
   if (!state.currentUser) return 0;
@@ -3153,11 +3242,13 @@ function journalCardHTML(j){
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(cardExcerpt(j.excerpt || j.body, 220)) + '</p>' +
-      '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarSpanHTML(j.author_id, authorName(j.author_id)) +
-        '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
-        '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
-      '</a>' +
-      '<div class="j-stats"><span>♥ ' + j.likes + '</span><span>💬 ' + j.comments + '</span></div>' +
+      '<div class="j-card-footer">' +
+        '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarSpanHTML(j.author_id, authorName(j.author_id)) +
+          '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
+          '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
+        '</a>' +
+        '<div class="j-stats"><span>♥ ' + j.likes + '</span><span>💬 ' + j.comments + '</span></div>' +
+      '</div>' +
     '</div></article>';
 }
 
@@ -3217,6 +3308,7 @@ async function renderLatestFeed(){
   if (isFirstPage){
     grid.innerHTML = '<div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div>';
     state.noMoreLatest = false;
+    state.latestSeenIds = new Set(); // fresh feed load — reset the dedup guard below
   }
   const spinner = qs('#m-feed-spinner'), endMsg = qs('#m-feed-end');
   if (spinner) spinner.hidden = isFirstPage;
@@ -3227,15 +3319,25 @@ async function renderLatestFeed(){
       page: state.latestPage, pageSize: state.latestPageSize,
       category: state.activeFilter, sort: state.activeSort, search: state.searchQuery
     });
+    if (!state.latestSeenIds) state.latestSeenIds = new Set();
+    // Belt-and-suspenders alongside the stable-sort fix above: even with
+    // a deterministic ORDER BY, never let the same Work render twice in
+    // one feed session (e.g. if a like/comment count changes a row's
+    // sort position between page loads).
+    const freshRows = result.rows.filter(function(j){
+      if (state.latestSeenIds.has(j.id)) return false;
+      state.latestSeenIds.add(j.id);
+      return true;
+    });
     if (isFirstPage){
-      grid.innerHTML = result.rows.length ? result.rows.map(journalCardHTML).join('') :
+      grid.innerHTML = freshRows.length ? freshRows.map(journalCardHTML).join('') :
         '<div class="empty-state" style="grid-column:1/-1;"><p>No Works match that search yet.</p></div>';
-    } else if (result.rows.length){
+    } else if (freshRows.length){
       // Append, never replace — each infinite-scroll page adds onto
       // the grid instead of wiping out everything loaded so far
       // (that innerHTML-replace was the actual cause of posts
       // "disappearing" while scrolling).
-      grid.insertAdjacentHTML('beforeend', result.rows.map(journalCardHTML).join(''));
+      grid.insertAdjacentHTML('beforeend', freshRows.map(journalCardHTML).join(''));
     }
     // A page returning fewer rows than requested is reliably the last
     // page — cheaper and more robust than comparing against `total`
@@ -3799,10 +3901,6 @@ async function renderWriteView(draftId, presetCategory){
   writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', cover_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' });
   if (writeDraft.cover_url === undefined) writeDraft.cover_url = null;
   if (!existing && !localCopy && presetCategory) writeDraft.category = presetCategory;
-  /* Only lock the category picker for a brand-new draft started from a
-     specific-category shortcut (CTA bar / feed filter chip). Continuing
-     an existing draft, or starting fresh from Home, leaves it open. */
-  state.writeCategoryLocked = !!(presetCategory && !draftId);
   writeDraft.blocks = null; // rebuilt fresh from body by updateEditorModeUI below
 
   qs('#write-title').value = writeDraft.title || '';
@@ -4023,17 +4121,9 @@ function renderBlockEditor(){
 
 function renderCatPicker(){
   const wrap = qs('#write-cat-picker');
-  /* Arriving from a specific-category CTA (Journals/Poetry/Shayari/etc.)
-     locks the category to a single read-only chip — no need to manually
-     reselect it. Only the generic Home CTA (or a category-less new
-     draft) leaves the full picker open. */
-  if (state.writeCategoryLocked && writeDraft.category){
-    const c = categoryByName(writeDraft.category);
-    wrap.innerHTML = '<span class="cat-chip-btn is-active is-locked" style="color:' + c.color + '">' +
-      '<span class="dot" style="background:' + c.color + '"></span>' + c.name + '</span>' +
-      '<span class="cat-picker-locked-note">Set from your shortcut — change category from Home to pick a different one.</span>';
-    return;
-  }
+  /* Always show every category, with the one the user arrived with (or
+     already picked) highlighted as the default — never locked, so it
+     stays a one-click change. */
   wrap.innerHTML = CATEGORIES.map(function(c){
     const active = writeDraft.category === c.name;
     return '<button type="button" class="cat-chip-btn' + (active?' is-active':'') + '" data-pick-category="' + c.name + '" style="color:' + c.color + '">' +
@@ -4085,13 +4175,14 @@ function updateWriteFooterCounts(){
 
 function clearWriteErrors(){ ['category','title','body'].forEach(function(k){ qs('#err-'+k).hidden = true; }); }
 
-const scheduleAutosave = debounce(async function(){
-  if (!state.currentUser) return;
+/* Only the explicit "Save Draft" button (and Publish) writes to the
+   server now — typing/editing no longer silently persists to Supabase
+   on its own. This still keeps a local-only recovery copy (so a
+   refresh or crash doesn't lose unsaved work), it just never phones
+   home until the person actually asks it to. */
+const scheduleAutosave = debounce(function(){
   saveDraftToLocalStorage();
-  if (!draftHasContent(writeDraft)) { setSaveStatus('unsaved'); return; }
-  await persistDraft(Object.assign({}, writeDraft), true);
-  qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
-}, 1200);
+}, 800);
 
 function markUnsavedImmediately(){
   saveDraftToLocalStorage();
@@ -4473,41 +4564,89 @@ qsa('.modal-scrim').forEach(function(scrim){
 
 /* Mobile: swipe across the home feed to move between sections —
    Home → Journals → Stories → Poetry → Shayari → Thoughts → Articles.
-   Swiping right moves forward (e.g. Home → Journals), swiping left
-   moves back (e.g. Stories → Journals). The Wall is never part of
-   this sequence — it's only reached by tapping its own icon.
+   Matches the standard (Facebook/Instagram-style) convention: dragging
+   LEFT reveals the NEXT section sliding in from the right; dragging
+   RIGHT reveals the PREVIOUS one sliding in from the left. The Wall is
+   never part of this sequence — it's only reached by tapping its own
+   icon.
 
    Tracks touchmove (not just touchstart/touchend) and reacts on
    touchcancel too, because mobile browsers often cancel the touch
    sequence outright once they decide the gesture is a scroll —
-   relying on touchend alone means genuine swipes can go unseen. */
+   relying on touchend alone means genuine swipes can go unseen.
+
+   The whole home content pane (#member-home) follows the finger 1:1
+   while dragging, then either finishes sliding off-screen and the new
+   section slides in from the opposite edge (swipe accepted), or
+   springs back to rest (swipe released early / at the first-or-last
+   section) — never an instant toggle. */
 const SWIPE_SECTION_ORDER = ['all', 'journals', 'stories', 'poetry', 'shayari', 'thoughts', 'articles'];
 function initMobileSwipeNav(){
   const area = qs('#view-home');
-  let startX = 0, startY = 0, lastX = 0, lastY = 0, tracking = false, decided = false, horizontal = false;
+  const pane = qs('#member-home');
+  let startX = 0, startY = 0, lastX = 0, lastY = 0, tracking = false, decided = false, horizontal = false, dragging = false;
+
+  function paneWidth(){ return area.getBoundingClientRect().width || window.innerWidth; }
+
+  function setPaneDrag(x){
+    pane.style.transition = 'none';
+    pane.style.transform = 'translateX(' + x + 'px)';
+    pane.style.opacity = String(Math.max(0.55, 1 - Math.abs(x) / 600));
+  }
+  function animatePaneTo(x, cb){
+    pane.style.transition = 'transform .32s cubic-bezier(.22,.61,.36,1), opacity .32s ease';
+    // Force layout so the browser registers the current position
+    // before animating to the new one (otherwise a transform set in
+    // the same tick as the transition just jumps, no animation).
+    void pane.offsetWidth;
+    pane.style.transform = 'translateX(' + x + 'px)';
+    pane.style.opacity = x === 0 ? '1' : '0.55';
+    window.setTimeout(function(){ pane.style.transition = ''; if (cb) cb(); }, 330);
+  }
+  function resetPane(){
+    pane.style.transition = '';
+    pane.style.transform = '';
+    pane.style.opacity = '';
+  }
 
   function finish(){
     if (!tracking) return;
     tracking = false;
-    if (state.currentView !== 'home') return;
+    const wasDragging = dragging;
+    dragging = false;
+    if (state.currentView !== 'home' || !horizontal){ if (wasDragging) resetPane(); return; }
     const dx = lastX - startX;
     const dy = lastY - startY;
-    if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.7) return;
+    const passed = Math.abs(dx) >= 55 && Math.abs(dy) <= Math.abs(dx) * 0.7;
     const idx = SWIPE_SECTION_ORDER.indexOf(state.activeFilter || 'all');
-    if (idx === -1) return;
-    const next = dx > 0 ? Math.min(idx + 1, SWIPE_SECTION_ORDER.length - 1) : Math.max(idx - 1, 0);
-    if (next === idx) return;
-    state.activeFilter = SWIPE_SECTION_ORDER[next];
-    state.latestPage = 1;
-    renderTopNav();
-    renderHomeStatic();
+    const dir = dx < 0 ? 1 : -1; // +1 = next (dragged left), -1 = previous (dragged right)
+    const next = (passed && idx !== -1) ? Math.min(Math.max(idx + dir, 0), SWIPE_SECTION_ORDER.length - 1) : idx;
+    if (!passed || idx === -1 || next === idx){
+      // Threshold not cleared, or already at the first/last section —
+      // spring back to rest instead of changing anything.
+      animatePaneTo(0, resetPane);
+      return;
+    }
+    const w = paneWidth();
+    const exitX = dir === 1 ? -w : w; // keep sliding further the way it was already being dragged
+    animatePaneTo(exitX, function(){
+      state.activeFilter = SWIPE_SECTION_ORDER[next];
+      state.latestPage = 1;
+      renderTopNav();
+      renderHomeStatic();
+      // Land the freshly-rendered pane just off the OPPOSITE edge,
+      // then slide it in to rest — the "new section arriving" half
+      // of the transition.
+      setPaneDrag(-exitX);
+      animatePaneTo(0, resetPane);
+    });
   }
 
   area.addEventListener('touchstart', function(e){
     if (state.currentView !== 'home' || e.touches.length !== 1) { tracking = false; return; }
     startX = lastX = e.touches[0].clientX;
     startY = lastY = e.touches[0].clientY;
-    tracking = true; decided = false; horizontal = false;
+    tracking = true; decided = false; horizontal = false; dragging = false;
   }, { passive:true });
 
   area.addEventListener('touchmove', function(e){
@@ -4515,15 +4654,25 @@ function initMobileSwipeNav(){
     lastX = e.touches[0].clientX;
     lastY = e.touches[0].clientY;
     if (!decided){
-      const dx = lastX - startX, dy = lastY - startY;
-      if (Math.abs(dx) > 12 || Math.abs(dy) > 12){
+      const dx0 = lastX - startX, dy0 = lastY - startY;
+      if (Math.abs(dx0) > 12 || Math.abs(dy0) > 12){
         decided = true;
-        horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
+        horizontal = Math.abs(dx0) > Math.abs(dy0) * 1.2;
       }
     }
     /* Once a horizontal swipe is clearly underway, stop the page from
-       also trying to scroll sideways or trigger edge-navigation. */
-    if (horizontal && e.cancelable) e.preventDefault();
+       also trying to scroll sideways or trigger edge-navigation, and
+       drag the pane along with the finger in real time. */
+    if (horizontal){
+      if (e.cancelable) e.preventDefault();
+      dragging = true;
+      const idx = SWIPE_SECTION_ORDER.indexOf(state.activeFilter || 'all');
+      let dx = lastX - startX;
+      // Rubber-band resistance past either end of the section list,
+      // instead of dragging freely toward nothing.
+      if ((dx > 0 && idx === 0) || (dx < 0 && idx === SWIPE_SECTION_ORDER.length - 1)) dx *= 0.35;
+      setPaneDrag(dx);
+    }
   }, { passive:false });
 
   area.addEventListener('touchend', finish, { passive:true });
