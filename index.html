@@ -1659,13 +1659,11 @@ function coverHTML(categoryName, coverUrl){
   if (coverUrl){
     return '<div style="width:100%;height:100%;position:relative;overflow:hidden;background:' + cat.soft + ';">' +
       '<img src="' + escapeHtml(coverUrl) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;">' +
-      '<span class="cat-pill" style="position:absolute;left:14px;top:14px;color:' + cat.color + ';background:rgba(255,253,248,.88);">' + cat.name + '</span>' +
     '</div>';
   }
   return '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);position:relative;overflow:hidden;">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:64px;height:64px;right:18px;bottom:14px;opacity:.5;">' + cat.icon + '</svg>' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:110px;height:110px;left:-24px;top:-24px;opacity:.12;">' + cat.icon + '</svg>' +
-    '<span class="cat-pill" style="position:absolute;left:14px;top:14px;color:' + cat.color + '">' + cat.name + '</span>' +
   '</div>';
 }
 /* #RRGGBB -> rgba(...) string, used for the page/header category tint. */
