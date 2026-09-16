@@ -252,6 +252,7 @@
 
   .msg-foot{ display:flex; align-items:center; gap:5px; margin-top:3px; font-size:11px; color:var(--muted); }
   .msg-row.mine .msg-foot{ flex-direction:row-reverse; }
+  .seen-label{ font-size:11px; color:var(--muted); margin-top:2px; text-align:right; }
   .msg-status{ display:inline-flex; }
 
   .reactions-row{ display:flex; gap:3px; margin-top:2px; flex-wrap:wrap; }
@@ -616,6 +617,7 @@ const state = {
   messagesById: new Map(),   // id -> message row (active conversation only)
   reactionsByMsg: new Map(), // message_id -> array of {user_id, emoji}
   oldestLoadedAt: null,
+  otherLastReadAt: null, // the other participant's last_read_at for the open conversation — drives the "Seen" indicator
   hasMoreOlder: true,
   loadingOlder: false,
   onlineUsers: new Set(),
@@ -976,8 +978,14 @@ async function openConversation(conversationId, otherUserId){
   state.replyTo = null;
   hideReplyBar();
   lastKnownMsgTime = null;
+  state.otherLastReadAt = null;
 
-  document.getElementById('app').classList.add('chat-open');
+  const appEl = document.getElementById('app');
+  const wasChatOpen = appEl.classList.contains('chat-open');
+  appEl.classList.add('chat-open');
+  if(!wasChatOpen){
+    history.pushState({ messagingChatOpen: true }, '', '');
+  }
   $('chatEmpty').classList.add('hidden');
   $('chatActive').classList.remove('hidden');
 
@@ -1000,6 +1008,7 @@ async function openConversation(conversationId, otherUserId){
   subscribeConversationLevel(conversationId);
   markActiveConversationRead();
   updateBlockedBar();
+  loadOtherParticipantReadState(conversationId);
 }
 
 function renderChatHeader(){
@@ -1012,9 +1021,20 @@ function renderChatHeader(){
   $('chatWho').onclick = $('chatWhoText').onclick = () => openOptionsOverlay();
 }
 
+// Closing the chat via an in-app control (header back arrow, decline, etc.) consumes the
+// history entry pushed on open, so a device/browser back press and this button behave
+// identically — exactly one press to return to the list, not straight to the outer app.
 function backToList(){
-  document.getElementById('app').classList.remove('chat-open');
+  if(history.state && history.state.messagingChatOpen){
+    history.back();
+  } else {
+    document.getElementById('app').classList.remove('chat-open');
+  }
 }
+
+window.addEventListener('popstate', ()=>{
+  document.getElementById('app').classList.remove('chat-open');
+});
 
 /* ============================================================
    DATA: messages (paginated)
@@ -1087,6 +1107,10 @@ function sortedMessages(){
 function renderMessages(){
   const box = $('messages');
   const rows = sortedMessages();
+  let lastMineId = null;
+  for(let i=rows.length-1; i>=0; i--){
+    if(rows[i].sender_id === state.me.id && !rows[i].deleted_at){ lastMineId = rows[i].id; break; }
+  }
   let html = '';
   let lastDay = null;
   for(const m of rows){
@@ -1095,7 +1119,7 @@ function renderMessages(){
       html += `<div class="day-divider"><span>${esc(day)}</span></div>`;
       lastDay = day;
     }
-    html += renderMessageRow(m);
+    html += renderMessageRow(m, m.id === lastMineId);
   }
   const topLoader = state.hasMoreOlder ? `<div class="load-older"><button id="loadOlderBtn">Load earlier messages</button></div>` : '';
   box.innerHTML = topLoader + html;
@@ -1116,7 +1140,7 @@ function renderMessages(){
   });
 }
 
-function renderMessageRow(m){
+function renderMessageRow(m, isLastMine){
   const mine = m.sender_id === state.me.id;
   const deleted = !!m.deleted_at;
   const reactions = state.reactionsByMsg.get(m.id) || [];
@@ -1163,6 +1187,14 @@ function renderMessageRow(m){
     }).join('')
   }</div>` : '';
 
+  // Instagram-style read receipt: only ever shown once the conversation is
+  // accepted. A pending request's recipient can view it privately — the sender
+  // does not learn it was seen until the recipient accepts.
+  const canShowSeen = isLastMine && mine && !deleted
+    && state.activeConvMeta && state.activeConvMeta.status === 'accepted'
+    && state.otherLastReadAt && new Date(state.otherLastReadAt) >= new Date(m.created_at);
+  const seenHtml = canShowSeen ? `<div class="seen-label">Seen</div>` : '';
+
   return `<div class="msg-row ${mine?'mine':'theirs'}" data-mid="${m.id}">
     <div class="msg-stack">
       ${replyHtml}
@@ -1172,6 +1204,7 @@ function renderMessageRow(m){
       </div>
       ${reactionsRow}
       <div class="msg-foot">${fmtTime(m.created_at)}</div>
+      ${seenHtml}
     </div>
   </div>`;
 }
@@ -1345,6 +1378,12 @@ function subscribeConversationLevel(conversationId){
     .on('postgres_changes', { event:'DELETE', schema:'public', table:'message_reactions' }, (payload)=>{
       if(payload.old && state.messagesById.has(payload.old.message_id)) applyReactionDelete(payload.old);
     })
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'conversation_participants', filter:`conversation_id=eq.${conversationId}` }, (payload)=>{
+      if(payload.new.user_id !== state.me.id){
+        state.otherLastReadAt = payload.new.last_read_at;
+        renderMessages();
+      }
+    })
     .subscribe((status)=>{
       if(status === 'SUBSCRIBED'){
         resyncAfterReconnect();
@@ -1440,6 +1479,20 @@ async function markActiveConversationRead(){
   if(item && Number(item.unread_count||0) === 0) return; // avoid a no-op write
   await sb.rpc('mark_conversation_read', { p_conversation_id: state.activeConvId });
   if(item){ item.unread_count = 0; refreshListView(); }
+}
+
+// The recipient's own last_read_at is visible to me via the existing participants
+// RLS policy (fellow conversation members can see each other's rows). Used only to
+// show an Instagram-style "Seen" note on my own last message — never while the
+// conversation is still an unaccepted request (see canShowSeen in renderMessageRow).
+async function loadOtherParticipantReadState(conversationId){
+  const { data, error } = await sb.from('conversation_participants')
+    .select('user_id, last_read_at')
+    .eq('conversation_id', conversationId);
+  if(error || conversationId !== state.activeConvId) return;
+  const theirs = (data||[]).find(p => p.user_id !== state.me.id);
+  state.otherLastReadAt = theirs ? theirs.last_read_at : null;
+  renderMessages();
 }
 
 /* ============================================================
@@ -1575,21 +1628,32 @@ function openOptionsOverlay(){
   const other = state.activeOther;
   const item = findListItem(state.activeConvId);
   const blocked = item && item.blocked_by_me;
+  const profileUrl = other.username ? `https://journal.aspinora.in/${encodeURIComponent(other.username)}` : null;
   $('optionsTitle').textContent = other.display_name || other.username || 'Options';
   $('optionsBody').innerHTML = `
-    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-      ${avatarHTML(other, 'lg')}
-      <div>
-        <div style="font-weight:600; font-size:15px;">${esc(other.display_name||other.username||'')}</div>
-        ${other.username ? `<div style="color:var(--muted); font-size:13px;">@${esc(other.username)}</div>` : ''}
-      </div>
-    </div>
+    ${profileUrl
+      ? `<a href="${esc(profileUrl)}" id="optProfileLink" style="display:flex; align-items:center; gap:12px; margin-bottom:18px; text-decoration:none; color:inherit;">
+          ${avatarHTML(other, 'lg')}
+          <div>
+            <div style="font-weight:600; font-size:15px;">${esc(other.display_name||other.username||'')}</div>
+            <div style="color:var(--muted); font-size:13px;">@${esc(other.username)}</div>
+          </div>
+        </a>`
+      : `<div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+          ${avatarHTML(other, 'lg')}
+          <div>
+            <div style="font-weight:600; font-size:15px;">${esc(other.display_name||other.username||'')}</div>
+          </div>
+        </div>`
+    }
     <div style="display:flex; flex-direction:column; gap:8px;">
       <button class="btn-ghost" id="optReport" style="width:100%; text-align:left;">Report this person</button>
       <button class="btn-ghost" id="optBlock" style="width:100%; text-align:left; color:var(--danger); border-color:var(--danger);">${blocked?'Unblock this person':'Block this person'}</button>
     </div>
   `;
   $('optionsOverlay').classList.add('show');
+  const profileLink = $('optProfileLink');
+  if(profileLink) profileLink.addEventListener('click', showJournalsRedirectLoader);
   $('optReport').addEventListener('click', ()=> { closeOptionsOverlay(); openReportOverlay({}); });
   $('optBlock').addEventListener('click', ()=>{
     if(blocked) unblockUser(other.id);
@@ -1599,6 +1663,17 @@ function openOptionsOverlay(){
   });
 }
 function closeOptionsOverlay(){ $('optionsOverlay').classList.remove('show'); }
+
+// A real <a href> is used for the profile link (works even without JS, and
+// supports middle-click/open-in-new-tab correctly); this just layers the
+// existing Journals loading animation on top while the navigation happens.
+function showJournalsRedirectLoader(){
+  const gate = document.createElement('div');
+  gate.className = 'gate';
+  gate.style.zIndex = '999';
+  gate.innerHTML = `<div class="spinner"></div><div class="mark serif">Journals</div>`;
+  document.body.appendChild(gate);
+}
 
 /* ============================================================
    NEW MESSAGE OVERLAY (search users)
