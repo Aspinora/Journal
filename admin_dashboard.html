@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Moderation Dashboard — Aspinora Journals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:        #FBF5EA;
+  --cream-deep:   #F4EBDA;
+  --paper:        #FFFDF8;
+  --ink:          #2B241C;
+  --ink-soft:     #5B5347;
+  --ink-faint:    #948B7C;
+
+  --orange:       #F1631B;
+  --orange-deep:  #D3510F;
+  --orange-soft:  #FCEADC;
+  --sky:          #7FB8D9;
+  --sky-soft:     #E4F1F7;
+  --lavender:     #A79BD1;
+  --lavender-soft:#EDE9F7;
+  --mint:         #7FC8A9;
+  --mint-soft:    #E4F4EC;
+  --gold:         #F0B429;
+  --red:          #D64545;
+  --red-soft:     #FBE4E4;
+
+  --line:         rgba(43,36,28,0.10);
+  --line-strong:  rgba(43,36,28,0.18);
+  --shadow-soft:  0 4px 24px rgba(43,36,28,0.06);
+  --shadow-mid:   0 12px 40px rgba(43,36,28,0.10);
+  --shadow-deep:  0 24px 60px rgba(43,36,28,0.16);
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'Space Mono', 'SFMono-Regular', monospace;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --ease: cubic-bezier(.22,.9,.32,1);
+  --sidebar-w: 248px;
+}
+*,*::before,*::after{ box-sizing:border-box; }
+[hidden]{ display:none !important; }
+html,body{ margin:0; padding:0; height:100%; }
+body{
+  background:
+    radial-gradient(1100px 650px at 108% -8%, var(--orange-soft) 0%, transparent 58%),
+    radial-gradient(950px 620px at -8% 106%, var(--lavender-soft) 0%, transparent 55%),
+    linear-gradient(180deg, var(--cream) 0%, var(--cream-deep) 100%);
+  background-attachment:fixed, fixed, fixed;
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.55;
+}
+h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; margin:0; color:var(--ink); }
+button{ font-family:inherit; cursor:pointer; }
+a{ color:inherit; }
+::selection{ background:var(--orange-soft); }
+
+/* ---------- preview / role switcher strip ---------- */
+.preview-strip{
+  background:var(--ink); color:var(--cream); font-size:12.5px; font-weight:600;
+  padding:7px 18px; display:flex; align-items:center; justify-content:center; gap:14px;
+  letter-spacing:.02em; position:sticky; top:0; z-index:60;
+}
+.preview-strip .dot{ width:7px;height:7px;border-radius:50%;background:var(--gold); }
+.role-toggle{ display:inline-flex; background:rgba(255,255,255,.1); border-radius:999px; padding:3px; gap:2px; }
+.role-toggle button{
+  border:none; background:transparent; color:var(--cream); font-size:12px; font-weight:700;
+  padding:5px 14px; border-radius:999px; opacity:.65; transition:all .18s var(--ease);
+}
+.role-toggle button.active{ background:var(--orange); opacity:1; color:#fff; }
+
+/* ---------- shell layout ---------- */
+.dash-shell{ display:flex; min-height:calc(100vh - 34px); }
+.sidebar{
+  width:var(--sidebar-w); flex:none; background:var(--paper); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:34px; height:calc(100vh - 34px); z-index:40;
+  transition:transform .25s var(--ease);
+}
+.sb-brand{ display:flex; align-items:center; gap:10px; padding:6px 8px 20px; }
+.sb-brand .mark{ width:34px;height:34px;border-radius:10px; background:linear-gradient(135deg,var(--orange),var(--orange-deep)); display:flex;align-items:center;justify-content:center; color:#fff; font-family:var(--font-display); font-weight:700; font-size:17px; box-shadow:var(--shadow-soft); }
+.sb-brand .txt{ display:flex; flex-direction:column; line-height:1.15; }
+.sb-brand .txt b{ font-family:var(--font-display); font-size:15px; }
+.sb-brand .txt span{ font-size:11px; color:var(--ink-faint); font-weight:600; letter-spacing:.03em; text-transform:uppercase; }
+
+.sb-nav{ display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto; }
+.sb-section-label{ font-size:10.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint); margin:14px 10px 6px; }
+.sb-link{
+  display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:var(--radius-sm);
+  border:none; background:transparent; color:var(--ink-soft); font-size:13.5px; font-weight:600; text-align:left; width:100%;
+  transition:background .15s var(--ease), color .15s var(--ease);
+}
+.sb-link .ic{ width:18px; text-align:center; font-size:15px; }
+.sb-link:hover{ background:var(--cream-deep); color:var(--ink); }
+.sb-link.active{ background:var(--orange-soft); color:var(--orange-deep); }
+.sb-link .cnt{ margin-left:auto; background:var(--ink); color:#fff; font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:999px; }
+.sb-link.active .cnt{ background:var(--orange-deep); }
+.sb-lock{ margin-left:auto; opacity:.4; font-size:11px; }
+
+.sb-profile{
+  border-top:1px solid var(--line); padding-top:14px; margin-top:10px; display:flex; align-items:center; gap:10px;
+}
+.sb-profile .av{ width:36px;height:36px;border-radius:50%; background:var(--lavender-soft); color:var(--lavender); display:flex; align-items:center; justify-content:center; font-weight:800; font-family:var(--font-display); font-size:15px; flex:none; }
+.sb-profile .meta b{ display:block; font-size:13px; }
+.sb-profile .meta span{ font-size:11px; color:var(--ink-faint); font-weight:600; text-transform:uppercase; letter-spacing:.03em; }
+
+/* ---------- main ---------- */
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar{
+  position:sticky; top:34px; z-index:30; background:rgba(251,245,234,.88); backdrop-filter:blur(10px) saturate(1.4);
+  border-bottom:1px solid var(--line); padding:14px 26px; display:flex; align-items:center; gap:16px;
+}
+.mobile-menu-btn{ display:none; border:1px solid var(--line-strong); background:var(--paper); border-radius:10px; width:36px; height:36px; align-items:center; justify-content:center; font-size:16px; }
+.topbar h1{ font-size:20px; flex:none; }
+.gsearch{ position:relative; flex:1; max-width:460px; }
+.gsearch input{
+  width:100%; padding:9px 14px 9px 34px; border-radius:999px; border:1px solid var(--line-strong); background:var(--paper);
+  font-family:inherit; font-size:13px; color:var(--ink);
+}
+.gsearch svg{ position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.5; }
+.gsearch-results{
+  position:absolute; top:calc(100% + 8px); left:0; right:0; background:var(--paper); border:1px solid var(--line);
+  border-radius:var(--radius-md); box-shadow:var(--shadow-deep); max-height:420px; overflow-y:auto; z-index:80; padding:8px;
+}
+.gsearch-group-label{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); padding:8px 8px 4px; }
+.gsearch-item{ display:flex; align-items:center; gap:10px; padding:8px; border-radius:10px; cursor:pointer; }
+.gsearch-item:hover{ background:var(--cream-deep); }
+.gsearch-item .t{ font-size:13px; font-weight:600; }
+.gsearch-item .s{ font-size:11.5px; color:var(--ink-faint); }
+.topbar .spacer{ flex:1; }
+.topbar-right{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+
+.view-root{ padding:24px 26px 60px; flex:1; }
+
+/* ---------- cards / grid ---------- */
+.stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+.stat-card{
+  background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px 18px;
+  box-shadow:var(--shadow-soft); position:relative; overflow:hidden;
+}
+.stat-card .tag{ position:absolute; top:0; left:0; width:4px; height:100%; }
+.stat-card b{ display:block; font-size:26px; font-family:var(--font-display); line-height:1.1; margin-top:2px; }
+.stat-card .lbl{ font-size:11.5px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; }
+.stat-card .sub{ font-size:11.5px; color:var(--ink-soft); margin-top:4px; }
+
+.panel{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-lg); box-shadow:var(--shadow-soft); padding:20px; margin-bottom:20px; }
+.panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap; }
+.panel-head h3{ font-size:16px; }
+
+.two-col{ display:grid; grid-template-columns:1.6fr 1fr; gap:18px; }
+
+/* ---------- tables ---------- */
+.dtable{ width:100%; border-collapse:collapse; font-size:13px; }
+.dtable th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:800; padding:8px 10px; border-bottom:1px solid var(--line-strong); white-space:nowrap; }
+.dtable td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.dtable tbody tr{ cursor:pointer; transition:background .12s var(--ease); }
+.dtable tbody tr:hover{ background:var(--cream-deep); }
+.dtable .caseid{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft); }
+.dtable .muted{ color:var(--ink-faint); font-size:12px; }
+.checkbox-cell{ width:30px; }
+
+/* ---------- badges / pills ---------- */
+.badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+.badge.orange{ background:var(--orange-soft); color:var(--orange-deep); }
+.badge.sky{ background:var(--sky-soft); color:#2A6E93; }
+.badge.mint{ background:var(--mint-soft); color:#2E7A57; }
+.badge.lav{ background:var(--lavender-soft); color:#6C5FA3; }
+.badge.gold{ background:#FCF1D6; color:#93720E; }
+.badge.red{ background:var(--red-soft); color:#A5312F; }
+.badge.grey{ background:var(--cream-deep); color:var(--ink-soft); }
+.badge.ink{ background:var(--ink); color:#fff; }
+
+/* ---------- filters ---------- */
+.filter-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+.chip{ border:1px solid var(--line-strong); background:var(--paper); padding:6px 13px; border-radius:999px; font-size:12.5px; font-weight:700; color:var(--ink-soft); transition:all .15s var(--ease); }
+.chip.active{ background:var(--ink); border-color:var(--ink); color:#fff; }
+.search-mini{ border:1px solid var(--line-strong); background:var(--paper); border-radius:999px; padding:6px 14px; font-size:12.5px; min-width:200px; margin-left:auto; }
+
+/* ---------- buttons ---------- */
+.btn{ display:inline-flex; align-items:center; gap:6px; border:none; border-radius:999px; padding:9px 18px; font-weight:700; font-size:13px; transition:all .15s var(--ease); }
+.btn.primary{ background:var(--orange); color:#fff; box-shadow:0 6px 18px rgba(241,99,27,.28); }
+.btn.primary:hover{ background:var(--orange-deep); }
+.btn.ghost{ background:transparent; border:1px solid var(--line-strong); color:var(--ink); }
+.btn.ghost:hover{ background:var(--cream-deep); }
+.btn.danger{ background:var(--red); color:#fff; }
+.btn.danger:hover{ background:#B93737; }
+.btn.soft{ background:var(--cream-deep); color:var(--ink); }
+.btn.sm{ padding:6px 13px; font-size:12px; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+.iconbtn{ border:1px solid var(--line-strong); background:var(--paper); width:32px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; font-size:14px; }
+.iconbtn:hover{ background:var(--cream-deep); }
+
+/* ---------- empty/loading/error/no-results ---------- */
+.state-box{ text-align:center; padding:46px 20px; color:var(--ink-faint); }
+.state-box .ic{ font-size:30px; margin-bottom:10px; }
+.state-box h4{ font-size:15px; color:var(--ink-soft); margin-bottom:4px; }
+.state-box p{ font-size:12.5px; margin:0 0 12px; }
+.skel{ background:linear-gradient(90deg,var(--cream-deep) 25%, var(--paper) 37%, var(--cream-deep) 63%); background-size:400% 100%; animation:skel 1.4s ease infinite; border-radius:8px; }
+@keyframes skel{ 0%{background-position:100% 0} 100%{background-position:0 0} }
+.skel-row{ height:38px; margin-bottom:8px; }
+.skel-card{ height:78px; }
+
+/* ---------- drawer / modal ---------- */
+.drawer-scrim{ position:fixed; inset:0; background:rgba(43,36,28,.4); z-index:200; display:none; align-items:stretch; justify-content:flex-end; }
+.drawer-scrim.open{ display:flex; }
+.drawer{ width:min(560px,94vw); background:var(--cream); height:100%; overflow-y:auto; box-shadow:var(--shadow-deep); animation:drawer-in .25s var(--ease); padding:22px 24px 60px; }
+@keyframes drawer-in{ from{transform:translateX(30px); opacity:0;} to{transform:translateX(0); opacity:1;} }
+.drawer-close{ float:right; }
+.modal-scrim{ position:fixed; inset:0; background:rgba(43,36,28,.5); z-index:300; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-scrim.open{ display:flex; }
+.modal-box{ width:min(440px,94vw); background:var(--paper); border-radius:var(--radius-lg); box-shadow:var(--shadow-deep); padding:22px; }
+.modal-box h3{ font-size:17px; margin-bottom:6px; }
+.modal-box p.sub{ font-size:12.5px; color:var(--ink-soft); margin:0 0 14px; }
+.modal-box textarea{ width:100%; min-height:80px; border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:10px; font-family:inherit; font-size:13px; resize:vertical; }
+.modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+
+/* ---------- misc detail ---------- */
+.kv{ display:grid; grid-template-columns:120px 1fr; gap:6px 10px; font-size:12.5px; margin:14px 0; }
+.kv b{ color:var(--ink-faint); font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.03em; }
+.content-preview-box{ background:var(--cream-deep); border-radius:var(--radius-sm); padding:14px; font-size:13px; color:var(--ink-soft); margin:12px 0; border-left:3px solid var(--orange); }
+.divider{ border:none; border-top:1px solid var(--line); margin:18px 0; }
+.timeline{ border-left:2px solid var(--line-strong); padding-left:16px; display:flex; flex-direction:column; gap:16px; }
+.timeline .tl-item{ position:relative; }
+.timeline .tl-item::before{ content:""; position:absolute; left:-21px; top:3px; width:9px; height:9px; border-radius:50%; background:var(--orange); }
+.timeline .tl-time{ font-size:11px; color:var(--ink-faint); font-weight:700; }
+.timeline .tl-body{ font-size:13px; margin-top:2px; }
+.note-item{ background:#FFF9E9; border:1px dashed var(--gold); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:8px; font-size:12.5px; }
+.note-item .who{ font-weight:700; font-size:11px; color:#93720E; text-transform:uppercase; letter-spacing:.03em; margin-bottom:2px; }
+.notif-preview{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md); padding:14px 16px; max-width:380px; box-shadow:var(--shadow-soft); }
+.notif-preview .from{ font-size:11px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
+.notif-preview .msg{ font-size:13px; margin-bottom:8px; }
+.notif-preview .meta{ font-size:11px; color:var(--ink-faint); }
+.immutable-note{ display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-faint); font-weight:700; background:var(--cream-deep); padding:8px 12px; border-radius:999px; margin-bottom:14px; }
+.bulk-bar{ position:sticky; top:0; background:var(--ink); color:#fff; border-radius:var(--radius-md); padding:10px 16px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.bulk-bar b{ font-family:var(--font-body); }
+.expiring{ color:#A5312F; font-weight:700; }
+
+/* ---------- avatar ---------- */
+.mini-av{ width:28px;height:28px;border-radius:50%; background:var(--sky-soft); color:#2A6E93; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex:none; }
+.name-cell{ display:flex; align-items:center; gap:8px; }
+
+/* ---------- toast ---------- */
+.toast-stack{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:500; display:flex; flex-direction:column; gap:10px; align-items:center; }
+.toast{ background:var(--ink); color:var(--cream); padding:11px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:var(--shadow-deep); display:flex; align-items:center; gap:10px; animation:toast-in .25s var(--ease); }
+.toast.success{ background:#2E7A57; }
+.toast.error{ background:var(--red); }
+@keyframes toast-in{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .sidebar{ position:fixed; left:0; top:34px; transform:translateX(-100%); z-index:100; box-shadow:var(--shadow-deep); }
+  .sidebar.open{ transform:translateX(0); }
+  .mobile-menu-btn{ display:inline-flex; }
+  .stat-grid{ grid-template-columns:repeat(2,1fr); }
+  .two-col{ grid-template-columns:1fr; }
+  .gsearch{ max-width:220px; }
+}
+@media (max-width:620px){
+  .stat-grid{ grid-template-columns:1fr; }
+  .topbar h1{ font-size:16px; }
+  .view-root{ padding:16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="preview-strip">
+  <span class="dot"></span> MOCK PREVIEW — no backend connected, nothing here is saved permanently
+  <div class="role-toggle" id="role-toggle">
+    <button data-role="admin">Admin view</button>
+    <button data-role="moderator">Moderator view</button>
+  </div>
+</div>
+
+<div class="dash-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="mark">A</div>
+      <div class="txt"><b>Journals</b><span>Moderation</span></div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+    <div class="sb-profile" id="sb-profile"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+      <h1 id="view-title">Overview</h1>
+      <div class="gsearch">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.6"/><path d="M14 14l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <input type="text" id="gsearch-input" placeholder="Search users, content, reports, case IDs…" autocomplete="off">
+        <div class="gsearch-results" id="gsearch-results" hidden></div>
+      </div>
+      <div class="spacer"></div>
+      <div class="topbar-right">
+        <span class="badge ink" id="topbar-role-badge">ADMIN</span>
+      </div>
+    </div>
+    <div class="view-root" id="view-root"></div>
+  </div>
+</div>
+
+<div class="drawer-scrim" id="drawer-scrim"><div class="drawer" id="drawer-body"></div></div>
+<div class="modal-scrim" id="modal-scrim"><div class="modal-box" id="modal-body"></div></div>
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+/* ============================================================
+   MOCK DATA LAYER — isolated so it can later be swapped for
+   real Supabase queries without touching the render/UI layer.
+   ============================================================ */
+(function(){
+'use strict';
+
+const $ = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = d => new Date(d).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+const timeAgo = d => {
+  const s = Math.floor((Date.now()-new Date(d).getTime())/1000);
+  if(s<60) return s+'s ago'; const m=Math.floor(s/60); if(m<60) return m+'m ago';
+  const h=Math.floor(m/60); if(h<24) return h+'h ago'; const dd=Math.floor(h/24); return dd+'d ago';
+};
+
+let caseCounter = 421;
+function nextCaseId(){ caseCounter++; return `CASE-2026-${String(caseCounter).padStart(6,'0')}`; }
+
+const CATEGORIES = ['Journals','Stories','Poetry','Shayari','Thoughts','Articles','The Wall','Updates'];
+
+const USERS = [
+  {id:'u1', username:'meera.writes', displayName:'Meera Kapoor', joinDate:'2025-11-02', status:'active'},
+  {id:'u2', username:'kabir.thoughts', displayName:'Kabir Sen', joinDate:'2025-09-14', status:'active'},
+  {id:'u3', username:'ananya.p', displayName:'Ananya Prasad', joinDate:'2026-01-20', status:'restricted'},
+  {id:'u4', username:'r.iyer', displayName:'Rohan Iyer', joinDate:'2025-07-03', status:'active'},
+  {id:'u5', username:'noorjahan_', displayName:'Noor Jahan', joinDate:'2026-02-11', status:'suspended'},
+  {id:'u6', username:'devsharma', displayName:'Dev Sharma', joinDate:'2025-12-29', status:'active'},
+  {id:'u7', username:'lyra.k', displayName:'Lyra Krishnan', joinDate:'2026-03-01', status:'active'},
+  {id:'u8', username:'arjun_writes', displayName:'Arjun Mehta', joinDate:'2025-08-19', status:'active'},
+];
+function userById(id){ return USERS.find(u=>u.id===id); }
+
+const MODERATORS = [
+  {id:'m0', username:'priya.admin', displayName:'Priya Nair', role:'admin', status:'active', dateAppointed:'2025-06-01'},
+  {id:'m1', username:'sam.mod', displayName:'Sam D\u2019Souza', role:'moderator', status:'active', dateAppointed:'2025-08-12'},
+  {id:'m2', username:'fatima.mod', displayName:'Fatima Rizvi', role:'moderator', status:'active', dateAppointed:'2025-10-05'},
+  {id:'m3', username:'oliver.mod', displayName:'Oliver Fernandes', role:'moderator', status:'suspended', dateAppointed:'2025-11-19'},
+];
+function modById(id){ return MODERATORS.find(m=>m.id===id); }
+
+const CONTENT = [
+  {id:'c1', caseId:nextCaseId(), type:'Journals', title:'Losing my father, one year on', author:'u3', status:'active', reports:2, pubDate:'2026-08-01', preview:'It has been a year since I sat by his bedside and pretended I wasn\u2019t already grieving...'},
+  {id:'c2', caseId:nextCaseId(), type:'Poetry', title:'Ash and Marigold', author:'u2', status:'active', reports:1, pubDate:'2026-08-10', preview:'I burned the letters you never sent, and marigolds grew where the smoke had settled...'},
+  {id:'c3', caseId:nextCaseId(), type:'Thoughts', title:'(untitled thought)', author:'u5', status:'removed', reports:4, pubDate:'2026-07-22', preview:'Everyone in this city is fake and I\u2019m done pretending to care about any of you...'},
+  {id:'c4', caseId:null, type:'Stories', title:'The Lighthouse Keeper\u2019s Daughter', author:'u1', status:'active', reports:0, pubDate:'2026-09-02', preview:'Every evening at six, she climbed the hundred and twelve steps to light the lamp...'},
+  {id:'c5', caseId:nextCaseId(), type:'Shayari', title:'\u0628\u0632\u0645 \u0645\u06be\u0644\u06cc', type_label:'Shayari', author:'u6', status:'under_review', reports:1, pubDate:'2026-08-28', preview:'A ghazal flagged for a possibly plagiarised couplet, pending author response...'},
+  {id:'c6', caseId:null, type:'Articles', title:'Why Indian Independent Journaling Is Having a Moment', author:'u4', status:'active', reports:0, pubDate:'2026-06-19', preview:'A look at the platforms and communities reviving long-form personal writing...'},
+  {id:'c7', caseId:nextCaseId(), type:'The Wall', title:'Pinned wall post', author:'u8', status:'active', reports:1, pubDate:'2026-09-10', preview:'Does anyone else feel like September always resets your whole outlook?'},
+  {id:'c8', caseId:nextCaseId(), type:'Journals', title:'Draft: things I can\u2019t say out loud', author:'u7', status:'active', reports:1, pubDate:'2026-09-05', preview:'Content reported for allegedly identifying a private individual without consent...'},
+];
+function contentById(id){ return CONTENT.find(c=>c.id===id); }
+
+const REASONS = ['Harassment or bullying','Hate speech','Spam or misleading','Self-harm concern','Copyright / plagiarism','Privacy violation','Sexual content','Impersonation'];
+
+const REPORTS = [
+  {id:'r1', caseId:CONTENT[0].caseId, contentId:'c1', reportedUser:'u3', reporter:'u4', reason:'Self-harm concern', description:'The last two paragraphs read like a goodbye letter, I\u2019m worried about the author.', createdAt:'2026-09-14T10:20:00', priority:'Urgent', status:'New', assignedTo:null, assignedAt:null},
+  {id:'r2', caseId:CONTENT[1].caseId, contentId:'c2', reportedUser:'u2', reporter:'u6', reason:'Copyright / plagiarism', description:'This poem is lifted almost line for line from a published collection.', createdAt:'2026-09-13T18:05:00', priority:'High', status:'Under Review', assignedTo:'m1', assignedAt:'2026-09-13T19:00:00'},
+  {id:'r3', caseId:CONTENT[2].caseId, contentId:'c3', reportedUser:'u5', reporter:'u1', reason:'Hate speech', description:'Repeated targeted insults directed at a specific community.', createdAt:'2026-09-10T09:15:00', priority:'High', status:'Action Taken', assignedTo:'m2', assignedAt:'2026-09-10T09:40:00'},
+  {id:'r4', caseId:CONTENT[4].caseId, contentId:'c5', reportedUser:'u6', reporter:'u2', reason:'Copyright / plagiarism', description:'Second couplet appears to be copied from a known Urdu poet.', createdAt:'2026-09-12T14:00:00', priority:'Normal', status:'Under Review', assignedTo:'m2', assignedAt:'2026-09-12T15:10:00'},
+  {id:'r5', caseId:CONTENT[6].caseId, contentId:'c7', reportedUser:'u8', reporter:'u3', reason:'Spam or misleading', description:'Same message posted to The Wall six times today.', createdAt:'2026-09-15T08:30:00', priority:'Normal', status:'New', assignedTo:null, assignedAt:null},
+  {id:'r6', caseId:CONTENT[7].caseId, contentId:'c8', reportedUser:'u7', reporter:'u5', reason:'Privacy violation', description:'Names and describes a private individual (not on the platform) in identifying detail.', createdAt:'2026-09-16T11:45:00', priority:'High', status:'New', assignedTo:null, assignedAt:null},
+  {id:'r7', caseId:nextCaseId(), contentId:'c1', reportedUser:'u3', reporter:'u7', reason:'Self-harm concern', description:'Flagging again, same journal, still worried.', createdAt:'2026-09-15T16:00:00', priority:'Urgent', status:'New', assignedTo:null, assignedAt:null},
+  {id:'r8', caseId:nextCaseId(), contentId:'c4', reportedUser:'u1', reporter:'u2', reason:'Harassment or bullying', description:'A side character in the story is a thinly veiled parody of me.', createdAt:'2026-09-08T13:20:00', priority:'Normal', status:'Dismissed', assignedTo:'m1', assignedAt:'2026-09-08T14:00:00'},
+];
+function reportById(id){ return REPORTS.find(r=>r.id===id); }
+
+const RESTRICTIONS = [
+  {id:'x1', caseId:REPORTS[2].caseId, userId:'u5', type:'Posting suspended', reason:'Repeated hate speech after a prior warning.', moderatorId:'m2', start:'2026-09-10T10:00:00', expiry:'2026-10-10T10:00:00', status:'active'},
+  {id:'x2', caseId:nextCaseId(), userId:'u3', type:'Comment restriction', reason:'Escalating arguments in comment sections.', moderatorId:'m1', start:'2026-09-01T00:00:00', expiry:'2026-09-18T00:00:00', status:'active'},
+  {id:'x3', caseId:nextCaseId(), userId:'u6', type:'Publishing throttled (1/day)', reason:'Multiple plagiarism reports pending review.', moderatorId:'m2', start:'2026-08-20T00:00:00', expiry:'2026-09-20T00:00:00', status:'active'},
+  {id:'x4', caseId:nextCaseId(), userId:'u8', type:'Wall posting suspended', reason:'Spamming identical content.', moderatorId:'m1', start:'2026-07-01T00:00:00', expiry:'2026-07-08T00:00:00', status:'expired'},
+  {id:'x5', caseId:nextCaseId(), userId:'u4', type:'Comment restriction', reason:'Issued in error — reversed same day.', moderatorId:'m0', start:'2026-06-11T00:00:00', expiry:'2026-06-18T00:00:00', status:'cancelled'},
+];
+function restrictionById(id){ return RESTRICTIONS.find(x=>x.id===id); }
+
+const APPEALS = [
+  {id:'a1', caseId:RESTRICTIONS[0].caseId, userId:'u5', originalAction:'Posting suspended (30 days)', originalReason:'Repeated hate speech after a prior warning.', moderatorId:'m2', appealDate:'2026-09-12T09:00:00', status:'Pending', message:'I understand the concern but I believe the earlier comment was taken out of context. I\u2019d like a chance to explain.', timeline:[{who:'Noor Jahan', text:'Appeal submitted.', at:'2026-09-12T09:00:00'}]},
+  {id:'a2', caseId:RESTRICTIONS[1].caseId, userId:'u3', originalAction:'Comment restriction (17 days)', originalReason:'Escalating arguments in comment sections.', moderatorId:'m1', appealDate:'2026-09-05T12:00:00', status:'Under Review', message:'I was defending myself against someone else who was baiting me first.', timeline:[{who:'Ananya Prasad', text:'Appeal submitted.', at:'2026-09-05T12:00:00'},{who:'Sam D\u2019Souza', text:'Reviewing comment thread history.', at:'2026-09-06T10:00:00'}]},
+  {id:'a3', caseId:nextCaseId(), userId:'u5', originalAction:'Content removed', originalReason:'A prior journal removed for targeted harassment.', moderatorId:'m2', appealDate:'2026-08-15T09:00:00', status:'Rejected', message:'It wasn\u2019t about a real person, it was fiction.', timeline:[{who:'Noor Jahan', text:'Appeal submitted.', at:'2026-08-15T09:00:00'},{who:'Fatima Rizvi', text:'Reviewed content and original report; decision upheld.', at:'2026-08-17T11:00:00'}]},
+  {id:'a4', caseId:nextCaseId(), userId:'u8', originalAction:'Wall posting suspended (7 days)', originalReason:'Spamming identical content.', moderatorId:'m1', appealDate:'2026-07-02T09:00:00', status:'Approved', message:'It was a scheduling bug in a third-party tool, not intentional spam.', timeline:[{who:'Arjun Mehta', text:'Appeal submitted.', at:'2026-07-02T09:00:00'},{who:'Sam D\u2019Souza', text:'Verified explanation, restriction lifted early.', at:'2026-07-03T14:00:00'}]},
+];
+function appealById(id){ return APPEALS.find(a=>a.id===id); }
+
+const AUDIT_LOG = [
+  {id:'l1', caseId:REPORTS[2].caseId, moderatorId:'m2', action:'Content removed', targetUserId:'u5', targetContentId:'c3', reason:'Repeated hate speech targeting a community.', at:'2026-09-10T09:40:00', duration:null, expiry:null, result:'Content removed, user posting-suspended 30 days'},
+  {id:'l2', caseId:REPORTS[2].caseId, moderatorId:'m2', action:'User restricted', targetUserId:'u5', targetContentId:null, reason:'Repeated hate speech after a prior warning.', at:'2026-09-10T09:41:00', duration:'30 days', expiry:'2026-10-10T10:00:00', result:'Posting suspended'},
+  {id:'l3', caseId:REPORTS[7].caseId, moderatorId:'m1', action:'Report dismissed', targetUserId:'u1', targetContentId:'c4', reason:'Fictional character, not a clear real-person parody.', at:'2026-09-08T14:00:00', duration:null, expiry:null, result:'No action, report closed'},
+  {id:'l4', caseId:RESTRICTIONS[3].caseId, moderatorId:'m1', action:'User restricted', targetUserId:'u8', targetContentId:'c7', reason:'Spamming identical content to The Wall.', at:'2026-07-01T00:00:00', duration:'7 days', expiry:'2026-07-08T00:00:00', result:'Wall posting suspended'},
+  {id:'l5', caseId:RESTRICTIONS[4].caseId, moderatorId:'m0', action:'Restriction cancelled', targetUserId:'u4', targetContentId:null, reason:'Issued in error against the wrong account.', at:'2026-06-11T02:00:00', duration:null, expiry:null, result:'Restriction reversed'},
+  {id:'l6', caseId:APPEALS[3].caseId, moderatorId:'m1', action:'Appeal approved', targetUserId:'u8', targetContentId:null, reason:'Verified third-party scheduling bug, not intentional spam.', at:'2026-07-03T14:00:00', duration:null, expiry:null, result:'Restriction lifted early'},
+  {id:'l7', caseId:APPEALS[2].caseId, moderatorId:'m2', action:'Appeal rejected', targetUserId:'u5', targetContentId:null, reason:'Content clearly targeted a specific, identifiable person.', at:'2026-08-17T11:00:00', duration:null, expiry:null, result:'Original decision upheld'},
+];
+
+const INTERNAL_NOTES = {}; // caseId -> [{author, text, at}]
+function addNote(caseId, author, text){
+  if(!INTERNAL_NOTES[caseId]) INTERNAL_NOTES[caseId]=[];
+  INTERNAL_NOTES[caseId].unshift({author, text, at:new Date().toISOString()});
+}
+addNote(REPORTS[2].caseId, 'Fatima Rizvi', 'Second offence from this account — escalate to suspension if it recurs.');
+addNote(RESTRICTIONS[0].caseId, 'Fatima Rizvi', 'User has an active appeal, hold off on further action until reviewed.');
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  role: 'admin', // 'admin' | 'moderator'
+  currentModeratorId: 'm0', // used for "assigned to me" filter + audit attribution
+  view: 'overview',
+  reportFilter: 'All',
+  reportSort: 'newest',
+  reportSearch: '',
+  contentFilter: 'All',
+  bulkSelection: new Set(),
+  detailStack: [], // for drawer breadcrumbs (not heavily used, kept simple)
+  overviewLoaded: false,
+};
+
+function currentModerator(){ return modById(state.currentModeratorId) || MODERATORS[0]; }
+
+/* ============================================================
+   NAV CONFIG
+   ============================================================ */
+const NAV = [
+  {id:'overview', label:'Overview', icon:'\u25A6', roles:['admin','moderator']},
+  {id:'reports', label:'Reports', icon:'\u2691', roles:['admin','moderator'], count:()=>REPORTS.filter(r=>r.status==='New').length},
+  {id:'users', label:'Users', icon:'\u25CB', roles:['admin','moderator']},
+  {id:'content', label:'Content', icon:'\u25A4', roles:['admin','moderator']},
+  {id:'restrictions', label:'Restrictions', icon:'\u26D4', roles:['admin','moderator']},
+  {id:'appeals', label:'Appeals', icon:'\u21BA', roles:['admin','moderator'], count:()=>APPEALS.filter(a=>a.status==='Pending').length},
+  {id:'log', label:'Moderation Log', icon:'\u2637', roles:['admin','moderator']},
+  {id:'moderators', label:'Moderators', icon:'\u263A', roles:['admin']},
+  {id:'settings', label:'Settings', icon:'\u2699', roles:['admin']},
+];
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function toast(msg, kind){
+  const stack = $('#toast-stack');
+  const el = document.createElement('div');
+  el.className = 'toast'+(kind?(' '+kind):'');
+  el.textContent = msg;
+  stack.appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 2600);
+}
+
+/* ============================================================
+   MODAL — generic confirm w/ required reason
+   ============================================================ */
+function openModal(html){ $('#modal-body').innerHTML = html; $('#modal-scrim').classList.add('open'); }
+function closeModal(){ $('#modal-scrim').classList.remove('open'); $('#modal-body').innerHTML=''; }
+
+function confirmAction({title, body, requireReason=true, destructive=false, confirmLabel='Confirm', onConfirm}){
+  openModal(`
+    <h3>${esc(title)}</h3>
+    ${body?`<p class="sub">${esc(body)}</p>`:''}
+    ${requireReason?`<textarea id="reason-input" placeholder="Reason for this action (required, visible in the moderation log)…"></textarea>
+    <div id="reason-err" style="color:var(--red); font-size:11.5px; margin-top:4px; display:none;">A reason is required before you can confirm.</div>`:''}
+    <div class="modal-actions">
+      <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+      <button class="btn ${destructive?'danger':'primary'} sm" id="modal-confirm-btn">${esc(confirmLabel)}</button>
+    </div>
+  `);
+  $('#modal-confirm-btn').onclick = ()=>{
+    let reason = '';
+    if(requireReason){
+      reason = $('#reason-input').value.trim();
+      if(!reason){ $('#reason-err').style.display='block'; return; }
+    }
+    closeModal();
+    onConfirm(reason);
+  };
+}
+
+/* ============================================================
+   DRAWER
+   ============================================================ */
+function openDrawer(html){ $('#drawer-body').innerHTML = html; $('#drawer-scrim').classList.add('open'); }
+function closeDrawer(){ $('#drawer-scrim').classList.remove('open'); $('#drawer-body').innerHTML=''; }
+
+/* ============================================================
+   AUDIT / ACTIONS
+   ============================================================ */
+function logAction({caseId, action, targetUserId, targetContentId, reason, duration, expiry, result}){
+  AUDIT_LOG.unshift({
+    id:'l'+(AUDIT_LOG.length+1)+Math.random().toString(36).slice(2,5),
+    caseId, moderatorId: state.currentModeratorId, action, targetUserId, targetContentId, reason,
+    at:new Date().toISOString(), duration:duration||null, expiry:expiry||null, result
+  });
+}
+
+function setReportStatus(report, status, reason, extra){
+  report.status = status;
+  logAction({caseId:report.caseId, action:extra&&extra.actionLabel||status, targetUserId:report.reportedUser, targetContentId:report.contentId, reason, duration:extra&&extra.duration, expiry:extra&&extra.expiry, result:extra&&extra.result||status});
+}
+
+function restrictUser(userId, caseId, type, reason, days){
+  const start = new Date();
+  const expiry = new Date(start.getTime()+days*86400000);
+  const r = {id:'x'+(RESTRICTIONS.length+1), caseId, userId, type, reason, moderatorId:state.currentModeratorId, start:start.toISOString(), expiry:expiry.toISOString(), status:'active'};
+  RESTRICTIONS.unshift(r);
+  const u = userById(userId); if(u) u.status='restricted';
+  logAction({caseId, action:'User restricted', targetUserId:userId, targetContentId:null, reason, duration:days+' days', expiry:expiry.toISOString(), result:type});
+  return r;
+}
+
+function removeContent(content, reason){
+  content.status = 'removed';
+  logAction({caseId:content.caseId, action:'Content removed', targetUserId:content.author, targetContentId:content.id, reason, result:'Content removed'});
+}
+function restoreContent(content, reason){
+  content.status = 'active';
+  logAction({caseId:content.caseId, action:'Content restored', targetUserId:content.author, targetContentId:content.id, reason, result:'Content restored'});
+}
+
+/* ============================================================
+   RENDER: SIDEBAR
+   ============================================================ */
+function renderSidebar(){
+  const nav = $('#sb-nav');
+  nav.innerHTML = NAV.filter(n=>n.roles.includes(state.role)).map(n=>{
+    const active = state.view===n.id ? 'active' : '';
+    const cnt = n.count ? n.count() : 0;
+    return `<button class="sb-link ${active}" data-nav="${n.id}"><span class="ic">${n.icon}</span>${n.label}${cnt?`<span class="cnt">${cnt}</span>`:''}</button>`;
+  }).join('') + (state.role==='moderator' ? `
+    <div class="sb-section-label">Admin only</div>
+    <button class="sb-link" disabled style="opacity:.4; cursor:not-allowed;"><span class="ic">\u263A</span>Moderators<span class="sb-lock">\uD83D\uDD12</span></button>
+    <button class="sb-link" disabled style="opacity:.4; cursor:not-allowed;"><span class="ic">\u2699</span>Settings<span class="sb-lock">\uD83D\uDD12</span></button>
+  ` : '');
+
+  const me = currentModerator();
+  $('#sb-profile').innerHTML = `
+    <div class="av">${esc(me.displayName.split(' ').map(s=>s[0]).join(''))}</div>
+    <div class="meta"><b>${esc(me.displayName)}</b><span>${state.role==='admin'?'Administrator':'Moderator'}</span></div>
+  `;
+  $('#topbar-role-badge').textContent = state.role.toUpperCase();
+  $$('.role-toggle button').forEach(b=> b.classList.toggle('active', b.dataset.role===state.role));
+}
+
+/* ============================================================
+   RENDER: OVERVIEW
+   ============================================================ */
+function statCard(label, value, sub, color){
+  return `<div class="stat-card"><div class="tag" style="background:${color}"></div><span class="lbl">${label}</span><b>${value}</b>${sub?`<div class="sub">${sub}</div>`:''}</div>`;
+}
+function skeletonStats(){ return `<div class="stat-grid">${Array(4).fill('<div class="stat-card skel skel-card"></div>').join('')}</div>`; }
+
+function renderOverview(){
+  const root = $('#view-root');
+  if(!state.overviewLoaded){
+    root.innerHTML = skeletonStats() + `<div class="panel skel skel-card" style="height:220px;"></div>`;
+    setTimeout(()=>{ state.overviewLoaded = true; renderOverview(); }, 550);
+    return;
+  }
+
+  const pending = REPORTS.filter(r=>r.status==='New'||r.status==='Under Review').length;
+  const highPriority = REPORTS.filter(r=>(r.priority==='High'||r.priority==='Urgent') && r.status!=='Dismissed' && r.status!=='Action Taken').length;
+  const activeRestr = RESTRICTIONS.filter(x=>x.status==='active').length;
+  const expiringSoon = RESTRICTIONS.filter(x=>x.status==='active' && (new Date(x.expiry)-Date.now()) < 3*86400000).length;
+  const pendingAppeals = APPEALS.filter(a=>a.status==='Pending'||a.status==='Under Review').length;
+  const removedContent = CONTENT.filter(c=>c.status==='removed').length;
+  const recentActions = AUDIT_LOG.slice(0,6);
+  const recentReports = [...REPORTS].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
+
+  root.innerHTML = `
+    <div class="stat-grid">
+      ${statCard('Pending reports', pending, `${REPORTS.filter(r=>r.status==='New').length} unassigned`, 'var(--orange)')}
+      ${statCard('High priority', highPriority, 'needs attention', 'var(--red)')}
+      ${statCard('Active restrictions', activeRestr, `${expiringSoon} expiring within 3 days`, 'var(--lavender)')}
+      ${statCard('Pending appeals', pendingAppeals, `${APPEALS.filter(a=>a.status==='Pending').length} awaiting first review`, 'var(--mint)')}
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head"><h3>Recent reports</h3><button class="btn ghost sm" data-nav="reports">View all</button></div>
+        ${recentReports.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Content</th><th>Reason</th><th>Priority</th><th>Status</th></tr></thead><tbody>
+          ${recentReports.map(r=>`<tr data-open-report="${r.id}"><td class="caseid">${r.caseId}</td><td>${esc(contentById(r.contentId).title)}</td><td>${esc(r.reason)}</td><td>${priorityBadge(r.priority)}</td><td>${statusBadge(r.status)}</td></tr>`).join('')}
+        </tbody></table>` : emptyState('No reports yet', 'New reports from readers will show up here.')}
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Recent moderation actions</h3><button class="btn ghost sm" data-nav="log">Full log</button></div>
+        ${recentActions.length ? `<div class="timeline">${recentActions.map(l=>`
+          <div class="tl-item"><div class="tl-time">${timeAgo(l.at)} \u2014 ${esc(modById(l.moderatorId).displayName)}</div><div class="tl-body"><b>${esc(l.action)}</b> \u00b7 ${esc(l.caseId)} <span class="muted">\u2014 ${esc(l.reason||'')}</span></div></div>
+        `).join('')}</div>` : emptyState('No actions yet', 'Moderation actions will appear here as they happen.')}
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head"><h3>Content removal statistics</h3></div>
+        <div class="kv"><b>Removed</b><span>${removedContent} of ${CONTENT.length} tracked items</span>
+        <b>Under review</b><span>${CONTENT.filter(c=>c.status==='under_review').length} items</span>
+        <b>Most-reported category</b><span>${topReportedCategory()}</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>User restriction statistics</h3></div>
+        <div class="kv"><b>Active</b><span>${RESTRICTIONS.filter(x=>x.status==='active').length}</span>
+        <b>Expired</b><span>${RESTRICTIONS.filter(x=>x.status==='expired').length}</span>
+        <b>Cancelled</b><span>${RESTRICTIONS.filter(x=>x.status==='cancelled').length}</span></div>
+      </div>
+    </div>
+    <div style="text-align:center; margin-top:6px;">
+      <button class="btn ghost sm" id="demo-error-btn" style="opacity:.55;">Simulate error state (demo only)</button>
+    </div>
+  `;
+  $('#demo-error-btn').onclick = ()=>{
+    root.innerHTML = errorState('Couldn\u2019t load dashboard data', 'This is a simulated failure for demo purposes.', ()=>{ state.overviewLoaded=false; renderOverview(); });
+  };
+}
+function topReportedCategory(){
+  const counts = {};
+  CONTENT.forEach(c=>{ counts[c.type] = (counts[c.type]||0) + (c.reports||0); });
+  const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+  return top && top[1]>0 ? `${top[0]} (${top[1]} reports)` : '\u2014';
+}
+
+/* ============================================================
+   SHARED: states
+   ============================================================ */
+function emptyState(title, sub){ return `<div class="state-box"><div class="ic">\uD83D\uDCED</div><h4>${esc(title)}</h4><p>${esc(sub)}</p></div>`; }
+function noResultsState(){ return `<div class="state-box"><div class="ic">\uD83D\uDD0D</div><h4>No matches</h4><p>Try a different filter or search term.</p></div>`; }
+function errorState(title, sub, retry){
+  const id = 'err-retry-'+Math.random().toString(36).slice(2,7);
+  setTimeout(()=>{ const b=document.getElementById(id); if(b) b.onclick=retry; });
+  return `<div class="state-box"><div class="ic">\u26A0\uFE0F</div><h4>${esc(title)}</h4><p>${esc(sub)}</p><button class="btn primary sm" id="${id}">Retry</button></div>`;
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+function priorityBadge(p){
+  const map = {Urgent:'red', High:'gold', Normal:'grey'};
+  return `<span class="badge ${map[p]||'grey'}">${esc(p)}</span>`;
+}
+function statusBadge(s){
+  const map = {New:'orange', 'Under Review':'sky', 'Action Taken':'mint', Dismissed:'grey',
+    active:'mint', removed:'red', under_review:'sky',
+    Pending:'orange', 'In Review':'sky', Approved:'mint', Rejected:'red',
+    Active:'mint', Expired:'grey', Cancelled:'grey',
+    restricted:'gold', suspended:'red'};
+  const label = typeof s==='string' ? s.replace(/_/g,' ') : s;
+  return `<span class="badge ${map[s]||'grey'}">${esc(label)}</span>`;
+}
+
+/* ============================================================
+   RENDER: REPORTS
+   ============================================================ */
+const REPORT_FILTERS = ['All','New','Under Review','Action Taken','Dismissed','High Priority','Unassigned','Assigned to me'];
+
+function filteredReports(){
+  let list = [...REPORTS];
+  const f = state.reportFilter;
+  if(f==='High Priority') list = list.filter(r=>r.priority==='High'||r.priority==='Urgent');
+  else if(f==='Unassigned') list = list.filter(r=>!r.assignedTo);
+  else if(f==='Assigned to me') list = list.filter(r=>r.assignedTo===state.currentModeratorId);
+  else if(f!=='All') list = list.filter(r=>r.status===f);
+  if(state.reportSearch){
+    const q = state.reportSearch.toLowerCase();
+    list = list.filter(r=> r.caseId.toLowerCase().includes(q) || contentById(r.contentId).title.toLowerCase().includes(q) || userById(r.reportedUser).username.toLowerCase().includes(q));
+  }
+  list.sort((a,b)=> state.reportSort==='newest' ? new Date(b.createdAt)-new Date(a.createdAt) : new Date(a.createdAt)-new Date(b.createdAt));
+  return list;
+}
+
+function renderReports(){
+  const root = $('#view-root');
+  const list = filteredReports();
+  root.innerHTML = `
+    <div class="filter-row">
+      ${REPORT_FILTERS.map(f=>`<button class="chip ${state.reportFilter===f?'active':''}" data-report-filter="${f}">${f}</button>`).join('')}
+      <input class="search-mini" id="report-search" placeholder="Search reports…" value="${esc(state.reportSearch)}">
+      <select class="search-mini" id="report-sort" style="min-width:auto;">
+        <option value="newest" ${state.reportSort==='newest'?'selected':''}>Newest first</option>
+        <option value="oldest" ${state.reportSort==='oldest'?'selected':''}>Oldest first</option>
+      </select>
+    </div>
+    <div id="bulk-bar-slot"></div>
+    <div class="panel" style="padding:8px 12px;">
+      ${list.length ? `<table class="dtable"><thead><tr>
+        <th class="checkbox-cell"><input type="checkbox" id="report-select-all"></th>
+        <th>Case</th><th>Content</th><th>Type</th><th>Reported user</th><th>Reporter</th><th>Reason</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Reported</th>
+      </tr></thead><tbody>
+        ${list.map(r=>{
+          const c = contentById(r.contentId), ru = userById(r.reportedUser), rp = userById(r.reporter), mod = r.assignedTo?modById(r.assignedTo):null;
+          return `<tr data-open-report="${r.id}">
+            <td class="checkbox-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-check" data-bulk-id="${r.id}" ${state.bulkSelection.has(r.id)?'checked':''}></td>
+            <td class="caseid">${r.caseId}</td>
+            <td>${esc(c.title)}</td>
+            <td>${esc(c.type)}</td>
+            <td>@${esc(ru.username)}</td>
+            <td>@${esc(rp.username)}</td>
+            <td>${esc(r.reason)}</td>
+            <td>${priorityBadge(r.priority)}</td>
+            <td>${statusBadge(r.status)}</td>
+            <td class="muted">${mod?esc(mod.displayName):'\u2014'}</td>
+            <td class="muted">${timeAgo(r.createdAt)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody></table>` : (REPORTS.length ? noResultsState() : emptyState('No reports', 'Reports will appear here as readers flag content.'))}
+    </div>
+  `;
+  renderBulkBar('#bulk-bar-slot', list, r=>r.id, 'reports');
+  $('#report-search').oninput = e=>{ state.reportSearch = e.target.value; renderReports(); };
+  $('#report-sort').onchange = e=>{ state.reportSort = e.target.value; renderReports(); };
+}
+
+function renderBulkBar(slotSel, list, idFn, kind){
+  const slot = $(slotSel);
+  const selectedCount = list.filter(x=>state.bulkSelection.has(idFn(x))).length;
+  slot.innerHTML = selectedCount ? `
+    <div class="bulk-bar">
+      <b>${selectedCount} selected</b>
+      <button class="btn soft sm" data-bulk-action="dismiss" data-bulk-kind="${kind}">Bulk dismiss</button>
+      <button class="btn soft sm" data-bulk-action="remove" data-bulk-kind="${kind}">Bulk remove content</button>
+      <button class="btn ghost sm" style="margin-left:auto; background:transparent; border-color:rgba(255,255,255,.3); color:#fff;" data-bulk-action="clear">Clear selection</button>
+    </div>` : '';
+}
+
+/* ============================================================
+   RENDER: REPORT DETAIL (drawer)
+   ============================================================ */
+function renderReportDetail(reportId){
+  const r = reportById(reportId);
+  const c = contentById(r.contentId);
+  const ru = userById(r.reportedUser), rp = userById(r.reporter);
+  const mod = r.assignedTo ? modById(r.assignedTo) : null;
+  const priorHistory = AUDIT_LOG.filter(l=>l.targetUserId===r.reportedUser).slice(0,4);
+  const notes = INTERNAL_NOTES[r.caseId] || [];
+
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <div class="badge orange" style="margin-bottom:8px;">${statusBadge(r.status)}</div>
+    <h2 style="font-size:19px;">Report ${r.caseId}</h2>
+    <div class="kv">
+      <b>Case ID</b><span class="caseid">${r.caseId}</span>
+      <b>Content</b><span>${esc(c.title)} <span class="muted">(${esc(c.type)})</span></span>
+      <b>Reported user</b><span>@${esc(ru.username)} \u2014 ${esc(ru.displayName)}</span>
+      <b>Reporter</b><span>@${esc(rp.username)}</span>
+      <b>Reason</b><span>${esc(r.reason)}</span>
+      <b>Reported</b><span>${fmtDate(r.createdAt)}</span>
+      <b>Assigned to</b><span>${mod?esc(mod.displayName):'Unassigned'}</span>
+    </div>
+
+    <div class="content-preview-box">${esc(c.preview)}</div>
+
+    <div class="filter-row" style="margin:14px 0;">
+      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint);">Priority:</b>
+      ${['Normal','High','Urgent'].map(p=>`<button class="chip ${r.priority===p?'active':''}" data-set-priority="${p}" data-report-id="${r.id}">${p}</button>`).join('')}
+    </div>
+
+    <div style="margin:14px 0;">
+      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Assign moderator</b>
+      <select class="search-mini" style="width:100%;" id="assign-select" data-report-id="${r.id}">
+        <option value="">Unassigned</option>
+        ${MODERATORS.filter(m=>m.status==='active').map(m=>`<option value="${m.id}" ${r.assignedTo===m.id?'selected':''}>${esc(m.displayName)}</option>`).join('')}
+      </select>
+    </div>
+
+    <p style="font-size:13px;"><b>Report description:</b> ${esc(r.description)}</p>
+
+    ${priorHistory.length?`<hr class="divider"><h4 style="font-size:13px; margin-bottom:8px;">Previous moderation history for this user</h4>
+    <div class="timeline">${priorHistory.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body">${esc(l.action)} \u2014 ${esc(l.caseId)}</div></div>`).join('')}</div>`:''}
+
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Internal notes <span class="muted" style="font-weight:500;">(staff only, never shown to users)</span></h4>
+    ${notes.map(n=>`<div class="note-item"><div class="who">${esc(n.author)} \u00b7 ${timeAgo(n.at)}</div>${esc(n.text)}</div>`).join('') || '<p class="muted" style="font-size:12px;">No internal notes yet.</p>'}
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input class="search-mini" style="flex:1;" id="note-input" placeholder="Add an internal note…">
+      <button class="btn soft sm" id="add-note-btn">Add</button>
+    </div>
+
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">User notification preview <span class="muted" style="font-weight:500;">(what the affected user would see)</span></h4>
+    ${notifPreview(r.reason, r.caseId)}
+
+    <hr class="divider">
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      <button class="btn ghost sm" data-report-act="dismiss" data-report-id="${r.id}">Dismiss report</button>
+      <button class="btn soft sm" data-report-act="remove" data-report-id="${r.id}">Remove content</button>
+      <button class="btn soft sm" data-report-act="restrict" data-report-id="${r.id}">Restrict user</button>
+      <button class="btn danger sm" data-report-act="suspend" data-report-id="${r.id}">Suspend user</button>
+      ${c.status==='removed'?`<button class="btn ghost sm" data-report-act="restore" data-report-id="${r.id}">Restore content</button>`:''}
+    </div>
+  `);
+  $('#add-note-btn').onclick = ()=>{
+    const v = $('#note-input').value.trim();
+    if(!v) return;
+    addNote(r.caseId, currentModerator().displayName, v);
+    toast('Internal note added.', 'success');
+    renderReportDetail(reportId);
+  };
+}
+
+function notifPreview(reason, caseId){
+  return `<div class="notif-preview">
+    <div class="from">From: Moderation Team</div>
+    <div class="msg">Your content was removed because it violated our Community Guidelines (${esc(reason)}).</div>
+    <div class="meta">Case ${esc(caseId)} \u00b7 <a href="#" onclick="return false;">Community Guidelines</a> \u00b7 <button class="btn ghost sm" style="padding:3px 10px;" disabled>Appeal</button></div>
+  </div>`;
+}
+
+/* ============================================================
+   REPORT ACTIONS (dismiss / remove / restrict / suspend / restore)
+   ============================================================ */
+function handleReportAction(reportId, act){
+  const r = reportById(reportId);
+  const c = contentById(r.contentId);
+  const actions = {
+    dismiss:{title:'Dismiss this report?', confirmLabel:'Dismiss report', destructive:false},
+    remove:{title:'Remove this content?', body:'The content will be marked removed and the author notified.', confirmLabel:'Remove content', destructive:true},
+    restrict:{title:'Restrict this user?', body:'Choose a duration and provide a reason. The user will be notified without your identity being shown.', confirmLabel:'Apply restriction', destructive:true},
+    suspend:{title:'Suspend this user?', body:'This is a significant action — the user will lose posting access.', confirmLabel:'Suspend user', destructive:true},
+    restore:{title:'Restore this content?', confirmLabel:'Restore content', destructive:false},
+  };
+  const cfg = actions[act];
+  confirmAction({
+    title:cfg.title, body:cfg.body, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive,
+    onConfirm:(reason)=>{
+      if(act==='dismiss'){ setReportStatus(r,'Dismissed',reason,{actionLabel:'Report dismissed', result:'No action, report closed'}); toast('Report dismissed.','success'); }
+      if(act==='remove'){ removeContent(c, reason); setReportStatus(r,'Action Taken',reason,{actionLabel:'Content removed', result:'Content removed'}); toast('Content marked for removal.','success'); }
+      if(act==='restore'){ restoreContent(c, reason); toast('Content restored.','success'); }
+      if(act==='restrict'){ restrictUser(r.reportedUser, r.caseId, 'Posting restricted', reason, 14); setReportStatus(r,'Action Taken',reason,{actionLabel:'User restricted', result:'Posting restricted 14 days'}); toast('User restriction created.','success'); }
+      if(act==='suspend'){ const u=userById(r.reportedUser); u.status='suspended'; restrictUser(r.reportedUser, r.caseId, 'Account suspended', reason, 30); setReportStatus(r,'Action Taken',reason,{actionLabel:'User suspended', result:'Account suspended 30 days'}); toast('User suspended.','success'); }
+      renderReportDetail(reportId);
+      if(state.view==='reports') renderReports();
+      renderSidebar();
+    }
+  });
+}
+
+/* ============================================================
+   RENDER: USERS
+   ============================================================ */
+function renderUsers(){
+  const root = $('#view-root');
+  root.innerHTML = `
+    <div class="filter-row"><input class="search-mini" id="user-search" placeholder="Search users by username or name…" style="margin-left:0; min-width:280px;"></div>
+    <div class="panel" style="padding:8px 12px;" id="user-table-slot"></div>
+  `;
+  const draw = (q)=>{
+    let list = USERS;
+    if(q) list = list.filter(u=>u.username.toLowerCase().includes(q)||u.displayName.toLowerCase().includes(q));
+    const slot = $('#user-table-slot');
+    slot.innerHTML = list.length ? `<table class="dtable"><thead><tr><th>User</th><th>Status</th><th>Joined</th><th>Reports</th><th>Active restrictions</th></tr></thead><tbody>
+      ${list.map(u=>{
+        const reportsCount = REPORTS.filter(r=>r.reportedUser===u.id).length;
+        const activeRestr = RESTRICTIONS.filter(x=>x.userId===u.id && x.status==='active').length;
+        return `<tr data-open-user="${u.id}">
+          <td class="name-cell"><span class="mini-av">${esc(u.displayName[0])}</span><span><b>${esc(u.displayName)}</b><br><span class="muted">@${esc(u.username)}</span></span></td>
+          <td>${statusBadge(u.status)}</td>
+          <td class="muted">${fmtDate(u.joinDate)}</td>
+          <td>${reportsCount}</td>
+          <td>${activeRestr}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table>` : noResultsState();
+  };
+  draw('');
+  $('#user-search').oninput = e=> draw(e.target.value.toLowerCase());
+}
+
+function renderUserDetail(userId){
+  const u = userById(userId);
+  const history = AUDIT_LOG.filter(l=>l.targetUserId===userId);
+  const activeRestr = RESTRICTIONS.filter(x=>x.userId===userId && x.status==='active');
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc(u.displayName[0])}</span>
+      <div><h2 style="font-size:18px;">${esc(u.displayName)}</h2><span class="muted">@${esc(u.username)}</span></div>
+    </div>
+    <div class="kv">
+      <b>Status</b><span>${statusBadge(u.status)}</span>
+      <b>Joined</b><span>${fmtDate(u.joinDate)}</span>
+      <b>Total reports</b><span>${REPORTS.filter(r=>r.reportedUser===userId).length}</span>
+      <b>Active restrictions</b><span>${activeRestr.length}</span>
+    </div>
+    <div style="display:flex; gap:8px; margin:14px 0;">
+      <button class="btn soft sm" data-user-act="restrict" data-user-id="${u.id}">Restrict</button>
+      <button class="btn danger sm" data-user-act="suspend" data-user-id="${u.id}">Suspend</button>
+      ${u.status!=='active'?`<button class="btn ghost sm" data-user-act="restore" data-user-id="${u.id}">Restore / reinstate</button>`:''}
+    </div>
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Moderation history &amp; timeline</h4>
+    ${history.length ? `<div class="timeline">${history.map(l=>{
+      const restr = RESTRICTIONS.find(x=>x.caseId===l.caseId);
+      return `<div class="tl-item"><div class="tl-time">${fmtDate(l.at)} \u00b7 ${esc(l.caseId)}</div>
+      <div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br>
+      <span class="muted">${esc(l.reason||'')}</span>
+      ${restr?`<br><span class="muted">Duration: ${esc(restr.type)} \u00b7 expires ${fmtDate(restr.expiry)} \u00b7 ${statusBadge(restr.status)}</span>`:''}</div></div>`;
+    }).join('')}</div>` : emptyState('No moderation history', 'This user has no prior moderation actions on record.')}
+  `);
+}
+
+function handleUserAction(userId, act){
+  const u = userById(userId);
+  const cfgs = {
+    restrict:{title:`Restrict @${u.username}?`, confirmLabel:'Apply restriction', destructive:true},
+    suspend:{title:`Suspend @${u.username}?`, confirmLabel:'Suspend account', destructive:true},
+    restore:{title:`Restore @${u.username}?`, confirmLabel:'Restore account', destructive:false},
+  };
+  const cfg = cfgs[act];
+  confirmAction({title:cfg.title, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive, requireReason:act!=='restore', onConfirm:(reason)=>{
+    const caseId = nextCaseId();
+    if(act==='restrict'){ restrictUser(userId, caseId, 'Posting restricted', reason, 14); toast('User restriction created.','success'); }
+    if(act==='suspend'){ u.status='suspended'; restrictUser(userId, caseId, 'Account suspended', reason, 30); toast('User suspended.','success'); }
+    if(act==='restore'){ u.status='active'; RESTRICTIONS.filter(x=>x.userId===userId&&x.status==='active').forEach(x=>x.status='cancelled'); logAction({caseId, action:'User reinstated', targetUserId:userId, targetContentId:null, reason:reason||'Reinstated by moderator.', result:'Account restored'}); toast('User restored.','success'); }
+    renderUserDetail(userId);
+    if(state.view==='users') renderUsers();
+  }});
+}
+
+/* ============================================================
+   RENDER: CONTENT
+   ============================================================ */
+const CONTENT_FILTERS = ['All','Reported','Active','Removed','Under Review'];
+function filteredContent(){
+  let list = [...CONTENT];
+  const f = state.contentFilter;
+  if(f==='Reported') list = list.filter(c=>c.reports>0);
+  else if(f==='Active') list = list.filter(c=>c.status==='active');
+  else if(f==='Removed') list = list.filter(c=>c.status==='removed');
+  else if(f==='Under Review') list = list.filter(c=>c.status==='under_review');
+  return list;
+}
+function renderContent(){
+  const root = $('#view-root');
+  const list = filteredContent();
+  root.innerHTML = `
+    <div class="filter-row">${CONTENT_FILTERS.map(f=>`<button class="chip ${state.contentFilter===f?'active':''}" data-content-filter="${f}">${f}</button>`).join('')}</div>
+    <div id="content-bulk-slot"></div>
+    <div class="panel" style="padding:8px 12px;">
+      ${list.length ? `<table class="dtable"><thead><tr>
+        <th class="checkbox-cell"><input type="checkbox" id="content-select-all"></th>
+        <th>Title</th><th>Type</th><th>Author</th><th>Status</th><th>Reports</th><th>Published</th><th></th>
+      </tr></thead><tbody>
+        ${list.map(c=>{
+          const a = userById(c.author);
+          return `<tr data-open-content="${c.id}">
+            <td class="checkbox-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-check-content" data-bulk-id="${c.id}" ${state.bulkSelection.has(c.id)?'checked':''}></td>
+            <td>${esc(c.title)}${c.caseId?`<br><span class="caseid">${c.caseId}</span>`:''}</td>
+            <td>${esc(c.type)}</td>
+            <td>@${esc(a.username)}</td>
+            <td>${statusBadge(c.status)}</td>
+            <td>${c.reports}</td>
+            <td class="muted">${fmtDate(c.pubDate)}</td>
+            <td onclick="event.stopPropagation()"><button class="btn ghost sm" data-open-content="${c.id}">View</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody></table>` : (CONTENT.length ? noResultsState() : emptyState('No content', 'Published Works will show up here.'))}
+    </div>
+  `;
+  renderBulkBar('#content-bulk-slot', list, c=>c.id, 'content');
+}
+function renderContentDetail(contentId){
+  const c = contentById(contentId);
+  const a = userById(c.author);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">${esc(c.title)}</h2>
+    <div class="kv">
+      <b>Type</b><span>${esc(c.type)}</span>
+      <b>Author</b><span>@${esc(a.username)}</span>
+      <b>Status</b><span>${statusBadge(c.status)}</span>
+      <b>Reports</b><span>${c.reports}</span>
+      <b>Published</b><span>${fmtDate(c.pubDate)}</span>
+      ${c.caseId?`<b>Case ID</b><span class="caseid">${c.caseId}</span>`:''}
+    </div>
+    <div class="content-preview-box">${esc(c.preview)}</div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      ${c.status!=='removed'?`<button class="btn danger sm" data-content-act="remove" data-content-id="${c.id}">Remove</button>`:`<button class="btn ghost sm" data-content-act="restore" data-content-id="${c.id}">Restore</button>`}
+    </div>
+  `);
+}
+function handleContentAction(contentId, act){
+  const c = contentById(contentId);
+  confirmAction({
+    title: act==='remove' ? 'Remove this content?' : 'Restore this content?',
+    destructive: act==='remove', confirmLabel: act==='remove'?'Remove content':'Restore content',
+    onConfirm:(reason)=>{
+      if(!c.caseId) c.caseId = nextCaseId();
+      if(act==='remove'){ removeContent(c, reason); toast('Content marked for removal.','success'); }
+      else { restoreContent(c, reason); toast('Content restored.','success'); }
+      renderContentDetail(contentId);
+      if(state.view==='content') renderContent();
+    }
+  });
+}
+
+/* ============================================================
+   RENDER: RESTRICTIONS
+   ============================================================ */
+function renderRestrictions(){
+  const root = $('#view-root');
+  const list = [...RESTRICTIONS].sort((a,b)=>new Date(b.start)-new Date(a.start));
+  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Type</th><th>Reason</th><th>Moderator</th><th>Start</th><th>Expiry</th><th>Status</th></tr></thead><tbody>
+    ${list.map(x=>{
+      const u = userById(x.userId), m = modById(x.moderatorId);
+      const expiring = x.status==='active' && (new Date(x.expiry)-Date.now()) < 3*86400000;
+      return `<tr>
+        <td class="caseid">${x.caseId}</td>
+        <td>@${esc(u.username)}</td>
+        <td>${esc(x.type)}</td>
+        <td class="muted">${esc(x.reason)}</td>
+        <td class="muted">${esc(m.displayName)}</td>
+        <td class="muted">${fmtDate(x.start)}</td>
+        <td class="${expiring?'expiring':''}">${fmtDate(x.expiry)}${expiring?' \u26A0 expiring soon':''}</td>
+        <td>${statusBadge(x.status)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>` : emptyState('No restrictions', 'Active and past user restrictions will show up here.')}
+  </div>`;
+}
+
+/* ============================================================
+   RENDER: APPEALS
+   ============================================================ */
+function renderAppeals(){
+  const root = $('#view-root');
+  const list = [...APPEALS].sort((a,b)=>new Date(b.appealDate)-new Date(a.appealDate));
+  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Original action</th><th>Moderator</th><th>Appeal date</th><th>Status</th></tr></thead><tbody>
+    ${list.map(a=>{
+      const u = userById(a.userId), m = modById(a.moderatorId);
+      return `<tr data-open-appeal="${a.id}">
+        <td class="caseid">${a.caseId}</td>
+        <td>@${esc(u.username)}</td>
+        <td>${esc(a.originalAction)}</td>
+        <td class="muted">${esc(m.displayName)}</td>
+        <td class="muted">${fmtDate(a.appealDate)}</td>
+        <td>${statusBadge(a.status)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>` : emptyState('No appeals', 'User appeals against moderation actions will show up here.')}
+  </div>`;
+}
+function renderAppealDetail(appealId){
+  const a = appealById(appealId);
+  const u = userById(a.userId);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Appeal ${a.caseId}</h2>
+    <div class="kv">
+      <b>User</b><span>@${esc(u.username)}</span>
+      <b>Original action</b><span>${esc(a.originalAction)}</span>
+      <b>Original reason</b><span>${esc(a.originalReason)}</span>
+      <b>Moderator</b><span>${esc(modById(a.moderatorId).displayName)}</span>
+      <b>Appeal date</b><span>${fmtDate(a.appealDate)}</span>
+      <b>Status</b><span>${statusBadge(a.status)}</span>
+    </div>
+    <div class="content-preview-box"><b>User's appeal message:</b><br>${esc(a.message)}</div>
+    <h4 style="font-size:13px; margin:14px 0 8px;">Review timeline</h4>
+    <div class="timeline">${a.timeline.map(t=>`<div class="tl-item"><div class="tl-time">${fmtDate(t.at)}</div><div class="tl-body">${esc(t.who)}: ${esc(t.text)}</div></div>`).join('')}</div>
+    ${(a.status==='Pending'||a.status==='Under Review')?`<hr class="divider"><div style="display:flex; gap:8px;">
+      <button class="btn primary sm" data-appeal-act="approve" data-appeal-id="${a.id}">Approve appeal</button>
+      <button class="btn danger sm" data-appeal-act="reject" data-appeal-id="${a.id}">Reject appeal</button>
+    </div>`:''}
+  `);
+}
+function handleAppealAction(appealId, act){
+  const a = appealById(appealId);
+  confirmAction({
+    title: act==='approve' ? 'Approve this appeal?' : 'Reject this appeal?',
+    body: act==='approve' ? 'The related restriction will be lifted.' : undefined,
+    destructive: act==='reject', confirmLabel: act==='approve'?'Approve appeal':'Reject appeal',
+    onConfirm:(reason)=>{
+      a.status = act==='approve' ? 'Approved' : 'Rejected';
+      a.timeline.push({who:currentModerator().displayName, text:reason, at:new Date().toISOString()});
+      if(act==='approve'){
+        const restr = RESTRICTIONS.find(x=>x.caseId===a.caseId);
+        if(restr){ restr.status='cancelled'; const u=userById(restr.userId); if(u) u.status='active'; }
+        logAction({caseId:a.caseId, action:'Appeal approved', targetUserId:a.userId, targetContentId:null, reason, result:'Restriction lifted'});
+      } else {
+        logAction({caseId:a.caseId, action:'Appeal rejected', targetUserId:a.userId, targetContentId:null, reason, result:'Original decision upheld'});
+      }
+      toast(act==='approve'?'Appeal approved.':'Appeal rejected.', 'success');
+      renderAppealDetail(appealId);
+      if(state.view==='appeals') renderAppeals();
+    }
+  });
+}
+
+/* ============================================================
+   RENDER: MODERATION LOG
+   ============================================================ */
+function renderLog(){
+  const root = $('#view-root');
+  const list = [...AUDIT_LOG].sort((a,b)=>new Date(b.at)-new Date(a.at));
+  root.innerHTML = `
+    <div class="immutable-note">\uD83D\uDD12 This log is immutable — entries cannot be edited or deleted, by admins or moderators.</div>
+    <div class="panel" style="padding:8px 12px;">
+      ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Moderator</th><th>Action</th><th>Target user</th><th>Reason</th><th>Date</th><th>Result</th></tr></thead><tbody>
+      ${list.map(l=>{
+        const m = modById(l.moderatorId), u = l.targetUserId?userById(l.targetUserId):null;
+        return `<tr data-open-case="${l.caseId}">
+          <td class="caseid">${l.caseId}</td>
+          <td>${esc(m.displayName)} ${m.role==='admin'?'<span class="badge ink" style="padding:1px 6px;">ADMIN</span>':'<span class="badge grey" style="padding:1px 6px;">MOD</span>'}</td>
+          <td>${esc(l.action)}</td>
+          <td>${u?'@'+esc(u.username):'\u2014'}</td>
+          <td class="muted">${esc(l.reason||'')}</td>
+          <td class="muted">${fmtDate(l.at)}</td>
+          <td class="muted">${esc(l.result||'')}</td>
+        </tr>`;
+      }).join('')}</tbody></table>` : emptyState('No log entries', 'Every moderation action taken will be recorded here.')}
+    </div>
+  `;
+}
+function renderCaseTimeline(caseId){
+  const entries = AUDIT_LOG.filter(l=>l.caseId===caseId).sort((a,b)=>new Date(a.at)-new Date(b.at));
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Case timeline</h2>
+    <div class="badge grey caseid" style="margin-bottom:14px;">${esc(caseId)}</div>
+    ${entries.length ? `<div class="timeline">${entries.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br><span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No entries', 'No log entries for this case yet.')}
+  `);
+}
+
+/* ============================================================
+   RENDER: MODERATORS (admin only)
+   ============================================================ */
+function renderModerators(){
+  const root = $('#view-root');
+  if(state.role!=='admin'){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
+  root.innerHTML = `
+    <div class="panel-head" style="margin-bottom:10px;"><div></div><button class="btn primary sm" id="add-mod-btn">+ Add moderator</button></div>
+    <div class="panel" style="padding:8px 12px;">
+      ${MODERATORS.length ? `<table class="dtable"><thead><tr><th>Moderator</th><th>Role</th><th>Status</th><th>Appointed</th><th>Cases handled</th><th>Actions</th></tr></thead><tbody>
+      ${MODERATORS.map(m=>{
+        const cases = AUDIT_LOG.filter(l=>l.moderatorId===m.id).length;
+        return `<tr data-open-mod="${m.id}">
+          <td class="name-cell"><span class="mini-av">${esc(m.displayName[0])}</span><span><b>${esc(m.displayName)}</b><br><span class="muted">@${esc(m.username)}</span></span></td>
+          <td>${m.role==='admin'?'<span class="badge ink">Admin</span>':'<span class="badge grey">Moderator</span>'}</td>
+          <td>${statusBadge(m.status)}</td>
+          <td class="muted">${fmtDate(m.dateAppointed)}</td>
+          <td>${cases}</td>
+          <td onclick="event.stopPropagation()">
+            ${m.id!=='m0' ? (m.status==='active' ? `<button class="btn ghost sm" data-mod-act="suspend" data-mod-id="${m.id}">Suspend</button> <button class="btn ghost sm" data-mod-act="remove" data-mod-id="${m.id}">Remove</button>` : `<button class="btn ghost sm" data-mod-act="reinstate" data-mod-id="${m.id}">Reinstate</button>`) : '<span class="muted">You</span>'}
+          </td>
+        </tr>`;
+      }).join('')}</tbody></table>` : emptyState('No moderators yet', 'Add a moderator to get started.')}
+    </div>
+  `;
+  $('#add-mod-btn').onclick = ()=>{
+    openModal(`
+      <h3>Add a moderator</h3>
+      <p class="sub">Search for an existing user to promote (mock search).</p>
+      <select class="search-mini" style="width:100%;" id="new-mod-select">
+        ${USERS.filter(u=>!MODERATORS.find(m=>m.username===u.username)).map(u=>`<option value="${u.id}">@${esc(u.username)} \u2014 ${esc(u.displayName)}</option>`).join('')}
+      </select>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+        <button class="btn primary sm" id="confirm-add-mod">Add as moderator</button>
+      </div>
+    `);
+    $('#confirm-add-mod').onclick = ()=>{
+      const uid = $('#new-mod-select').value;
+      const u = userById(uid);
+      if(u){
+        MODERATORS.push({id:'m'+(MODERATORS.length+1), username:u.username, displayName:u.displayName, role:'moderator', status:'active', dateAppointed:new Date().toISOString()});
+        toast('Moderator added.','success');
+      }
+      closeModal();
+      renderModerators();
+    };
+  };
+}
+function handleModAction(modId, act){
+  const m = modById(modId);
+  confirmAction({
+    title: `${act[0].toUpperCase()+act.slice(1)} ${m.displayName}?`, requireReason:false,
+    destructive: act!=='reinstate', confirmLabel: act[0].toUpperCase()+act.slice(1),
+    onConfirm:()=>{
+      if(act==='suspend') m.status='suspended';
+      if(act==='remove'){ const i=MODERATORS.indexOf(m); if(i>-1) MODERATORS.splice(i,1); }
+      if(act==='reinstate') m.status='active';
+      toast('Moderator status updated.','success');
+      renderModerators();
+    }
+  });
+}
+function renderModeratorActivity(modId){
+  const m = modById(modId);
+  const actions = AUDIT_LOG.filter(l=>l.moderatorId===modId);
+  const restr = RESTRICTIONS.filter(x=>x.moderatorId===modId);
+  const appealsFromActions = APPEALS.filter(a=>a.moderatorId===modId);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc(m.displayName[0])}</span>
+      <div><h2 style="font-size:18px;">${esc(m.displayName)}</h2><span class="muted">${m.role==='admin'?'Administrator':'Moderator'} \u00b7 ${statusBadge(m.status)}</span></div>
+    </div>
+    <div class="kv">
+      <b>Appointed</b><span>${fmtDate(m.dateAppointed)}</span>
+      <b>Cases handled</b><span>${actions.length}</span>
+      <b>Active restrictions issued</b><span>${restr.filter(x=>x.status==='active').length}</span>
+      <b>Appeals from actions</b><span>${appealsFromActions.length}</span>
+    </div>
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Moderation timeline</h4>
+    ${actions.length ? `<div class="timeline">${actions.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)} \u00b7 ${esc(l.caseId)}</div><div class="tl-body">${esc(l.action)} \u2014 <span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No activity yet', 'This moderator hasn\u2019t taken any actions yet.')}
+  `);
+}
+
+/* ============================================================
+   RENDER: SETTINGS (admin only)
+   ============================================================ */
+function renderSettings(){
+  const root = $('#view-root');
+  if(state.role!=='admin'){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
+  const sections = [
+    ['Community Guidelines','Edit the public guidelines shown to users and referenced in notifications.'],
+    ['Moderation Rules','Define automated flags and escalation thresholds.'],
+    ['Report Categories','Manage the list of reasons available when a reader reports content.'],
+    ['Restriction Durations','Set default durations for warnings, restrictions, and suspensions.'],
+    ['Notification Settings','Configure how and when affected users are notified.'],
+    ['Platform Safety Settings','General safety and trust configuration for the platform.'],
+  ];
+  root.innerHTML = `<div class="two-col" style="grid-template-columns:1fr 1fr;">
+    ${sections.map(([t,d])=>`<div class="panel"><h3 style="font-size:15px; margin-bottom:6px;">${t}</h3><p class="muted" style="font-size:12.5px; margin-bottom:12px;">${d}</p><button class="btn ghost sm" disabled style="opacity:.5;">Placeholder — not yet connected</button></div>`).join('')}
+  </div>`;
+}
+
+/* ============================================================
+   GLOBAL SEARCH
+   ============================================================ */
+function runGlobalSearch(q){
+  q = q.toLowerCase().trim();
+  if(!q) return null;
+  const users = USERS.filter(u=>u.username.toLowerCase().includes(q)||u.displayName.toLowerCase().includes(q)).slice(0,4);
+  const content = CONTENT.filter(c=>c.title.toLowerCase().includes(q)).slice(0,4);
+  const reports = REPORTS.filter(r=>r.caseId.toLowerCase().includes(q)).slice(0,4);
+  const cases = [...new Set([...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId)])].filter(c=>c.toLowerCase().includes(q)).slice(0,4);
+  const mods = MODERATORS.filter(m=>m.username.toLowerCase().includes(q)||m.displayName.toLowerCase().includes(q)).slice(0,4);
+  return {users, content, reports, cases, mods};
+}
+function renderGlobalSearchResults(q){
+  const box = $('#gsearch-results');
+  const res = runGlobalSearch(q);
+  if(!res){ box.hidden = true; return; }
+  const groups = [];
+  if(res.users.length) groups.push(['Users', res.users.map(u=>`<div class="gsearch-item" data-gs-open="user" data-gs-id="${u.id}"><span class="mini-av">${esc(u.displayName[0])}</span><span><span class="t">${esc(u.displayName)}</span><br><span class="s">@${esc(u.username)}</span></span></div>`).join('')]);
+  if(res.content.length) groups.push(['Content', res.content.map(c=>`<div class="gsearch-item" data-gs-open="content" data-gs-id="${c.id}"><span>\uD83D\uDCC4</span><span><span class="t">${esc(c.title)}</span><br><span class="s">${esc(c.type)}</span></span></div>`).join('')]);
+  if(res.reports.length) groups.push(['Reports', res.reports.map(r=>`<div class="gsearch-item" data-gs-open="report" data-gs-id="${r.id}"><span>\uD83D\uDEA9</span><span><span class="t">${esc(r.caseId)}</span><br><span class="s">${esc(r.reason)}</span></span></div>`).join('')]);
+  if(res.cases.length) groups.push(['Case IDs', res.cases.map(c=>`<div class="gsearch-item" data-gs-open="case" data-gs-id="${c}"><span>\uD83D\uDDC2\uFE0F</span><span class="t caseid">${esc(c)}</span></div>`).join('')]);
+  if(res.mods.length) groups.push(['Moderators', res.mods.map(m=>`<div class="gsearch-item" data-gs-open="mod" data-gs-id="${m.id}"><span class="mini-av">${esc(m.displayName[0])}</span><span class="t">${esc(m.displayName)}</span></div>`).join('')]);
+  box.innerHTML = groups.length ? groups.map(([label,html])=>`<div class="gsearch-group-label">${label}</div>${html}`).join('') : `<div style="padding:14px; text-align:center; color:var(--ink-faint); font-size:12.5px;">No matches for "${esc(q)}"</div>`;
+  box.hidden = false;
+}
+
+/* ============================================================
+   VIEW DISPATCH
+   ============================================================ */
+const VIEW_TITLES = {overview:'Overview', reports:'Reports', users:'Users', content:'Content', restrictions:'Restrictions', appeals:'Appeals', log:'Moderation Log', moderators:'Moderators', settings:'Settings'};
+const VIEW_RENDERERS = {overview:renderOverview, reports:renderReports, users:renderUsers, content:renderContent, restrictions:renderRestrictions, appeals:renderAppeals, log:renderLog, moderators:renderModerators, settings:renderSettings};
+
+function goto(view){
+  if((view==='moderators'||view==='settings') && state.role!=='moderator'){ /* admin-only, allowed */ }
+  if((view==='moderators'||view==='settings') && state.role==='moderator'){ toast('Admins only.','error'); return; }
+  state.view = view;
+  state.bulkSelection.clear();
+  $('#view-title').textContent = VIEW_TITLES[view] || view;
+  renderSidebar();
+  (VIEW_RENDERERS[view]||renderOverview)();
+  $('#sidebar').classList.remove('open');
+}
+
+/* ============================================================
+   EVENT WIRING (delegated)
+   ============================================================ */
+document.addEventListener('click', (e)=>{
+  const nav = e.target.closest('[data-nav]');
+  if(nav){ goto(nav.dataset.nav); return; }
+
+  const roleBtn = e.target.closest('#role-toggle button');
+  if(roleBtn){
+    state.role = roleBtn.dataset.role;
+    if((state.view==='moderators'||state.view==='settings') && state.role==='moderator'){ state.view='overview'; }
+    toast(`Switched to ${state.role==='admin'?'Admin':'Moderator'} preview.`);
+    goto(state.view);
+    return;
+  }
+
+  if(e.target.closest('[data-action="close-drawer"]')){ closeDrawer(); return; }
+  if(e.target.closest('[data-action="close-modal"]')){ closeModal(); return; }
+  if(e.target===$('#drawer-scrim')){ closeDrawer(); return; }
+  if(e.target===$('#modal-scrim')){ closeModal(); return; }
+
+  const openReport = e.target.closest('[data-open-report]');
+  if(openReport){ renderReportDetail(openReport.dataset.openReport); return; }
+  const openUser = e.target.closest('[data-open-user]');
+  if(openUser){ renderUserDetail(openUser.dataset.openUser); return; }
+  const openContent = e.target.closest('[data-open-content]');
+  if(openContent){ renderContentDetail(openContent.dataset.openContent); return; }
+  const openAppeal = e.target.closest('[data-open-appeal]');
+  if(openAppeal){ renderAppealDetail(openAppeal.dataset.openAppeal); return; }
+  const openCase = e.target.closest('[data-open-case]');
+  if(openCase){ renderCaseTimeline(openCase.dataset.openCase); return; }
+  const openMod = e.target.closest('[data-open-mod]');
+  if(openMod){ renderModeratorActivity(openMod.dataset.openMod); return; }
+
+  const reportFilter = e.target.closest('[data-report-filter]');
+  if(reportFilter){ state.reportFilter = reportFilter.dataset.reportFilter; renderReports(); return; }
+  const contentFilter = e.target.closest('[data-content-filter]');
+  if(contentFilter){ state.contentFilter = contentFilter.dataset.contentFilter; renderContent(); return; }
+
+  const setPriority = e.target.closest('[data-set-priority]');
+  if(setPriority){
+    const r = reportById(setPriority.dataset.reportId);
+    r.priority = setPriority.dataset.setPriority;
+    toast('Priority updated.','success');
+    renderReportDetail(r.id);
+    return;
+  }
+
+  const reportAct = e.target.closest('[data-report-act]');
+  if(reportAct){ handleReportAction(reportAct.dataset.reportId, reportAct.dataset.reportAct); return; }
+  const userAct = e.target.closest('[data-user-act]');
+  if(userAct){ handleUserAction(userAct.dataset.userId, userAct.dataset.userAct); return; }
+  const contentAct = e.target.closest('[data-content-act]');
+  if(contentAct){ handleContentAction(contentAct.dataset.contentId, contentAct.dataset.contentAct); return; }
+  const appealAct = e.target.closest('[data-appeal-act]');
+  if(appealAct){ handleAppealAction(appealAct.dataset.appealId, appealAct.dataset.appealAct); return; }
+  const modAct = e.target.closest('[data-mod-act]');
+  if(modAct){ handleModAction(modAct.dataset.modId, modAct.dataset.modAct); return; }
+
+  const bulkAction = e.target.closest('[data-bulk-action]');
+  if(bulkAction){
+    const action = bulkAction.dataset.bulkAction;
+    if(action==='clear'){ state.bulkSelection.clear(); (VIEW_RENDERERS[state.view])(); return; }
+    const kind = bulkAction.dataset.bulkKind;
+    const ids = Array.from(state.bulkSelection);
+    confirmAction({
+      title:`${action==='dismiss'?'Dismiss':'Remove'} ${ids.length} selected ${kind}?`,
+      destructive:true, confirmLabel:'Confirm bulk action',
+      onConfirm:(reason)=>{
+        ids.forEach(id=>{
+          if(kind==='reports'){
+            const r = reportById(id);
+            if(action==='dismiss') setReportStatus(r,'Dismissed',reason,{actionLabel:'Report dismissed (bulk)', result:'No action, report closed'});
+            if(action==='remove'){ const c = contentById(r.contentId); removeContent(c, reason); setReportStatus(r,'Action Taken',reason,{actionLabel:'Content removed (bulk)', result:'Content removed'}); }
+          } else {
+            const c = contentById(id);
+            if(!c.caseId) c.caseId = nextCaseId();
+            if(action==='remove') removeContent(c, reason);
+          }
+        });
+        state.bulkSelection.clear();
+        toast(`Bulk action applied to ${ids.length} item(s).`,'success');
+        (VIEW_RENDERERS[state.view])();
+      }
+    });
+    return;
+  }
+
+  const gsItem = e.target.closest('[data-gs-open]');
+  if(gsItem){
+    const kind = gsItem.dataset.gsOpen, id = gsItem.dataset.gsId;
+    $('#gsearch-results').hidden = true; $('#gsearch-input').value='';
+    if(kind==='user'){ goto('users'); renderUserDetail(id); }
+    else if(kind==='content'){ goto('content'); renderContentDetail(id); }
+    else if(kind==='report'){ goto('reports'); renderReportDetail(id); }
+    else if(kind==='case'){ goto('log'); renderCaseTimeline(id); }
+    else if(kind==='mod'){ goto('moderators'); if(state.role==='admin') renderModeratorActivity(id); }
+    return;
+  }
+
+  if(!e.target.closest('.gsearch')) $('#gsearch-results').hidden = true;
+});
+
+document.addEventListener('change', (e)=>{
+  if(e.target.id==='report-select-all'){
+    const list = filteredReports();
+    list.forEach(r=> e.target.checked ? state.bulkSelection.add(r.id) : state.bulkSelection.delete(r.id));
+    renderReports();
+  }
+  if(e.target.id==='content-select-all'){
+    const list = filteredContent();
+    list.forEach(c=> e.target.checked ? state.bulkSelection.add(c.id) : state.bulkSelection.delete(c.id));
+    renderContent();
+  }
+  if(e.target.classList.contains('bulk-check')){
+    e.target.checked ? state.bulkSelection.add(e.target.dataset.bulkId) : state.bulkSelection.delete(e.target.dataset.bulkId);
+    renderBulkBar('#bulk-bar-slot', filteredReports(), r=>r.id, 'reports');
+  }
+  if(e.target.classList.contains('bulk-check-content')){
+    e.target.checked ? state.bulkSelection.add(e.target.dataset.bulkId) : state.bulkSelection.delete(e.target.dataset.bulkId);
+    renderBulkBar('#content-bulk-slot', filteredContent(), c=>c.id, 'content');
+  }
+  if(e.target.id==='assign-select'){
+    const r = reportById(e.target.dataset.reportId);
+    r.assignedTo = e.target.value || null;
+    r.assignedAt = e.target.value ? new Date().toISOString() : null;
+    toast('Moderator assigned.','success');
+    renderSidebar();
+  }
+});
+
+$('#gsearch-input').addEventListener('input', e=> renderGlobalSearchResults(e.target.value));
+$('#mobile-menu-btn').addEventListener('click', ()=> $('#sidebar').classList.toggle('open'));
+
+/* ============================================================
+   INIT
+   ============================================================ */
+goto('overview');
+
+})();
+</script>
+</body>
+</html>
