@@ -261,7 +261,8 @@ section{ padding:36px 0; }
 .cat-pill{
   display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px;
   font-size:.74rem; font-weight:700; font-family:var(--font-mono); letter-spacing:.02em;
-  background:rgba(255,255,255,.85);
+  background:rgba(255,255,255,.22); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  box-shadow:0 1px 3px rgba(0,0,0,.14); z-index:1;
 }
 
 /* ============ JOURNAL CARD ============ */
@@ -272,8 +273,18 @@ section{ padding:36px 0; }
   display:flex; flex-direction:column;
 }
 .j-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-mid); }
-.j-cover{ position:relative; aspect-ratio:2/1; }
+.j-cover{ position:relative; aspect-ratio:3/2; }
 .j-cover .cat-pill{ position:absolute; left:14px; top:14px; }
+.j-owner-actions{ position:absolute; right:10px; top:10px; display:flex; gap:6px; z-index:2; }
+.j-owner-btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; border-radius:50%; border:none; cursor:pointer;
+  background:rgba(20,18,14,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  color:#fff; transition:background var(--dur-fast) var(--ease);
+}
+.j-owner-btn svg{ width:14px; height:14px; display:block; }
+.j-owner-btn:hover{ background:rgba(20,18,14,.8); }
+.j-owner-btn-danger:hover{ background:var(--danger,#c0392b); }
 .j-body{ padding:20px 20px 22px; display:flex; flex-direction:column; gap:14px; flex:1; }
 .j-body h3{ font-size:1.18rem; line-height:1.34; white-space:normal; }
 .j-excerpt{ color:var(--ink-soft); font-size:.9rem; line-height:1.7; margin:0; flex:1; white-space:normal; }
@@ -640,7 +651,7 @@ body.is-reading .comment-form textarea{
 .draft-meta{ display:flex; gap:14px; font-size:.76rem; color:var(--ink-faint); font-family:var(--font-mono); margin-bottom:12px; flex-wrap:wrap; }
 .draft-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 .list-stack{ display:flex; flex-direction:column; gap:14px; }
-.saved-thumb{ width:110px; aspect-ratio:2/1.3; border-radius:12px; overflow:hidden; flex-shrink:0; }
+.saved-thumb{ width:110px; aspect-ratio:3/2; border-radius:12px; overflow:hidden; flex-shrink:0; }
 
 /* ============ NOTIFICATIONS ============ */
 .notif-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
@@ -741,14 +752,14 @@ body.is-reading .comment-form textarea{
 /* ============================================================
    POST-LOGIN HEADER, CENTER NAV, SEARCH PANEL, CTA BAR
    ============================================================ */
-.pl-nav-inner{ display:grid; grid-template-columns:auto minmax(260px,1fr) auto; align-items:center; gap:14px; padding:10px 0; }
+.pl-nav-inner{ display:grid; grid-template-columns:auto minmax(360px,1fr) auto; align-items:center; gap:14px; padding:10px 0; }
 .pl-brand{ background:none; border:none; padding:0; margin-left:10px; }
 .pl-wordmark{ display:flex; flex-direction:column; line-height:1; }
 .brand-logo-img{ height:34px; width:140px; display:block; }
 .pl-word{ font-family:var(--font-display); font-weight:700; font-size:1.32rem; color:var(--ink); }
 .pl-j{ color:var(--orange); }
 .pl-wordmark .t2{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-top:3px; }
-.pl-center-nav{ display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+.pl-center-nav{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
 .pl-center-nav::-webkit-scrollbar{ display:none; }
 .pl-nav-item{
   display:flex; flex-direction:column; align-items:center; gap:5px;
@@ -875,13 +886,14 @@ body.is-reading .comment-form textarea{
    Shed weight from the edges first (icon-only center nav, narrower
    search bar) so every section stays reachable at any desktop width. */
 @media (min-width:761px) and (max-width:1180px){
-  .pl-center-nav{ gap:0; }
+  .pl-center-nav{ gap:clamp(2px,1vw,10px); }
   .pl-nav-item{ padding:8px 8px; }
-  .pl-nav-item .pl-nav-label{ display:none; }
+  .pl-search-bar-inline{ width:clamp(90px,9vw,160px); }
+  .nav-user-name{ max-width:80px; }
 }
 @media (min-width:761px) and (max-width:980px){
-  .pl-search-bar-inline{ width:clamp(90px,10vw,160px); }
-  .nav-user-name{ max-width:64px; }
+  .pl-search-bar-inline{ width:clamp(70px,7vw,120px); }
+  .nav-user-name{ max-width:56px; }
 }
 
 /* ============================================================
@@ -1889,14 +1901,28 @@ function readingTimeMinutes(words){
 /* ---------- category cover: real cover image (object-fit:cover does
    the "intelligent" 5:2→2:1 etc. re-crop for free) when the Work has
    one, else the original CSS gradient + icon placeholder. ---------- */
+const PRECONNECTED_ORIGINS = new Set();
+function ensurePreconnect(url){
+  try{
+    const origin = new URL(url).origin;
+    if (PRECONNECTED_ORIGINS.has(origin)) return;
+    PRECONNECTED_ORIGINS.add(origin);
+    const l1 = document.createElement('link'); l1.rel = 'preconnect'; l1.href = origin; l1.crossOrigin = ''; document.head.appendChild(l1);
+    const l2 = document.createElement('link'); l2.rel = 'dns-prefetch'; l2.href = origin; document.head.appendChild(l2);
+  }catch(e){}
+}
 function coverHTML(categoryName, coverUrl){
   const cat = categoryByName(categoryName);
+  const pill = '<span class="cat-pill" style="color:' + cat.color + ';">' + escapeHtml(cat.name) + '</span>';
   if (coverUrl){
+    ensurePreconnect(coverUrl);
     return '<div style="width:100%;height:100%;position:relative;overflow:hidden;background:' + cat.soft + ';">' +
-      '<img src="' + escapeHtml(coverUrl) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+      '<img src="' + escapeHtml(coverUrl) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .25s ease;" onload="this.style.opacity=1">' +
+      pill +
     '</div>';
   }
   return '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);position:relative;overflow:hidden;">' +
+    pill +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:64px;height:64px;right:18px;bottom:14px;opacity:.5;">' + cat.icon + '</svg>' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:110px;height:110px;left:-24px;top:-24px;opacity:.12;">' + cat.icon + '</svg>' +
   '</div>';
@@ -2026,9 +2052,10 @@ function extractParagraphImageUrls(bodyMarkdown){
   while ((m = re.exec(bodyMarkdown || '')) !== null) urls.push(m[1]);
   return urls;
 }
-function imagesUsedByJournal(coverUrl, bodyMarkdown){
+function imagesUsedByJournal(coverUrl, coverThumbUrl, bodyMarkdown){
   const urls = extractParagraphImageUrls(bodyMarkdown);
   if (coverUrl) urls.push(coverUrl);
+  if (coverThumbUrl) urls.push(coverThumbUrl);
   return Array.from(new Set(urls));
 }
 /* Uploaded images are content-addressed, so the exact same file could in
@@ -2040,7 +2067,7 @@ async function imageStillReferencedElsewhere(url, excludeJournalId){
   if (DEMO_MODE || !supabaseClient) return false;
   try{
     const query = supabaseClient.from('journals').select('id', { count:'exact', head:true })
-      .or('cover_url.eq.' + url + ',body_markdown.ilike.%' + url + '%');
+      .or('cover_url.eq.' + url + ',cover_thumb_url.eq.' + url + ',body_markdown.ilike.%' + url + '%');
     const { count, error } = excludeJournalId ? await query.neq('id', excludeJournalId) : await query;
     if (error) throw error;
     return (count || 0) > 0;
@@ -2068,8 +2095,8 @@ async function deleteImagesFromR2(urls){
 /* Call after a journal/draft row has actually been deleted from the DB.
    Never blocks or fails the delete flow itself — storage cleanup is
    best-effort and happens after the fact. */
-async function cleanupOrphanedImages(coverUrl, bodyMarkdown, deletedJournalId){
-  const candidates = imagesUsedByJournal(coverUrl, bodyMarkdown);
+async function cleanupOrphanedImages(coverUrl, coverThumbUrl, bodyMarkdown, deletedJournalId){
+  const candidates = imagesUsedByJournal(coverUrl, coverThumbUrl, bodyMarkdown);
   if (!candidates.length) return;
   const orphaned = [];
   for (const url of candidates){
@@ -2077,6 +2104,17 @@ async function cleanupOrphanedImages(coverUrl, bodyMarkdown, deletedJournalId){
     if (!stillUsed) orphaned.push(url);
   }
   if (orphaned.length) await deleteImagesFromR2(orphaned);
+}
+/* Derives a narrower-ratio crop rect from a wider one by taking a
+   centered horizontal slice at the same height/vertical position —
+   used to generate the 3:2 card thumbnail from the same region the
+   person framed as the 5:2 cover, rather than a second independent
+   crop (which could show something they never chose to feature). */
+function deriveNarrowerCropRect(cropRect, ratioW, ratioH){
+  const targetRatio = ratioW / ratioH;
+  const sw = cropRect.sh * targetRatio;
+  if (sw >= cropRect.sw) return cropRect; // target isn't actually narrower — reuse as-is
+  return { sx: cropRect.sx + (cropRect.sw - sw) / 2, sy: cropRect.sy, sw: sw, sh: cropRect.sh };
 }
 async function processAndUploadImage(img, ratioW, ratioH, purpose, cropRect, maxLongEdge){
   const canvas = cropToCanvas(img, ratioW, ratioH, maxLongEdge || 1600, cropRect);
@@ -2344,11 +2382,24 @@ async function completeUsernameOnboarding(username){
     throw new Error('That username is already taken — try another.');
   }
   if (AUTH_LIVE){
+    // Pull the real name the OAuth provider (Google, etc.) gave us —
+    // the handle_new_user DB trigger always leaves display_name null,
+    // so without this the username typed here would be the only name
+    // we ever have, silently overwriting the person's actual name.
+    // Only OAuth sign-ins have this metadata; plain email/password
+    // accounts genuinely have no separate real name, so username is
+    // still the right fallback there.
+    let realName = null;
+    try{
+      const { data: authData } = await supabaseClient.auth.getUser();
+      const meta = (authData && authData.user && authData.user.user_metadata) || {};
+      realName = meta.full_name || meta.name || meta.display_name || null;
+    }catch(e){}
     // upsert, not update: mirrors index.html's completeUsernameOnboarding
     // — if the profiles row is somehow missing, .update() could never
     // create it, leaving the modal stuck reopening on every refresh.
     const { data, error } = await supabaseClient.from('profiles')
-      .upsert({ id: state.currentUser.id, username: username, display_name: username }, { onConflict: 'id' })
+      .upsert({ id: state.currentUser.id, username: username, display_name: realName || username }, { onConflict: 'id' })
       .select('id, username, display_name, bio, avatar_url')
       .single();
     if (error) throw error;
@@ -2433,7 +2484,7 @@ async function loadProfile(authUser){
     return {
       id: userId,
       username: meta.username || (email ? email.split('@')[0] : userId),
-      display_name: meta.display_name || meta.username || (email ? email.split('@')[0] : 'You'),
+      display_name: meta.full_name || meta.name || meta.display_name || meta.username || (email ? email.split('@')[0] : 'You'),
       bio: '',
       avatar_url: null
     };
@@ -2479,7 +2530,7 @@ async function restoreSession(){
         if (event === 'SIGNED_OUT'){
           if (settled) window.location.href = 'index.html';
         } else if (event === 'SIGNED_IN' && session && session.user && (!state.currentUser || state.currentUser.id !== session.user.id)){
-          loadProfile(session.user.id).then(function(user){
+          loadProfile(session.user).then(function(user){
             state.currentUser = user;
             syncAuthUI();
             hydrateUserActivity(user.id);
@@ -2490,7 +2541,7 @@ async function restoreSession(){
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT'){
           settled = true;
           if (session && session.user){
-            loadProfile(session.user.id).then(function(user){
+            loadProfile(session.user).then(function(user){
               state.currentUser = user;
               if (needsUsername(user)) openUsernameOnboarding();
               return hydrateUserActivity(user.id);
@@ -2596,7 +2647,7 @@ function normalizeJournalRow(row){
     excerpt: row.excerpt,
     body: row.body_markdown || '',
     cover_url: row.cover_url || null,
-    category: cat.name,
+    cover_thumb_url: row.cover_thumb_url || null,
     script: row.script || null,
     tags: row.tags || [],
     author_id: row.author_id,
@@ -2613,7 +2664,7 @@ function normalizeJournalRow(row){
   };
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, cover_thumb_url, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
 async function fetchFeaturedJournals(){
   if (DEMO_MODE){
@@ -2863,6 +2914,7 @@ function toSupabaseJournalRow(payload){
     excerpt: payload.excerpt || payload.subtitle || (payload.body || '').slice(0,220),
     body_markdown: payload.body || '',
     cover_url: payload.cover_url || null,
+    cover_thumb_url: payload.cover_thumb_url || null,
     category_id: cat ? cat.id : null,
     script: payload.script || null,
     tags: payload.tags || [],
@@ -2882,6 +2934,7 @@ function fromSupabaseJournalRow(row){
     subtitle: row.subtitle || '',
     body: row.body_markdown || '',
     cover_url: row.cover_url || null,
+    cover_thumb_url: row.cover_thumb_url || null,
     tags: row.tags || [],
     visibility: row.visibility || 'public',
     allow_comments: row.allow_comments !== false,
@@ -3094,6 +3147,16 @@ async function persistDraft(draftPayload, showSavingState){
   if (showSavingState) setSaveStatus('saving');
   if (DEMO_MODE){
     await new Promise(function(r){ setTimeout(r, 250); }); // simulate network latency
+    // Editing an already-published Work in place: update it directly
+    // rather than routing it through MOCK_DRAFTS (which would leave it
+    // unpublished until Publish is pressed again).
+    const existingJournal = state.currentDraftId ? MOCK_JOURNALS.find(function(j){ return j.id === state.currentDraftId; }) : null;
+    if (existingJournal){
+      Object.assign(existingJournal, draftPayload, { updated_at:new Date().toISOString() });
+      setSaveStatus('saved');
+      persistDemoDB();
+      return existingJournal;
+    }
     let d = currentDraft();
     if (!d){
       // Do not create a database row until there is meaningful content.
@@ -3115,7 +3178,8 @@ async function persistDraft(draftPayload, showSavingState){
   }
   // 👉 SUPABASE: upsert the draft journal row for this user.
   try{
-    const row = Object.assign({ author_id: state.currentUser.id, status:'draft' }, toSupabaseJournalRow(draftPayload));
+    const isNewRow = !state.currentDraftId;
+    const row = Object.assign({ author_id: state.currentUser.id }, toSupabaseJournalRow(draftPayload), isNewRow ? { status:'draft' } : {});
     let result;
     if (state.currentDraftId) result = await supabaseClient.from('journals').update(row).eq('id', state.currentDraftId).select().single();
     else result = await supabaseClient.from('journals').insert(row).select().single();
@@ -3130,14 +3194,19 @@ async function persistDraft(draftPayload, showSavingState){
   }
 }
 async function deleteDraft(draftId){
-  if (DEMO_MODE){ MOCK_DRAFTS = MOCK_DRAFTS.filter(function(d){ return d.id !== draftId; }); persistDemoDB(); }
+  if (DEMO_MODE){
+    MOCK_DRAFTS = MOCK_DRAFTS.filter(function(d){ return d.id !== draftId; });
+    const jIdx = MOCK_JOURNALS.findIndex(function(j){ return j.id === draftId; });
+    if (jIdx !== -1) MOCK_JOURNALS.splice(jIdx, 1);
+    persistDemoDB();
+  }
   else {
     // .select() on a delete returns the row(s) just removed, so we know
     // what images it referenced without a separate fetch first.
     const { data } = await supabaseClient.from('journals').delete()
       .eq('id', draftId).eq('author_id', state.currentUser.id)
-      .select('cover_url, body_markdown').maybeSingle();
-    if (data) cleanupOrphanedImages(data.cover_url, data.body_markdown, draftId);
+      .select('cover_url, cover_thumb_url, body_markdown').maybeSingle();
+    if (data) cleanupOrphanedImages(data.cover_url, data.cover_thumb_url, data.body_markdown, draftId);
   }
   localStorage.removeItem('aspinora_draft_' + draftId);
 }
@@ -3147,7 +3216,16 @@ function slugify(title){
 async function publishJournal(payload){
   if (DEMO_MODE){
     let d = currentDraft();
+    const existingJournal = !d && state.currentDraftId ? MOCK_JOURNALS.find(function(j){ return j.id === state.currentDraftId; }) : null;
     const words = wordCount(payload.body);
+    if (existingJournal){
+      Object.assign(existingJournal, payload, {
+        status:'published', reading_time: readingTimeMinutes(words),
+        excerpt: payload.subtitle || (payload.body.slice(0,140) + '…')
+      });
+      persistDemoDB();
+      return existingJournal;
+    }
     const journal = Object.assign({
       id: d ? d.id : 'j'+(Date.now()),
       slug: slugify(payload.title),
@@ -3237,8 +3315,19 @@ function cardExcerpt(text, maxLen){
 }
 function journalCardHTML(j){
   const words = j.body ? wordCount(j.body) : null;
+  const isOwner = !!(state.currentUser && state.currentUser.id === j.author_id);
+  const ownerActions = !isOwner ? '' : (
+    '<div class="j-owner-actions">' +
+      '<button type="button" class="j-owner-btn" data-edit-journal="' + j.id + '" title="Edit" aria-label="Edit this Work">' +
+        '<svg viewBox="0 0 20 20" fill="none"><path d="M13.5 3.5 16.5 6.5 7 16H4v-3L13.5 3.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
+      '</button>' +
+      '<button type="button" class="j-owner-btn j-owner-btn-danger" data-delete-journal="' + j.id + '" title="Delete" aria-label="Delete this Work">' +
+        '<svg viewBox="0 0 20 20" fill="none"><path d="M4.5 6h11M8 6V4.5h4V6M6 6l.6 10a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9L14 6" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
+      '</button>' +
+    '</div>'
+  );
   return '<article class="j-card" data-open-journal="' + j.id + '">' +
-    '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + '</div>' +
+    '<div class="j-cover">' + coverHTML(j.category, j.cover_thumb_url || j.cover_url) + ownerActions + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(cardExcerpt(j.excerpt || j.body, 220)) + '</p>' +
@@ -3503,8 +3592,29 @@ async function renderReadView(journalId, replace){
     const url = username && j.slug
       ? window.location.origin + '/' + username + '/' + j.slug
       : window.location.href.split('#')[0];
-    if (navigator.share){ try{ await navigator.share({ title:j.title, url:url }); }catch(e){} }
-    else{ await navigator.clipboard.writeText(url); showToast('Link copied to clipboard.'); }
+    if (navigator.share){
+      try{ await navigator.share({ title:j.title, url:url }); return; }
+      catch(e){ if (e && e.name === 'AbortError') return; /* user cancelled the share sheet — not a failure */ }
+    }
+    // Fall back to copying the link — try the modern Clipboard API first,
+    // but it can throw (insecure context, permissions policy, older
+    // browsers), so fall back further to a manual copy rather than
+    // leaving the click looking like it did nothing.
+    try{
+      await navigator.clipboard.writeText(url);
+      showToast('Link copied to clipboard.');
+    }catch(e){
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showToast('Link copied to clipboard.');
+      }catch(e2){
+        showToast('Couldn\'t copy automatically — here\'s the link: ' + url);
+      }
+    }
   };
   const reportBtn = qs('#report-journal-btn');
   reportBtn.classList.toggle('is-flagged', state.flaggedJournalIds.has(j.id));
@@ -3752,7 +3862,7 @@ async function renderSavedView(){
     return;
   }
   list.innerHTML = rows.map(function(j){
-    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category, j.cover_url) + '</div>' +
+    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category, j.cover_thumb_url || j.cover_url) + '</div>' +
       '<div class="draft-info"><h3>' + escapeHtml(j.title) + '</h3><p>' + escapeHtml(j.excerpt) + '</p>' +
       '<div class="draft-meta"><span>' + authorName(j.author_id) + '</span></div>' +
       '<div class="draft-actions"><button type="button" class="btn btn-primary btn-sm" data-open-journal="' + j.id + '">Read Work</button>' +
@@ -3862,7 +3972,7 @@ function wireGenericButtons(){
 /* ------------------------------------------------------------------
    14. WRITE VIEW (the writing workspace)
    ------------------------------------------------------------------ */
-let writeDraft = { category:'', title:'', subtitle:'', body:'', cover_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' };
+let writeDraft = { category:'', title:'', subtitle:'', body:'', cover_url:null, cover_thumb_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' };
 const PARAGRAPH_IMAGE_CATEGORIES = ['Journals','Stories','Articles'];
 const MAX_INLINE_IMAGES = 5;
 
@@ -3888,19 +3998,23 @@ async function renderWriteView(draftId, presetCategory){
   let existing = null;
   if (draftId){
     if (DEMO_MODE){
-      existing = MOCK_DRAFTS.find(function(d){ return d.id === draftId; });
+      existing = MOCK_DRAFTS.find(function(d){ return d.id === draftId; }) ||
+        MOCK_JOURNALS.find(function(j){ return j.id === draftId && j.author_id === state.currentUser.id; });
     } else {
       try{
+        // No status filter here: this row may be a draft, or it may be
+        // an already-published Work the person is editing in place.
         const { data, error } = await supabaseClient.from('journals').select('*')
-          .eq('id', draftId).eq('author_id', state.currentUser.id).eq('status','draft').single();
+          .eq('id', draftId).eq('author_id', state.currentUser.id).single();
         if (!error && data) existing = fromSupabaseJournalRow(data);
       }catch(e){ /* fall back to local copy below */ }
     }
   }
   const localCopy = loadDraftFromLocalStorage('aspinora_draft_' + (draftId || 'new'));
-  writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', cover_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' });
+  writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', cover_url:null, cover_thumb_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' });
   if (writeDraft.cover_url === undefined) writeDraft.cover_url = null;
-  if (!existing && !localCopy && presetCategory) writeDraft.category = presetCategory;
+  if (writeDraft.cover_thumb_url === undefined) writeDraft.cover_thumb_url = null;
+  if (!existing && presetCategory) writeDraft.category = presetCategory;
   writeDraft.blocks = null; // rebuilt fresh from body by updateEditorModeUI below
 
   qs('#write-title').value = writeDraft.title || '';
@@ -3929,7 +4043,7 @@ function renderCoverUploadBox(){
       '<button type="button" class="cu-remove" id="cu-remove-btn" aria-label="Remove cover image">' +
       '<svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>';
     const removeBtn = qs('#cu-remove-btn');
-    if (removeBtn) removeBtn.onclick = function(e){ e.stopPropagation(); writeDraft.cover_url = null; renderCoverUploadBox(); scheduleAutosave(); };
+    if (removeBtn) removeBtn.onclick = function(e){ e.stopPropagation(); writeDraft.cover_url = null; writeDraft.cover_thumb_url = null; renderCoverUploadBox(); scheduleAutosave(); };
   } else {
     box.innerHTML = '<div class="cu-empty" id="cu-empty-state">' +
       '<svg viewBox="0 0 20 20" fill="none" width="26" height="26"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="8.2" r="1.3" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 14.5 8 10.3l2.4 2.3 2.2-2.2 3.6 3.6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>' +
@@ -3961,8 +4075,13 @@ function confirmAiOnlyImages(){
         const box2 = qs('#cover-upload-box');
         box2.innerHTML = '<div class="cu-uploading">Compressing &amp; uploading…</div>';
         try{
-          const url = await processAndUploadImage(img, 5, 2, 'cover', cropRect, 1400);
-          writeDraft.cover_url = url;
+          const thumbRect = deriveNarrowerCropRect(cropRect, 3, 2);
+          const results = await Promise.all([
+            processAndUploadImage(img, 5, 2, 'cover', cropRect, 1400),
+            processAndUploadImage(img, 3, 2, 'cover', thumbRect, 900)
+          ]);
+          writeDraft.cover_url = results[0];
+          writeDraft.cover_thumb_url = results[1];
           renderCoverUploadBox();
           scheduleAutosave();
         }catch(err){
@@ -4729,6 +4848,24 @@ document.addEventListener('click', function(e){
   }
   const wallNav = e.target.closest('[data-nav-wall]');
   if (wallNav){ window.location.href = 'thewall.html'; return; }
+  const editBtn = e.target.closest('[data-edit-journal]');
+  if (editBtn){
+    e.preventDefault(); e.stopPropagation();
+    navigateTo('write', { draftId: editBtn.getAttribute('data-edit-journal') });
+    return;
+  }
+  const deleteBtn = e.target.closest('[data-delete-journal]');
+  if (deleteBtn){
+    e.preventDefault(); e.stopPropagation();
+    const id = deleteBtn.getAttribute('data-delete-journal');
+    if (!confirm('Delete this Work? This can\'t be undone.')) return;
+    deleteDraft(id).then(function(){
+      showToast('Work deleted.');
+      const card = deleteBtn.closest('.j-card');
+      if (card) card.remove();
+    });
+    return;
+  }
   const openBtn = e.target.closest('[data-open-journal]');
   if (openBtn){ e.preventDefault(); navigateTo('read', { journalId: openBtn.getAttribute('data-open-journal') }); return; }
 });
@@ -4772,7 +4909,12 @@ async function init(){
   if (readId){
     navigateTo('read', { journalId: readId, replace: true });
   } else if (entryCategory){
-    state.activeFilter = entryCategory;
+    // entryCategory can arrive as either a slug or a display name
+    // depending on which page linked here — match either, and fall
+    // back to 'all' (never a random category) if neither matches, so
+    // a bad/unknown value can't silently empty out the whole feed.
+    const entryCat = CATEGORIES.find(function(c){ return c.slug === entryCategory || c.name === entryCategory; });
+    state.activeFilter = entryCat ? entryCat.slug : 'all';
     navigateTo('explore', { replace: true });
   } else if (entryNav && NAV_ENTRY_VIEWS.indexOf(entryNav) !== -1){
     navigateTo(entryNav, { replace: true });
