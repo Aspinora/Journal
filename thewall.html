@@ -294,14 +294,14 @@ section{ padding:36px 0; }
    ~30% darker than the first pass so Figures read with more presence
    against the (now much lighter) page background. ---------- */
 :root{
-  --fig-sage:      #C7D8B0; --fig-sage-ink:     #3E4A2C;
-  --fig-sky:       #B4DBEF; --fig-sky-ink:      #234F6A;
-  --fig-lavender:  #D1C1EC; --fig-lavender-ink: #493C70;
-  --fig-butter:    #F1DC8B; --fig-butter-ink:   #6A5510;
-  --fig-peach:     #F1C096; --fig-peach-ink:    #7A4222;
-  --fig-sand:      #E2CA9D; --fig-sand-ink:     #5A492C;
-  --fig-blossom:   #EFBDD0; --fig-blossom-ink:  #78334E;
-  --fig-fog:       #C3D0D4; --fig-fog-ink:      #3E4F57;
+  --fig-sage:      #7B9655; --fig-sage-ink:     #F9F7EE;
+  --fig-sky:       #3B93C1; --fig-sky-ink:      #F5FAFD;
+  --fig-lavender:  #734AB8; --fig-lavender-ink: #F8F5FC;
+  --fig-butter:    #BB9D29; --fig-butter-ink:   #FDFAEC;
+  --fig-peach:     #BF702C; --fig-peach-ink:    #FCF4EC;
+  --fig-sand:      #A68240; --fig-sand-ink:     #FBF6EC;
+  --fig-blossom:   #C04171; --fig-blossom-ink:  #FCF0F4;
+  --fig-fog:       #6A838B; --fig-fog-ink:      #F4F8F9;
   --wall-cell: 104px;
   --wall-gap: 18px;
 }
@@ -512,9 +512,6 @@ body{ background:#F7F3EA; }
   background:var(--paper); position:sticky; top:0; z-index:5;
 }
 .wf-page-body{ flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:20px 16px calc(env(safe-area-inset-bottom,0px) + 30px); }
-@media (min-width:760px){
-  .wf-fullpage-scrim .wf-modal-box{ max-width:640px; margin:0 auto; border-left:1px solid var(--line); border-right:1px solid var(--line); }
-}
 .wf-picker-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .wf-picker-sep{ width:1px; height:28px; background:var(--line); flex-shrink:0; }
 .wf-shape-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
@@ -635,20 +632,24 @@ body{ background:#F7F3EA; }
 }
 .rt-pop-emoji:hover{ background:var(--cream-deep); }
 
-.wf-editor-canvas .fig-text-block{
-  position:absolute; cursor:text; padding:2px 4px; border-radius:4px; text-align:left;
+.wf-editor-canvas .fig-text-block{ position:absolute; }
+.wf-editor-canvas .fig-text-editable{
+  cursor:text; padding:2px 4px; border-radius:4px; text-align:left; display:block;
+  min-width:1.4em; min-height:1.3em;
   font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.36;
   white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;
   outline:none;
 }
-.wf-editor-canvas .fig-text-block:focus, .wf-editor-canvas .fig-text-block.is-active{ box-shadow:0 0 0 1.5px dashed rgba(0,0,0,.25); }
-.wf-editor-canvas .fig-text-block:empty:before{ content:attr(data-placeholder); opacity:.45; }
+.wf-editor-canvas .fig-text-editable:focus{ box-shadow:0 0 0 1.5px dashed rgba(0,0,0,.25); }
+.wf-editor-canvas .fig-text-editable:empty:before{ content:attr(data-placeholder); opacity:.45; }
 .fig-drag-handle{
   position:absolute; top:-11px; left:-11px; width:22px; height:22px; border-radius:50%;
   background:var(--ink); color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center;
   cursor:grab; opacity:0; transition:opacity .15s var(--ease); touch-action:none; z-index:5;
 }
-.wf-editor-canvas .fig-text-block:focus .fig-drag-handle, .wf-editor-canvas .fig-text-block.is-active .fig-drag-handle, .wf-editor-canvas .fig-text-block:hover .fig-drag-handle{ opacity:1; }
+.wf-editor-canvas .fig-text-block:hover .fig-drag-handle,
+.wf-editor-canvas .fig-text-block:focus-within .fig-drag-handle,
+.wf-editor-canvas .fig-text-block.is-active .fig-drag-handle{ opacity:1; }
 .fig-drag-handle:active{ cursor:grabbing; }
 .fig-text-remove{
   position:absolute; top:-11px; right:-11px; width:20px; height:20px; border-radius:50%;
@@ -656,7 +657,9 @@ body{ background:#F7F3EA; }
   opacity:0; transition:opacity .15s var(--ease); z-index:5;
   touch-action:manipulation; -webkit-tap-highlight-color:transparent;
 }
-.wf-editor-canvas .fig-text-block:focus .fig-text-remove, .wf-editor-canvas .fig-text-block.is-active .fig-text-remove, .wf-editor-canvas .fig-text-block:hover .fig-text-remove{ opacity:1; }
+.wf-editor-canvas .fig-text-block:hover .fig-text-remove,
+.wf-editor-canvas .fig-text-block:focus-within .fig-text-remove,
+.wf-editor-canvas .fig-text-block.is-active .fig-text-remove{ opacity:1; }
 
 .wf-editor-canvas .fig-hr-abs, .wf-editor-canvas .fig-vr-abs{
   position:absolute; cursor:grab; touch-action:none;
@@ -1082,7 +1085,8 @@ body{ background:#F7F3EA; }
   .pl-brand{ grid-column:1; grid-row:1; margin-left:6px; }
   .wall-mobile-label{
     display:block; grid-column:2; grid-row:1; justify-self:center; align-self:center;
-    font-family:var(--font-display); font-weight:700; font-size:1.05rem; letter-spacing:.01em; color:var(--ink);
+    font-family:var(--font-display); font-weight:700; font-size:1.08rem; letter-spacing:.01em; color:var(--ink);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
   }
   .pl-cta-mini-mobile{
     display:flex; align-items:center; gap:6px;
@@ -1193,7 +1197,6 @@ body{ background:#F7F3EA; }
           <button type="button" id="nav-notifications-btn" role="menuitem">🔔 Notifications<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
           <button type="button" id="nav-drafts-btn" role="menuitem">📝 My Drafts</button>
           <button type="button" id="nav-saved-btn" role="menuitem">🗂️ Archive</button>
-          <button type="button" id="nav-back-home-btn" role="menuitem">🏠 Back to Aspinora</button>
           <hr>
           <button type="button" class="danger" id="sign-out-btn" role="menuitem">Sign Out</button>
         </div>
@@ -1566,14 +1569,14 @@ const FIGURE_SHAPES = [
   { key:'quad',   label:'Quadrilateral' }
 ];
 const FIGURE_COLORS = [
-  { key:'sage',     label:'Light olive green', swatch:'#C7D8B0' },
-  { key:'sky',      label:'Soft blue',         swatch:'#B4DBEF' },
-  { key:'lavender', label:'Muted lavender',    swatch:'#D1C1EC' },
-  { key:'butter',   label:'Soft yellow',       swatch:'#F1DC8B' },
-  { key:'peach',    label:'Peach',             swatch:'#F1C096' },
-  { key:'sand',     label:'Warm beige',        swatch:'#E2CA9D' },
-  { key:'blossom',  label:'Pale pink',         swatch:'#EFBDD0' },
-  { key:'fog',      label:'Pale fog',          swatch:'#C3D0D4' }
+  { key:'sage',     label:'Olive green',  swatch:'#7B9655' },
+  { key:'sky',      label:'Blue',         swatch:'#3B93C1' },
+  { key:'lavender', label:'Violet',       swatch:'#734AB8' },
+  { key:'butter',   label:'Gold',         swatch:'#BB9D29' },
+  { key:'peach',    label:'Terracotta',   swatch:'#BF702C' },
+  { key:'sand',     label:'Warm brown',   swatch:'#A68240' },
+  { key:'blossom',  label:'Rose',         swatch:'#C04171' },
+  { key:'fog',      label:'Slate',        swatch:'#6A838B' }
 ];
 /* Cycled through on rapid repeat-taps (see handleWallTap). */
 const HEART_REACTIONS = [
@@ -2520,17 +2523,13 @@ function addTextBlock(pos){
   pos = pos || { left: 15 + (fpTextSeq % 3) * 12, top: 15 + (fpTextSeq % 4) * 14, width: 70 };
   const block = document.createElement('div');
   block.className = 'fig-text-block';
-  block.contentEditable = 'true';
   block.dataset.blockId = 'b' + (++fpTextSeq);
-  block.dataset.placeholder = 'Write here…';
-  block.setAttribute('aria-label', 'Figure text block');
   block.style.left = pos.left + '%'; block.style.top = pos.top + '%'; block.style.width = pos.width + '%';
 
   const handle = document.createElement('span');
   handle.className = 'fig-drag-handle';
   handle.title = 'Drag to move this text';
   handle.setAttribute('aria-hidden', 'true');
-  handle.contentEditable = 'false';
   handle.textContent = '⠿';
   block.appendChild(handle);
 
@@ -2539,7 +2538,6 @@ function addTextBlock(pos){
   remove.className = 'fig-text-remove';
   remove.title = 'Remove this text block';
   remove.textContent = '×';
-  remove.contentEditable = 'false';
   remove.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
   remove.addEventListener('click', function(e){
     e.stopPropagation();
@@ -2550,6 +2548,19 @@ function addTextBlock(pos){
   });
   block.appendChild(remove);
 
+  /* The actual typing surface — deliberately the *only* contenteditable
+     element, with nothing else inside it. Mixing a <button>/handle
+     into the same contenteditable region is a known source of
+     inconsistent cursor-placement/focus/typing behaviour across
+     mobile browsers; keeping it completely separate is what actually
+     fixes that, rather than just working around symptoms of it. */
+  const editable = document.createElement('div');
+  editable.className = 'fig-text-editable';
+  editable.contentEditable = 'true';
+  editable.dataset.placeholder = 'Write here…';
+  editable.setAttribute('aria-label', 'Figure text block');
+  block.appendChild(editable);
+
   content.appendChild(block);
   makeCanvasDraggable(handle, block, canvas, function(){ clampBlockWithinCanvas(block, canvas); });
   return block;
@@ -2559,10 +2570,8 @@ function addTextBlock(pos){
    own plain text — used for word counting, list conversion, and
    "clear formatting". */
 function getPlainTextOfBlock(block){
-  const clone = block.cloneNode(true);
-  const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
-  const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
-  return clone.innerText;
+  const editable = block.classList.contains('fig-text-editable') ? block : block.querySelector('.fig-text-editable');
+  return editable ? editable.innerText : '';
 }
 
 /* Sums words across every independent text block — that's what the
@@ -2618,7 +2627,7 @@ function activeTextBlockFromSelection(){
   if (!sel.rangeCount) return rtActiveBlock;
   const node = sel.getRangeAt(0).commonAncestorContainer;
   const el = node.nodeType === 1 ? node : node.parentElement;
-  const found = el ? el.closest('.fig-text-block') : null;
+  const found = el ? el.closest('.fig-text-editable') : null;
   return found || rtActiveBlock;
 }
 
@@ -2749,10 +2758,8 @@ function cycleLetterLineSpacing(kind, value){
    plain text; per-character formatting inside a converted line is
    intentionally not preserved, keeping this predictable rather than
    trying to splice rich spans across list items). */
-function convertBlockToList(block, tag){
-  const handle = block.querySelector('.fig-drag-handle');
-  const remove = block.querySelector('.fig-text-remove');
-  const plain = getPlainTextOfBlock(block);
+function convertBlockToList(editable, tag){
+  const plain = editable.innerText;
   const lines = plain.split('\n').filter(function(l){ return l.trim() !== ''; });
   if (!lines.length) lines.push('');
   const list = document.createElement(tag);
@@ -2761,54 +2768,44 @@ function convertBlockToList(block, tag){
     li.textContent = line;
     list.appendChild(li);
   });
-  block.innerHTML = '';
-  if (handle) block.appendChild(handle);
-  if (remove) block.appendChild(remove);
-  block.appendChild(list);
+  editable.innerHTML = '';
+  editable.appendChild(list);
 }
-function convertListToPlainLines(block, listEl){
-  const handle = block.querySelector('.fig-drag-handle');
-  const remove = block.querySelector('.fig-text-remove');
+function convertListToPlainLines(editable, listEl){
   const items = Array.prototype.slice.call(listEl.querySelectorAll('li')).map(function(li){ return li.textContent; });
-  block.innerHTML = '';
-  if (handle) block.appendChild(handle);
-  if (remove) block.appendChild(remove);
+  editable.innerHTML = '';
   items.forEach(function(text, i){
-    if (i > 0) block.appendChild(document.createElement('br'));
-    block.appendChild(document.createTextNode(text));
+    if (i > 0) editable.appendChild(document.createElement('br'));
+    editable.appendChild(document.createTextNode(text));
   });
 }
 function cycleList(){
-  const block = rtActiveBlock;
-  if (!block) return;
+  const editable = rtActiveBlock;
+  if (!editable) return;
   pushHistory();
-  const existingList = block.querySelector('ul, ol');
-  if (!existingList) convertBlockToList(block, 'ul');
+  const existingList = editable.querySelector('ul, ol');
+  if (!existingList) convertBlockToList(editable, 'ul');
   else if (existingList.tagName === 'UL'){
     const ol = document.createElement('ol');
     ol.innerHTML = existingList.innerHTML;
     existingList.replaceWith(ol);
   } else {
-    convertListToPlainLines(block, existingList);
+    convertListToPlainLines(editable, existingList);
   }
   updateFpCount();
 }
 
 function clearFormatting(){
-  const block = rtActiveBlock;
-  if (!block) return;
+  const editable = rtActiveBlock;
+  if (!editable) return;
   pushHistory();
-  const handle = block.querySelector('.fig-drag-handle');
-  const remove = block.querySelector('.fig-text-remove');
-  const plain = getPlainTextOfBlock(block);
-  block.innerHTML = '';
-  if (handle) block.appendChild(handle);
-  if (remove) block.appendChild(remove);
-  block.style.textAlign = ''; block.style.letterSpacing = ''; block.style.lineHeight = '';
+  const plain = editable.innerText;
+  editable.innerHTML = '';
+  editable.style.textAlign = ''; editable.style.letterSpacing = ''; editable.style.lineHeight = '';
   const lines = plain.split('\n');
   lines.forEach(function(line, i){
-    if (i > 0) block.appendChild(document.createElement('br'));
-    block.appendChild(document.createTextNode(line));
+    if (i > 0) editable.appendChild(document.createElement('br'));
+    editable.appendChild(document.createTextNode(line));
   });
   updateFpCount();
 }
@@ -2988,7 +2985,7 @@ function hideRtToolbarMaybe(){
   setTimeout(function(){
     if (rtInteracting) return;
     const active = document.activeElement;
-    if (active && active.classList && active.classList.contains('fig-text-block')) return;
+    if (active && active.classList && active.classList.contains('fig-text-editable')) return;
     qs('#rt-toolbar').hidden = true;
     closeRtPopover();
   }, 160);
@@ -3068,7 +3065,7 @@ function initFigurePublishForm(){
       qsa('.wf-color-opt', colorRow).forEach(function(b){ b.classList.toggle('is-selected', b.getAttribute('data-color') === 'sage'); });
       resetEditorCanvas();
       openModal('figure-publish-modal-scrim');
-      setTimeout(function(){ const b = qs('.fig-text-block'); if (b) b.focus(); }, 60);
+      setTimeout(function(){ const b = qs('.fig-text-editable'); if (b) b.focus(); }, 60);
     });
   });
   qs('#figure-publish-cancel').addEventListener('click', function(){ closeModal('figure-publish-modal-scrim'); });
@@ -3078,17 +3075,17 @@ function initFigurePublishForm(){
   // here rather than per-element.
   const canvasWrap = qs('#fp-canvas');
   canvasWrap.addEventListener('focusin', function(e){
-    if (!e.target.classList || !e.target.classList.contains('fig-text-block')) return;
+    if (!e.target.classList || !e.target.classList.contains('fig-text-editable')) return;
     rtActiveBlock = e.target;
     if (rtSessionSnapshot === null) rtSessionSnapshot = canvasWrap.innerHTML;
     showRtToolbar();
     scrollBlockAboveKeyboard(e.target);
   });
   canvasWrap.addEventListener('focusout', function(e){
-    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block')) hideRtToolbarMaybe();
+    if (e.target && e.target.classList && e.target.classList.contains('fig-text-editable')) hideRtToolbarMaybe();
   });
   canvasWrap.addEventListener('input', function(e){
-    if (!e.target.classList || !e.target.classList.contains('fig-text-block')) return;
+    if (!e.target.classList || !e.target.classList.contains('fig-text-editable')) return;
     clearTimeout(rtTypingTimer);
     rtTypingTimer = setTimeout(function(){
       if (rtSessionSnapshot !== null && rtSessionSnapshot !== canvasWrap.innerHTML){
@@ -3101,7 +3098,7 @@ function initFigurePublishForm(){
     updateFpCount();
   });
   canvasWrap.addEventListener('keydown', function(e){
-    if (e.target && e.target.classList && e.target.classList.contains('fig-text-block') && e.key === 'Enter'){
+    if (e.target && e.target.classList && e.target.classList.contains('fig-text-editable') && e.key === 'Enter'){
       e.preventDefault();
       insertBrAtCursor(e.target);
     }
@@ -3126,17 +3123,15 @@ function initFigurePublishForm(){
       const layout = document.createElement('div');
       layout.className = 'fig-canvas-abs';
       blocks.forEach(function(block){
-        const clone = block.cloneNode(true);
-        const h = clone.querySelector('.fig-drag-handle'); if (h) h.remove();
-        const r = clone.querySelector('.fig-text-remove'); if (r) r.remove();
+        const editable = block.querySelector('.fig-text-editable');
         const cleanBlock = document.createElement('div');
         cleanBlock.className = 'fig-text-block';
         let styleAttr = 'left:' + block.style.left + ';top:' + block.style.top + ';width:' + block.style.width + ';';
-        if (block.style.textAlign) styleAttr += 'text-align:' + block.style.textAlign + ';';
-        if (block.style.letterSpacing) styleAttr += 'letter-spacing:' + block.style.letterSpacing + ';';
-        if (block.style.lineHeight) styleAttr += 'line-height:' + block.style.lineHeight + ';';
+        if (editable.style.textAlign) styleAttr += 'text-align:' + editable.style.textAlign + ';';
+        if (editable.style.letterSpacing) styleAttr += 'letter-spacing:' + editable.style.letterSpacing + ';';
+        if (editable.style.lineHeight) styleAttr += 'line-height:' + editable.style.lineHeight + ';';
         cleanBlock.setAttribute('style', styleAttr);
-        cleanBlock.innerHTML = clone.innerHTML;
+        cleanBlock.innerHTML = editable.innerHTML;
         layout.appendChild(cleanBlock);
       });
       qsa('.fig-hr-abs, .fig-vr-abs', canvasWrap).forEach(function(lineEl){
@@ -3274,7 +3269,6 @@ function initNav(){
     qs('#nav-dropdown').classList.toggle('open');
   });
   document.addEventListener('click', function(){ qs('#nav-dropdown').classList.remove('open'); });
-  qs('#nav-back-home-btn').addEventListener('click', function(){ window.location.href = 'userpostlogin.html'; });
   qs('#nav-my-portfolio-btn').addEventListener('click', function(){
     if (state.currentUser && state.currentUser.username) window.location.href = 'portfolio.html?u=' + encodeURIComponent(state.currentUser.username);
     else window.location.href = 'userpostlogin.html';
