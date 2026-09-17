@@ -273,7 +273,7 @@ section{ padding:36px 0; }
   display:flex; flex-direction:column;
 }
 .j-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-mid); }
-.j-cover{ position:relative; aspect-ratio:3/1; }
+.j-cover{ position:relative; aspect-ratio:3/2; }
 .j-cover .cat-pill{ position:absolute; left:14px; top:14px; }
 .j-owner-actions{ position:absolute; right:10px; top:10px; display:flex; gap:6px; z-index:2; }
 .j-owner-btn{
@@ -447,7 +447,7 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
 
 /* ============ COVER IMAGE (write view + reader) ============ */
 .cover-upload-box{
-  width:100%; aspect-ratio:3/1; border-radius:var(--radius-lg); border:1.5px dashed var(--line-strong);
+  width:100%; aspect-ratio:5/2; border-radius:var(--radius-lg); border:1.5px dashed var(--line-strong);
   background:linear-gradient(160deg,var(--paper) 0%,var(--cream) 100%); display:flex; align-items:center; justify-content:center; cursor:pointer;
   position:relative; overflow:hidden; color:var(--ink-faint); transition:border-color .2s ease;
 }
@@ -574,7 +574,7 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
 .read-shell{ max-width:720px; margin:0 auto; }
 .read-back{ display:inline-flex; align-items:center; gap:8px; font-weight:700; color:var(--ink-soft); margin-bottom:22px; font-size:.88rem; }
 .read-back:hover{ color:var(--orange-deep); }
-.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:3/1; position:relative; }
+.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:5/2; position:relative; }
 .read-cover .cat-pill{ position:absolute; left:18px; top:18px; }
 .read-header h1{ font-size:clamp(1.9rem,4vw,2.7rem); }
 .read-subtitle{ font-size:1.12rem; color:var(--ink-soft); margin-top:14px; font-family:var(--font-display); font-style:italic; }
@@ -681,7 +681,7 @@ body.is-reading .comment-form textarea{
 .draft-meta{ display:flex; gap:14px; font-size:.76rem; color:var(--ink-faint); font-family:var(--font-mono); margin-bottom:12px; flex-wrap:wrap; }
 .draft-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 .list-stack{ display:flex; flex-direction:column; gap:14px; }
-.saved-thumb{ width:110px; aspect-ratio:3/1; border-radius:12px; overflow:hidden; flex-shrink:0; }
+.saved-thumb{ width:110px; aspect-ratio:3/2; border-radius:12px; overflow:hidden; flex-shrink:0; }
 
 /* ============ NOTIFICATIONS ============ */
 .notif-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
@@ -4207,7 +4207,7 @@ function confirmAiOnlyImages(){
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = '';
       if (!file) return;
-      openCropModal(file, 3, 1, async function(img, cropRect){
+      openCropModal(file, 5, 2, async function(img, cropRect){
         const box2 = qs('#cover-upload-box');
         box2.innerHTML = '<div class="cu-uploading">Compressing &amp; uploading…</div>';
         try{
@@ -4218,7 +4218,7 @@ function confirmAiOnlyImages(){
           // the card and reader both display it via object-fit:cover
           // inside their own (differently-shaped) boxes, so they're
           // always showing the exact same chosen framing.
-          writeDraft.cover_url = await processAndUploadImage(img, 3, 1, 'cover', cropRect, 1400);
+          writeDraft.cover_url = await processAndUploadImage(img, 5, 2, 'cover', cropRect, 1400);
           writeDraft.cover_thumb_url = null;
           renderCoverUploadBox();
           scheduleAutosave();
