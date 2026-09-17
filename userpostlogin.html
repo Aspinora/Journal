@@ -273,7 +273,7 @@ section{ padding:36px 0; }
   display:flex; flex-direction:column;
 }
 .j-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-mid); }
-.j-cover{ position:relative; aspect-ratio:3/2; }
+.j-cover{ position:relative; aspect-ratio:3/1; }
 .j-cover .cat-pill{ position:absolute; left:14px; top:14px; }
 .j-owner-actions{ position:absolute; right:10px; top:10px; display:flex; gap:6px; z-index:2; }
 .j-owner-btn{
@@ -287,7 +287,7 @@ section{ padding:36px 0; }
 .j-owner-btn-danger:hover{ background:var(--danger,#c0392b); }
 .j-body{ padding:20px 20px 22px; display:flex; flex-direction:column; gap:14px; flex:1; }
 .j-body h3{ font-size:1.18rem; line-height:1.34; white-space:normal; }
-.j-excerpt{ color:var(--ink-soft); font-size:.9rem; line-height:1.7; margin:0; flex:1; white-space:normal; }
+.j-excerpt{ color:var(--ink-soft); font-size:.9rem; line-height:1.7; margin:0; flex:1; white-space:pre-line; }
 /* Footer row: avatar/name/date pinned bottom-left, like/comment stats
    pinned bottom-right on the same line — was two separate stacked
    rows before, each left-aligned. margin-top:auto (with j-excerpt's
@@ -447,7 +447,7 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
 
 /* ============ COVER IMAGE (write view + reader) ============ */
 .cover-upload-box{
-  width:100%; aspect-ratio:5/2; border-radius:var(--radius-lg); border:1.5px dashed var(--line-strong);
+  width:100%; aspect-ratio:3/1; border-radius:var(--radius-lg); border:1.5px dashed var(--line-strong);
   background:linear-gradient(160deg,var(--paper) 0%,var(--cream) 100%); display:flex; align-items:center; justify-content:center; cursor:pointer;
   position:relative; overflow:hidden; color:var(--ink-faint); transition:border-color .2s ease;
 }
@@ -466,7 +466,20 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
   background:#111; touch-action:none; cursor:grab; aspect-ratio:var(--crop-ratio, 5/2);
 }
 .crop-viewport.is-dragging{ cursor:grabbing; }
-.crop-viewport img{ position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform; user-select:none; -webkit-user-drag:none; pointer-events:none; }
+.crop-viewport img{
+  position:absolute; top:0; left:0; transform-origin:0 0; will-change:transform;
+  user-select:none; -webkit-user-drag:none; pointer-events:none;
+  /* The global `img{max-width:100%}` reset (see top of file) would
+     otherwise shrink this image to the viewport's own width before
+     the pan/zoom transform below is applied — since that transform's
+     scale is computed against the image's true natural pixel size,
+     the two shrinks would compound and the exported crop would end up
+     showing a much smaller, over-zoomed region than what was visible
+     while dragging/zooming. Opting this image out of that reset keeps
+     it at its natural size so the transform math (and therefore the
+     saved cropRect) stays accurate. */
+  max-width:none;
+}
 .crop-controls{ display:flex; align-items:center; gap:12px; margin-top:16px; }
 .crop-controls input[type="range"]{ flex:1; }
 .crop-hint{ text-align:center; font-size:.78rem; color:var(--ink-faint); margin-top:8px; }
@@ -561,7 +574,7 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
 .read-shell{ max-width:720px; margin:0 auto; }
 .read-back{ display:inline-flex; align-items:center; gap:8px; font-weight:700; color:var(--ink-soft); margin-bottom:22px; font-size:.88rem; }
 .read-back:hover{ color:var(--orange-deep); }
-.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:5/2; position:relative; }
+.read-cover{ border-radius:var(--radius-lg); overflow:hidden; margin-bottom:26px; aspect-ratio:3/1; position:relative; }
 .read-cover .cat-pill{ position:absolute; left:18px; top:18px; }
 .read-header h1{ font-size:clamp(1.9rem,4vw,2.7rem); }
 .read-subtitle{ font-size:1.12rem; color:var(--ink-soft); margin-top:14px; font-family:var(--font-display); font-style:italic; }
@@ -600,6 +613,23 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
 .like-btn svg{ width:18px; height:18px; }
 .like-btn.is-liked{ background:var(--orange-soft); border-color:var(--orange); color:var(--orange-deep); }
 .like-btn.is-liked svg{ fill:var(--orange); }
+/* Double-click/double-tap-to-like: a single floating heart that pops
+   in, overshoots slightly, then fades — purely decorative, doesn't
+   intercept clicks (pointer-events:none) or affect layout (fixed +
+   removed from the flow entirely). */
+.dbl-like-heart{
+  position:fixed; z-index:999; left:0; top:0; pointer-events:none;
+  width:84px; height:84px; color:var(--orange);
+  filter:drop-shadow(0 4px 14px rgba(43,36,28,.35));
+  transform:translate(-50%,-50%) scale(0);
+  animation:dbl-like-pop .7s cubic-bezier(.2,.9,.3,1.1) forwards;
+}
+@keyframes dbl-like-pop{
+  0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
+  18%{ transform:translate(-50%,-50%) scale(1.15); opacity:1; }
+  32%{ transform:translate(-50%,-50%) scale(.95); opacity:1; }
+  100%{ transform:translate(-50%,-50%) scale(1); opacity:0; }
+}
 /* While a Work is open, the action icons/like button/comment box pick up
    a soft wash of the category colour instead of sitting as flat white
    cards on a now-colourful page. */
@@ -651,7 +681,7 @@ body.is-reading .comment-form textarea{
 .draft-meta{ display:flex; gap:14px; font-size:.76rem; color:var(--ink-faint); font-family:var(--font-mono); margin-bottom:12px; flex-wrap:wrap; }
 .draft-actions{ display:flex; gap:10px; flex-wrap:wrap; }
 .list-stack{ display:flex; flex-direction:column; gap:14px; }
-.saved-thumb{ width:110px; aspect-ratio:3/2; border-radius:12px; overflow:hidden; flex-shrink:0; }
+.saved-thumb{ width:110px; aspect-ratio:3/1; border-radius:12px; overflow:hidden; flex-shrink:0; }
 
 /* ============ NOTIFICATIONS ============ */
 .notif-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
@@ -759,11 +789,11 @@ body.is-reading .comment-form textarea{
 .pl-word{ font-family:var(--font-display); font-weight:700; font-size:1.32rem; color:var(--ink); }
 .pl-j{ color:var(--orange); }
 .pl-wordmark .t2{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-top:3px; }
-.pl-center-nav{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+.pl-center-nav{ display:flex; align-items:center; justify-content:space-between; gap:4px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
 .pl-center-nav::-webkit-scrollbar{ display:none; }
 .pl-nav-item{
   display:flex; flex-direction:column; align-items:center; gap:5px;
-  background:none; border:none; padding:8px 14px; border-radius:12px;
+  background:none; border:none; padding:8px 9px; border-radius:12px;
   color:var(--ink-soft); font-family:var(--font-body); font-weight:600;
   font-size:.74rem; white-space:nowrap; transition:color var(--dur-fast) var(--ease);
 }
@@ -776,7 +806,7 @@ body.is-reading .comment-form textarea{
   content:''; position:absolute; left:26%; right:26%; bottom:-2px;
   height:3px; border-radius:3px; background:var(--orange-deep);
 }
-.pl-nav-right{ display:flex; align-items:center; gap:8px; justify-self:end; margin-right:10px; min-width:0; }
+.pl-nav-right{ display:flex; align-items:center; gap:6px; justify-self:end; margin-right:10px; min-width:0; }
 .pl-nav-right .pl-nav-item, .pl-nav-right #nav-user{ flex-shrink:0; }
 .pl-search-wrap{ position:relative; display:flex; align-items:center; flex:0 1 auto; min-width:0; }
 .pl-icon-btn{
@@ -791,7 +821,7 @@ body.is-reading .comment-form textarea{
 /* Desktop: a real, always-open search bar (not just an icon). */
 .pl-search-bar-inline{
   display:flex; align-items:center; gap:8px; border:1px solid var(--line-strong); border-radius:999px;
-  padding:7px 14px; width:clamp(120px,14vw,230px); color:var(--ink-faint); background:var(--paper);
+  padding:7px 14px; width:clamp(200px,20vw,340px); color:var(--ink-faint); background:var(--paper);
 }
 .pl-search-bar-inline input{ flex:1; min-width:0; border:none; background:none; font-size:.86rem; color:var(--ink); }
 .pl-search-bar-inline input:focus{ outline:none; }
@@ -1539,7 +1569,17 @@ const UPDATES_BADGE = { name:'Updates', color:'#A35A2E', soft:'#F5DCC7',
 const CREATIVE_IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
 function categoryBySlug(slug){ return CATEGORIES.find(function(c){ return c.slug === slug; }) || CATEGORIES[0]; }
 function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name === name; }) || CATEGORIES[0]; }
-function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[0]; }
+function categoryById(id){
+  // Supabase/PostgREST can return an integer FK column as a numeric
+  // string (bigint columns are serialized as strings to avoid
+  // precision loss), so a strict `===` against CATEGORIES' numeric
+  // ids silently matched nothing except by fallback — every category
+  // other than the very first one in the list rendered as that
+  // fallback ("Journals") regardless of its real category. Coercing
+  // both sides to a number first fixes the actual lookup.
+  const numId = Number(id);
+  return CATEGORIES.find(function(c){ return c.id === numId; }) || CATEGORIES[0];
+}
 /* Renders one of the category-badge objects above as a self-contained
    circular icon: <span class="cat-badge" style="--bg:..;--fg:..">svg</span> */
 function categoryBadgeHTML(cat, size){
@@ -1682,6 +1722,8 @@ const state = {
   searchQuery: '',
   latestPage: 1,
   latestPageSize: 6,
+  latestFeedToken: 0,   // guards against a stale renderLatestFeed() call overwriting a newer one
+  readRequestToken: 0,  // guards against a stale renderReadView() call overwriting a newer one
   currentJournalId: null,        // journal currently open in reading/write view
   currentDraftId: null,          // draft currently open in the writer
   writeMdHistory: [],            // simple undo/redo stack for the editor
@@ -2125,9 +2167,11 @@ async function processAndUploadImage(img, ratioW, ratioH, purpose, cropRect, max
 
 /* ---------- pan/zoom crop modal (currently used for covers, 5:2) ---------- */
 const cropState = { img:null, ratioW:5, ratioH:2, baseScale:1, scale:1, minScale:1, maxScale:4, offsetX:0, offsetY:0, dragging:false, lastX:0, lastY:0, onConfirm:null };
-function openCropModal(file, ratioW, ratioH, onConfirm){
+function openCropModal(file, ratioW, ratioH, onConfirm, title){
   loadImageFromFile(file).then(function(img){
     cropState.img = img; cropState.ratioW = ratioW; cropState.ratioH = ratioH; cropState.onConfirm = onConfirm; cropState.scale = 1;
+    const titleEl = qs('#crop-modal-title');
+    if (titleEl) titleEl.textContent = title || 'Position your cover image';
     qs('#crop-viewport').style.setProperty('--crop-ratio', ratioW + '/' + ratioH);
     const cropImg = qs('#crop-img');
     cropImg.src = img.src || '';
@@ -3089,6 +3133,44 @@ async function toggleJournalLike(journalId){
   }
 }
 
+/* Double-click-to-like (Instagram-style): only ever ADDS a like, never
+   removes one — so double-clicking an already-liked post is a no-op
+   for like state (just plays the heart animation again). This is what
+   keeps a double-click from ever toggling a like off, or from racing
+   with the like button to create a duplicate like — it always routes
+   through the same toggleJournalLike()/uniqueness-protected backend,
+   and only calls it when the post isn't already liked. */
+function spawnDoubleTapHeart(x, y){
+  const heart = document.createElement('div');
+  heart.className = 'dbl-like-heart';
+  heart.style.left = x + 'px';
+  heart.style.top = y + 'px';
+  heart.innerHTML = '<svg viewBox="0 0 20 20" width="84" height="84" fill="currentColor"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z"/></svg>';
+  document.body.appendChild(heart);
+  heart.addEventListener('animationend', function(){ heart.remove(); });
+  setTimeout(function(){ if (heart.parentNode) heart.remove(); }, 1200); // safety net
+}
+function likeJournalOnceViaDoubleClick(journalId, x, y){
+  spawnDoubleTapHeart(x, y);
+  if (state.likedJournalIds.has(journalId)) return; // already liked — animate only, don't touch like state
+  requireAuth('Log in to appreciate this Work.', async function(){
+    await toggleJournalLike(journalId);
+    const likeBtn = qs('#like-btn');
+    if (likeBtn) likeBtn.classList.add('is-liked');
+    const likeCountEl = qs('#like-count');
+    const cached = getCachedJournal(journalId);
+    if (likeCountEl && cached) likeCountEl.textContent = cached.likes;
+  });
+}
+document.addEventListener('dblclick', function(e){
+  if (state.currentView !== 'read' || !state.currentJournalId) return;
+  const target = e.target.closest('#read-cover, #read-body');
+  if (!target) return;
+  if (e.target.closest('a, button, input, textarea')) return; // don't hijack interactive elements
+  e.preventDefault(); // stop the double-click text-selection that would otherwise happen in #read-body
+  likeJournalOnceViaDoubleClick(state.currentJournalId, e.clientX, e.clientY);
+});
+
 async function toggleBookmark(journalId){
   const already = state.bookmarkedIds.has(journalId);
   if (already) state.bookmarkedIds.delete(journalId); else state.bookmarkedIds.add(journalId);
@@ -3256,11 +3338,24 @@ async function publishJournal(payload){
    build their path once the actual journal/author is known (see
    renderReadView and renderPortfolioView), since they need data that
    isn't available synchronously here. */
-const VIEW_PATHS = { home:'/', explore:'/', drafts:'/drafts', published:'/published', saved:'/saved', notifications:'/notifications' };
+const VIEW_PATHS = { drafts:'/drafts', published:'/published', saved:'/saved', notifications:'/notifications' };
 function setPath(path, replace){
-  if (!path || window.location.pathname === path) return;
+  if (!path) return;
+  const current = window.location.pathname + window.location.search;
+  if (current === path) return;
   const fn = replace ? 'replaceState' : 'pushState';
   history[fn]({ aspinoraNav:true }, '', path);
+}
+/* home/explore are the same screen (see targetId below) filtered by
+   state.activeFilter — this reflects the selected section into the URL
+   as a query param (reusing the exact `?category=` scheme init() already
+   reads on boot) so a plain refresh restores the section you were
+   browsing instead of always landing back on Home/All. A query param
+   (not a path segment) deliberately avoids ever colliding with a
+   username route. */
+function syncSectionPath(replace){
+  const cat = (state.activeFilter && state.activeFilter !== 'all') ? state.activeFilter : '';
+  setPath('/' + (cat ? ('?category=' + encodeURIComponent(cat)) : ''), replace);
 }
 function navigateTo(view, params){
   params = params || {};
@@ -3284,7 +3379,8 @@ function navigateTo(view, params){
      the right item no matter which view the person lands on. */
   renderTopNav();
 
-  if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
+  if (view === 'home' || view === 'explore') syncSectionPath(replace);
+  else if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
   if (view === 'write'){ setPath(params.draftId ? '/write/' + params.draftId : '/write', replace); renderWriteView(params.draftId || null, params.category || null); }
   if (view === 'drafts') renderDraftsView();
   if (view === 'published') renderPublishedView();
@@ -3306,11 +3402,16 @@ function navigateTo(view, params){
    boundary rather than mid-word. */
 function cardExcerpt(text, maxLen){
   maxLen = maxLen || 220;
-  const clean = (text || '').replace(/\s+/g,' ').trim();
+  // Only collapse horizontal whitespace runs (spaces/tabs) and cap
+  // excessive blank lines — intentional single/double line breaks are
+  // kept intact so `.j-excerpt`'s `white-space:pre-line` can render
+  // them, instead of every newline being flattened into one run-on
+  // line like it was before.
+  const clean = (text || '').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
   if (clean.length <= maxLen) return clean;
   let cut = clean.slice(0, maxLen);
-  const lastSpace = cut.lastIndexOf(' ');
-  if (lastSpace > maxLen * 0.6) cut = cut.slice(0, lastSpace);
+  const lastBreak = Math.max(cut.lastIndexOf(' '), cut.lastIndexOf('\n'));
+  if (lastBreak > maxLen * 0.6) cut = cut.slice(0, lastBreak);
   return cut.replace(/[.,;:!?"')\]]+$/, '') + '…';
 }
 function journalCardHTML(j){
@@ -3327,7 +3428,7 @@ function journalCardHTML(j){
     '</div>'
   );
   return '<article class="j-card" data-open-journal="' + j.id + '">' +
-    '<div class="j-cover">' + coverHTML(j.category, j.cover_thumb_url || j.cover_url) + ownerActions + '</div>' +
+    '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + ownerActions + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(cardExcerpt(j.excerpt || j.body, 220)) + '</p>' +
@@ -3394,6 +3495,9 @@ async function renderLatestFeed(){
   const grid = homeGridEl();
   if (!grid) return;
   const isFirstPage = state.latestPage === 1;
+  // A stale request that resolves after a newer one must never be
+  // allowed to render/overwrite — this token is the guard for that.
+  const myFeedToken = ++state.latestFeedToken;
   if (isFirstPage){
     grid.innerHTML = '<div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div>';
     state.noMoreLatest = false;
@@ -3408,6 +3512,12 @@ async function renderLatestFeed(){
       page: state.latestPage, pageSize: state.latestPageSize,
       category: state.activeFilter, sort: state.activeSort, search: state.searchQuery
     });
+    // A newer renderLatestFeed() call has since started (e.g. a fast
+    // refresh/filter-change while this request was still in flight) —
+    // discard this now-stale response instead of letting it overwrite
+    // what the newer request already rendered. This was the actual
+    // cause of the feed sometimes settling on only a handful of posts.
+    if (myFeedToken !== state.latestFeedToken) return;
     if (!state.latestSeenIds) state.latestSeenIds = new Set();
     // Belt-and-suspenders alongside the stable-sort fix above: even with
     // a deterministic ORDER BY, never let the same Work render twice in
@@ -3436,6 +3546,7 @@ async function renderLatestFeed(){
     state.noMoreLatest = result.rows.length < state.latestPageSize;
     if (endMsg) endMsg.hidden = !state.noMoreLatest;
   }catch(e){
+    if (myFeedToken !== state.latestFeedToken) return;
     // Never wipe posts already on screen for a failed *next* page —
     // only page 1 (nothing loaded yet) shows the full error state.
     // Roll the page counter back so the same page is retried instead
@@ -3448,8 +3559,10 @@ async function renderLatestFeed(){
     }
   }
   finally{
-    state.isLoadingLatest = false;
-    if (spinner) spinner.hidden = true;
+    if (myFeedToken === state.latestFeedToken){
+      state.isLoadingLatest = false;
+      if (spinner) spinner.hidden = true;
+    }
   }
 }
 /* Infinite scroll: a sentinel just below the grid triggers the next
@@ -3527,16 +3640,38 @@ function renderHomeStatic(){
    12. READING VIEW + COMMENTS
    ------------------------------------------------------------------ */
 async function renderReadView(journalId, replace){
+  // Guards against two problems at once: (1) the previous post staying
+  // visible while the next one is still loading, and (2) an older,
+  // slower-resolving fetch (from rapidly opening several posts in a
+  // row) rendering after a newer one already has — this token makes a
+  // stale response a no-op instead of clobbering the current post.
+  const myReadToken = ++state.readRequestToken;
   state.currentJournalId = journalId;
   state.visibleRootComments = 10;
+
+  // Immediately clear the previous post out of the reader and show the
+  // app's existing shimmer loading state, before the async fetch even
+  // starts, so the old content can never linger on screen mid-navigation.
+  qs('#read-cover').innerHTML = '<div class="skeleton" style="position:absolute;inset:0;"></div>';
+  qs('#read-title').textContent = '';
+  qs('#read-subtitle').hidden = true;
+  qs('#read-body').innerHTML = '<div class="skeleton" style="height:1.1em;margin-bottom:12px;"></div>' +
+    '<div class="skeleton" style="height:1.1em;margin-bottom:12px;width:94%;"></div>' +
+    '<div class="skeleton" style="height:1.1em;width:78%;"></div>';
+
   const j = await fetchJournal(journalId);
+  if (myReadToken !== state.readRequestToken) return; // superseded by a newer navigation
   if (!j){ navigateTo('home'); return; }
 
   // Reflect the clean, shareable URL for this Work once we actually
-  // know it (never blocks the reading view over a URL nicety).
-  const authorRow = MOCK_AUTHORS[j.author_id];
-  if (DEMO_MODE && authorRow && authorRow.username && j.slug){
-    setPath('/' + authorRow.username + '/' + j.slug, !!replace);
+  // know it (never blocks the reading view over a URL nicety). This
+  // used to only run in DEMO_MODE, so the address bar never reflected
+  // the real post's URL for actual (non-demo) Works — which is also
+  // why a copied/shared link and a plain page refresh weren't reliable:
+  // authorUsername() already resolves correctly in both modes.
+  const shareUsername = authorUsername(j.author_id);
+  if (shareUsername && j.slug){
+    setPath('/' + shareUsername + '/' + j.slug, !!replace);
   }
   recordRead(j);
 
@@ -3862,7 +3997,7 @@ async function renderSavedView(){
     return;
   }
   list.innerHTML = rows.map(function(j){
-    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category, j.cover_thumb_url || j.cover_url) + '</div>' +
+    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category, j.cover_url) + '</div>' +
       '<div class="draft-info"><h3>' + escapeHtml(j.title) + '</h3><p>' + escapeHtml(j.excerpt) + '</p>' +
       '<div class="draft-meta"><span>' + authorName(j.author_id) + '</span></div>' +
       '<div class="draft-actions"><button type="button" class="btn btn-primary btn-sm" data-open-journal="' + j.id + '">Read Work</button>' +
@@ -3956,6 +4091,7 @@ function wireGenericButtons(){
     el.onclick = function(){
       state.activeFilter = this.getAttribute('data-filter-category');
       state.latestPage = 1;
+      syncSectionPath(true);
       renderFilterRow(); renderLatestFeed(); wireGenericButtons();
       qs('#explore-section').scrollIntoView({ behavior:'smooth' });
     };
@@ -4071,17 +4207,19 @@ function confirmAiOnlyImages(){
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = '';
       if (!file) return;
-      openCropModal(file, 5, 2, async function(img, cropRect){
+      openCropModal(file, 3, 1, async function(img, cropRect){
         const box2 = qs('#cover-upload-box');
         box2.innerHTML = '<div class="cu-uploading">Compressing &amp; uploading…</div>';
         try{
-          const thumbRect = deriveNarrowerCropRect(cropRect, 3, 2);
-          const results = await Promise.all([
-            processAndUploadImage(img, 5, 2, 'cover', cropRect, 1400),
-            processAndUploadImage(img, 3, 2, 'cover', thumbRect, 900)
-          ]);
-          writeDraft.cover_url = results[0];
-          writeDraft.cover_thumb_url = results[1];
+          // A separate, narrower-cropped "thumbnail" for the card used
+          // to be generated here — but that meant the card and the
+          // reader could show two different framings of the same
+          // cover. There's now only ever one uploaded cover image;
+          // the card and reader both display it via object-fit:cover
+          // inside their own (differently-shaped) boxes, so they're
+          // always showing the exact same chosen framing.
+          writeDraft.cover_url = await processAndUploadImage(img, 3, 1, 'cover', cropRect, 1400);
+          writeDraft.cover_thumb_url = null;
           renderCoverUploadBox();
           scheduleAutosave();
         }catch(err){
@@ -4209,31 +4347,29 @@ function renderBlockEditor(){
       const file = fileInput.files && fileInput.files[0];
       fileInput.value = '';
       if (!file || inlineImageCount() >= MAX_INLINE_IMAGES) return;
-      // Placeholder block shows a spinner in-place while it uploads.
-      const pendingId = newBlockId();
-      writeDraft.blocks.push({ type:'image', id:pendingId, url:'', uploading:true });
-      renderBlockEditor();
-      const pendingEl = qs('#block-editor').querySelector('[data-block-id="' + pendingId + '"]');
-      if (pendingEl) pendingEl.innerHTML = '<div class="block-image-uploading">Compressing &amp; uploading…</div>';
-      loadImageFromFile(file).then(async function(img){
-        try{
-          const url = await processAndUploadImage(img, 16, 9, 'paragraph', null, 1400);
+      // Reuse the same pan/zoom crop modal as the cover image (just at
+      // 16:9) instead of silently auto-centre-cropping — this is what
+      // actually gives the person manual control over the framing.
+      openCropModal(file, 16, 9, function(img, cropRect){
+        // Placeholder block shows a spinner in-place while it uploads.
+        const pendingId = newBlockId();
+        writeDraft.blocks.push({ type:'image', id:pendingId, url:'', uploading:true });
+        renderBlockEditor();
+        const pendingEl = qs('#block-editor').querySelector('[data-block-id="' + pendingId + '"]');
+        if (pendingEl) pendingEl.innerHTML = '<div class="block-image-uploading">Compressing &amp; uploading…</div>';
+        processAndUploadImage(img, 16, 9, 'paragraph', cropRect, 1400).then(function(url){
           const block = writeDraft.blocks.find(function(b){ return b.id === pendingId; });
           if (block){ block.url = url; delete block.uploading; }
           writeDraft.body = blocksToBody(writeDraft.blocks);
           renderBlockEditor();
           updateWriteFooterCounts();
           scheduleAutosave();
-        }catch(err){
+        }).catch(function(err){
           writeDraft.blocks = writeDraft.blocks.filter(function(b){ return b.id !== pendingId; });
           renderBlockEditor();
           showToast(err.message || 'Could not upload that image.');
-        }
-      }).catch(function(){
-        writeDraft.blocks = writeDraft.blocks.filter(function(b){ return b.id !== pendingId; });
-        renderBlockEditor();
-        showToast('Could not open that image.');
-      });
+        });
+      }, 'Position your image');
     });
   });
 })();
@@ -4751,6 +4887,7 @@ function initMobileSwipeNav(){
     animatePaneTo(exitX, function(){
       state.activeFilter = SWIPE_SECTION_ORDER[next];
       state.latestPage = 1;
+      syncSectionPath(true);
       renderTopNav();
       renderHomeStatic();
       // Land the freshly-rendered pane just off the OPPOSITE edge,
@@ -4843,7 +4980,7 @@ document.addEventListener('click', function(e){
     state.activeFilter = chip.getAttribute('data-filter-chip');
     state.latestPage = 1;
     if (state.currentView !== 'home') navigateTo('home');
-    else { renderTopNav(); renderHomeStatic(); }
+    else { syncSectionPath(true); renderTopNav(); renderHomeStatic(); }
     return;
   }
   const wallNav = e.target.closest('[data-nav-wall]');
