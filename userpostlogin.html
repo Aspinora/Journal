@@ -261,7 +261,9 @@ section{ padding:36px 0; }
 .cat-pill{
   display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px;
   font-size:.74rem; font-weight:700; font-family:var(--font-mono); letter-spacing:.02em;
-  background:rgba(255,255,255,.22); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  /* ~60% more transparent than the previous .22 alpha (only the fill's
+     opacity changed — same size/position/font/layout as before). */
+  background:rgba(255,255,255,.09); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   box-shadow:0 1px 3px rgba(0,0,0,.14); z-index:1;
 }
 
@@ -1844,6 +1846,21 @@ function escapeHtml(str){
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
+/* Inline Markdown (bold/italic/link) → safe HTML. Lifted out of
+   markdownToHtml() below (where it used to live as a private nested
+   function) so it can also be reused for card excerpts, which is the
+   fix for cards showing literal *asterisks* instead of real
+   italic/bold — same escaping contract as before: the caller must
+   HTML-escape the text FIRST (markdownToHtml does this once for the
+   whole body; journalCardHTML() below does it per-excerpt), and this
+   function only ever turns specific Markdown-marker patterns into
+   tags, never raw text into markup. */
+function inlineMd(text){
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/(^|[^*])\*(?!\s)(.+?)(?!\s)\*(?!\*)/g, '$1<em>$2</em>');
+  text = text.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  return text;
+}
 /* Small, dependency-free Markdown → safe HTML renderer.
    Text is HTML-escaped FIRST, so no raw HTML from a journal body can
    ever execute — only the specific Markdown patterns below are turned
@@ -1865,12 +1882,6 @@ function markdownToHtml(md){
   }
   function closeList(){
     if (inList){ html += '</' + inList + '>'; inList = null; }
-  }
-  function inlineMd(text){
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/(^|[^*])\*(?!\s)(.+?)(?!\s)\*(?!\*)/g, '$1<em>$2</em>');
-    text = text.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    return text;
   }
 
   lines.forEach(function(line){
@@ -2690,6 +2701,11 @@ function normalizeJournalRow(row){
     subtitle: row.subtitle,
     excerpt: row.excerpt,
     body: row.body_markdown || '',
+    // Root cause of every card showing "Journals": categoryById() was
+    // already being resolved above but was never actually put on the
+    // object journalCardHTML()/coverHTML() read from (j.category) — so
+    // every card silently fell back to the default category.
+    category: cat.name,
     cover_url: row.cover_url || null,
     cover_thumb_url: row.cover_thumb_url || null,
     script: row.script || null,
@@ -2983,7 +2999,12 @@ function fromSupabaseJournalRow(row){
     visibility: row.visibility || 'public',
     allow_comments: row.allow_comments !== false,
     content_note: row.content_note || '',
-    updated_at: row.updated_at
+    updated_at: row.updated_at,
+    // Needed so publishJournal() can tell "already has a slug" (an
+    // in-place edit of an already-published Work) from "never
+    // published" (a draft) — see slugify()/generateUniqueSlug() below.
+    slug: row.slug || null,
+    status: row.status || null
   };
 }
 
@@ -3150,16 +3171,12 @@ function spawnDoubleTapHeart(x, y){
   heart.addEventListener('animationend', function(){ heart.remove(); });
   setTimeout(function(){ if (heart.parentNode) heart.remove(); }, 1200); // safety net
 }
-function likeJournalOnceViaDoubleClick(journalId, x, y){
+function likeJournalOnceViaDoubleClick(journalId, x, y, onLiked){
   spawnDoubleTapHeart(x, y);
   if (state.likedJournalIds.has(journalId)) return; // already liked — animate only, don't touch like state
   requireAuth('Log in to appreciate this Work.', async function(){
     await toggleJournalLike(journalId);
-    const likeBtn = qs('#like-btn');
-    if (likeBtn) likeBtn.classList.add('is-liked');
-    const likeCountEl = qs('#like-count');
-    const cached = getCachedJournal(journalId);
-    if (likeCountEl && cached) likeCountEl.textContent = cached.likes;
+    if (onLiked) onLiked(getCachedJournal(journalId));
   });
 }
 document.addEventListener('dblclick', function(e){
@@ -3168,7 +3185,45 @@ document.addEventListener('dblclick', function(e){
   if (!target) return;
   if (e.target.closest('a, button, input, textarea')) return; // don't hijack interactive elements
   e.preventDefault(); // stop the double-click text-selection that would otherwise happen in #read-body
-  likeJournalOnceViaDoubleClick(state.currentJournalId, e.clientX, e.clientY);
+  likeJournalOnceViaDoubleClick(state.currentJournalId, e.clientX, e.clientY, function(cached){
+    const likeBtn = qs('#like-btn');
+    if (likeBtn) likeBtn.classList.add('is-liked');
+    const likeCountEl = qs('#like-count');
+    if (likeCountEl && cached) likeCountEl.textContent = cached.likes;
+  });
+});
+/* Feed-card single vs double click: a single click should open the
+   Work, but a genuine double-click should like it instead, without
+   ever also navigating away. Native double-click gestures fire TWO
+   'click' events before the one 'dblclick' event — so the only way to
+   arbitrate is to delay the single-click navigation just long enough
+   for a second click to either not arrive (real single click — open
+   normally) or arrive as a dblclick (cancel the pending navigation and
+   like instead). Keyed by the card's own DOM node (not the journal id)
+   so double-clicking two different cards back-to-back can never cancel
+   the wrong one's pending navigation; a WeakMap lets a re-rendered
+   (removed) card's stale entry be garbage-collected instead of leaking. */
+const pendingCardOpens = new WeakMap();
+const CARD_CLICK_ARBITRATION_MS = 250;
+document.addEventListener('dblclick', function(e){
+  const card = e.target.closest('.j-card[data-open-journal]');
+  if (!card) return;
+  if (e.target.closest('a, button, input, textarea')) return; // don't hijack owner-action buttons/author link
+  const pending = pendingCardOpens.get(card);
+  if (pending){ clearTimeout(pending); pendingCardOpens.delete(card); }
+  e.preventDefault(); // stop double-click text-selection on the card's title/excerpt
+  const journalId = card.getAttribute('data-open-journal');
+  likeJournalOnceViaDoubleClick(journalId, e.clientX, e.clientY, function(cached){
+    // Cards aren't the reader, so there's no single #like-count to
+    // update — bump this specific card's own like stat instead.
+    const statEl = card.querySelector('.j-stats span:first-child');
+    if (!statEl) return;
+    if (cached){ statEl.textContent = '♥ ' + cached.likes; }
+    else {
+      const current = parseInt((statEl.textContent || '').replace(/[^\d]/g, ''), 10) || 0;
+      statEl.textContent = '♥ ' + (current + 1);
+    }
+  });
 });
 
 async function toggleBookmark(journalId){
@@ -3293,7 +3348,41 @@ async function deleteDraft(draftId){
   localStorage.removeItem('aspinora_draft_' + draftId);
 }
 function slugify(title){
-  return (title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.floor(Math.random()*900+100);
+  return (title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+}
+/* Root cause of non-unique/unstable Work URLs: slugify() used to
+   tack on a bare random 3-digit number with no check that it wasn't
+   already taken by another Work of this author's — a real (if
+   infrequent) collision risk, especially for repeated/common titles.
+   Worse, the old publishJournal() called slugify() again on every
+   single publish, including re-publishing an already-published Work
+   after an edit — silently changing its slug (and therefore its
+   public URL) out from under anyone who'd already saved/shared the
+   old link. Fixed on both counts: only ever called when a Work
+   doesn't already have a slug (see publishJournal below), and checked
+   against the database (or MOCK_JOURNALS in demo mode) before being
+   accepted, retrying on an actual collision instead of trusting
+   randomness alone. */
+async function generateUniqueSlug(title, authorId, excludeId){
+  const base = slugify(title);
+  if (DEMO_MODE){
+    const taken = new Set(MOCK_JOURNALS.filter(function(j){
+      return j.author_id === authorId && j.id !== excludeId;
+    }).map(function(j){ return j.slug; }));
+    for (let i = 0; i < 20; i++){
+      const candidate = base + '-' + Math.floor(Math.random()*900+100);
+      if (!taken.has(candidate)) return candidate;
+    }
+    return base + '-' + Date.now().toString(36); // guaranteed-unique last resort
+  }
+  for (let i = 0; i < 8; i++){
+    const candidate = base + '-' + Math.floor(Math.random()*900+100);
+    let q = supabaseClient.from('journals').select('id').eq('author_id', authorId).eq('slug', candidate).limit(1);
+    if (excludeId) q = q.neq('id', excludeId);
+    const { data, error } = await q;
+    if (!error && (!data || data.length === 0)) return candidate;
+  }
+  return base + '-' + Date.now().toString(36); // guaranteed-unique last resort
 }
 async function publishJournal(payload){
   if (DEMO_MODE){
@@ -3310,7 +3399,7 @@ async function publishJournal(payload){
     }
     const journal = Object.assign({
       id: d ? d.id : 'j'+(Date.now()),
-      slug: slugify(payload.title),
+      slug: await generateUniqueSlug(payload.title, state.currentUser.id, d ? d.id : null),
       author_id: state.currentUser.id, status:'published', likes:0, comments:0,
       published_at:new Date().toISOString(), reading_time: readingTimeMinutes(words), featured:false
     }, payload, { excerpt: payload.subtitle || (payload.body.slice(0,140) + '…') });
@@ -3320,8 +3409,13 @@ async function publishJournal(payload){
     persistDemoDB();
     return journal;
   }
+  // Reuse the existing slug (already-published Work being edited in
+  // place) instead of generating a new one, so its URL never changes
+  // out from under a shared link; only a Work with no slug yet (a
+  // first-ever publish) gets a freshly generated, uniqueness-checked one.
+  const slug = payload.slug || await generateUniqueSlug(payload.title, state.currentUser.id, state.currentDraftId);
   const row = Object.assign(
-    { author_id: state.currentUser.id, status:'published', published_at:new Date().toISOString(), slug: slugify(payload.title) },
+    { author_id: state.currentUser.id, status:'published', published_at:new Date().toISOString(), slug: slug },
     toSupabaseJournalRow(payload)
   );
   let result;
@@ -3352,10 +3446,22 @@ function setPath(path, replace){
    reads on boot) so a plain refresh restores the section you were
    browsing instead of always landing back on Home/All. A query param
    (not a path segment) deliberately avoids ever colliding with a
-   username route. */
+   username route.
+   Root cause of "refresh drops the section": this used to write the
+   bare site root ('/') into the address bar. On this host the root
+   path is always served directly as index.html (GitHub Pages' default
+   document) — it never 404s, so 404.html's SPA-redirect trick never
+   even gets a chance to run for it. That meant refreshing (or opening
+   in a new tab) any URL this function wrote actually reloaded
+   index.html, a different page, silently losing the section/feed
+   state instead of reloading this app. Keeping userpostlogin.html
+   itself in the path means a refresh re-requests this exact file (a
+   real, always-servable static file — no 404 involved at all), and
+   routeFromPath()'s own filename-stripping regex already turns a bare
+   "/userpostlogin.html" back into the empty path it expects for Home. */
 function syncSectionPath(replace){
   const cat = (state.activeFilter && state.activeFilter !== 'all') ? state.activeFilter : '';
-  setPath('/' + (cat ? ('?category=' + encodeURIComponent(cat)) : ''), replace);
+  setPath('/userpostlogin.html' + (cat ? ('?category=' + encodeURIComponent(cat)) : ''), replace);
 }
 function navigateTo(view, params){
   params = params || {};
@@ -3431,7 +3537,7 @@ function journalCardHTML(j){
     '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + ownerActions + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
-      '<p class="j-excerpt">' + escapeHtml(cardExcerpt(j.excerpt || j.body, 220)) + '</p>' +
+      '<p class="j-excerpt">' + inlineMd(escapeHtml(cardExcerpt(j.excerpt || j.body, 220))) + '</p>' +
       '<div class="j-card-footer">' +
         '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarSpanHTML(j.author_id, authorName(j.author_id)) +
           '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
@@ -4083,9 +4189,15 @@ async function renderNotifBadge(){
 }
 
 function wireGenericButtons(){
-  qsa('[data-open-journal]').forEach(function(el){
-    el.onclick = function(e){ e.preventDefault(); navigateTo('read', { journalId: this.getAttribute('data-open-journal') }); };
-  });
+  // [data-open-journal] is deliberately NOT bound here — it's handled
+  // by the single delegated document click-listener near the bottom of
+  // this script (see its own comment), which already covers every view
+  // (including ones that re-render through wireGenericButtons(), like
+  // Published/Saved). Binding it again here as well meant a single
+  // click fired navigateTo('read', ...) TWICE and, more importantly,
+  // left no single place to arbitrate a single click from a double
+  // click for the like-on-dblclick fix — this was the "competing
+  // immediate navigation" that prevented that fix from working reliably.
   qsa('[data-open-auth]').forEach(function(el){ el.onclick = function(){ openAuthModal(this.getAttribute('data-open-auth')); }; });
   qsa('[data-filter-category]').forEach(function(el){
     el.onclick = function(){
@@ -5004,7 +5116,23 @@ document.addEventListener('click', function(e){
     return;
   }
   const openBtn = e.target.closest('[data-open-journal]');
-  if (openBtn){ e.preventDefault(); navigateTo('read', { journalId: openBtn.getAttribute('data-open-journal') }); return; }
+  if (openBtn){
+    e.preventDefault();
+    // Only real feed/grid cards (.j-card) need the dblclick-to-like
+    // arbitration delay below — a plain button like Saved's "Read
+    // Work" CTA isn't a feed card and should still open instantly,
+    // same as before.
+    const card = openBtn.closest('.j-card');
+    if (!card){ navigateTo('read', { journalId: openBtn.getAttribute('data-open-journal') }); return; }
+    if (pendingCardOpens.has(card)) return; // a navigation is already queued for this card
+    const journalId = openBtn.getAttribute('data-open-journal');
+    const timer = setTimeout(function(){
+      pendingCardOpens.delete(card);
+      navigateTo('read', { journalId: journalId });
+    }, CARD_CLICK_ARBITRATION_MS);
+    pendingCardOpens.set(card, timer);
+    return;
+  }
 });
 
 /* ------------------------------------------------------------------
