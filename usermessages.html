@@ -737,7 +737,27 @@ async function initForUser(user){
 
   wireEvents();
   await refreshLists();
+  handleDeepLinkParam();
   joinPresence();
+}
+
+/* ============================================================
+   DEEP LINK: usermessages.html?dm=<conversation_id>
+   Runs once, only after refreshLists() has populated
+   state.conversations / state.requests, so membership can be
+   verified against data already scoped to the current user.
+   ============================================================ */
+function handleDeepLinkParam(){
+  const dmId = new URLSearchParams(window.location.search).get('dm');
+  if(!dmId) return; // no param: normal page, nothing to do
+
+  // Only open if it's actually one of the current user's own conversations
+  // or requests (both lists are already scoped server-side to state.me).
+  const item = findListItem(dmId);
+  if(!item || !item.other_user_id) return; // invalid/nonexistent/not-mine: fall back silently
+
+  if(state.requests.includes(item)) setActiveTab('requests');
+  openConversation(item.conversation_id, item.other_user_id);
 }
 
 /* ============================================================
