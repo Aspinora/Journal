@@ -16,7 +16,22 @@
       var decoded = l.search.slice(1).split('&').map(function(s){
         return s.replace(/~and~/g, '&');
       }).join('?');
-      window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
+      // l.pathname here is this file's own real name
+      // (".../userpostlogin.html"), NOT a bare "/" — unlike the
+      // standard version of this snippet (meant for a root-level
+      // index.html, where pathname really is just "/" and dropping
+      // its last character correctly leaves ""). Blindly doing the
+      // same "drop the last character" here only chopped the trailing
+      // "l" off "userpostlogin.html" and glued the decoded path onto
+      // that as an extra segment (e.g. ".../userpostlogin.htm/priya/
+      // my-work") instead of replacing the filename with it — which
+      // routeFromPath() below could never correctly parse, so a
+      // logged-in visitor landing here via this redirect never
+      // reached the right post (and a refresh on the resulting mangled
+      // URL just repeated the same broken round trip). Strip the real
+      // filename the same way routeFromPath() does, instead.
+      var base = l.pathname.replace(/\/?userpostlogin\.html$/i, '');
+      window.history.replaceState(null, null, base + decoded + l.hash);
     }
   }(window.location));
 </script>
@@ -303,6 +318,13 @@ section{ padding:36px 0; }
 .j-meta-text .sub{ font-size:.76rem; color:var(--ink-faint); }
 .j-stats{ display:flex; gap:14px; font-size:.78rem; color:var(--ink-faint); font-family:var(--font-mono); flex-shrink:0; }
 .j-stats span{ display:inline-flex; align-items:center; gap:5px; }
+/* Small card-level like button — reuses the reader's own .like-btn
+   accent color for the liked state, just sized to sit inline with the
+   other stat. Plain reset since it lives inside a
+   font-family:var(--font-mono) stat row, not the reader's pill button. */
+.j-like-btn{ display:inline-flex; align-items:center; gap:5px; border:none; background:none; padding:0; margin:0; font:inherit; color:inherit; cursor:pointer; }
+.j-like-btn.is-liked{ color:var(--orange-deep); }
+.j-like-btn.is-liked svg{ fill:currentColor; }
 .j-read{ margin-top:2px; align-self:flex-start; font-weight:700; font-size:.86rem; color:var(--orange-deep); display:inline-flex; align-items:center; gap:6px; }
 
 /* ============ CATEGORY GRID ============ */
@@ -1726,6 +1748,14 @@ const state = {
   latestPageSize: 6,
   latestFeedToken: 0,   // guards against a stale renderLatestFeed() call overwriting a newer one
   readRequestToken: 0,  // guards against a stale renderReadView() call overwriting a newer one
+  // The infinite-scroll IntersectionObserver (see wireInfiniteScroll)
+  // is wired up on DOMContentLoaded, which fires and can trigger the
+  // observer's callback before init()'s own async routing (which
+  // decides the real starting category and kicks off the real page-1
+  // fetch) has finished — state.currentView defaults to 'home' below,
+  // so that guard alone doesn't stop it. This flag is only set true
+  // once init() has actually made that routing decision.
+  homeReady: false,
   currentJournalId: null,        // journal currently open in reading/write view
   currentDraftId: null,          // draft currently open in the writer
   writeMdHistory: [],            // simple undo/redo stack for the editor
@@ -3214,15 +3244,16 @@ document.addEventListener('dblclick', function(e){
   e.preventDefault(); // stop double-click text-selection on the card's title/excerpt
   const journalId = card.getAttribute('data-open-journal');
   likeJournalOnceViaDoubleClick(journalId, e.clientX, e.clientY, function(cached){
-    // Cards aren't the reader, so there's no single #like-count to
-    // update — bump this specific card's own like stat instead.
-    const statEl = card.querySelector('.j-stats span:first-child');
-    if (!statEl) return;
-    if (cached){ statEl.textContent = '♥ ' + cached.likes; }
-    else {
-      const current = parseInt((statEl.textContent || '').replace(/[^\d]/g, ''), 10) || 0;
-      statEl.textContent = '♥ ' + (current + 1);
-    }
+    // Keep the new card-level like button (added for the "no like
+    // button on cards" fix) visually in sync with a like added this way.
+    const likeBtn = card.querySelector('.j-like-btn');
+    if (!likeBtn) return;
+    likeBtn.classList.add('is-liked');
+    likeBtn.setAttribute('aria-pressed', 'true');
+    const countEl = likeBtn.querySelector('.j-like-count');
+    if (!countEl) return;
+    if (cached){ countEl.textContent = cached.likes; }
+    else { countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1; }
   });
 });
 
@@ -3523,6 +3554,7 @@ function cardExcerpt(text, maxLen){
 function journalCardHTML(j){
   const words = j.body ? wordCount(j.body) : null;
   const isOwner = !!(state.currentUser && state.currentUser.id === j.author_id);
+  const liked = state.likedJournalIds.has(j.id);
   const ownerActions = !isOwner ? '' : (
     '<div class="j-owner-actions">' +
       '<button type="button" class="j-owner-btn" data-edit-journal="' + j.id + '" title="Edit" aria-label="Edit this Work">' +
@@ -3543,7 +3575,13 @@ function journalCardHTML(j){
           '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
           '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
         '</a>' +
-        '<div class="j-stats"><span>♥ ' + j.likes + '</span><span>💬 ' + j.comments + '</span></div>' +
+        '<div class="j-stats">' +
+          '<button type="button" class="j-like-btn' + (liked ? ' is-liked' : '') + '" data-like-journal="' + j.id + '" aria-pressed="' + liked + '" aria-label="' + (liked ? 'Unlike' : 'Like') + ' this Work">' +
+            '<svg viewBox="0 0 20 20" width="13" height="13" fill="' + (liked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="1.5"><path d="M10 16.5s-5.5-3.8-5.5-7.7C4.5 6.4 6.2 5 8 5c.9 0 1.8.5 2 1.6.2-1.1 1.1-1.6 2-1.6 1.8 0 3.5 1.4 3.5 3.8 0 3.9-5.5 7.7-5.5 7.7Z"/></svg>' +
+            '<span class="j-like-count">' + j.likes + '</span>' +
+          '</button>' +
+          '<span>💬 ' + j.comments + '</span>' +
+        '</div>' +
       '</div>' +
     '</div></article>';
 }
@@ -3682,6 +3720,7 @@ async function renderLatestFeed(){
     const observer = new IntersectionObserver(function(entries){
       entries.forEach(function(entry){
         if (!entry.isIntersecting) return;
+        if (!state.homeReady) return; // real initial routing/category hasn't been decided yet
         if (state.isLoadingLatest || state.noMoreLatest) return;
         if (state.currentView !== 'home') return;
         state.latestPage++;
@@ -5115,6 +5154,31 @@ document.addEventListener('click', function(e){
     });
     return;
   }
+  const cardLikeBtn = e.target.closest('[data-like-journal]');
+  if (cardLikeBtn){
+    // Same toggle-like backend the reader's own like button already
+    // uses (toggleJournalLike) — no second like system. Handled here,
+    // ahead of the [data-open-journal] check below, so a click never
+    // also opens the post (matches the existing edit/delete pattern).
+    e.preventDefault(); e.stopPropagation();
+    const journalId = cardLikeBtn.getAttribute('data-like-journal');
+    requireAuth('Log in to appreciate this Work.', async function(){
+      await toggleJournalLike(journalId);
+      const liked = state.likedJournalIds.has(journalId);
+      cardLikeBtn.classList.toggle('is-liked', liked);
+      cardLikeBtn.setAttribute('aria-pressed', String(liked));
+      const countEl = cardLikeBtn.querySelector('.j-like-count');
+      if (countEl){
+        const cached = getCachedJournal(journalId);
+        if (cached){ countEl.textContent = cached.likes; }
+        else {
+          const current = parseInt(countEl.textContent, 10) || 0;
+          countEl.textContent = liked ? current + 1 : Math.max(0, current - 1);
+        }
+      }
+    });
+    return;
+  }
   const openBtn = e.target.closest('[data-open-journal]');
   if (openBtn){
     e.preventDefault();
@@ -5186,6 +5250,11 @@ async function init(){
   } else {
     await routeFromPath(true);
   }
+  // The real starting view/category is now decided and its first
+  // renderLatestFeed() call (if any) has already been kicked off —
+  // safe from here on for the infinite-scroll observer to add pages
+  // on top of it (see state.homeReady's own comment above).
+  state.homeReady = true;
   window.addEventListener('popstate', function(){ routeFromPath(false); });
   const loader = qs('#page-loader');
   if (loader) loader.classList.add('is-hidden');
