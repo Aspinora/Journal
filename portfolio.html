@@ -554,13 +554,16 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   .media-edit-row{ flex-direction:column; align-items:flex-start; }
   .crop-frame{ width:260px !important; height:260px !important; }
 }
-/* Desktop / tablet-landscape only — mobile keeps its own margins above
-   unchanged. Just a bit more breathing room between the stats row and
-   the Follow/Message row; avatar position and everything else in the
-   cover is untouched. */
 @media (min-width:761px){
-  .cover-stats{ margin-top:16px; }
-  .cover-follow-wrap{ margin-top:14px; }
+  /* Pull the username/stats/buttons stack ~17% closer to the avatar's
+     bottom edge on desktop/tablet-landscape only (was avatar-sz/2 + 1px;
+     now avatar-sz/2 - 9px — a ~10px reduction of that ~57px gap at
+     default sizing), and tighten the stats->buttons spacing that was
+     causing Stats to clip/Follow+Message to sit too low. Cover ratio,
+     overflow, avatar size and mobile are all untouched. */
+  .cover-center{ top:calc(var(--avatar-top-pct, 0%) + (var(--avatar-sz, 112px) / 2) - 9px); }
+  .cover-stats{ margin-top:10px; }
+  .cover-follow-wrap{ margin-top:9px; }
 }
 @media (min-width:761px) and (max-width:980px){
   .j-grid{ grid-template-columns:repeat(2,1fr); }
@@ -1341,12 +1344,31 @@ async function toggleWorkLike(workId, cardEl){
 }
 
 function wireWorkCardOpen(){
+  // Single click opens the Work after a short delay; a second click on
+  // the same card within that window (mouse double-click or touch
+  // double-tap both fire two 'click' events) cancels the pending
+  // navigation and toggles the like instead, via the existing
+  // toggleWorkLike() — no separate like implementation.
+  const pendingOpens = new WeakMap();
+  const CARD_CLICK_DELAY_MS = 280;
   document.addEventListener('click', function(e){
     const grid = document.getElementById('works-panel');
     const card = e.target.closest('.j-card[data-open-work]');
     if (!card || !grid || !grid.contains(card)) return;
     if (e.target.closest('a, button, input, textarea')) return;
-    window.location.href = card.getAttribute('data-href');
+    const pending = pendingOpens.get(card);
+    if (pending){
+      clearTimeout(pending);
+      pendingOpens.delete(card);
+      toggleWorkLike(card.getAttribute('data-open-work'), card);
+      return;
+    }
+    const href = card.getAttribute('data-href');
+    const timer = setTimeout(function(){
+      pendingOpens.delete(card);
+      window.location.href = href;
+    }, CARD_CLICK_DELAY_MS);
+    pendingOpens.set(card, timer);
   });
 }
 
