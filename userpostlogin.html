@@ -3497,7 +3497,18 @@ function syncSectionPath(replace){
 function navigateTo(view, params){
   params = params || {};
   const replace = !!params.replace;
-  state.currentView = view;
+  // 'explore' is only ever a boot-time entry signal (see the ?category=
+  // entry point in init()) for landing directly on a category — it's
+  // the exact same screen as 'home' (see targetId just below, which
+  // already treats them as one), never a second real view. Storing the
+  // raw 'explore' value here — rather than normalizing it the same way
+  // targetId does — was the reason swipe navigation stopped working
+  // after refreshing inside a category: the swipe handlers check
+  // state.currentView === 'home', and had no way to know 'explore'
+  // meant the same thing, so they refused to engage after a refresh
+  // (normal in-app category switching never goes through 'explore' at
+  // all, which is why swipe kept working there).
+  state.currentView = (view === 'explore') ? 'home' : view;
   qsa('.view').forEach(function(v){ v.classList.remove('active'); });
   const targetId = '#view-' + (view === 'explore' ? 'home' : view);
   qs(targetId).classList.add('active');
@@ -3521,7 +3532,7 @@ function navigateTo(view, params){
   if (view === 'write'){ setPath(params.draftId ? '/write/' + params.draftId : '/write', replace); renderWriteView(params.draftId || null, params.category || null); }
   if (view === 'drafts') renderDraftsView();
   if (view === 'published') renderPublishedView();
-  if (view === 'read') renderReadView(params.journalId, replace);
+  if (view === 'read') renderReadView(params.journalId, replace, params.preloadedJournal);
   if (view === 'portfolio'){ window.location.href = 'portfolio.html?u=' + encodeURIComponent(params.username || ''); }
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
@@ -3784,7 +3795,7 @@ function renderHomeStatic(){
 /* ------------------------------------------------------------------
    12. READING VIEW + COMMENTS
    ------------------------------------------------------------------ */
-async function renderReadView(journalId, replace){
+async function renderReadView(journalId, replace, preloadedJournal){
   // Guards against two problems at once: (1) the previous post staying
   // visible while the next one is still loading, and (2) an older,
   // slower-resolving fetch (from rapidly opening several posts in a
@@ -3804,7 +3815,29 @@ async function renderReadView(journalId, replace){
     '<div class="skeleton" style="height:1.1em;margin-bottom:12px;width:94%;"></div>' +
     '<div class="skeleton" style="height:1.1em;width:78%;"></div>';
 
-  const j = await fetchJournal(journalId);
+  // Root cause of "direct post URL hangs when already logged in":
+  // loadJournalByUsernameAndSlug() fetches with an isOwner exception
+  // that allows a private Work through for its own author, then handed
+  // off only the journalId — which meant this line used to always call
+  // fetchJournal() again on its own, and fetchJournal()'s query
+  // unconditionally excludes visibility 'private' with no owner
+  // exception. So an author opening their own private Work's direct
+  // link would get a row here, then get zero rows there, throwing
+  // (uncaught) and leaving the skeleton above on screen forever.
+  // preloadedJournal (passed through navigateTo() from
+  // loadJournalByUsernameAndSlug) reuses the copy that was already
+  // correctly fetched and permission-checked, instead of re-fetching it
+  // through a narrower filter. Every other caller of navigateTo('read',
+  // ...) doesn't pass this, so they're unaffected and still fetch here
+  // exactly as before.
+  let j;
+  try {
+    j = preloadedJournal || await fetchJournal(journalId);
+  } catch (err) {
+    console.error(err);
+    if (myReadToken === state.readRequestToken){ showToast('Error loading Work'); navigateTo('home'); }
+    return;
+  }
   if (myReadToken !== state.readRequestToken) return; // superseded by a newer navigation
   if (!j){ navigateTo('home'); return; }
 
@@ -5359,7 +5392,11 @@ async function loadJournalByUsernameAndSlug(username, slug, replace) {
 
     const normalized = normalizeJournalRow(journal);
     JOURNAL_CACHE[normalized.id] = normalized;
-    navigateTo('read', { journalId: normalized.id });
+    // Pass the journal we already fetched (and already visibility-checked
+    // with the isOwner exception above) straight through, instead of
+    // letting the read view re-fetch it itself — see renderReadView's
+    // own comment on preloadedJournal for why that re-fetch was the bug.
+    navigateTo('read', { journalId: normalized.id, preloadedJournal: normalized });
   } catch (err) {
     console.error(err);
     showToast('Error loading Work');
