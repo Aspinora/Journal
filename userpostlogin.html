@@ -5267,6 +5267,7 @@ async function init(){
   const readId = entryParams.get('read');
   const entryCategory = entryParams.get('category');
   const entryNav = entryParams.get('nav');
+  const entryPath = entryParams.get('path');
   const NAV_ENTRY_VIEWS = ['drafts', 'published', 'saved', 'notifications'];
   if (readId){
     navigateTo('read', { journalId: readId, replace: true });
@@ -5280,6 +5281,20 @@ async function init(){
     navigateTo('explore', { replace: true });
   } else if (entryNav && NAV_ENTRY_VIEWS.indexOf(entryNav) !== -1){
     navigateTo(entryNav, { replace: true });
+  } else if (entryPath){
+    // index.html hands an authenticated direct-post visit off as
+    // userpostlogin.html?path=/username/slug. window.location.pathname
+    // is just "/userpostlogin.html" in that case, so the
+    // routeFromPath(true) fallback below can't see the real path — it
+    // would fall through to Home. Parse entryPath the same way
+    // routeFromPath() parses window.location.pathname, and hand a
+    // username/slug pair to the same loader it would have called.
+    const entryPathParts = entryPath.split('/').filter(Boolean);
+    if (entryPathParts.length === 2){
+      await loadJournalByUsernameAndSlug(entryPathParts[0], entryPathParts[1], true);
+    } else {
+      await routeFromPath(true);
+    }
   } else {
     await routeFromPath(true);
   }
