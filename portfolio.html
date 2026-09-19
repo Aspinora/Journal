@@ -54,7 +54,24 @@
   --cover-fg-shadow: 0 1px 10px rgba(0,0,0,.55), 0 0 2px rgba(0,0,0,.7);
   --avatar-sz: 112px;
   --avatar-font-sz: 2.1rem;
-  --avatar-top-pct: 130px;
+  /* Percentage of .cover-wrap's own height (its containing block for
+     this absolutely-positioned slot), not a fixed pixel offset — so it
+     tracks the cover's responsive aspect-ratio instead of drifting to
+     the top on wide monitors. At the tablet-landscape breakpoint this
+     lands within a few px of the previous 130px value (visually
+     unchanged there); on wide desktop it centers correctly instead of
+     sitting near the top. Mobile keeps its own override below. */
+  --avatar-top-pct: 50%;
+  --fig-sage:      #7B9655; --fig-sage-ink:     #F9F7EE;
+  --fig-sky:       #3B93C1; --fig-sky-ink:      #F5FAFD;
+  --fig-lavender:  #734AB8; --fig-lavender-ink: #F8F5FC;
+  --fig-butter:    #BB9D29; --fig-butter-ink:   #FDFAEC;
+  --fig-peach:     #BF702C; --fig-peach-ink:    #FCF4EC;
+  --fig-sand:      #A68240; --fig-sand-ink:     #FBF6EC;
+  --fig-blossom:   #C04171; --fig-blossom-ink:  #FCF0F4;
+  --fig-fog:       #6A838B; --fig-fog-ink:      #F4F8F9;
+  --wall-cell: 104px;
+  --wall-gap: 18px;
 }
 *,*::before,*::after{ box-sizing:border-box; }
 [hidden]{ display:none !important; }
@@ -276,6 +293,8 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .btn-primary:hover:not(:disabled){ transform:translateY(-1px); background:var(--orange-deep); }
 .btn-secondary{ background:var(--paper); color:var(--ink); border:1.5px solid var(--line-strong); }
 .btn-secondary:hover{ border-color:var(--orange); color:var(--orange-deep); }
+.btn.danger{ background:var(--paper); color:#B3432B; border:1.5px solid #B3432B55; }
+.btn.danger:hover{ background:#B3432B11; }
 .btn-sm{ padding:9px 16px; font-size:.8rem; }
 .btn-follow{
   padding:10.8px 18.9px; font-size:1.04rem; border:none;
@@ -319,7 +338,7 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .cover-stat-btn{ background:none; border:none; font-family:inherit; cursor:pointer; }
 .cover-stat b{ display:block; font-family:var(--font-body); font-weight:800; font-size:1.2rem; }
 .cover-stat span{ font-size:.68rem; font-family:var(--font-body); font-weight:700; letter-spacing:.07em; text-transform:uppercase; opacity:.92; }
-.cover-follow-wrap{ margin-top:1px; }
+.cover-follow-wrap{ margin-top:1px; display:flex; align-items:center; justify-content:center; gap:10px; }
 .cover-edit-fab{
   position:absolute; top:16px; right:16px; z-index:5;
   width:40px; height:40px; border-radius:50%; border:none;
@@ -346,6 +365,16 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .share-tab-btn svg{ width:17px; height:17px; }
 .share-tab-label{ }
 
+.dbl-like-heart{ position:fixed; z-index:500; color:#fff; filter:drop-shadow(0 4px 18px rgba(0,0,0,.35)); pointer-events:none; transform:translate(-50%,-50%) scale(0); animation:dbl-like-pop .9s cubic-bezier(.17,.89,.32,1.49) forwards; }
+@keyframes dbl-like-pop{
+  0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
+  18%{ transform:translate(-50%,-50%) scale(1.15); opacity:1; }
+  32%{ transform:translate(-50%,-50%) scale(1); opacity:1; }
+  100%{ transform:translate(-50%,-60%) scale(1); opacity:0; }
+}
+.work-cat-filter{ display:flex; flex-wrap:wrap; gap:8px; padding:16px 8px 0; }
+.cat-filter-btn{ padding:7px 14px; border-radius:999px; font-weight:700; font-size:.8rem; border:1.5px solid var(--line-strong); background:var(--paper); color:var(--ink-soft); }
+.cat-filter-btn.is-active{ background:var(--orange); color:#fff; border-color:var(--orange); }
 .j-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; padding:8px 8px 60px; }
 .j-card{ position:relative; background:var(--paper); border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--line); box-shadow:var(--shadow-soft); transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); display:flex; flex-direction:column; }
 .j-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-mid); }
@@ -363,12 +392,62 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .j-owner-actions button.danger:hover{ color:#B3432B; }
 
 .about-panel{ padding:4px 8px 60px; max-width:640px; }
+.bio-link{ color:var(--orange-deep); text-decoration:underline; text-underline-offset:2px; word-break:break-word; }
+.bio-link-aspinora{ display:inline-flex; align-items:center; gap:8px; padding:6px 12px 6px 8px; margin:2px 0; border-radius:999px; border:1.5px solid var(--line-strong); background:var(--orange-soft); text-decoration:none; vertical-align:middle; }
+.bio-link-aspinora .bio-link-icon{ font-size:.95rem; }
+.bio-link-aspinora .bio-link-body{ display:flex; flex-direction:column; line-height:1.15; }
+.bio-link-aspinora .bio-link-host{ font-weight:700; font-size:.78rem; color:var(--orange-deep); }
+.bio-link-aspinora .bio-link-path{ font-size:.7rem; color:var(--ink-faint); }
 .about-panel p{ color:var(--ink-soft); font-size:1.02rem; line-height:1.7; white-space:pre-wrap; }
 
-.wall-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; padding:8px 8px 60px; }
-.wall-note{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm); padding:18px; box-shadow:var(--shadow-soft); display:flex; flex-direction:column; gap:10px; position:relative; }
-.wall-note p{ margin:0; font-size:.9rem; line-height:1.55; color:var(--ink); font-family:var(--font-display); }
-.wn-meta{ display:flex; justify-content:space-between; align-items:center; font-size:.74rem; color:var(--ink-faint); }
+.wall-grid{
+  position:relative; z-index:1; padding:8px 0 60px;
+  touch-action:manipulation;
+  display:grid; grid-auto-flow:dense; justify-content:start;
+  grid-template-columns:repeat(auto-fill, var(--wall-cell));
+  grid-auto-rows:var(--wall-cell);
+  gap:var(--wall-gap);
+}
+.figure-slot{ position:relative; transform:translate(var(--jx,0), var(--jy,0)); }
+.figure-slot .figure-card{ position:absolute; inset:0; width:100%; height:100%; }
+.figure-card{
+  position:relative; display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start;
+  text-align:center; cursor:pointer; border:none; text-decoration:none; overflow:hidden;
+  box-shadow:0 6px 18px rgba(43,36,28,.06);
+  animation:figure-float var(--fdur,6.3s) ease-in-out var(--fdelay,0s) infinite alternate;
+  padding:1em 1em 0;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent; tap-highlight-color:transparent;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+}
+.figure-card:hover{ box-shadow:0 12px 30px rgba(43,36,28,.12); z-index:2; }
+@keyframes figure-float{ from{ transform:translate(0,0); } to{ transform:translate(var(--fx,3px), var(--fy,-4px)); } }
+.figure-card.shape-circle{ border-radius:999px; padding:20% 20% 0; }
+.figure-card.shape-quad{ border-radius:22px; }
+.figure-card.color-sage{ background:var(--fig-sage); color:var(--fig-sage-ink); }
+.figure-card.color-sky{ background:var(--fig-sky); color:var(--fig-sky-ink); }
+.figure-card.color-lavender{ background:var(--fig-lavender); color:var(--fig-lavender-ink); }
+.figure-card.color-butter{ background:var(--fig-butter); color:var(--fig-butter-ink); }
+.figure-card.color-peach{ background:var(--fig-peach); color:var(--fig-peach-ink); }
+.figure-card.color-sand{ background:var(--fig-sand); color:var(--fig-sand-ink); }
+.figure-card.color-blossom{ background:var(--fig-blossom); color:var(--fig-blossom-ink); }
+.figure-card.color-fog{ background:var(--fig-fog); color:var(--fig-fog-ink); }
+.figure-text{
+  position:relative; flex:1 1 auto; min-height:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-style:italic; font-weight:500; font-size:.85rem; line-height:1.36;
+  white-space:pre-wrap; word-break:break-word; overflow-wrap:anywhere;
+}
+.figure-pin{ position:absolute; top:10px; right:11px; width:7px; height:7px; border-radius:50%; background:var(--orange); box-shadow:0 0 0 3px rgba(241,99,27,.18); }
+.figure-actions{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; height:2.4em; padding-bottom:.3em; }
+.figure-like-btn{ background:rgba(255,255,255,.62); backdrop-filter:blur(4px); border:none; border-radius:999px; padding:4px 9px; font-size:.66rem; font-weight:700; display:inline-flex; align-items:center; gap:4px; color:inherit; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.figure-like-btn:hover{ background:rgba(255,255,255,.9); }
+.figure-like-btn.is-liked{ background:rgba(255,255,255,.92); }
+.figure-slot.is-leaving{ opacity:0; transform:scale(.8); transition:opacity .38s ease, transform .38s ease; }
+.figure-detail-body{ font-family:var(--font-display); font-style:italic; font-size:1rem; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+.figure-analytics{ display:flex; gap:10px; margin-top:16px; }
+.fa-box{ flex:1; text-align:center; padding:12px 6px; border-radius:var(--radius-sm); background:var(--cream); border:1px solid var(--line); }
+.fa-num{ display:block; font-family:var(--font-mono); font-weight:700; font-size:1.15rem; }
+.fa-label{ display:block; font-size:.68rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
 
 .social-panel{ padding:4px 8px 60px; display:flex; flex-direction:column; gap:10px; max-width:420px; }
 .social-row{ display:flex; align-items:center; gap:12px; background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:12px 16px; font-weight:700; font-size:.9rem; }
@@ -428,6 +507,14 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
    ============================================================ */
 .cropper-box{ max-width:480px; }
 .followers-box{ max-width:420px; }
+.fw-tabs{ position:relative; display:flex; gap:4px; margin-top:2px; border-bottom:1.5px solid var(--line); }
+.fw-tab{ flex:1; background:none; border:none; padding:10px 4px 14px; font-weight:700; font-size:.92rem; color:var(--ink-faint); }
+.fw-tab.is-active{ color:var(--ink); }
+.fw-tab-indicator{ position:absolute; bottom:-1.5px; left:0; width:50%; height:2px; background:var(--orange); transition:transform var(--dur-fast,.18s) var(--ease); }
+.fw-viewport{ overflow:hidden; }
+.fw-track{ display:flex; width:200%; transition:transform .28s var(--ease); touch-action:pan-y; }
+.fw-track.is-dragging{ transition:none; }
+.fw-panel{ width:50%; flex-shrink:0; min-width:0; box-sizing:border-box; padding-right:4px; }
 .followers-search{ margin:16px 0 6px; }
 .followers-list{ max-height:56vh; overflow-y:auto; margin-top:10px; }
 .follower-row{ display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--line); }
@@ -465,15 +552,15 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   .underline-tabs{ overflow-x:auto; }
   .share-tab-label{ display:none; }
   .j-grid{ grid-template-columns:1fr; }
-  .wall-grid{ grid-template-columns:1fr; }
   .modal-box{ padding:22px; }
   .media-edit-row{ flex-direction:column; align-items:flex-start; }
   .crop-frame{ width:260px !important; height:260px !important; }
 }
 @media (min-width:761px) and (max-width:980px){
   .j-grid{ grid-template-columns:repeat(2,1fr); }
-  .wall-grid{ grid-template-columns:repeat(2,1fr); }
 }
+@media (max-width:980px){ .wall-grid{ --wall-cell:88px; --wall-gap:14px; } }
+@media (max-width:640px){ .wall-grid{ --wall-cell:76px; --wall-gap:11px; padding:16px 0 44px; } }
 </style>
 </head>
 <body>
@@ -532,7 +619,6 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
           <div class="nav-dropdown-name" id="nav-dropdown-name"></div>
           <button type="button" id="nav-my-portfolio-btn" role="menuitem">🪪 Portfolio</button>
-          <button type="button" id="nav-update-profile-btn" role="menuitem">⚙️ Update Profile</button>
           <button type="button" data-nav="published" role="menuitem">📚 My Works</button>
           <button type="button" data-nav="notifications" role="menuitem">🔔 Notification<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
           <button type="button" data-nav="drafts" role="menuitem">📝 My Drafts</button>
@@ -608,13 +694,45 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   </div>
 </div>
 
-<!-- Followers list modal -->
+<!-- Followers / Following modal — one modal, two swipeable panels -->
 <div class="modal-scrim" id="followers-modal">
   <div class="modal-box followers-box">
     <button type="button" class="modal-close" id="followers-close-btn">✕</button>
-    <h2>Followers</h2>
-    <input type="search" id="followers-search" class="input followers-search" placeholder="Search by name or @username">
-    <div id="followers-list" class="followers-list"><div class="empty-state"><p>Loading…</p></div></div>
+    <div class="fw-tabs" id="fw-tabs">
+      <button type="button" class="fw-tab is-active" data-panel="followers">Followers</button>
+      <button type="button" class="fw-tab" data-panel="following">Following</button>
+      <span class="fw-tab-indicator" id="fw-tab-indicator"></span>
+    </div>
+    <div class="fw-viewport" id="fw-viewport">
+      <div class="fw-track" id="fw-track">
+        <div class="fw-panel" data-panel="followers">
+          <input type="search" id="followers-search" class="input followers-search" placeholder="Search by name or @username">
+          <div id="followers-list" class="followers-list"><div class="empty-state"><p>Loading…</p></div></div>
+        </div>
+        <div class="fw-panel" data-panel="following">
+          <input type="search" id="following-search" class="input followers-search" placeholder="Search by name or @username">
+          <div id="following-list" class="followers-list"><div class="empty-state"><p>Loading…</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Wall Figure detail/preview modal (item 7) -->
+<div class="modal-scrim" id="figure-detail-modal">
+  <div class="modal-box" style="max-width:360px;">
+    <button type="button" class="modal-close" id="figure-detail-close-btn">✕</button>
+    <div class="figure-detail-body" id="fd-body"></div>
+    <div class="figure-analytics" id="fd-analytics">
+      <div class="fa-box"><span class="fa-num" id="fd-likes-num">0</span><span class="fa-label">Likes</span></div>
+      <div class="fa-box"><span class="fa-num" id="fd-hearts-num">0</span><span class="fa-label">Hearts</span></div>
+      <div class="fa-box"><span class="fa-num" id="fd-time-num">—</span><span class="fa-label">Left</span></div>
+    </div>
+    <div id="fd-actions" style="display:flex; gap:10px; margin-top:16px;">
+      <button type="button" class="btn btn-secondary" id="fd-like-btn" style="flex:1;">🤍 Like</button>
+      <button type="button" class="btn btn-secondary" id="fd-heart-btn" style="flex:1;">💛 Heart</button>
+      <button type="button" class="btn danger" id="fd-delete-btn" style="flex:1;" hidden>Delete</button>
+    </div>
   </div>
 </div>
 
@@ -703,8 +821,19 @@ function showToast(msg){
   stack.appendChild(t);
   setTimeout(function(){ t.remove(); }, 2600);
 }
-function coverHTML(catId, visibility){
+function coverHTML(catId, visibility, coverUrl){
   const cat = categoryById(catId);
+  const visPill = (visibility && visibility !== 'public') ? '<span class="cat-pill vis-pill">' + (visibility === 'private' ? 'Private' : 'Unlisted') + '</span>' : '';
+  // Real cover image, same as userpostlogin.html's cards — falls back
+  // to the synthetic category gradient only when the Work has no
+  // cover_url set.
+  if (coverUrl){
+    return '<div style="position:absolute;inset:0;overflow:hidden;background:' + cat.soft + ';">' +
+      '<img src="' + escapeHtml(coverUrl) + '" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;">' +
+      '<span class="cat-pill" style="color:' + cat.color + '">' + cat.name + '</span>' +
+      visPill +
+    '</div>';
+  }
   return '<div style="position:absolute;inset:0;background:linear-gradient(135deg,' + cat.soft + ',' + cat.color + '22);overflow:hidden;">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';position:absolute;width:60px;height:60px;right:16px;bottom:12px;opacity:.5;">' + cat.icon + '</svg>' +
     '<span class="cat-pill" style="color:' + cat.color + '">' + cat.name + '</span>' +
@@ -901,7 +1030,7 @@ function renderCropToBudget(source, sx, sy, sw, sh, outW, outH, maxBytes){
   });
 }
 
-let state = { currentUser:null, profile:null, isOwner:false, works:[], wallPosts:[], isFollowing:false, activeTab:'works', pendingAvatarBlob:null, pendingCoverBlob:null };
+let state = { currentUser:null, profile:null, isOwner:false, works:[], likedWorkIds:new Set(), worksQuery:'', worksCategory:'all', wallFigures:[], likedFigureIds:new Set(), isFollowing:false, activeTab:'works', pendingAvatarBlob:null, pendingCoverBlob:null };
 
 async function loadCurrentUser(){
   if (!supabaseClient) return null;
@@ -918,20 +1047,38 @@ function wireHeader(){
     window.location.href = state.currentUser ? 'userpostlogin.html' : 'index.html';
   });
 
+  // The header's Wall icon now goes to the real, site-wide Wall
+  // (thewall.html) — separate from this portfolio's own internal
+  // "The Wall" tab (still switched to via the tab-row button below,
+  // which shows just this profile's figures).
   const wallBtn = document.getElementById('pl-wall-btn');
-  if (wallBtn) wallBtn.addEventListener('click', function(){ switchTab('wall', true); });
+  if (wallBtn) wallBtn.addEventListener('click', function(){ window.location.href = 'thewall.html'; });
 
   const ctaMini = document.getElementById('pl-cta-mini-mobile');
   if (ctaMini) ctaMini.addEventListener('click', function(){ window.location.href = 'userpostlogin.html'; });
 
-  function goSearch(input){
-    const q = (input.value || '').trim();
-    window.location.href = 'userpostlogin.html' + (q ? ('?q=' + encodeURIComponent(q)) : '');
+  // Portfolio search filters this user's already-loaded Works locally
+  // instead of redirecting to userpostlogin.html?q=… — keeps both header
+  // search fields in sync and re-renders the (already-open or now-opened)
+  // Works panel as the query changes.
+  function applySearch(input){
+    const q = (input.value || '');
+    state.worksQuery = q;
+    const other = input.id === 'pl-search-input' ? document.getElementById('pl-search-input-mobile') : document.getElementById('pl-search-input');
+    if (other && other.value !== q) other.value = q;
+    switchTab('works', true);
+    renderWorksGrid(state.isOwner);
   }
   const searchIn = document.getElementById('pl-search-input');
-  if (searchIn) searchIn.addEventListener('keydown', function(e){ if (e.key === 'Enter') goSearch(searchIn); });
+  if (searchIn){
+    searchIn.addEventListener('input', function(){ applySearch(searchIn); });
+    searchIn.addEventListener('keydown', function(e){ if (e.key === 'Enter') applySearch(searchIn); });
+  }
   const searchInMobile = document.getElementById('pl-search-input-mobile');
-  if (searchInMobile) searchInMobile.addEventListener('keydown', function(e){ if (e.key === 'Enter') goSearch(searchInMobile); });
+  if (searchInMobile){
+    searchInMobile.addEventListener('input', function(){ applySearch(searchInMobile); });
+    searchInMobile.addEventListener('keydown', function(e){ if (e.key === 'Enter') applySearch(searchInMobile); });
+  }
   const searchToggle = document.getElementById('pl-search-btn');
   const searchPanel = document.getElementById('pl-search-panel');
   if (searchToggle && searchPanel) searchToggle.addEventListener('click', function(){
@@ -975,8 +1122,6 @@ function wireHeader(){
     if (url.toString() === window.location.href){ dropdown.classList.remove('open'); return; }
     window.location.href = url.toString();
   });
-  const updateProfileBtn = document.getElementById('nav-update-profile-btn');
-  if (updateProfileBtn) updateProfileBtn.addEventListener('click', function(){ window.location.href = 'updateprofile.html'; });
   Array.prototype.forEach.call(document.querySelectorAll('#nav-dropdown [data-nav]'), function(btn){
     btn.addEventListener('click', function(){ window.location.href = 'userpostlogin.html'; });
   });
@@ -1023,7 +1168,7 @@ function coverHeroHTML(profile, isOwner, isFollowing){
           '<div class="cover-stat"><b id="stat-impressions">0</b><span>IMPRESSIONS</span></div>' +
           '<button type="button" class="cover-stat cover-stat-btn" id="stat-followers-btn"><b id="stat-followers">0</b><span>FOLLOWERS</span></button>' +
         '</div>' +
-        (isOwner ? '' : '<div class="cover-follow-wrap"><button type="button" class="btn btn-sm btn-follow' + (isFollowing ? ' is-following' : '') + '" id="follow-btn">' + (isFollowing ? 'Following' : 'Follow') + '</button></div>') +
+        (isOwner ? '' : '<div class="cover-follow-wrap"><button type="button" class="btn btn-sm btn-follow' + (isFollowing ? ' is-following' : '') + '" id="follow-btn">' + (isFollowing ? 'Following' : 'Follow') + '</button><button type="button" class="btn btn-sm btn-secondary" id="message-btn">Message</button></div>') +
       '</div>' +
     '</div>'
   );
@@ -1040,6 +1185,10 @@ function actionBarHTML(isOwner, isFollowing){
         '<button type="button" class="share-tab-btn" id="share-btn" title="Share portfolio">' + SHARE_ICON + '<span class="share-tab-label">Share</span></button>' +
       '</div>' +
     '</div>' +
+    '<div class="work-cat-filter" id="work-cat-filter">' +
+      '<button type="button" class="cat-filter-btn is-active" data-cat="all">All</button>' +
+      CATEGORIES.map(function(c){ return '<button type="button" class="cat-filter-btn" data-cat="' + c.id + '">' + escapeHtml(c.name) + '</button>'; }).join('') +
+    '</div>' +
     '<div class="j-grid" id="works-panel"></div>' +
     '<div class="about-panel" id="about-panel" hidden></div>' +
     '<div class="wall-grid" id="wall-panel" hidden></div>' +
@@ -1049,31 +1198,51 @@ function actionBarHTML(isOwner, isFollowing){
 
 function workCardHTML(w, isOwner){
   const readHref = (state.currentUser ? 'userpostlogin.html' : 'index.html') + '?read=' + w.id;
-  return '<div class="j-card">' +
-    (isOwner ? '<div class="j-owner-actions">' +
+  const ownerActions = !isOwner ? '' : (
+    '<div class="j-owner-actions">' +
       '<button type="button" class="danger delete-work-btn" data-id="' + w.id + '" title="Delete"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M9 7V5h6v2m-8 0 1 13h8l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
-    '</div>' : '') +
-    '<a href="' + readHref + '" style="display:contents;">' +
-      '<div class="j-cover">' + coverHTML(w.category_id, w.visibility) + '</div>' +
-      '<div class="j-body">' +
-        '<h3>' + escapeHtml(w.title) + '</h3>' +
-        '<p class="j-excerpt">' + escapeHtml(w.excerpt || '') + '</p>' +
-        '<div class="j-stats"><span>' + formatDate(w.published_at) + '</span><span>♥ ' + (w.like_count||0) + ' · 👁 ' + (w.read_count||0) + '</span></div>' +
-      '</div>' +
-    '</a>' +
-  '</div>';
+    '</div>'
+  );
+  // Single click opens the Work; double click likes it (same
+  // arbitration pattern as userpostlogin.html's card grid — see the
+  // delegated click/dblclick listeners wired in initPortfolio).
+  return '<article class="j-card" data-open-work="' + w.id + '" data-href="' + escapeHtml(readHref) + '">' +
+    '<div class="j-cover">' + coverHTML(w.category_id, w.visibility, w.cover_url) + ownerActions + '</div>' +
+    '<div class="j-body">' +
+      '<h3>' + escapeHtml(w.title) + '</h3>' +
+      '<p class="j-excerpt">' + escapeHtml(w.excerpt || '') + '</p>' +
+      '<div class="j-stats"><span>' + formatDate(w.published_at) + '</span><span>♥ ' + (w.like_count||0) + ' · 💬 ' + (w.comment_count||0) + '</span></div>' +
+    '</div>' +
+  '</article>';
+}
+
+// Category filter (item 4) + local search (item 8) both narrow this
+// same already-loaded state.works list — no extra Supabase requests.
+function getFilteredWorks(){
+  const q = (state.worksQuery || '').trim().toLowerCase();
+  return state.works.filter(function(w){
+    if (state.worksCategory !== 'all' && String(w.category_id) !== String(state.worksCategory)) return false;
+    if (!q) return true;
+    return (w.title || '').toLowerCase().indexOf(q) !== -1 || (w.excerpt || '').toLowerCase().indexOf(q) !== -1;
+  });
 }
 
 function renderWorksGrid(isOwner){
   const grid = document.getElementById('works-panel');
+  const filtered = getFilteredWorks();
   if (!state.works.length){
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>' + (isOwner ? 'You haven\'t published anything yet.' : 'Nothing published here yet.') + '</p>' + (isOwner ? '<a class="btn btn-primary" href="userpostlogin.html">Start Writing</a>' : '') + '</div>';
     return;
   }
-  grid.innerHTML = state.works.map(function(w){ return workCardHTML(w, isOwner); }).join('');
+  if (!filtered.length){
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>Nothing matches that search.</p></div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(function(w){ return workCardHTML(w, isOwner); }).join('');
   Array.prototype.forEach.call(grid.querySelectorAll('.delete-work-btn'), function(btn){
     btn.addEventListener('click', async function(e){
       e.preventDefault();
+      e.stopPropagation();
       if (!confirm('Delete this Work? This can\'t be undone.')) return;
       const id = btn.getAttribute('data-id');
       const { error } = await supabaseClient.from('journals').delete().eq('id', id);
@@ -1088,38 +1257,350 @@ function renderWorksGrid(isOwner){
   });
 }
 
+/* ------------------------------------------------------------------
+   Work-card open/like arbitration — ported from userpostlogin.html:
+   a single click opens the Work after a short delay; a double-click
+   inside that window cancels the navigation and likes the card
+   instead (with the same heart-burst animation), so double-clicking
+   never causes an accidental navigation.
+   ------------------------------------------------------------------ */
+const pendingWorkCardOpens = new WeakMap();
+const WORK_CARD_CLICK_ARBITRATION_MS = 250;
+
+function spawnDoubleTapHeart(x, y){
+  const heart = document.createElement('div');
+  heart.className = 'dbl-like-heart';
+  heart.style.left = x + 'px';
+  heart.style.top = y + 'px';
+  heart.innerHTML = '<svg viewBox="0 0 20 20" width="84" height="84" fill="currentColor"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z"/></svg>';
+  document.body.appendChild(heart);
+  heart.addEventListener('animationend', function(){ heart.remove(); });
+  setTimeout(function(){ if (heart.parentNode) heart.remove(); }, 1200);
+}
+
+async function likeWorkOnce(workId, cardEl){
+  if (state.likedWorkIds.has(workId)) return;
+  if (!state.currentUser){ window.location.href = 'index.html'; return; }
+  state.likedWorkIds.add(workId);
+  const w = state.works.find(function(x){ return x.id === workId; });
+  if (w) w.like_count = (w.like_count || 0) + 1;
+  const statEl = cardEl && cardEl.querySelector('.j-stats span:last-child');
+  if (statEl && w) statEl.textContent = '♥ ' + (w.like_count||0) + ' · 💬 ' + (w.comment_count||0);
+  try{
+    const { error } = await supabaseClient.from('journal_likes').insert({ journal_id: workId, user_id: state.currentUser.id });
+    if (error) throw error;
+  }catch(err){
+    state.likedWorkIds.delete(workId);
+    if (w) w.like_count = Math.max(0, (w.like_count||1) - 1);
+    if (statEl && w) statEl.textContent = '♥ ' + (w.like_count||0) + ' · 💬 ' + (w.comment_count||0);
+  }
+}
+
+function wireWorkCardArbitration(){
+  document.addEventListener('click', function(e){
+    const grid = document.getElementById('works-panel');
+    const card = e.target.closest('.j-card[data-open-work]');
+    if (!card || !grid || !grid.contains(card)) return;
+    if (e.target.closest('a, button, input, textarea')) return;
+    if (pendingWorkCardOpens.has(card)) return;
+    const href = card.getAttribute('data-href');
+    const timer = setTimeout(function(){
+      pendingWorkCardOpens.delete(card);
+      window.location.href = href;
+    }, WORK_CARD_CLICK_ARBITRATION_MS);
+    pendingWorkCardOpens.set(card, timer);
+  });
+  document.addEventListener('dblclick', function(e){
+    const grid = document.getElementById('works-panel');
+    const card = e.target.closest('.j-card[data-open-work]');
+    if (!card || !grid || !grid.contains(card)) return;
+    if (e.target.closest('a, button, input, textarea')) return;
+    const pending = pendingWorkCardOpens.get(card);
+    if (pending){ clearTimeout(pending); pendingWorkCardOpens.delete(card); }
+    e.preventDefault();
+    spawnDoubleTapHeart(e.clientX, e.clientY);
+    likeWorkOnce(card.getAttribute('data-open-work'), card);
+  });
+}
+
+/* Bio is HTML-escaped FIRST (same contract as markdownToHtml elsewhere
+   in the app) so nothing in it can ever inject markup — only bare
+   http(s) URLs found in that already-safe text are then turned into
+   real <a> tags. Aspinora's own links (this site's domain) get a
+   small inline preview chip instead of a plain link; everything else
+   stays a clean external link — no unsafe HTML injection, no new
+   backend/preview system. */
+function autolinkBio(escapedText){
+  return escapedText.replace(/https?:\/\/[^\s<]+/g, function(url){
+    let trail = '';
+    const m = url.match(/([.,!?;:)\]]+)$/);
+    if (m){ trail = m[1]; url = url.slice(0, -trail.length); }
+    let host = '';
+    try{ host = new URL(url.replace(/&amp;/g, '&')).hostname.replace(/^www\./, ''); }catch(e){ host = ''; }
+    const isAspinora = /(^|\.)aspinora\.in$/i.test(host);
+    if (isAspinora){
+      return '<a class="bio-link bio-link-aspinora" href="' + url + '" target="_blank" rel="noopener noreferrer">' +
+        '<span class="bio-link-icon">📖</span><span class="bio-link-body"><span class="bio-link-host">Aspinora</span><span class="bio-link-path">' + host + '</span></span>' +
+      '</a>' + trail;
+    }
+    return '<a class="bio-link" href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>' + trail;
+  });
+}
+
 function renderAboutPanel(profile){
   document.getElementById('about-panel').innerHTML = profile.bio
-    ? '<p>' + escapeHtml(profile.bio) + '</p>'
+    ? '<p>' + autolinkBio(escapeHtml(profile.bio)) + '</p>'
     : '<div class="empty-state"><p>' + (state.isOwner ? 'Add a bit about yourself from the update button above.' : 'This writer hasn\'t added an about section yet.') + '</p></div>';
 }
 
-function renderWallPanel(isOwner){
-  const wrap = document.getElementById('wall-panel');
-  if (!state.wallPosts.length){
-    wrap.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>No wall posts yet.</p></div>';
+/* ------------------------------------------------------------------
+   Portfolio Wall — same wall_figures table, shapes/colors, CSS-grid
+   collision-free layout, 24h expiry and Like/Heart/remaining-time
+   preview as thewall.html (the source of truth), scoped to just this
+   profile's own Figures. Simplification: Figures written in the rich
+   drag-to-place editor (body_html) render here using their plain-text
+   body instead of the full absolutely-positioned canvas — replicating
+   that whole sanitizer/layout subsystem was out of scope for this
+   pass; everything else (shape, color, size, expiry, likes, hearts)
+   is unchanged.
+   ------------------------------------------------------------------ */
+const FIGURE_SHAPES = [
+  { key:'circle', label:'Circle' },
+  { key:'quad',   label:'Quadrilateral' }
+];
+const FIGURE_COLORS = [
+  { key:'sage',     swatch:'#7B9655' }, { key:'sky',      swatch:'#3B93C1' },
+  { key:'lavender', swatch:'#734AB8' }, { key:'butter',   swatch:'#BB9D29' },
+  { key:'peach',    swatch:'#BF702C' }, { key:'sand',     swatch:'#A68240' },
+  { key:'blossom',  swatch:'#C04171' }, { key:'fog',      swatch:'#6A838B' }
+];
+function figureShapeOf(key){ return FIGURE_SHAPES.find(function(s){ return s.key === key; }) || FIGURE_SHAPES[1]; }
+function figureColorOf(key){ return FIGURE_COLORS.find(function(c){ return c.key === key; }) || FIGURE_COLORS[0]; }
+function clampTier(t){ return Math.max(1, Math.min(4, Math.round(t) || 1)); }
+function figureGridSpan(shapeKey, widthTier, heightTier){
+  const w = clampTier(widthTier);
+  const h = shapeKey === 'circle' ? w : clampTier(heightTier);
+  return { col:w, row:h };
+}
+function seedFromId(id){
+  let h = 0;
+  const s = String(id || '');
+  for (let i=0;i<s.length;i++){ h = (h * 31 + s.charCodeAt(i)) >>> 0; }
+  return h;
+}
+function formatTimeRemaining(iso){
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return 'Expired';
+  const hrs = Math.floor(ms / 3600000);
+  const mins = Math.floor((ms % 3600000) / 60000);
+  return hrs > 0 ? (hrs + 'h ' + mins + 'm') : (mins + 'm');
+}
+
+function figureCardHTML(fig, isOwnerView){
+  const shape = figureShapeOf(fig.shape);
+  const color = figureColorOf(fig.color_key);
+  const liked = state.likedFigureIds.has(fig.id);
+  const seed = seedFromId(fig.id);
+  const fx = 3 + (seed % 6);
+  const fy = 3 + ((seed >> 4) % 7);
+  const fdur = ((7 + (seed % 5)) * 0.7).toFixed(2);
+  const fdelay = -((seed >> 2) % 6);
+  const jx = (seed % 11) - 5;
+  const jy = (((seed >> 6) % 11) - 5);
+  const span = figureGridSpan(shape.key, fig.width_tier, fig.height_tier);
+  const slotStyle = '--fx:' + fx + 'px; --fy:-' + fy + 'px; --fdur:' + fdur + 's; --fdelay:' + fdelay + 's; ' +
+    '--jx:' + jx + 'px; --jy:' + jy + 'px; grid-column:span ' + span.col + '; grid-row:span ' + span.row + ';';
+  const textHTML = escapeHtml(fig.body || '').replace(/\n/g, '<br>');
+  return '<div class="figure-slot" data-figure-id="' + fig.id + '" data-col-span="' + span.col + '" data-row-span="' + span.row + '" style="' + slotStyle + '">' +
+    '<article class="figure-card shape-' + shape.key + ' color-' + color.key + '" tabindex="0" role="button" aria-label="Open Figure" data-open-figure="' + fig.id + '">' +
+      (isOwnerView ? '<span class="figure-pin" title="Your Figure — only you see this"></span>' : '') +
+      '<p class="figure-text">' + textHTML + '</p>' +
+      '<span class="figure-actions"><span class="figure-like-btn' + (liked ? ' is-liked' : '') + '">' + (liked ? '❤️' : '🤍') + ' <span>' + (fig.likes_count||0) + '</span></span></span>' +
+    '</article>' +
+  '</div>';
+}
+
+function fitFigureCard(slotEl){
+  if (!slotEl) return;
+  const card = slotEl.querySelector('.figure-card');
+  if (!card) return;
+  const isCircle = card.classList.contains('shape-circle');
+  const maxSpan = 6;
+  let col = parseInt(slotEl.getAttribute('data-col-span') || '1', 10);
+  let row = parseInt(slotEl.getAttribute('data-row-span') || '1', 10);
+  let guard = 0;
+  while (card.scrollHeight > card.clientHeight + 2 && row < maxSpan && guard < 10){
+    row++;
+    if (isCircle) col = row;
+    slotEl.style.gridColumnEnd = 'span ' + col;
+    slotEl.style.gridRowEnd = 'span ' + row;
+    slotEl.setAttribute('data-col-span', String(col));
+    slotEl.setAttribute('data-row-span', String(row));
+    guard++;
+  }
+}
+function fitAllFigureCards(){
+  const grid = document.getElementById('wall-panel');
+  if (!grid) return;
+  Array.prototype.forEach.call(grid.querySelectorAll('.figure-slot'), fitFigureCard);
+}
+
+let wallPruneTimer = null;
+
+// Same 24-hour-exactly expiry as thewall.html: Figures already past
+// expires_at were excluded from the query itself, and anything that
+// crosses expires_at while the panel is open is pruned here every 30s.
+function pruneExpiredFigures(){
+  const now = Date.now();
+  const stillLive = [];
+  const expiring = [];
+  state.wallFigures.forEach(function(fig){
+    if (new Date(fig.expires_at).getTime() > now){ stillLive.push(fig); return; }
+    expiring.push(fig.id);
+  });
+  if (!expiring.length) return;
+  state.wallFigures = stillLive;
+  expiring.forEach(function(id){
+    const el = document.querySelector('.figure-slot[data-figure-id="' + id + '"]');
+    if (el) el.classList.add('is-leaving');
+  });
+  setTimeout(function(){
+    expiring.forEach(function(id){
+      const el = document.querySelector('.figure-slot[data-figure-id="' + id + '"]');
+      if (el) el.remove();
+    });
+    if (!state.wallFigures.length){
+      const grid = document.getElementById('wall-panel');
+      if (grid) grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>' + (state.isOwner ? 'Nothing pinned right now — head to thewall.html to add a Figure.' : 'Nothing pinned here right now.') + '</p></div>';
+    }
+  }, 390);
+}
+
+async function renderWallPanel(isOwner){
+  const grid = document.getElementById('wall-panel');
+  const { data: rows, error } = await supabaseClient
+    .from('wall_figures')
+    .select('id, body, body_html, author_id, shape, color_key, width_tier, height_tier, likes_count, hearts_count, created_at, expires_at')
+    .eq('author_id', state.profile.id)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending:false });
+  state.wallFigures = error ? [] : (rows || []);
+
+  if (state.currentUser && state.wallFigures.length){
+    const { data: likedRows } = await supabaseClient.from('wall_figure_likes').select('figure_id').eq('user_id', state.currentUser.id).in('figure_id', state.wallFigures.map(function(f){ return f.id; }));
+    state.likedFigureIds = new Set((likedRows || []).map(function(r){ return r.figure_id; }));
+  }
+
+  if (!state.wallFigures.length){
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>' + (isOwner ? 'Nothing pinned right now — head to thewall.html to add a Figure.' : 'Nothing pinned here right now.') + '</p></div>';
     return;
   }
-  wrap.innerHTML = state.wallPosts.map(function(p){
-    const cat = categoryById(p.category_id);
-    return '<div class="wall-note">' +
-      (isOwner ? '<button type="button" class="j-owner-actions danger delete-wall-btn" data-id="' + p.id + '" style="position:absolute;top:12px;right:12px;width:26px;height:26px;" title="Delete"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M9 7V5h6v2m-8 0 1 13h8l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' : '') +
-      '<span class="cat-pill" style="align-self:flex-start;color:' + cat.color + ';background:' + cat.soft + ';">' + cat.name + '</span>' +
-      '<p>' + escapeHtml(p.body) + '</p>' +
-      '<div class="wn-meta"><span>' + formatDate(p.published_at) + '</span><span>♥ ' + (p.likes||0) + '</span></div>' +
-    '</div>';
-  }).join('');
-  Array.prototype.forEach.call(wrap.querySelectorAll('.delete-wall-btn'), function(btn){
-    btn.addEventListener('click', async function(){
-      if (!confirm('Delete this wall post?')) return;
-      const id = btn.getAttribute('data-id');
-      const { error } = await supabaseClient.from('wall_posts').delete().eq('id', id);
-      if (error){ showToast('Couldn\'t delete — please try again.'); return; }
-      state.wallPosts = state.wallPosts.filter(function(p){ return p.id !== id; });
-      renderWallPanel(true);
-      showToast('Wall post deleted');
+  grid.innerHTML = state.wallFigures.map(function(fig){ return figureCardHTML(fig, isOwner); }).join('');
+  requestAnimationFrame(fitAllFigureCards);
+
+  if (wallPruneTimer) clearInterval(wallPruneTimer);
+  wallPruneTimer = setInterval(pruneExpiredFigures, 30000);
+
+  grid.onclick = function(e){
+    const card = e.target.closest('[data-open-figure]');
+    if (!card) return;
+    openFigureDetail(card.getAttribute('data-open-figure'));
+  };
+}
+
+async function toggleFigureLike(figureId){
+  const fig = state.wallFigures.find(function(f){ return f.id === figureId; });
+  const already = state.likedFigureIds.has(figureId);
+  if (already){ state.likedFigureIds.delete(figureId); if (fig) fig.likes_count = Math.max(0, (fig.likes_count||0) - 1); }
+  else { state.likedFigureIds.add(figureId); if (fig) fig.likes_count = (fig.likes_count||0) + 1; }
+  try{
+    if (already) await supabaseClient.from('wall_figure_likes').delete().eq('figure_id', figureId).eq('user_id', state.currentUser.id);
+    else await supabaseClient.from('wall_figure_likes').insert({ figure_id: figureId, user_id: state.currentUser.id });
+  }catch(err){
+    if (already){ state.likedFigureIds.add(figureId); if (fig) fig.likes_count = (fig.likes_count||0) + 1; }
+    else { state.likedFigureIds.delete(figureId); if (fig) fig.likes_count = Math.max(0, (fig.likes_count||1) - 1); }
+    showToast("Couldn't update that — please try again.");
+  }
+  return !already;
+}
+
+async function sendFigureHeart(figureId){
+  const fig = state.wallFigures.find(function(f){ return f.id === figureId; });
+  if (fig) fig.hearts_count = (fig.hearts_count||0) + 1;
+  try{
+    const { data, error } = await supabaseClient.rpc('wall_figure_send_heart', { p_figure_id: figureId });
+    if (error) throw error;
+    if (fig && typeof data === 'number') fig.hearts_count = data;
+  }catch(err){
+    if (fig) fig.hearts_count = Math.max(0, (fig.hearts_count||1) - 1);
+    showToast("Couldn't send that — please try again.");
+  }
+}
+
+function openFigureDetail(figureId){
+  const fig = state.wallFigures.find(function(f){ return f.id === figureId; });
+  if (!fig) return;
+  const color = figureColorOf(fig.color_key);
+  const isOwn = !!(state.currentUser && fig.author_id === state.currentUser.id);
+
+  const body = document.getElementById('fd-body');
+  body.innerHTML = escapeHtml(fig.body || '').replace(/\n/g, '<br>');
+  body.style.background = 'var(--fig-' + color.key + ')';
+  body.style.color = 'var(--fig-' + color.key + '-ink)';
+  body.style.borderRadius = fig.shape === 'circle' ? '999px' : '22px';
+  body.style.padding = '24px';
+  body.style.minHeight = fig.shape === 'circle' ? '220px' : '160px';
+  body.style.display = 'flex';
+  body.style.alignItems = 'center';
+  body.style.justifyContent = 'center';
+  body.style.textAlign = 'center';
+
+  // Likes, hearts and remaining time are always shown here (this
+  // preview's whole job), unlike thewall.html's own modal which only
+  // shows analytics to the figure's author.
+  document.getElementById('fd-likes-num').textContent = fig.likes_count || 0;
+  document.getElementById('fd-hearts-num').textContent = fig.hearts_count || 0;
+  document.getElementById('fd-time-num').textContent = formatTimeRemaining(fig.expires_at);
+
+  const likeBtn = document.getElementById('fd-like-btn');
+  const heartBtn = document.getElementById('fd-heart-btn');
+  const deleteBtn = document.getElementById('fd-delete-btn');
+  const liked = state.likedFigureIds.has(fig.id);
+  likeBtn.innerHTML = liked ? '❤️ Liked' : '🤍 Like';
+  likeBtn.classList.toggle('is-liked', liked);
+  likeBtn.hidden = isOwn;
+  heartBtn.hidden = isOwn;
+  deleteBtn.hidden = !isOwn;
+
+  likeBtn.onclick = function(){
+    if (!state.currentUser){ window.location.href = 'index.html'; return; }
+    toggleFigureLike(fig.id).then(function(nowLiked){
+      likeBtn.innerHTML = nowLiked ? '❤️ Liked' : '🤍 Like';
+      likeBtn.classList.toggle('is-liked', nowLiked);
+      document.getElementById('fd-likes-num').textContent = fig.likes_count || 0;
+      const cardLike = document.querySelector('.figure-slot[data-figure-id="' + fig.id + '"] .figure-like-btn');
+      if (cardLike){ cardLike.classList.toggle('is-liked', nowLiked); cardLike.innerHTML = (nowLiked ? '❤️' : '🤍') + ' <span>' + (fig.likes_count||0) + '</span>'; }
     });
-  });
+  };
+  heartBtn.onclick = function(){
+    if (!state.currentUser){ window.location.href = 'index.html'; return; }
+    sendFigureHeart(fig.id).then(function(){ document.getElementById('fd-hearts-num').textContent = fig.hearts_count || 0; });
+  };
+  deleteBtn.onclick = async function(){
+    if (!confirm("Delete this Figure? This can't be undone.")) return;
+    const { error } = await supabaseClient.from('wall_figures').delete().eq('id', fig.id).eq('author_id', state.currentUser.id);
+    if (error){ showToast("Couldn't delete — please try again."); return; }
+    state.wallFigures = state.wallFigures.filter(function(f){ return f.id !== fig.id; });
+    document.getElementById('figure-detail-modal').classList.remove('open');
+    const el = document.querySelector('.figure-slot[data-figure-id="' + fig.id + '"]');
+    if (el) el.remove();
+    if (!state.wallFigures.length){
+      document.getElementById('wall-panel').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>Nothing pinned right now — head to thewall.html to add a Figure.</p></div>';
+    }
+    showToast('Figure deleted.');
+  };
+
+  document.getElementById('figure-detail-modal').classList.add('open');
 }
 
 function renderSocialPanel(profile){
@@ -1139,6 +1620,7 @@ function switchTab(tab, shouldScroll){
   state.activeTab = tab;
   Array.prototype.forEach.call(document.querySelectorAll('#tab-row button[data-tab]'), function(b){ b.classList.toggle('is-active', b.getAttribute('data-tab') === tab); });
   document.getElementById('works-panel').hidden = tab !== 'works';
+  document.getElementById('work-cat-filter').hidden = tab !== 'works';
   document.getElementById('about-panel').hidden = tab !== 'about';
   document.getElementById('wall-panel').hidden = tab !== 'wall';
   document.getElementById('social-panel').hidden = tab !== 'social';
@@ -1166,6 +1648,30 @@ async function toggleFollow(profile){
   }
   btn.disabled = false;
 }
+/* Message button: gets/creates the direct conversation with this
+   profile via the same get_or_create_conversation RPC usermessages.html
+   itself uses (p_other_user_id -> conversation id), then hands off to
+   usermessages.html?dm=<conversation_id>, which now reads that param
+   itself (handleDeepLinkParam -> findListItem -> the existing
+   openConversation) and opens the chat pane directly. No new chat UI,
+   routing, or conversation logic here — just obtaining the id and
+   forwarding it in the convention usermessages.html expects. */
+async function openDirectMessage(profile){
+  if (!state.currentUser){ window.location.href = 'index.html'; return; }
+  const btn = document.getElementById('message-btn');
+  if (btn) btn.disabled = true;
+  try{
+    const { data: conversationId, error } = await supabaseClient.rpc('get_or_create_conversation', { p_other_user_id: profile.id });
+    if (error || !conversationId) throw error || new Error('No conversation id returned');
+    window.location.href = 'usermessages.html?dm=' + encodeURIComponent(conversationId);
+  }catch(e){
+    // Fall back to the plain conversation list rather than leaving the
+    // button stuck disabled if the RPC itself failed.
+    if (btn) btn.disabled = false;
+    showToast("Couldn't start that conversation — please try again.");
+  }
+}
+
 function updateFollowerCount(delta){
   const el = document.getElementById('stat-followers');
   el.textContent = Math.max(0, parseInt(el.textContent, 10) + delta);
@@ -1196,77 +1702,163 @@ function followerRowHTML(p, isFollowing){
   );
 }
 
+let fwCurrentPanel = 'followers';
+let fwModalWired = false;
+
+function setFollowersPanel(panel, animate){
+  fwCurrentPanel = panel;
+  const track = document.getElementById('fw-track');
+  const indicator = document.getElementById('fw-tab-indicator');
+  track.classList.toggle('is-dragging', false);
+  if (animate === false) track.style.transition = 'none'; else track.style.transition = '';
+  track.style.transform = 'translateX(' + (panel === 'following' ? '-50%' : '0%') + ')';
+  if (animate === false) { void track.offsetHeight; track.style.transition = ''; }
+  indicator.style.transform = 'translateX(' + (panel === 'following' ? '100%' : '0%') + ')';
+  Array.prototype.forEach.call(document.querySelectorAll('.fw-tab'), function(t){
+    t.classList.toggle('is-active', t.getAttribute('data-panel') === panel);
+  });
+}
+
+function wireFollowersModalChrome(){
+  if (fwModalWired) return;
+  fwModalWired = true;
+  Array.prototype.forEach.call(document.querySelectorAll('.fw-tab'), function(t){
+    t.addEventListener('click', function(){ setFollowersPanel(t.getAttribute('data-panel')); });
+  });
+
+  // Horizontal swipe between the two panels, with the track following
+  // the finger live rather than snapping instantly.
+  const viewport = document.getElementById('fw-viewport');
+  const track = document.getElementById('fw-track');
+  let dragging = false, startX = 0, startTranslatePct = 0, deltaPct = 0;
+
+  function panelWidth(){ return viewport.getBoundingClientRect().width; }
+
+  viewport.addEventListener('touchstart', function(e){
+    if (e.touches.length !== 1) return;
+    dragging = true;
+    startX = e.touches[0].clientX;
+    startTranslatePct = fwCurrentPanel === 'following' ? -50 : 0;
+    track.classList.add('is-dragging');
+  }, { passive:true });
+
+  viewport.addEventListener('touchmove', function(e){
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - startX;
+    deltaPct = (dx / (panelWidth() * 2)) * 100; // track is 200% wide
+    let pct = startTranslatePct + deltaPct;
+    pct = Math.max(-50 - 12, Math.min(12, pct)); // slight rubber-band at the edges
+    track.style.transform = 'translateX(' + pct + '%)';
+  }, { passive:true });
+
+  viewport.addEventListener('touchend', function(){
+    if (!dragging) return;
+    dragging = false;
+    track.classList.remove('is-dragging');
+    const threshold = 12; // % of the 200%-wide track ≈ a quarter of one panel
+    if (fwCurrentPanel === 'followers' && deltaPct < -threshold) setFollowersPanel('following');
+    else if (fwCurrentPanel === 'following' && deltaPct > threshold) setFollowersPanel('followers');
+    else setFollowersPanel(fwCurrentPanel);
+    deltaPct = 0;
+  });
+}
+
+function followListMarkup(items, myFollowingIds, emptyMsg){
+  if (!items.length) return '<div class="empty-state"><p>' + emptyMsg + '</p></div>';
+  return items.map(function(f){ return followerRowHTML(f, myFollowingIds.indexOf(f.id) !== -1); }).join('');
+}
+
+function wireFollowerButtonsIn(listEl, myFollowingIds, profile, onChange){
+  Array.prototype.forEach.call(listEl.querySelectorAll('.follower-follow-btn'), function(btn){
+    btn.addEventListener('click', async function(){
+      if (!state.currentUser){ window.location.href = 'index.html'; return; }
+      const targetId = btn.getAttribute('data-target');
+      const nowFollowing = btn.classList.contains('is-following');
+      btn.disabled = true;
+      if (nowFollowing){
+        const { error: delErr } = await supabaseClient.from('follows').delete().eq('follower_id', state.currentUser.id).eq('following_id', targetId);
+        if (!delErr){
+          btn.classList.remove('is-following'); btn.textContent = 'Follow';
+          const idx = myFollowingIds.indexOf(targetId);
+          if (idx !== -1) myFollowingIds.splice(idx, 1);
+          if (targetId === profile.id) updateFollowerCount(-1);
+          if (onChange) onChange();
+        }
+      } else {
+        const { error: insErr } = await supabaseClient.from('follows').insert({ follower_id: state.currentUser.id, following_id: targetId });
+        if (!insErr){
+          btn.classList.add('is-following'); btn.textContent = 'Following';
+          myFollowingIds.push(targetId);
+          if (targetId === profile.id) updateFollowerCount(1);
+          if (onChange) onChange();
+        }
+      }
+      btn.disabled = false;
+    });
+  });
+}
+
 async function openFollowersModal(profile){
   const modal = document.getElementById('followers-modal');
-  const list = document.getElementById('followers-list');
-  const searchInput = document.getElementById('followers-search');
-  searchInput.value = '';
-  list.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
+  const followersList = document.getElementById('followers-list');
+  const followingList = document.getElementById('following-list');
+  const followersSearch = document.getElementById('followers-search');
+  const followingSearch = document.getElementById('following-search');
+  followersSearch.value = '';
+  followingSearch.value = '';
+  followersList.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
+  followingList.innerHTML = '<div class="empty-state"><p>Loading…</p></div>';
+  wireFollowersModalChrome();
+  setFollowersPanel('followers', false);
   modal.classList.add('open');
 
-  const { data: rows, error } = await supabaseClient
-    .from('follows')
-    .select('follower_id, profiles!follows_follower_id_fkey(id, username, display_name, avatar_url, avatar_color)')
-    .eq('following_id', profile.id);
+  const [followersRes, followingRes] = await Promise.all([
+    supabaseClient.from('follows').select('follower_id, profiles!follows_follower_id_fkey(id, username, display_name, avatar_url, avatar_color)').eq('following_id', profile.id),
+    supabaseClient.from('follows').select('following_id, profiles!follows_following_id_fkey(id, username, display_name, avatar_url, avatar_color)').eq('follower_id', profile.id)
+  ]);
 
-  if (error || !rows || !rows.length){
-    list.innerHTML = '<div class="empty-state"><p>No followers yet.</p></div>';
-    return;
-  }
-  const followers = rows.map(function(r){ return r.profiles; }).filter(Boolean);
+  const followers = ((followersRes.data) || []).map(function(r){ return r.profiles; }).filter(Boolean);
+  const following = ((followingRes.data) || []).map(function(r){ return r.profiles; }).filter(Boolean);
 
   let myFollowingIds = [];
   if (state.currentUser){
-    const { data: mine } = await supabaseClient.from('follows').select('following_id').eq('follower_id', state.currentUser.id).in('following_id', followers.map(function(f){ return f.id; }));
-    myFollowingIds = (mine || []).map(function(r){ return r.following_id; });
-  }
-
-  function renderList(items){
-    if (!items.length){
-      list.innerHTML = '<div class="empty-state"><p>No one matches that search.</p></div>';
-      return;
+    const combinedIds = followers.concat(following).map(function(p){ return p.id; });
+    if (combinedIds.length){
+      const { data: mine } = await supabaseClient.from('follows').select('following_id').eq('follower_id', state.currentUser.id).in('following_id', combinedIds);
+      myFollowingIds = (mine || []).map(function(r){ return r.following_id; });
     }
-    list.innerHTML = items.map(function(f){ return followerRowHTML(f, myFollowingIds.indexOf(f.id) !== -1); }).join('');
-    wireFollowerButtons();
   }
 
-  function wireFollowerButtons(){
-    Array.prototype.forEach.call(list.querySelectorAll('.follower-follow-btn'), function(btn){
-      btn.addEventListener('click', async function(){
-        if (!state.currentUser){ window.location.href = 'index.html'; return; }
-        const targetId = btn.getAttribute('data-target');
-        const nowFollowing = btn.classList.contains('is-following');
-        btn.disabled = true;
-        if (nowFollowing){
-          const { error: delErr } = await supabaseClient.from('follows').delete().eq('follower_id', state.currentUser.id).eq('following_id', targetId);
-          if (!delErr){
-            btn.classList.remove('is-following'); btn.textContent = 'Follow';
-            myFollowingIds = myFollowingIds.filter(function(id){ return id !== targetId; });
-            if (targetId === profile.id) updateFollowerCount(-1);
-          }
-        } else {
-          const { error: insErr } = await supabaseClient.from('follows').insert({ follower_id: state.currentUser.id, following_id: targetId });
-          if (!insErr){
-            btn.classList.add('is-following'); btn.textContent = 'Following';
-            myFollowingIds.push(targetId);
-            if (targetId === profile.id) updateFollowerCount(1);
-          }
-        }
-        btn.disabled = false;
-      });
-    });
+  function renderFollowers(items){
+    followersList.innerHTML = followListMarkup(items, myFollowingIds, 'No followers yet.');
+    wireFollowerButtonsIn(followersList, myFollowingIds, profile, function(){ renderFollowers(currentFollowersView()); renderFollowing(currentFollowingView()); });
+  }
+  function renderFollowing(items){
+    followingList.innerHTML = followListMarkup(items, myFollowingIds, state.isOwner ? 'Not following anyone yet.' : 'Not following anyone yet.');
+    wireFollowerButtonsIn(followingList, myFollowingIds, profile, function(){ renderFollowers(currentFollowersView()); renderFollowing(currentFollowingView()); });
   }
 
-  renderList(followers);
+  function currentFollowersView(){
+    const q = followersSearch.value.trim().toLowerCase();
+    if (!q) return followers;
+    return followers.filter(function(f){ return (f.username||'').toLowerCase().indexOf(q)!==-1 || (f.display_name||'').toLowerCase().indexOf(q)!==-1; });
+  }
+  function currentFollowingView(){
+    const q = followingSearch.value.trim().toLowerCase();
+    if (!q) return following;
+    return following.filter(function(f){ return (f.username||'').toLowerCase().indexOf(q)!==-1 || (f.display_name||'').toLowerCase().indexOf(q)!==-1; });
+  }
 
-  searchInput.oninput = function(){
-    const q = searchInput.value.trim().toLowerCase();
-    if (!q){ renderList(followers); return; }
-    renderList(followers.filter(function(f){
-      return (f.username || '').toLowerCase().indexOf(q) !== -1 || (f.display_name || '').toLowerCase().indexOf(q) !== -1;
-    }));
-  };
+  if (!followers.length) followersList.innerHTML = '<div class="empty-state"><p>No followers yet.</p></div>';
+  else renderFollowers(followers);
+  if (!following.length) followingList.innerHTML = '<div class="empty-state"><p>Not following anyone yet.</p></div>';
+  else renderFollowing(following);
+
+  // Search works independently for each panel.
+  followersSearch.oninput = function(){ renderFollowers(currentFollowersView()); };
+  followingSearch.oninput = function(){ renderFollowing(currentFollowingView()); };
 }
+
 
 /* ------------------------------------------------------------------
    Edit modal
@@ -1472,7 +2064,7 @@ async function initPortfolio(){
   state.isOwner = !!(state.currentUser && state.currentUser.id === profile.id);
 
   const [{ data: rows }, { count: followerCount }, followingRow] = await Promise.all([
-    supabaseClient.from('journals').select('id,title,excerpt,category_id,visibility,published_at,like_count,comment_count,read_count').eq('author_id', profile.id).eq('status', 'published').order('published_at', { ascending:false }),
+    supabaseClient.from('journals').select('id,title,excerpt,category_id,visibility,published_at,like_count,comment_count,read_count,cover_url').eq('author_id', profile.id).eq('status', 'published').order('published_at', { ascending:false }),
     supabaseClient.from('follows').select('follower_id', { count:'exact', head:true }).eq('following_id', profile.id),
     state.currentUser && !state.isOwner
       ? supabaseClient.from('follows').select('follower_id').eq('follower_id', state.currentUser.id).eq('following_id', profile.id).maybeSingle()
@@ -1482,14 +2074,12 @@ async function initPortfolio(){
   state.works = (rows || []).filter(function(w){ return state.isOwner || w.visibility === 'public'; });
   state.isFollowing = !!(followingRow && followingRow.data);
 
-  const { data: wallRows } = await supabaseClient
-    .from('wall_posts')
-    .select('id,body,category_id,likes,published_at')
-    .eq('author_id', profile.id)
-    .eq('status', 'published')
-    .order('published_at', { ascending:false });
-  state.wallPosts = wallRows || [];
+  if (state.currentUser && state.works.length){
+    const { data: likedRows } = await supabaseClient.from('journal_likes').select('journal_id').eq('user_id', state.currentUser.id).in('journal_id', state.works.map(function(w){ return w.id; }));
+    state.likedWorkIds = new Set((likedRows || []).map(function(r){ return r.journal_id; }));
+  }
 
+  
   const app = document.getElementById('app');
   app.innerHTML = coverHeroHTML(profile, state.isOwner, state.isFollowing) + '<div class="container">' + actionBarHTML(state.isOwner, state.isFollowing) + '</div>';
 
@@ -1510,9 +2100,18 @@ async function initPortfolio(){
   renderWallPanel(state.isOwner);
   renderSocialPanel(profile);
   switchTab('works');
+  wireWorkCardArbitration();
 
   Array.prototype.forEach.call(document.querySelectorAll('#tab-row button[data-tab]'), function(btn){
     btn.addEventListener('click', function(){ switchTab(btn.getAttribute('data-tab'), true); });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('#work-cat-filter .cat-filter-btn'), function(btn){
+    btn.addEventListener('click', function(){
+      state.worksCategory = btn.getAttribute('data-cat');
+      Array.prototype.forEach.call(document.querySelectorAll('#work-cat-filter .cat-filter-btn'), function(b){ b.classList.toggle('is-active', b === btn); });
+      renderWorksGrid(state.isOwner);
+    });
   });
 
   const realUrl = computePortfolioUrl(profile.username);
@@ -1533,10 +2132,15 @@ async function initPortfolio(){
   const followBtn = document.getElementById('follow-btn');
   if (followBtn) followBtn.addEventListener('click', function(){ toggleFollow(profile); });
 
+  const messageBtn = document.getElementById('message-btn');
+  if (messageBtn) messageBtn.addEventListener('click', function(){ openDirectMessage(profile); });
+
   document.getElementById('stat-works-btn').addEventListener('click', function(){ switchTab('works', true); });
   document.getElementById('stat-followers-btn').addEventListener('click', function(){ openFollowersModal(profile); });
   document.getElementById('followers-close-btn').addEventListener('click', function(){ document.getElementById('followers-modal').classList.remove('open'); });
   document.getElementById('followers-modal').addEventListener('click', function(e){ if (e.target.id === 'followers-modal') e.target.classList.remove('open'); });
+  document.getElementById('figure-detail-close-btn').addEventListener('click', function(){ document.getElementById('figure-detail-modal').classList.remove('open'); });
+  document.getElementById('figure-detail-modal').addEventListener('click', function(e){ if (e.target.id === 'figure-detail-modal') e.target.classList.remove('open'); });
 
   if (state.isOwner){
     document.getElementById('cover-edit-fab').addEventListener('click', function(){ openEditModal(profile); });
