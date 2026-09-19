@@ -365,13 +365,6 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .share-tab-btn svg{ width:17px; height:17px; }
 .share-tab-label{ }
 
-.dbl-like-heart{ position:fixed; z-index:500; color:#fff; filter:drop-shadow(0 4px 18px rgba(0,0,0,.35)); pointer-events:none; transform:translate(-50%,-50%) scale(0); animation:dbl-like-pop .9s cubic-bezier(.17,.89,.32,1.49) forwards; }
-@keyframes dbl-like-pop{
-  0%{ transform:translate(-50%,-50%) scale(0); opacity:0; }
-  18%{ transform:translate(-50%,-50%) scale(1.15); opacity:1; }
-  32%{ transform:translate(-50%,-50%) scale(1); opacity:1; }
-  100%{ transform:translate(-50%,-60%) scale(1); opacity:0; }
-}
 .work-cat-filter{ display:flex; flex-wrap:wrap; gap:8px; padding:16px 8px 0; }
 .cat-filter-btn{ padding:7px 14px; border-radius:999px; font-weight:700; font-size:.8rem; border:1.5px solid var(--line-strong); background:var(--paper); color:var(--ink-soft); }
 .cat-filter-btn.is-active{ background:var(--orange); color:#fff; border-color:var(--orange); }
@@ -386,6 +379,11 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 .j-body h3{ font-size:1.1rem; line-height:1.28; }
 .j-excerpt{ color:var(--ink-soft); font-size:.88rem; line-height:1.5; margin:0; flex:1; }
 .j-stats{ display:flex; justify-content:space-between; align-items:center; font-size:.76rem; color:var(--ink-faint); font-family:var(--font-mono); }
+.j-stats-right{ display:flex; align-items:center; gap:12px; }
+.work-like-btn{ display:inline-flex; align-items:center; gap:4px; background:none; border:none; padding:2px; margin:-2px; font:inherit; font-family:var(--font-mono); color:var(--ink-faint); cursor:pointer; }
+.work-like-btn svg{ display:block; flex-shrink:0; }
+.work-like-btn.is-liked{ color:var(--orange); }
+.work-comment-count{ display:inline-flex; align-items:center; }
 .j-owner-actions{ position:absolute; top:14px; right:14px; z-index:4; display:flex; gap:6px; }
 .j-owner-actions button{ width:30px; height:30px; border-radius:50%; border:none; background:rgba(255,255,255,.92); color:var(--ink); display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow-soft); }
 .j-owner-actions button:hover{ background:#fff; color:var(--orange-deep); }
@@ -555,6 +553,14 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
   .modal-box{ padding:22px; }
   .media-edit-row{ flex-direction:column; align-items:flex-start; }
   .crop-frame{ width:260px !important; height:260px !important; }
+}
+/* Desktop / tablet-landscape only — mobile keeps its own margins above
+   unchanged. Just a bit more breathing room between the stats row and
+   the Follow/Message row; avatar position and everything else in the
+   cover is untouched. */
+@media (min-width:761px){
+  .cover-stats{ margin-top:16px; }
+  .cover-follow-wrap{ margin-top:14px; }
 }
 @media (min-width:761px) and (max-width:980px){
   .j-grid{ grid-template-columns:repeat(2,1fr); }
@@ -1196,6 +1202,12 @@ function actionBarHTML(isOwner, isFollowing){
   );
 }
 
+function heartIconSVG(liked){
+  return liked
+    ? '<svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z"/></svg>'
+    : '<svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+
 function workCardHTML(w, isOwner){
   const readHref = (state.currentUser ? 'userpostlogin.html' : 'index.html') + '?read=' + w.id;
   const ownerActions = !isOwner ? '' : (
@@ -1203,15 +1215,19 @@ function workCardHTML(w, isOwner){
       '<button type="button" class="danger delete-work-btn" data-id="' + w.id + '" title="Delete"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M9 7V5h6v2m-8 0 1 13h8l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
     '</div>'
   );
-  // Single click opens the Work; double click likes it (same
-  // arbitration pattern as userpostlogin.html's card grid — see the
-  // delegated click/dblclick listeners wired in initPortfolio).
+  const liked = state.likedWorkIds.has(w.id);
   return '<article class="j-card" data-open-work="' + w.id + '" data-href="' + escapeHtml(readHref) + '">' +
     '<div class="j-cover">' + coverHTML(w.category_id, w.visibility, w.cover_url) + ownerActions + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(w.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(w.excerpt || '') + '</p>' +
-      '<div class="j-stats"><span>' + formatDate(w.published_at) + '</span><span>♥ ' + (w.like_count||0) + ' · 💬 ' + (w.comment_count||0) + '</span></div>' +
+      '<div class="j-stats">' +
+        '<span>' + formatDate(w.published_at) + '</span>' +
+        '<span class="j-stats-right">' +
+          '<button type="button" class="work-like-btn' + (liked ? ' is-liked' : '') + '" data-id="' + w.id + '" aria-label="' + (liked ? 'Unlike' : 'Like') + '" aria-pressed="' + (liked ? 'true' : 'false') + '">' + heartIconSVG(liked) + '<span class="work-like-count">' + (w.like_count||0) + '</span></button>' +
+          '<span class="work-comment-count">💬 ' + (w.comment_count||0) + '</span>' +
+        '</span>' +
+      '</div>' +
     '</div>' +
   '</article>';
 }
@@ -1255,71 +1271,82 @@ function renderWorksGrid(isOwner){
       showToast('Work deleted');
     });
   });
+  Array.prototype.forEach.call(grid.querySelectorAll('.work-like-btn'), function(btn){
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      const card = btn.closest('.j-card');
+      toggleWorkLike(btn.getAttribute('data-id'), card);
+    });
+  });
 }
 
 /* ------------------------------------------------------------------
-   Work-card open/like arbitration — ported from userpostlogin.html:
-   a single click opens the Work after a short delay; a double-click
-   inside that window cancels the navigation and likes the card
-   instead (with the same heart-burst animation), so double-clicking
-   never causes an accidental navigation.
+   Work-card open + explicit like/unlike heart button. A single click
+   anywhere on the card (outside a link/button/input) opens the Work;
+   clicking the heart button toggles like state instead and never
+   opens the card (buttons are excluded from the open-handler below).
+   The previous double-click-to-like gesture has been removed since it
+   conflicted with this explicit heart control.
    ------------------------------------------------------------------ */
-const pendingWorkCardOpens = new WeakMap();
-const WORK_CARD_CLICK_ARBITRATION_MS = 250;
-
-function spawnDoubleTapHeart(x, y){
-  const heart = document.createElement('div');
-  heart.className = 'dbl-like-heart';
-  heart.style.left = x + 'px';
-  heart.style.top = y + 'px';
-  heart.innerHTML = '<svg viewBox="0 0 20 20" width="84" height="84" fill="currentColor"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z"/></svg>';
-  document.body.appendChild(heart);
-  heart.addEventListener('animationend', function(){ heart.remove(); });
-  setTimeout(function(){ if (heart.parentNode) heart.remove(); }, 1200);
+function updateWorkCardLikeUI(cardEl, w){
+  if (!cardEl || !w) return;
+  const btn = cardEl.querySelector('.work-like-btn');
+  if (!btn) return;
+  const liked = state.likedWorkIds.has(w.id);
+  btn.classList.toggle('is-liked', liked);
+  btn.setAttribute('aria-label', liked ? 'Unlike' : 'Like');
+  btn.setAttribute('aria-pressed', liked ? 'true' : 'false');
+  const iconHolder = btn.querySelector('svg');
+  if (iconHolder) iconHolder.outerHTML = heartIconSVG(liked);
+  const countEl = btn.querySelector('.work-like-count');
+  if (countEl) countEl.textContent = w.like_count || 0;
 }
 
-async function likeWorkOnce(workId, cardEl){
-  if (state.likedWorkIds.has(workId)) return;
+async function toggleWorkLike(workId, cardEl){
   if (!state.currentUser){ window.location.href = 'index.html'; return; }
-  state.likedWorkIds.add(workId);
   const w = state.works.find(function(x){ return x.id === workId; });
-  if (w) w.like_count = (w.like_count || 0) + 1;
-  const statEl = cardEl && cardEl.querySelector('.j-stats span:last-child');
-  if (statEl && w) statEl.textContent = '♥ ' + (w.like_count||0) + ' · 💬 ' + (w.comment_count||0);
+  if (!w) return;
+  const alreadyLiked = state.likedWorkIds.has(workId);
+
+  // Optimistic update, rolled back below if the write fails.
+  if (alreadyLiked){
+    state.likedWorkIds.delete(workId);
+    w.like_count = Math.max(0, (w.like_count||1) - 1);
+  } else {
+    state.likedWorkIds.add(workId);
+    w.like_count = (w.like_count||0) + 1;
+  }
+  updateWorkCardLikeUI(cardEl, w);
+
   try{
-    const { error } = await supabaseClient.from('journal_likes').insert({ journal_id: workId, user_id: state.currentUser.id });
+    let error;
+    if (alreadyLiked){
+      ({ error } = await supabaseClient.from('journal_likes').delete().eq('journal_id', workId).eq('user_id', state.currentUser.id));
+    } else {
+      ({ error } = await supabaseClient.from('journal_likes').insert({ journal_id: workId, user_id: state.currentUser.id }));
+    }
     if (error) throw error;
   }catch(err){
-    state.likedWorkIds.delete(workId);
-    if (w) w.like_count = Math.max(0, (w.like_count||1) - 1);
-    if (statEl && w) statEl.textContent = '♥ ' + (w.like_count||0) + ' · 💬 ' + (w.comment_count||0);
+    if (alreadyLiked){
+      state.likedWorkIds.add(workId);
+      w.like_count = (w.like_count||0) + 1;
+    } else {
+      state.likedWorkIds.delete(workId);
+      w.like_count = Math.max(0, (w.like_count||1) - 1);
+    }
+    updateWorkCardLikeUI(cardEl, w);
+    showToast("Couldn't update that — please try again.");
   }
 }
 
-function wireWorkCardArbitration(){
+function wireWorkCardOpen(){
   document.addEventListener('click', function(e){
     const grid = document.getElementById('works-panel');
     const card = e.target.closest('.j-card[data-open-work]');
     if (!card || !grid || !grid.contains(card)) return;
     if (e.target.closest('a, button, input, textarea')) return;
-    if (pendingWorkCardOpens.has(card)) return;
-    const href = card.getAttribute('data-href');
-    const timer = setTimeout(function(){
-      pendingWorkCardOpens.delete(card);
-      window.location.href = href;
-    }, WORK_CARD_CLICK_ARBITRATION_MS);
-    pendingWorkCardOpens.set(card, timer);
-  });
-  document.addEventListener('dblclick', function(e){
-    const grid = document.getElementById('works-panel');
-    const card = e.target.closest('.j-card[data-open-work]');
-    if (!card || !grid || !grid.contains(card)) return;
-    if (e.target.closest('a, button, input, textarea')) return;
-    const pending = pendingWorkCardOpens.get(card);
-    if (pending){ clearTimeout(pending); pendingWorkCardOpens.delete(card); }
-    e.preventDefault();
-    spawnDoubleTapHeart(e.clientX, e.clientY);
-    likeWorkOnce(card.getAttribute('data-open-work'), card);
+    window.location.href = card.getAttribute('data-href');
   });
 }
 
@@ -2100,7 +2127,7 @@ async function initPortfolio(){
   renderWallPanel(state.isOwner);
   renderSocialPanel(profile);
   switchTab('works');
-  wireWorkCardArbitration();
+  wireWorkCardOpen();
 
   Array.prototype.forEach.call(document.querySelectorAll('#tab-row button[data-tab]'), function(btn){
     btn.addEventListener('click', function(){ switchTab(btn.getAttribute('data-tab'), true); });
