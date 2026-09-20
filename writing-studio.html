@@ -300,12 +300,28 @@ body.focus #chNum,body.focus #counts{display:none}
 body.focus #sheet{margin-top:0}
 body.focus.portrait #sheet{padding-top:8px}
 body.focus.portrait #chTitle{font-size:22px}
+
+#kindBar{display:flex;gap:6px;overflow-x:auto;padding:6px 28px 4px;max-width:1180px;width:100%;margin:0 auto;scrollbar-width:none;flex:none}
+#kindBar::-webkit-scrollbar{display:none}
+#kindBar .chip{padding:5px 15px;font-weight:600;flex:none}
+body.portrait #kindBar{padding-left:16px;padding-right:16px}
+#btnWork{display:none}
+body.no-tree #left,body.no-tree #btnLeft{display:none!important}
+body.desk.no-tree #btnWork{display:inline-flex}
+#sheet.line-mode #editor p,#sheet.line-mode #editor li{margin:0}
+#sheet.line-mode #editor{line-height:1.85}
+#sheet.k-shayari #editor{--doc-size:22px;text-align:center}
+#sheet.k-shayari #chTitle{text-align:center}
+body.portrait #sheet.k-shayari #editor{--doc-size:20px}
+.reader.line-mode p,.reader.line-mode li{margin:0}
+.reader.k-shayari{text-align:center}
 </style>
 </head>
 <body class="desk">
 <div id="app">
   <section id="viewLibrary" class="view">
-    <div class="lib-head"><h1>Your stories</h1><span class="spacer"></span><button id="libDev" class="ib" type="button"></button><button id="libNew" class="btn primary" type="button">New story</button></div>
+    <div class="lib-head"><h1>Your writing</h1><span class="spacer"></span><button id="libDev" class="ib" type="button"></button><button id="libNew" class="btn primary" type="button">New story</button></div>
+    <div id="kindBar" role="tablist" aria-label="Writing type"></div>
     <div id="libGrid" class="lib-grid"></div>
   </section>
   <section id="viewStudio" class="view">
@@ -320,6 +336,7 @@ body.focus.portrait #chTitle{font-size:22px}
       <button id="btnSaveDraft" class="btn only-desk" type="button">Save Draft</button>
       <button id="btnPublish" class="btn primary only-desk" type="button">Publish</button>
       <button id="btnPreviewP" class="ib only-port" type="button"></button>
+      <button id="btnWork" class="ib only-desk" type="button" title="Cover, tags and visibility" aria-label="Cover, tags and visibility"></button>
       <button id="btnFocus" class="ib" type="button" aria-pressed="false"></button>
       <button id="btnRight" class="ib" type="button"></button>
     </header>
@@ -917,8 +934,32 @@ const Fonts = {
    A volume holds direct chapters and/or parts; parts hold chapters.
    Chapter *content* lives in its own record, never inside the tree.
    ===================================================================== */
+/* =====================================================================
+   WRITING TYPES. A "work" is the existing story document. `kind` selects the writing type;
+   everything else (editor, autosave, covers, tags, preview, storage) is shared and unchanged.
+   Non-story works keep one hidden, implicit volume so the existing tree/save code works as-is.
+   ===================================================================== */
+const KINDS = {
+  story:   { one: 'Story',   plural: 'Stories',  unit: 'chapter' },
+  journal: { one: 'Journal', plural: 'Journals', unit: 'entry',   structures: [['single', 'Single writing'], ['multiple', 'Multiple entries']] },
+  article: { one: 'Article', plural: 'Articles', unit: 'section', structures: [['simple', 'Simple article (just content)'], ['structured', 'Structured (sections and subsections)']] },
+  poetry:  { one: 'Poem',    plural: 'Poetry',   unit: 'poem',    line: true },
+  shayari: { one: 'Shayari', plural: 'Shayari',  unit: 'shayari', line: true },
+  thought: { one: 'Thought', plural: 'Thoughts', unit: 'thought' },
+};
+const VISIBILITY = [['public', 'Public'], ['unlisted', 'Unlisted'], ['private', 'Private']];
+const VIS_HINT = { public: 'Anyone can find and read it.', unlisted: 'Only people with the link can read it.', private: 'Only you can see it.' };
+const Kind = {
+  of: s => (s && s.kind) || 'story', cfg(s) { return KINDS[this.of(s)] || KINDS.story; },
+  single(s) { const k = this.of(s); if (k === 'story') return false; if (k === 'journal') return s.structure !== 'multiple'; if (k === 'article') return s.structure !== 'structured'; return true; },
+  /* story-like = the full Volume > Part > Chapter hierarchy: Stories and Structured Articles */
+  storyLike(s) { const k = this.of(s); return k === 'story' || (k === 'article' && s.structure === 'structured'); },
+  hasTree(s) { return !this.single(s); }, lineMode(s) { return !!this.cfg(s).line; },
+  labels(s) { const k = this.of(s); return this.storyLike(s) ? { chapter: 'Chapter', part: 'Part', inPart: 'Chapter' } : k === 'article' ? { chapter: 'Content', part: 'Section', inPart: 'Subsection' } : k === 'journal' ? { chapter: 'Entry', part: null, inPart: 'Entry' } : { chapter: 'Chapter', part: 'Part', inPart: 'Chapter' }; },
+  visibility: s => (s && s.visibility) || 'public', impressions: s => !(s && s.allowImpressions === false),
+};
 const Model = {
-  newStory: () => ({ id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: 'Fantasy', tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
+  newStory: () => ({ kind: 'story', structure: null, visibility: 'public', allowImpressions: true, id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: 'Fantasy', tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
   newVolume: s => ({ id: uid(), number: (s.volumes.reduce((m, v) => Math.max(m, v.number), 0)) + 1, title: '', description: '', status: 'draft', coverImageId: null, chapters: [], parts: [] }),
   newPart: v => ({ id: uid(), number: (v.parts.reduce((m, p) => Math.max(m, p.number), 0)) + 1, title: '', description: '', coverImageId: null, chapters: [] }),
   newChapter(s) { const n = this.all(s).reduce((m, x) => Math.max(m, x.chapter.number), 0) + 1; return { id: uid(), number: n, title: '', status: 'draft', wordCount: 0, updatedAt: Date.now(), publishedAt: null }; },
@@ -926,8 +967,13 @@ const Model = {
   find(s, id) { for (const v of s.volumes) { let i = v.chapters.findIndex(c => c.id === id); if (i >= 0) return { chapter: v.chapters[i], list: v.chapters, index: i, volume: v, part: null }; for (const p of v.parts) { i = p.chapters.findIndex(c => c.id === id); if (i >= 0) return { chapter: p.chapters[i], list: p.chapters, index: i, volume: v, part: p }; } } return null; },
   findPart(s, id) { for (const v of s.volumes) { const i = v.parts.findIndex(p => p.id === id); if (i >= 0) return { part: v.parts[i], volume: v, index: i }; } return null; },
   vLabel: v => 'Volume ' + roman(v.number) + (v.title ? ' — ' + v.title : ''),
-  pLabel: p => 'Part ' + roman(p.number) + (p.title ? ' — ' + p.title : ''),
-  cLabel: c => 'Chapter ' + c.number + (c.title ? ' — ' + c.title : ''),
+  pLabel: p => Kind.storyLike(Model.cur) ? 'Part ' + roman(p.number) + (p.title ? ' \u2014 ' + p.title : '') : (p.title || 'Untitled section'),
+  cur: null, /* the work currently open, so labels can follow its writing type */
+  cLabel(c) {
+    const st = Model.cur, k = Kind.of(st); if (Kind.storyLike(st)) return 'Chapter ' + c.number + (c.title ? ' \u2014 ' + c.title : '');
+    if (c.title) return c.title; if (k === 'journal') return 'Entry ' + (Model.all(st).findIndex(x => x.chapter === c) + 1);
+    const f = Model.find(st, c.id); return f && f.part ? 'Untitled subsection' : k === 'article' ? 'Untitled content' : 'Untitled';
+  },
   words: s => Model.all(s).reduce((n, x) => n + (x.chapter.wordCount || 0), 0),
   coverIds(v) { return [v.coverImageId, ...v.parts.map(p => p.coverImageId)].filter(Boolean); },
 };
@@ -1003,7 +1049,7 @@ const escHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>'
    ===================================================================== */
 const BLOCK_SEL = 'p,h1,h2,blockquote,li,hr,figure';
 const Ed = {
-  el: null, chapterId: null, storyId: null, used: new Set(), seq: 0, saved: null, composing: false, dirtyFlag: false, needFix: 0, pendingSize: 18, lastBlock: null, tabFree: false,
+  el: null, lineMode: false, chapterId: null, storyId: null, used: new Set(), seq: 0, saved: null, composing: false, dirtyFlag: false, needFix: 0, pendingSize: 18, lastBlock: null, tabFree: false,
   /* ---- lifecycle */
   mount() {
     const old = this.el;
@@ -1112,7 +1158,7 @@ const Ed = {
     if (html) {
       const frag = Sanitize.toFragment(html, { keepIds: false }), box = document.createElement('div'); box.append(frag);
       if (box.children.length === 1 && box.firstElementChild.tagName === 'P') out = box.firstElementChild.innerHTML; else out = box.innerHTML;
-    } else { const lines = text.replace(/\r/g, '').split(/\n+/); out = lines.length === 1 ? escHtml(lines[0]) : lines.map(l => '<p>' + (escHtml(l) || '<br>') + '</p>').join(''); }
+    } else { const lines = text.replace(/\r/g, '').split(this.lineMode ? /\n/ : /\n+/); out = lines.length === 1 ? escHtml(lines[0]) : lines.map(l => '<p>' + (escHtml(l) || '<br>') + '</p>').join(''); }
     if (out) document.execCommand('insertHTML', false, out);
   },
   onKey(e) {
@@ -1313,7 +1359,7 @@ const App = {
   },
   async openStory(id) {
     const s = await Store.get('stories', id); if (!s) return toast('That story could not be found.', 'err');
-    await Save.flush(); App.story = s; await Notes.load(id); UI.collapsed = new Set(lsGet('sw_collapsed_' + id, []));
+    await Save.flush(); App.story = s; Model.cur = s; if (Kind.storyLike(s) && Kind.of(s) !== 'story') s.volumes.forEach(v => { delete v.implicit; }); await Notes.load(id); UI.collapsed = new Set(lsGet('sw_collapsed_' + id, []));
     await UI.warmCovers(); UI.showStudio();
     const first = Model.find(s, s.lastChapterId) ? s.lastChapterId : (Model.all(s)[0] || {}).chapter && Model.all(s)[0].chapter.id;
     if (first) await this.openChapter(first, { silentPane: true }); else { Ed.unload(); UI.showEmpty(); }
@@ -1324,7 +1370,7 @@ const App = {
     const f = Model.find(App.story, id); if (!f) return;
     let rec = (await Store.get('chapters', id)) || { id, storyId: App.story.id, html: '', pidSeq: 0, published: null }, recovered = false;
     const bk = lsGet('sw_backup', null); if (bk && bk.chapterId === id && bk.at > (rec.updatedAt || 0) + 500 && bk.html) { rec = Object.assign({}, rec, { html: bk.html, pidSeq: bk.pidSeq }); recovered = true; }
-    App.rec = rec; await Ed.load(rec);
+    App.rec = rec; Ed.lineMode = Kind.lineMode(App.story); await Ed.load(rec);
     App.story.lastChapterId = id; this.storyPersistSoon();
     UI.showChapter(f); if (!opts.silentPane) UI.setPane('write'); else UI.setPane(UI.portrait ? 'contents' : 'write');
     if (recovered) { Ed.dirtyFlag = true; Save.dirty(); toast('Recovered unsaved changes from your last session.'); }
@@ -1346,18 +1392,20 @@ const App = {
   /* ---- publishing */
   validate() {
     Ed.normalizeAll(); const out = [], f = Model.find(App.story, Ed.chapterId), m = Ed.measure(), s = App.story, add = (level, label, detail) => out.push({ level, label, detail });
-    if (!s.title.trim()) add('fail', 'Story title', 'The story needs a title.'); else add('ok', 'Story title', s.title);
+    const isStory = Kind.of(s) === 'story', KN = Kind.cfg(s).one;
+    if (!s.title.trim()) add('fail', KN + ' title', 'This needs a title.'); else add('ok', KN + ' title', s.title);
     if (!f.chapter.title.trim()) add('warn', 'Chapter title', 'Untitled — readers will see “Chapter ' + f.chapter.number + '”.'); else add('ok', 'Chapter title', f.chapter.title);
     if (!m.words) add('fail', 'Content', 'The chapter is empty.'); else if (m.words < 50) add('warn', 'Content', `Only ${m.words} words. Publishing a very short chapter is allowed.`); else add('ok', 'Content', m.words.toLocaleString() + ' words');
-    if (!s.coverImageId) add('fail', 'Story cover', 'Add a story cover (3:2) in story settings before publishing.'); else add('ok', 'Story cover', 'Present');
-    if (!f.volume.coverImageId) add('warn', 'Volume cover', 'This volume has no cover yet. Readers will see a placeholder.');
-    if (s.status === 'draft') add('warn', 'Story status', 'The story is still marked Draft, so readers won’t see this chapter until it is set to Ongoing.');
+    if (!s.coverImageId) add(isStory ? 'fail' : 'warn', KN + ' cover', 'Add a cover (3:2) in the details before publishing.'); else add('ok', KN + ' cover', 'Present');
+    if (!f.volume.implicit && !f.volume.coverImageId) add('warn', 'Volume cover', 'This volume has no cover yet. Readers will see a placeholder.');
+    add('ok', 'Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)] + ' \u00b7 impressions ' + (Kind.impressions(s) ? 'allowed' : 'turned off'));
+    if (isStory && s.status === 'draft') add('warn', 'Story status', 'The story is still marked Draft, so readers won’t see this chapter until it is set to Ongoing.');
     const bad = new Set(), unavail = new Set();
     Ed.el.querySelectorAll('[style*="font-family"]').forEach(e => { const n = e.style.fontFamily.split(',')[0].replace(/["']/g, '').trim(), fo = Fonts.byName(n); if (!fo) bad.add(n); else if (!Fonts.ok(fo)) unavail.add(n); });
     const strange = [...Ed.el.querySelectorAll('*')].filter(e => !Sanitize.ALLOWED.has(e.tagName.toLowerCase()) && e.tagName !== 'FONT').length;
     if (bad.size || strange) add('fail', 'Formatting', (bad.size ? 'Unsupported fonts: ' + [...bad].join(', ') + '. ' : '') + (strange ? strange + ' unsupported elements.' : '')); else if (unavail.size) add('warn', 'Formatting', 'Fonts not currently available: ' + [...unavail].join(', ')); else add('ok', 'Formatting', 'All fonts and styles are supported');
     const blocks = [...Ed.el.querySelectorAll(BLOCK_SEL)], ids = blocks.map(b => b.getAttribute('data-pid')); let run = 0, maxRun = 0; [...Ed.el.children].forEach(c => { if (/^(P)$/.test(c.tagName) && Ed.isEmptyBlock(c)) { run++; maxRun = Math.max(maxRun, run); } else run = 0; });
-    if (ids.some(x => !x) || new Set(ids).size !== ids.length) add('fail', 'Paragraph structure', 'Some paragraphs are missing unique IDs.'); else if (maxRun > 3) add('warn', 'Paragraph structure', 'There are ' + maxRun + ' empty paragraphs in a row. Use a scene break instead.'); else add('ok', 'Paragraph structure', ids.length.toLocaleString() + ' paragraphs, all with permanent IDs');
+    if (ids.some(x => !x) || new Set(ids).size !== ids.length) add('fail', 'Paragraph structure', 'Some paragraphs are missing unique IDs.'); else if (maxRun > 3 && !Ed.lineMode) add('warn', 'Paragraph structure', 'There are ' + maxRun + ' empty paragraphs in a row. Use a scene break instead.'); else add('ok', 'Paragraph structure', ids.length.toLocaleString() + ' paragraphs, all with permanent IDs');
     return out;
   },
   async publishChapter() {
@@ -1479,8 +1527,9 @@ const UI = {
     $('#btnPreviewP').addEventListener('click', () => this.setMode(this.mode === 'preview' ? 'write' : 'preview'));
     $('#btnSaveDraft').addEventListener('click', () => App.saveDraft()); $('#btnPublish').addEventListener('click', () => this.publishDialog());
     $('#libNew').addEventListener('click', () => this.newStory()); $('#libDev').addEventListener('click', e => this.devMenu(e.currentTarget));
-    const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
+    const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; if (Kind.single(App.story)) App.story.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
     t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Ed.focusForCommand(); const first = Ed.el.firstElementChild; if (first) Ed.placeCaret(first, true); } });
+    this.kind = lsGet('sw_kind', 'story'); if (!KINDS[this.kind]) this.kind = 'story'; $('#btnWork').replaceChildren(icon('edit')); $('#btnWork').addEventListener('click', () => this.editStory());
     Panel.init(); Tools.build();
     const onResize = () => { this.applyMode(); this.syncViewport();  };
     addEventListener('resize', onResize); addEventListener('orientationchange', () => { this.maxH = 0; setTimeout(onResize, 250); });
@@ -1504,7 +1553,7 @@ const UI = {
     $('#left').classList.toggle('collapsed', !this.leftOpen); $('#right').classList.toggle('collapsed', !this.rightOpen && !portrait);
     if (!portrait) $('#right').classList.remove('open');
   },
-  setPane(p) { this.pane = p; document.body.classList.toggle('pane-contents', this.portrait && p === 'contents' && $('#viewStudio').classList.contains('on')); this.syncCrumb(); },
+  setPane(p) { if (document.body.classList.contains('no-tree')) p = 'write'; this.pane = p; document.body.classList.toggle('pane-contents', this.portrait && p === 'contents' && $('#viewStudio').classList.contains('on')); this.syncCrumb(); },
   /* Focus mode: only CSS classes change, so the editor element, its selection, its undo history and
      the keyboard are untouched. The viewport-synced app height makes the editor use the visible area. */
   toggleFocus(force) {
@@ -1517,7 +1566,7 @@ const UI = {
     if (!on && document.fullscreenElement) { this.usedFs = false; document.exitFullscreen().catch(() => {}); }
     raf('focus', () => { this.syncViewport(); Ed.ensureCaretVisible(); Gutter.update(); });
   },
-  back() { if (document.body.classList.contains('focus')) this.toggleFocus(false); if (this.portrait && this.pane === 'write' && Ed.chapterId) { Ed.saveSel(); this.setMode('write'); this.setPane('contents'); } else this.showLibrary(); },
+  back() { if (document.body.classList.contains('focus')) this.toggleFocus(false); if (this.portrait && this.pane === 'write' && Ed.chapterId && Kind.hasTree(App.story)) { Ed.saveSel(); this.setMode('write'); this.setPane('contents'); } else this.showLibrary(); },
   openRight() { Panel.refresh(); if (this.portrait) { $('#right').classList.add('open'); $('#scrim').hidden = false; } else { this.rightOpen = true; this.applyMode(); } },
   closeRight() { $('#right').classList.remove('open'); $('#scrim').hidden = true; },
   infoVisible() { return Panel.tab === 'info' && (this.portrait ? $('#right').classList.contains('open') : this.rightOpen); },
@@ -1531,43 +1580,53 @@ const UI = {
     const s = App.story; if (!s) return; const f = Ed.chapterId && Model.find(s, Ed.chapterId);
     const inWrite = f && (!this.portrait || this.pane === 'write');
     $('#crumbT').textContent = inWrite ? Model.cLabel(f.chapter) : (s.title || 'Untitled story');
-    $('#crumbS').textContent = inWrite ? [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' › ') : (this.portrait ? 'Contents' : '');
-    $('#chNum').textContent = f ? 'Chapter ' + f.chapter.number : '';
+    $('#crumbS').textContent = inWrite ? [s.title || 'Untitled', f.volume.implicit ? null : Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' › ') : (this.portrait ? 'Contents' : '');
+    $('#chNum').textContent = f && Kind.storyLike(s) ? 'Chapter ' + f.chapter.number : '';
     $('#btnBack').replaceChildren(icon('chevL')); $('#btnBack').setAttribute('aria-label', this.portrait && this.pane === 'write' ? 'Back to contents' : 'Back to your stories');
     $('#btnPreviewP').replaceChildren(icon(this.mode === 'preview' ? 'edit' : 'eye')); $('#btnPreviewP').setAttribute('aria-label', this.mode === 'preview' ? 'Back to writing' : 'Preview');
   },
   /* ---- screens */
   async showLibrary() {
     await Save.flush(); await App.gcChapterImages(Ed.chapterId || ''); Ed.unload(); Ed.chapterId = null; App.story = null; this.mode = 'write';
-    $('#viewStudio').classList.remove('on'); $('#viewLibrary').classList.add('on'); document.body.classList.remove('pane-contents'); this.closeRight(); await this.renderLibrary();
+    $('#viewStudio').classList.remove('on'); $('#viewLibrary').classList.add('on'); Model.cur = null; document.body.classList.remove('no-tree'); delete document.body.dataset.kind; document.body.classList.remove('pane-contents'); this.closeRight(); await this.renderLibrary();
   },
-  showStudio() { $('#viewLibrary').classList.remove('on'); $('#viewStudio').classList.add('on'); this.renderTree(); this.setPane(this.portrait ? 'contents' : 'write'); this.syncCrumb(); Panel.refresh(); $('#emptyState').hidden = true; $('#writeArea').hidden = false; $('#preview').hidden = true; },
+  applyKind() {
+    const s = App.story; if (!s) return; const b = document.body; b.classList.toggle('no-tree', !Kind.hasTree(s)); b.dataset.kind = Kind.of(s);
+    const sh = $('#sheet'); sh.classList.toggle('line-mode', Kind.lineMode(s)); Object.keys(KINDS).forEach(k => sh.classList.toggle('k-' + k, Kind.of(s) === k));
+    if (!Kind.hasTree(s)) this.pane = 'write';
+  },
+  showStudio() { this.applyKind(); $('#viewLibrary').classList.remove('on'); $('#viewStudio').classList.add('on'); this.renderTree(); this.setPane(this.portrait ? 'contents' : 'write'); this.syncCrumb(); Panel.refresh(); $('#emptyState').hidden = true; $('#writeArea').hidden = false; $('#preview').hidden = true; },
   showChapter(f) {
-    $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; $('#chTitle').value = f.chapter.title; $('#chTitle').placeholder = 'Chapter ' + f.chapter.number + ' title';
+    $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; this.applyKind(); const st = App.story, kd = Kind.of(st); $('#chTitle').value = Kind.single(st) ? st.title : f.chapter.title; $('#chTitle').placeholder = ({ story: 'Chapter ' + f.chapter.number + ' title', journal: 'Entry title', article: 'Title', poetry: 'Title of the poem', shayari: 'Title (optional)', thought: 'Title' })[Kind.storyLike(st) ? 'story' : kd];
     this.syncCrumb(); this.renderTree(); this.syncToolbar(); if (this.mode === 'preview') this.renderPreview();
   },
   showEmpty() {
     $('#writeArea').hidden = true; $('#preview').hidden = true; const e = $('#emptyState'); e.hidden = false; const s = App.story; const hasVol = s.volumes.length;
-    e.replaceChildren(h('h2', { style: { fontFamily: 'var(--doc-font)' } }, hasVol ? 'Add your first chapter' : 'Start with a volume'), h('p', null, hasVol ? 'Chapters are where the writing happens. Each one saves on its own.' : 'Every story lives in a volume. Parts are optional, so a short work can go straight from volume to chapters.'),
-      h('button', { class: 'btn primary', type: 'button', onclick: () => hasVol ? this.addChapter(s.volumes[0], null) : this.addVolume() }, hasVol ? 'New chapter' : 'New volume'));
+    e.replaceChildren(h('h2', { style: { fontFamily: 'var(--doc-font)' } }, hasVol ? 'Add your first ' + Kind.labels(s).chapter.toLowerCase() : 'Start with a volume'), h('p', null, hasVol ? 'Chapters are where the writing happens. Each one saves on its own.' : 'Every story lives in a volume. Parts are optional, so a short work can go straight from volume to chapters.'),
+      h('button', { class: 'btn primary', type: 'button', onclick: () => hasVol ? this.addChapter(s.volumes[0], null) : this.addVolume() }, hasVol ? 'New ' + Kind.labels(s).chapter.toLowerCase() : 'New volume'));
     this.syncCrumb(); this.renderTree();
   },
   async warmCovers() { const s = App.story; const ids = [s.coverImageId, ...s.volumes.flatMap(Model.coverIds)].filter(Boolean); await Promise.all(ids.map(i => Images.url(i))); },
   /* ---- library */
   async renderLibrary() {
-    const stories = await App.listStories(), grid = $('#libGrid'); grid.replaceChildren();
-    await Promise.all(stories.map(s => Images.url(s.coverImageId)));
-    grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New story'), h('span', { class: 'small muted' }, 'Cover, title, description and tags')));
+    const tok = this.libTok = (this.libTok || 0) + 1; this.buildKindBar(); const K = KINDS[this.kind]; $('#libNew').textContent = 'New ' + K.one.toLowerCase();
+    const stories = (await App.listStories()).filter(x => Kind.of(x) === this.kind), grid = $('#libGrid'); grid.replaceChildren();
+    await Promise.all(stories.map(s => Images.url(s.coverImageId))); if (tok !== this.libTok) return; /* a newer render (e.g. another section chip) won */
+    grid.replaceChildren();
+    grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New ' + K.one.toLowerCase()), h('span', { class: 'small muted' }, 'Cover, title, tags and visibility')));
     stories.forEach(s => {
       const url = s.coverImageId && Images.urls.get(s.coverImageId), chapters = Model.all(s).length;
       const menuBtn = ibtn('more', 'Story actions', { style: { position: 'absolute', top: '6px', right: '6px', background: 'rgba(255,255,255,.85)' }, onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
       grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
-        h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill ' + s.status }, (STORY_STATUSES.find(x => x[0] === s.status) || [0, s.status])[1])),
-          h('span', { class: 'small muted' }, `${s.volumes.length} volume${s.volumes.length === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
+        h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill ' + s.status }, (((Kind.of(s) === 'story' ? STORY_STATUSES : PUB_STATUSES).find(x => x[0] === s.status) || [0, s.status])[1])), ' ', h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
+          h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${s.volumes.length} volume${s.volumes.length === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
     });
   },
-  newStory() { const s = Model.newStory(); this.entityDialog({ kind: 'story', entity: s, isNew: true, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => (simCheck('save'), Store.put('stories', s)), after: async () => { toast('Story created'); await App.openStory(s.id); } } }); },
+  buildKindBar() { const bar = $('#kindBar'); bar.replaceChildren(...Object.keys(KINDS).map(k => h('button', { class: 'chip kind', type: 'button', role: 'tab', 'aria-selected': String(k === this.kind), 'aria-pressed': String(k === this.kind), onclick: () => this.setKind(k) }, KINDS[k].plural))); },
+  setKind(k) { this.kind = k; lsSet('sw_kind', k); this.renderLibrary(); },
+  newStory() { this.newWork(this.kind); },
+  newWork(kind) { const s = Model.newStory(); s.kind = kind; this.entityDialog({ kind: 'story', entity: s, isNew: true, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => (simCheck('save'), Store.put('stories', s)), after: async () => { toast(KINDS[kind].one + ' created'); await App.openStory(s.id); } } }); },
   /* ---- tree */
   updateTreeMeta(c) { const row = $(`#treeHost .t-row[data-id="${c.id}"]`); if (!row) return; const l = $('.lbl', row); l.replaceChildren(Model.cLabel(c), c.wordCount ? h('small', null, c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : c.wordCount) : ''); $('.sdot', row).className = 'sdot ' + c.status; },
   toggleCollapse(id) { this.collapsed.has(id) ? this.collapsed.delete(id) : this.collapsed.add(id); lsSet('sw_collapsed_' + App.story.id, [...this.collapsed]); this.renderTree(); },
@@ -1584,36 +1643,36 @@ const UI = {
     const host = $('#treeHost'), s = App.story; if (!host || !s) return; const st = host.scrollTop; host.replaceChildren();
     const cover = s.coverImageId && Images.urls.get(s.coverImageId);
     host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words')),
-      ibtn('more', 'Story actions', { onclick: e => showMenu(e.currentTarget, [{ label: 'Story settings…', icon: 'edit', onClick: () => this.editStory() }, { label: 'Renumber everything…', icon: 'lines', onClick: () => App.renumber() }, '-', { label: 'Back to all stories', icon: 'book', onClick: () => this.showLibrary() }], { align: 'end' }) })));
+      ibtn('more', 'Story actions', { onclick: e => showMenu(e.currentTarget, [{ label: Kind.of(s) === 'story' ? 'Story settings…' : Kind.cfg(s).one + ' details…', icon: 'edit', onClick: () => this.editStory() }, Kind.storyLike(s) ? { label: 'Renumber everything…', icon: 'lines', onClick: () => App.renumber() } : null, '-', { label: Kind.of(s) === 'story' ? 'Back to all stories' : 'Back to all writing', icon: 'book', onClick: () => this.showLibrary() }], { align: 'end' }) })));
     const chRow = (c, list, i, v, p) => this.row({ kind: 'chapter', id: c.id, label: Model.cLabel(c), sub: c.wordCount ? (c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : String(c.wordCount)) : '', status: c.status, active: c.id === Ed.chapterId, onOpen: () => App.openChapter(c.id), menu: () => [
       { label: 'Rename…', icon: 'edit', onClick: () => this.renameChapter(c) }, { label: 'Edit details…', icon: 'file', onClick: () => this.editChapter(c) }, '-',
-      { label: 'Move up', icon: 'up', disabled: i === 0, onClick: () => App.move(list, i, -1) }, { label: 'Move down', icon: 'down', disabled: i === list.length - 1, onClick: () => App.move(list, i, 1) }, { label: 'Move to…', icon: 'move', onClick: () => this.moveDialog('chapter', c) }, '-',
-      { label: 'Delete chapter…', icon: 'trash', danger: true, onClick: () => App.deleteChapter(Model.find(s, c.id)) }] });
-    const addRow = (parts) => h('div', { class: 't-add' }, ...parts);
+      { label: 'Move up', icon: 'up', disabled: i === 0, onClick: () => App.move(list, i, -1) }, { label: 'Move down', icon: 'down', disabled: i === list.length - 1, onClick: () => App.move(list, i, 1) }, Kind.of(s) === 'journal' ? null : { label: 'Move to…', icon: 'move', onClick: () => this.moveDialog('chapter', c) }, '-',
+      { label: 'Delete ' + (Kind.storyLike(s) ? 'chapter' : Kind.cfg(s).unit) + '…', icon: 'trash', danger: true, onClick: () => App.deleteChapter(Model.find(s, c.id)) }] });
+    const addRow = (parts) => h('div', { class: 't-add' }, ...parts); const L = Kind.labels(s), isStory = Kind.storyLike(s);
     s.volumes.forEach((v, vi) => {
-      const open = !this.collapsed.has(v.id), vcover = v.coverImageId && Images.urls.get(v.coverImageId);
-      host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, menu: () => [
+      const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && Images.urls.get(v.coverImageId);
+      if (!v.implicit) host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, menu: () => [
         { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) }, '-',
         { label: 'Move up', icon: 'up', disabled: vi === 0, onClick: () => App.move(s.volumes, vi, -1) }, { label: 'Move down', icon: 'down', disabled: vi === s.volumes.length - 1, onClick: () => App.move(s.volumes, vi, 1) }, '-',
         { label: 'Delete volume…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('volume', v, s.volumes, vi) }] }));
-      if (!open) return; const kids = h('div', { class: 't-kids' });
+      if (!open) return; const kids = h('div', { class: v.implicit ? '' : 't-kids' });
       v.chapters.forEach((c, i) => kids.append(chRow(c, v.chapters, i, v, null)));
       v.parts.forEach((p, pi) => {
         const po = !this.collapsed.has(p.id);
         kids.append(this.row({ kind: 'part', id: p.id, label: Model.pLabel(p), open: po, collapsible: true, menu: () => [
-          { label: 'Edit part…', icon: 'edit', onClick: () => this.editPart(p, v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, p) }, '-',
-          { label: 'Move up', icon: 'up', disabled: pi === 0, onClick: () => App.move(v.parts, pi, -1) }, { label: 'Move down', icon: 'down', disabled: pi === v.parts.length - 1, onClick: () => App.move(v.parts, pi, 1) }, { label: 'Move to another volume…', icon: 'move', onClick: () => this.moveDialog('part', p) }, '-',
-          { label: 'Delete part…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('part', p, v.parts, pi) }] }));
-        if (po) { const pk = h('div', { class: 't-kids' }); p.chapters.forEach((c, i) => pk.append(chRow(c, p.chapters, i, v, p))); pk.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, p) }, icon('plus'), 'Chapter')])); kids.append(pk); }
+          { label: 'Edit ' + (L.part || 'part').toLowerCase() + '…', icon: 'edit', onClick: () => this.editPart(p, v) }, { label: 'Add ' + L.inPart.toLowerCase(), icon: 'file', onClick: () => this.addChapter(v, p) }, '-',
+          { label: 'Move up', icon: 'up', disabled: pi === 0, onClick: () => App.move(v.parts, pi, -1) }, { label: 'Move down', icon: 'down', disabled: pi === v.parts.length - 1, onClick: () => App.move(v.parts, pi, 1) }, isStory ? { label: 'Move to another volume…', icon: 'move', onClick: () => this.moveDialog('part', p) } : null, '-',
+          { label: 'Delete ' + (L.part || 'part').toLowerCase() + '…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('part', p, v.parts, pi) }] }));
+        if (po) { const pk = h('div', { class: 't-kids' }); p.chapters.forEach((c, i) => pk.append(chRow(c, p.chapters, i, v, p))); pk.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, p) }, icon('plus'), L.inPart)])); kids.append(pk); }
       });
-      kids.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, null) }, icon('plus'), 'Chapter'), h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addPart(v) }, icon('plus'), 'Part')])); host.append(kids);
+      kids.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, null) }, icon('plus'), L.chapter), L.part ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addPart(v) }, icon('plus'), L.part) : null])); host.append(kids);
     });
-    host.append(addRow([h('button', { class: 'btn sm', type: 'button', onclick: () => this.addVolume() }, icon('plus'), 'Volume')])); host.scrollTop = st;
+    if (isStory) host.append(addRow([h('button', { class: 'btn sm', type: 'button', onclick: () => this.addVolume() }, icon('plus'), 'Volume')])); host.scrollTop = st;
   },
   async renameChapter(c) { const v = await promptDialog({ title: 'Rename chapter', label: 'Chapter title', value: c.title, confirm: 'Rename' }); if (v === null) return; await App.mutate(() => { c.title = v; }); if (c.id === Ed.chapterId) { $('#chTitle').value = v; } },
   moveDialog(kind, obj) {
     const s = App.story; let opts;
-    if (kind === 'chapter') opts = s.volumes.flatMap(v => [['v:' + v.id, Model.vLabel(v) + ' (chapters directly in volume)'], ...v.parts.map(p => ['p:' + p.id, Model.vLabel(v) + ' › ' + Model.pLabel(p)])]);
+    if (kind === 'chapter') opts = s.volumes.flatMap(v => [['v:' + v.id, (v.implicit ? 'Top level' : Model.vLabel(v) + ' (chapters directly in volume)')], ...v.parts.map(p => ['p:' + p.id, (v.implicit ? '' : Model.vLabel(v) + ' › ') + Model.pLabel(p)])]);
     else opts = s.volumes.map(v => ['v:' + v.id, Model.vLabel(v)]);
     const sel = selectEl(opts, opts[0][0]);
     const m = openModal({ title: kind === 'chapter' ? 'Move chapter' : 'Move part', body: field('Move to', sel), footer: [h('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), h('button', { class: 'btn primary', onclick: async () => {
@@ -1628,23 +1687,35 @@ const UI = {
   editStory() { const s = App.story; this.entityDialog({ kind: 'story', entity: s, isNew: false, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
   addVolume() { const s = App.story, v = Model.newVolume(s); this.entityDialog({ kind: 'volume', entity: v, isNew: true, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach: () => s.volumes.push(v), detach: () => { s.volumes = s.volumes.filter(x => x !== v); }, persist: () => App.persistStory(), after: () => { this.renderTree(); if (!Ed.chapterId) this.showEmpty(); } } }); },
   editVolume(v) { const s = App.story; this.entityDialog({ kind: 'volume', entity: v, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
-  addPart(v) { const s = App.story, p = Model.newPart(v); this.entityDialog({ kind: 'part', entity: p, isNew: true, ctx: { owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach: () => v.parts.push(p), detach: () => { v.parts = v.parts.filter(x => x !== p); }, persist: () => App.persistStory(), after: () => this.renderTree() } }); },
+  addPart(v) { const s = App.story, p = Model.newPart(v); this.entityDialog({ kind: 'part', entity: p, isNew: true, ctx: { label: (Kind.labels(s).part || 'section').toLowerCase(), owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach: () => v.parts.push(p), detach: () => { v.parts = v.parts.filter(x => x !== p); }, persist: () => App.persistStory(), after: () => this.renderTree() } }); },
   editPart(p, v) { const s = App.story; this.entityDialog({ kind: 'part', entity: p, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
-  addChapter(v, p) { const s = App.story, c = Model.newChapter(s), list = p ? p.chapters : v.chapters; this.entityDialog({ kind: 'chapter', entity: c, isNew: true, ctx: { attach: () => list.push(c), detach: () => { const i = list.indexOf(c); if (i >= 0) list.splice(i, 1); }, persist: () => App.persistStory(), after: async () => { this.collapsed.delete(v.id); if (p) this.collapsed.delete(p.id); this.renderTree(); await App.openChapter(c.id); setTimeout(() => { if (matchMedia('(pointer:fine)').matches) $('#chTitle').focus(); }, 60); } } }); },
+  addChapter(v, p) { const s = App.story, c = Model.newChapter(s), list = p ? p.chapters : v.chapters; this.entityDialog({ kind: 'chapter', entity: c, isNew: true, ctx: { label: (p ? Kind.labels(s).inPart : Kind.labels(s).chapter).toLowerCase(), attach: () => list.push(c), detach: () => { const i = list.indexOf(c); if (i >= 0) list.splice(i, 1); }, persist: () => App.persistStory(), after: async () => { this.collapsed.delete(v.id); if (p) this.collapsed.delete(p.id); this.renderTree(); await App.openChapter(c.id); setTimeout(() => { if (matchMedia('(pointer:fine)').matches) $('#chTitle').focus(); }, 60); } } }); },
   editChapter(c) { this.entityDialog({ kind: 'chapter', entity: c, isNew: false, ctx: { attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); if (c.id === Ed.chapterId) { $('#chTitle').value = c.title; } } } }); },
   async entityDialog({ kind, entity, isNew, ctx }) {
-    const spec = IMAGE_SPECS[kind + '_cover'], names = { story: 'story', volume: 'volume', part: 'part', chapter: 'chapter' };
+    const wk = kind === 'story' ? Kind.of(entity) : Kind.of(App.story), plain = kind === 'story' ? wk !== 'story' : !Kind.storyLike(App.story), KN = KINDS[wk];
+    const spec = (kind === 'part' && plain) ? null : IMAGE_SPECS[kind + '_cover'], names = { story: KN.one.toLowerCase(), volume: 'volume', part: plain ? 'section' : 'part', chapter: (ctx && ctx.label) || (plain ? KN.unit : 'chapter') };
     const curRec = spec && entity.coverImageId ? await Images.record(entity.coverImageId) : null;
     const els = {}, body = h('div'); let cover = null, tags = null;
     if (spec) cover = CoverField({ spec, current: curRec, onDeleteSaved: () => deleteCover({ entity, persist: ctx.persist }) });
     const errHost = h('div');
     if (kind === 'story') {
-      body.append(field(null, cover.el), field('Title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'The title of your story', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, placeholder: 'What is this story about?', maxLength: 2000 })),
-        h('div', { class: 'row2' }, field('Category', els.cat = selectEl(CATEGORIES.map(c => [c, c]), entity.category || 'Other')), field('Status', els.status = selectEl(STORY_STATUSES, entity.status))), field('Tags', (tags = tagsInput(entity.tags || [])).el, 'Press Enter to add each tag'));
+      const statusOpts = plain ? PUB_STATUSES : STORY_STATUSES, curStatus = statusOpts.some(x => x[0] === entity.status) ? entity.status : 'draft';
+      const visHint = h('div', { class: 'hint' }, VIS_HINT[Kind.visibility(entity)]);
+      els.vis = selectEl(VISIBILITY, Kind.visibility(entity)); els.vis.addEventListener('change', () => { visHint.textContent = VIS_HINT[els.vis.value]; });
+      els.imp = selectEl([['on', 'Allow impressions'], ['off', 'Turn off impressions']], Kind.impressions(entity) ? 'on' : 'off');
+      body.append(field(null, cover.el), field('Title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'The title of your ' + KN.one.toLowerCase(), maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, placeholder: 'What is this about?', maxLength: 2000 })),
+        isNew && KN.structures ? field('Structure', els.structure = selectEl(KN.structures, KN.structures[0][0]), wk === 'journal' ? 'A journal can be one piece of writing or many entries.' : 'Sections are optional. Choose Simple if you only want one continuous article.') : null,
+        plain ? field('Status', els.status = selectEl(statusOpts, curStatus)) : h('div', { class: 'row2' }, field('Category', els.cat = selectEl(CATEGORIES.map(c => [c, c]), entity.category || 'Other')), field('Status', els.status = selectEl(statusOpts, curStatus))),
+        field('Tags', (tags = tagsInput(entity.tags || [])).el, 'Press Enter to add each tag'),
+        h('div', { class: 'row2' }, field('Visibility', els.vis, null), field('Impressions', els.imp, null)), visHint);
     } else if (kind === 'volume') {
       body.append(field(null, cover.el), h('div', { class: 'row2' }, field('Volume number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', els.status = selectEl(PUB_STATUSES, entity.status))), field('Volume title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Awakening', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
+    } else if (kind === 'part' && plain) {
+      body.append(field('Section title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. Background', maxLength: 140 })), field('Description (optional)', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
     } else if (kind === 'part') {
       body.append(h('div', { class: 'row2' }, field('Part number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Part title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Beginning', maxLength: 140 }))), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })), h('div', { class: 'lb', style: { fontWeight: 600, fontSize: '13.5px', marginBottom: '6px' } }, 'Cover (optional)'), cover.el);
+    } else if (plain) {
+      body.append(field(names.chapter.charAt(0).toUpperCase() + names.chapter.slice(1) + ' title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'Optional', maxLength: 140 })), h('span', { class: 'pill ' + entity.status }, entity.status === 'published' ? 'Published' : 'Draft'));
     } else {
       body.append(h('div', { class: 'row2' }, field('Chapter number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', h('div', null, h('span', { class: 'pill ' + entity.status }, entity.status === 'published' ? 'Published' : 'Draft'), h('div', { class: 'hint', style: { marginTop: '4px' } }, 'Use Publish in the toolbar when the chapter is ready.')))), field('Chapter title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'Optional', maxLength: 140 })));
     }
@@ -1655,12 +1726,17 @@ const UI = {
     saveBtn.addEventListener('click', async () => {
       errHost.replaceChildren(); const vals = {};
       if (els.title) vals.title = els.title.value.trim(); if (els.desc) vals.description = els.desc.value.trim(); if (els.num) vals.number = Math.max(1, parseInt(els.num.value, 10) || 1);
+      if (els.vis) { vals.visibility = els.vis.value; vals.allowImpressions = els.imp.value === 'on'; }
       if (els.status) vals.status = els.status.value; if (els.cat) vals.category = els.cat.value; if (tags) vals.tags = [...tags.value];
-      if (kind === 'story' && !vals.title) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Your story needs a title.')); els.title.focus(); return; }
+      if (kind === 'story' && !vals.title) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Your ' + KN.one.toLowerCase() + ' needs a title.')); els.title.focus(); return; }
       saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.replaceChildren(h('span', { class: 'spin' }), ' Saving…'); m.setDismissable(false);
       const snap = JSON.stringify(entity);
       try {
         Object.assign(entity, vals); if (isNew) ctx.attach();
+        if (kind === 'story' && plain) {
+          if (isNew) { entity.structure = els.structure ? els.structure.value : null; if (!Kind.storyLike(entity)) { const v0 = Model.newVolume(entity); v0.implicit = true; entity.volumes = [v0]; const c0 = Model.newChapter(entity); c0.title = Kind.single(entity) ? entity.title : ''; v0.chapters.push(c0); entity.lastChapterId = c0.id; } }
+          else if (Kind.single(entity)) entity.volumes.forEach(v => v.chapters.forEach(c => { c.title = entity.title; }));
+        }
         if (cover && cover.staged) await applyCoverChange({ entity, owner: ctx.owner, type: spec.type, staged: cover.staged, persist: ctx.persist }); else await ctx.persist();
         if (cover) cover.markSaved(await Images.record(entity.coverImageId));
         m.setDismissable(true); m.close(); await ctx.after(entity);
@@ -1679,7 +1755,7 @@ const UI = {
     const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
     const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
     const already = f.chapter.status === 'published';
-    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); toast('Published'); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Publish changes' : 'Publish chapter');
+    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); toast('Published'); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Publish changes' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
     const m = openModal({ title: 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
   },
   /* ---- developer tools */
@@ -1816,13 +1892,13 @@ const Panel = {
   renderInfo() {
     const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
     const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
-    const kv = h('dl', { class: 'kv' }); [['Chapter', Model.cLabel(f.chapter)], ['Volume', Model.vLabel(f.volume)], ['Part', f.part ? Model.pLabel(f.part) : '—'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole story', Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
-    return h('div', { style: { padding: '6px 6px 16px' } }, kv, h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
+    const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
+    return h('div', { style: { padding: '6px 6px 16px' } }, kv, h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
       pub ? h('button', { class: 'btn', type: 'button', onclick: async () => { if (await confirmDialog({ title: 'Unpublish this chapter?', body: 'Readers will no longer see it. Your draft is kept.', confirm: 'Unpublish' })) { await App.unpublishChapter(); toast('Unpublished'); } } }, 'Unpublish') : null));
   },
   renderNotes() {
     const scope = this.scope || 'chapter'; const cid = Ed.chapterId;
-    const sel = selectEl([['chapter', 'This chapter'], ['story', 'Whole story']], scope); sel.addEventListener('change', () => { this.scope = sel.value; this.refresh(); });
+    const sel = selectEl([['chapter', 'This ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit)], ['story', 'Whole ' + Kind.cfg(App.story).one.toLowerCase()]], scope); sel.addEventListener('change', () => { this.scope = sel.value; this.refresh(); });
     const list = Notes.list.filter(n => scope === 'story' ? !n.chapterId : n.chapterId === cid), ta = h('textarea', { class: 'inp', placeholder: 'e.g. Fix timeline, add character description…', 'aria-label': 'New note' });
     return h('div', { style: { padding: '2px 4px' } }, h('div', { class: 'small muted', style: { padding: '2px 2px 8px' } }, 'Private. Never shown to readers or included in published text.'), h('div', { style: { marginBottom: '10px' } }, sel),
       list.length ? list.map(n => h('div', { class: 'note' + (n.done ? ' done' : '') }, h('input', { type: 'checkbox', checked: n.done, 'aria-label': 'Done', onchange: async () => { await Notes.toggle(n.id); this.refresh(); } }), h('div', { class: 'tx' }, n.text), ibtn('trash', 'Delete note', { style: { width: '30px', height: '30px' }, onclick: async () => { await Notes.remove(n.id); this.refresh(); } }))) : h('div', { class: 'muted', style: { padding: '4px 2px 10px' } }, 'No notes yet.'),
@@ -1845,7 +1921,9 @@ UI.renderPreview = function () {
   const f = Model.find(App.story, Ed.chapterId), s = App.story, pv = $('#preview');
   const frag = Sanitize.toFragment(Ed.serialize(), { keepIds: true }), body = h('div'); body.append(frag);
   body.querySelectorAll('p,h1,h2,blockquote,li').forEach(b => b.setAttribute('dir', 'auto'));
-  const art = h('article', { class: 'reader ' + (this.previewWidth === 'desktop' ? '' : this.previewWidth) }, h('div', { class: 'rk' }, [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · ')), h('div', { class: 'rk', style: { marginTop: '4px' } }, 'Chapter ' + f.chapter.number), h('h3', { class: 'rt' }, f.chapter.title || 'Chapter ' + f.chapter.number), body);
+  const kd = Kind.of(s), single = Kind.single(s), heading = single ? (s.title || 'Untitled') : (f.chapter.title || Model.cLabel(f.chapter));
+  const head = Kind.storyLike(s) ? [h('div', { class: 'rk' }, [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · ')), h('div', { class: 'rk', style: { marginTop: '4px' } }, 'Chapter ' + f.chapter.number)] : [h('div', { class: 'rk' }, single ? KINDS[kd].one : [s.title || 'Untitled', f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · '))];
+  const art = h('article', { class: 'reader ' + (this.previewWidth === 'desktop' ? '' : this.previewWidth) + (Kind.lineMode(s) ? ' line-mode' : '') + ' k-' + kd }, ...head, h('h3', { class: 'rt' }, Kind.storyLike(s) ? (f.chapter.title || 'Chapter ' + f.chapter.number) : heading), body);
   const dev = (k, ic, l) => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(this.previewWidth === k), onclick: () => { this.previewWidth = k; art.className = 'reader ' + (k === 'desktop' ? '' : k); $$('.pv-tools .chip', pv).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.k === k))); } }, l); 
   const tools = h('div', { class: 'pv-tools' }, ...[['phone', 'phone', 'Phone'], ['tablet', 'tablet', 'Tablet'], ['desktop', 'desk', 'Desktop']].map(([k, ic, l]) => { const b = dev(k, ic, l); b.dataset.k = k; return b; }));
   pv.replaceChildren(tools, art); pv.scrollTop = 0;
