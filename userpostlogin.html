@@ -2332,18 +2332,29 @@ document.addEventListener('keydown', function(e){
    ------------------------------------------------------------------ */
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 /* Login accepts either an email or a username. Supabase's own
-   signInWithPassword only takes an email/phone, so a bare username
-   has to be turned into its email first via the get_email_for_username
-   Postgres function documented in the SUPABASE RLS REQUIREMENTS notes
-   at the bottom of this file — that keeps the lookup narrow (just the
-   one email, only when the username actually exists) instead of
-   requiring a broad public-read policy on emails. */
-async function resolveLoginEmail(identifier){
-  if (identifier.indexOf('@') !== -1) return identifier;
-  if (!AUTH_LIVE) return identifier;
-  const { data, error } = await supabaseClient.rpc('get_email_for_username', { lookup_username: identifier.toLowerCase() });
-  if (error || !data) throw new Error('No account found with that username.');
-  return data;
+   signInWithPassword only takes an email/phone, so a bare username is
+   signed in SERVER-SIDE by the login-with-username Edge Function: it
+   finds the account's email itself, checks the password, and hands
+   back only the session tokens. The email address never reaches the
+   browser (the old public get_email_for_username RPC exposed every
+   user's email to anyone and must stay revoked). */
+async function loginWithUsername(username, password){
+  let res;
+  try{
+    res = await fetch(SUPABASE_URL + '/functions/v1/login-with-username', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
+      body: JSON.stringify({ username: username, password: password })
+    });
+  }catch(e){
+    throw new Error('Could not reach the server. Check your connection and try again.');
+  }
+  let out = null;
+  try{ out = await res.json(); }catch(e){}
+  if (!res.ok || !out || !out.session || !out.session.access_token || !out.session.refresh_token){
+    throw new Error((out && out.error) || 'Could not sign in right now. Please try again.');
+  }
+  return out.session;
 }
 async function isUsernameAvailable(username){
   if (!AUTH_LIVE){
@@ -2507,8 +2518,14 @@ async function signIn(identifier, password){
     // Journal content still works via DEMO_MODE regardless.
     return { user: DEMO_USER };
   }
-  const email = await resolveLoginEmail(identifier.trim());
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  identifier = identifier.trim();
+  let data, error;
+  if (identifier.indexOf('@') === -1){
+    const session = await loginWithUsername(identifier, password);
+    ({ data, error } = await supabaseClient.auth.setSession({ access_token: session.access_token, refresh_token: session.refresh_token }));
+  } else {
+    ({ data, error } = await supabaseClient.auth.signInWithPassword({ email: identifier, password }));
+  }
   if (error) throw error;
   return { user: await loadProfile(data.user) };
 }
@@ -5492,28 +5509,14 @@ else init();
           for instead.
 
      7. Username login (email is never exposed to the client)
-        Login accepts either an email or a username. Supabase's auth
-        API only takes an email/phone, so a bare username needs to be
-        turned into its email server-side. Add this as a SECURITY
-        DEFINER Postgres function (SQL editor), and grant EXECUTE to
-        the `anon` role so the frontend can call it via `.rpc(...)`:
-
-          create or replace function get_email_for_username(lookup_username text)
-          returns text
-          language sql
-          security definer
-          set search_path = public
-          as $$
-            select email from auth.users
-            where id = (select id from profiles where username = lookup_username)
-            limit 1;
-          $$;
-
-        This only ever returns the one email needed to attempt a
-        login — it doesn't expose a general "list emails" endpoint,
-        and a wrong/unknown username just returns null, which the
-        frontend turns into a generic "no account found" message
-        rather than confirming which usernames exist.
+        Login accepts either an email or a username. A bare username
+        is signed in server-side by the `login-with-username` Edge
+        Function (verify_jwt off; it looks the email up with the
+        service role, runs the normal password sign-in and returns
+        only the session tokens, which this page passes to
+        supabase.auth.setSession). Do NOT re-create a public
+        get_email_for_username function or any other endpoint that
+        returns an email address to the browser.
 
      Moderation actions (hiding a comment, removing a journal, acting
      on a report) should be restricted to rows where the requesting
