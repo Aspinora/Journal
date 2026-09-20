@@ -693,19 +693,32 @@ async function compressUnder(canvas, { limit, minQ = 0.62, onStep }) {
   if (ok && failQ != null) for (let q = ok.q + 0.01; q < failQ - 1e-6; q += 0.01) { const qq = +q.toFixed(2), b = await toJpeg(canvas, qq); if (b.size <= limit) ok = { blob: b, q: qq }; else break; }
   return { ok, smallest };
 }
-async function encodeToTarget(src, rect, spec, { limit = CONFIG.targetBytes, onStep, minQ = 0.62 } = {}) {
-  /* Sensible final size: the target size, but never enlarge a small crop by more than 2x. */
-  const w0 = Math.min(spec.w, Math.max(Math.round(spec.w * 0.5), Math.round(rect.w))), h0 = Math.round(w0 * spec.rh / spec.rw);
-  const full = renderCrop(src, rect, w0, h0);
-  let r = await compressUnder(full, { limit, minQ, onStep });
-  if (r.ok) return { status: 'ok', blob: r.ok.blob, quality: r.ok.q, width: w0, height: h0, downscaled: false };
-  for (const k of [0.9, 0.8]) { // last resort: a modest reduction, never below 80 %
-    const w = Math.round(w0 * k), hh = Math.round(w * spec.rh / spec.rw), c = renderCrop(src, rect, w, hh);
-    const r2 = await compressUnder(c, { limit, minQ: 0.7, onStep });
-    if (r2.ok) return { status: 'ok', blob: r2.ok.blob, quality: r2.ok.q, width: w, height: hh, downscaled: true };
-  }
-  return { status: 'over', blob: r.smallest.blob, quality: r.smallest.q, width: w0, height: h0, downscaled: false };
+/* Highest JPEG quality (0.01 steps) that fits under the limit, or null if even minQ is too big.
+   Always encodes from the raw canvas pixels, never from an earlier JPEG. */
+async function bestQuality(canvas, limit, minQ, onStep) {
+  const enc = async q => { const b = await toJpeg(canvas, q); onStep && onStep(q, b.size); return b; };
+  let hi = 0.95, b = await enc(hi); if (b.size <= limit) return { blob: b, q: hi };
+  let lo = minQ, bl = await enc(lo); if (bl.size > limit) return null;
+  let best = { blob: bl, q: lo };
+  while (hi - lo > 0.011) { const mid = +((hi + lo) / 2).toFixed(2), bm = await enc(mid); if (bm.size <= limit) { lo = mid; best = { blob: bm, q: mid }; } else hi = mid; }
+  return best;
 }
+/* The site, not the writer, does the work. For any image, however detailed, we keep the crop, then walk down
+   a ladder of output sizes (100 % first) and at each size take the highest quality that fits under 80 KB.
+   We stop at the first size that keeps quality at a good level; the ladder always ends in something that fits. */
+async function encodeToTarget(src, rect, spec, { limit = CONFIG.targetBytes, onStep } = {}) {
+  /* Sensible final size: the target size, but never enlarge a small crop by more than 2x. */
+  const w0 = Math.min(spec.w, Math.max(Math.round(spec.w * 0.5), Math.round(rect.w)));
+  const GOOD_Q = 0.68, FLOOR_Q = 0.55; let firstFit = null;
+  for (const k of [1, 0.92, 0.85, 0.78, 0.7, 0.62, 0.55, 0.48, 0.42, 0.36, 0.3, 0.24, 0.18]) {
+    const w = Math.max(120, Math.round(w0 * k)), hh = Math.round(w * spec.rh / spec.rw), canvas = renderCrop(src, rect, w, hh);
+    const r = await bestQuality(canvas, limit, FLOOR_Q, onStep); if (!r) continue;
+    const res = { status: 'ok', blob: r.blob, quality: r.q, width: w, height: hh, downscaled: w < w0 };
+    if (r.q >= GOOD_Q) return res; if (!firstFit) firstFit = res;
+  }
+  return firstFit; /* fits under the limit, at the largest size that could */
+}
+
 /* ---------------------------------------------------------------- crop editor */
 function openCropper({ spec, src, srcW, srcH, view }) {
   return new Promise(resolve => {
