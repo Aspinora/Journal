@@ -1748,14 +1748,20 @@ function readBlockStyle(styleText){
   if (lh && RICH_ALLOWED_LINEHEIGHT.indexOf(lh[1].trim()) !== -1) out += 'line-height:' + lh[1].trim() + ';';
   return out;
 }
+/* Parse untrusted markup in an INERT document. Setting innerHTML on an element of the live page is
+   NOT safe even if that element is never attached: <img src=x onerror=...> still loads and fires.
+   DOMParser documents have no browsing context, so nothing in them loads or runs while we walk the
+   tree. Returns the parsed <body> (an ordinary element: innerHTML, childNodes, querySelector...). */
+function parseHTMLInert(html){
+  return new DOMParser().parseFromString('<!DOCTYPE html><html><body>' + (html || ''), 'text/html').body;
+}
 function sanitizeInlineTextHTML(html){
-  const container = document.createElement('div');
-  container.innerHTML = html || '';
+  const container = parseHTMLInert(html);
   (function walk(parent){
     Array.prototype.slice.call(parent.childNodes).forEach(function(node){
       if (node.nodeType === Node.TEXT_NODE) return;
       if (node.nodeType !== Node.ELEMENT_NODE){ parent.removeChild(node); return; }
-      const tag = node.tagName;
+      const tag = node.tagName.toUpperCase(); // SVG/MathML elements report lowercase tag names
       if (RICH_DANGEROUS_TAGS.indexOf(tag) !== -1){ parent.removeChild(node); return; }
       if (tag === 'BR'){
         Array.prototype.slice.call(node.attributes).forEach(function(a){ node.removeAttribute(a.name); });
@@ -1799,8 +1805,7 @@ function sanitizeInlineTextHTML(html){
   return container.innerHTML;
 }
 function sanitizeRichHTML(html){
-  const container = document.createElement('div');
-  container.innerHTML = html || '';
+  const container = parseHTMLInert(html);
   const source = container.querySelector('.fig-canvas-abs') || container;
   const out = document.createElement('div');
   out.className = 'fig-canvas-abs';
