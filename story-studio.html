@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#F7F8F9">
+<title>Story Studio · Journals by Aspinora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+:root{
+  --bg:#EBEEF1; --panel:#F7F8F9; --panel-2:#FFFFFF; --paper:#FDFDFC;
+  --ink:#1D2731; --muted:#5B6772; --faint:#8A95A0; --line:#D8DEE3; --line-2:#E7EBEE;
+  --accent:#1D6B73; --accent-2:#155259; --accent-soft:#DCEDEF; --accent-line:#8FC1C6;
+  --danger:#B23A31; --danger-soft:#F8E4E2; --warn:#8A5A00; --warn-soft:#FBEFD6; --ok:#2B7A4B; --ok-soft:#DDF0E4;
+  --ui:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --doc-font:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --doc-size:19px; --doc-ink:#1D2731;
+  --r:8px; --r-lg:14px; --shadow:0 8px 30px rgba(20,30,40,.16);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--ink);font:15px/1.4 var(--ui);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#app{position:fixed;left:0;right:0;top:var(--app-top,0px);height:var(--app-h,100dvh);display:flex;flex-direction:column;overflow:hidden}
+.view{flex:1;min-height:0;display:none;flex-direction:column}
+.view.on{display:flex}
+
+/* generic controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:0 14px;border-radius:var(--r);border:1px solid var(--line);background:var(--panel-2);white-space:nowrap;font-weight:500}
+.btn:hover{background:#F0F3F5}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent-2)}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:rgba(20,30,40,.07)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn.sm{min-height:30px;padding:0 10px;font-size:13px}
+.ib{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--r);border:0;background:transparent;color:var(--ink);flex:none;position:relative}
+.ib:hover{background:rgba(20,30,40,.08)}
+.ib[aria-pressed=true],.ib.on{background:var(--accent-soft);color:var(--accent-2)}
+.ib[disabled]{opacity:.35;pointer-events:none}
+.muted{color:var(--muted)} .faint{color:var(--faint)} .small{font-size:12.5px}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;background:var(--line-2);color:var(--muted);font-weight:500}
+.pill.published,.pill.ongoing{background:var(--ok-soft);color:var(--ok)} .pill.draft{background:var(--line-2)} .pill.completed{background:var(--accent-soft);color:var(--accent-2)} .pill.hiatus{background:var(--warn-soft);color:var(--warn)}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px;flex:none}
+.spacer{flex:1}
+.spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:2s}}
+
+/* library */
+#viewLibrary{overflow:auto}
+.lib-head{display:flex;align-items:center;gap:12px;padding:20px 28px 8px;max-width:1180px;width:100%;margin:0 auto}
+.lib-head h1{font:600 26px/1.2 "Source Serif 4",Georgia,serif;margin:0}
+.lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:20px;padding:16px 28px 60px;max-width:1180px;width:100%;margin:0 auto}
+.card{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left;padding:0}
+.card:hover{border-color:var(--accent-line)}
+.card .cv{aspect-ratio:3/2;background:linear-gradient(135deg,#27414A,#1D6B73 60%,#5A9BA1);display:flex;align-items:flex-end;padding:12px;color:#fff;font:600 20px/1.2 "Source Serif 4",Georgia,serif;position:relative}
+.card .cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.card .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
+.card .bd b{font-weight:600}
+.card.new{border-style:dashed;align-items:center;justify-content:center;min-height:220px;color:var(--accent-2);gap:8px;background:transparent}
+.empty{padding:48px 24px;text-align:center;color:var(--muted);max-width:420px;margin:0 auto}
+
+/* studio topbar */
+#topbar{height:54px;display:flex;align-items:center;gap:6px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+#crumb{min-width:0;display:flex;flex-direction:column;line-height:1.2;padding:0 6px}
+#crumb b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+#crumb span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34vw}
+.seg{display:inline-flex;background:var(--line-2);border-radius:var(--r);padding:3px;gap:2px}
+.seg button{border:0;background:transparent;border-radius:6px;padding:5px 14px;font-weight:600;font-size:13px;color:var(--muted);letter-spacing:.02em}
+.seg button[aria-pressed=true]{background:var(--panel-2);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+#saveStatus{font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;min-width:92px;justify-content:flex-end}
+#saveStatus.err{color:var(--danger)} #saveStatus .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+#saveStatus.busy .dot{background:var(--warn)} #saveStatus.err .dot{background:var(--danger)}
+#workspace{flex:1;min-height:0;display:flex;position:relative}
+#left{width:292px;flex:none;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#right{width:330px;flex:none;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#center{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg);position:relative}
+.panel-head{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line-2);font-weight:600}
+.panel-body{flex:1;min-height:0;overflow:auto;padding:8px}
+
+/* tree */
+.t-story{display:flex;gap:10px;align-items:center;padding:8px;border-radius:var(--r);margin-bottom:4px}
+.t-story .th{width:54px;aspect-ratio:3/2;border-radius:6px;background:linear-gradient(135deg,#27414A,#5A9BA1);overflow:hidden;flex:none}
+.t-story .th img{width:100%;height:100%;object-fit:cover;display:block}
+.t-story b{display:block;font-weight:600;line-height:1.25}
+.t-row{display:flex;align-items:center;gap:2px;min-height:38px;border-radius:var(--r);padding:0 2px 0 4px;cursor:pointer;user-select:none}
+.t-row:hover{background:rgba(20,30,40,.06)}
+.t-row.active{background:var(--accent-soft);color:var(--accent-2)}
+.t-row .lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-row .lbl small{color:var(--muted);margin-left:6px}
+.t-row.vol{font-weight:600}
+.t-row .chev{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;flex:none;transition:none}
+.t-row .chev svg{width:16px;height:16px}
+.t-row .sdot{width:7px;height:7px;border-radius:50%;background:var(--line);margin:0 6px;flex:none}
+.t-row .sdot.published{background:var(--ok)}
+.t-kids{margin-left:14px;border-left:1px solid var(--line-2);padding-left:4px}
+.t-add{display:flex;gap:6px;padding:8px 4px;flex-wrap:wrap}
+
+/* toolbar (desktop) */
+#toolbar{display:flex;align-items:center;gap:2px;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex:none;flex-wrap:wrap;row-gap:4px}
+.tg{display:flex;align-items:center;gap:1px}
+.tsel{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 8px;border:1px solid var(--line);background:var(--panel-2);border-radius:var(--r);min-width:0}
+.tsel:hover{border-color:#BFC8CF}
+.tsel .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fontBtn{width:170px;justify-content:space-between}
+.size{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:var(--r);background:var(--panel-2);height:34px}
+.size button{width:28px;height:32px;border:0;background:transparent;display:inline-flex;align-items:center;justify-content:center}
+.size button:hover{background:rgba(20,30,40,.08)}
+.size .sv{min-width:38px;text-align:center;border:0;background:transparent;height:32px;font-weight:500;padding:0}
+.ttxt{font-weight:700;font-size:16px;line-height:1}
+.tcolor{position:absolute;left:9px;right:9px;bottom:5px;height:3px;border-radius:2px;background:var(--ink)}
+
+/* writing area */
+#writeArea{flex:1;min-height:0;display:flex;flex-direction:column}
+#scroller{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--bg);overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-behavior:auto}
+#sheet{max-width:820px;margin:22px auto 0;background:var(--paper);border:1px solid var(--line-2);border-radius:6px;box-shadow:0 1px 3px rgba(20,30,40,.06);position:relative;padding:44px 64px calc(var(--app-h,100dvh)*.45)}
+#chHead{margin-bottom:18px}
+#chNum{color:var(--muted);font-size:13.5px;font-weight:500}
+#chTitle{display:block;width:100%;border:0;outline:0;background:transparent;font:600 32px/1.2 var(--doc-font);padding:2px 0;color:var(--doc-ink);text-overflow:ellipsis}
+#chTitle::placeholder{color:var(--faint)}
+#chTitle:focus{box-shadow:0 2px 0 var(--accent-line)}
+#counts{font-size:12.5px;color:var(--faint);margin-top:6px}
+#editorWrap{position:relative}
+#editor{outline:none;font-family:var(--doc-font);font-size:var(--doc-size);line-height:1.75;color:var(--doc-ink);caret-color:var(--accent);overflow-wrap:anywhere;min-height:40vh;-webkit-user-modify:read-write;white-space:normal}
+#editor p,#editor li{margin:0 0 .9em}
+#editor h1{font-size:1.85em;line-height:1.25;margin:1.1em 0 .5em;font-weight:700}
+#editor h2{font-size:1.4em;line-height:1.3;margin:1em 0 .45em;font-weight:600}
+#editor blockquote{margin:1em 0;padding:.1em 0 .1em 1.1em;border-left:3px solid var(--accent-line);color:#3B4752;font-style:italic}
+#editor ul,#editor ol{margin:0 0 .9em;padding-left:1.6em}
+#editor a{color:var(--accent-2);text-decoration:underline}
+#editor hr.scene-break,.reader hr.scene-break{border:0;height:2.2em;margin:.9em 0;position:relative;background:linear-gradient(var(--line),var(--line)) 0 50%/calc(50% - 24px) 1px no-repeat,linear-gradient(var(--line),var(--line)) 100% 50%/calc(50% - 24px) 1px no-repeat}
+#editor hr.scene-break::before,.reader hr.scene-break::before{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;background:var(--faint);transform:translate(-50%,-50%) rotate(45deg)}
+#editor figure,.reader figure{margin:1.2em auto;text-align:center;max-width:100%}
+#editor figure img,.reader figure img{max-width:100%;height:auto;border-radius:4px;display:inline-block}
+#editor figure.sel img{outline:3px solid var(--accent-line)}
+#editor[data-empty="1"]>p:first-child::before{content:attr(data-ph);color:var(--faint);pointer-events:none;position:absolute}
+#editor ::selection{background:#BFE0E3}
+#gutter{position:absolute;left:0;top:0;width:100%;height:0;pointer-events:none;z-index:2}
+#gutter>*{pointer-events:auto}
+.addp{position:absolute;left:-46px;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--panel-2);color:var(--accent-2);display:flex;align-items:center;justify-content:center;opacity:.0;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.addp svg{width:15px;height:15px}
+.addp.show{opacity:.85} .addp:hover{opacity:1;background:var(--accent-soft)}
+.cbub{position:absolute;right:-46px;min-width:26px;height:24px;padding:0 7px;border-radius:12px;border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-2);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.cbub svg{width:13px;height:13px}
+.cbub.cur{background:var(--accent);color:#fff;border-color:var(--accent)}
+.flash{position:absolute;left:-10px;right:-10px;background:rgba(29,107,115,.16);border-radius:6px;pointer-events:none!important;animation:fl 1.4s ease-out forwards}
+@keyframes fl{to{opacity:0}}
+#statusbar{display:flex;gap:14px;align-items:center;padding:6px 14px;font-size:12.5px;color:var(--muted);background:var(--panel);border-top:1px solid var(--line);flex:none}
+
+/* preview */
+#preview{flex:1;min-height:0;overflow:auto;background:var(--bg);padding:22px 12px 60px}
+.pv-tools{display:flex;justify-content:center;gap:10px;margin-bottom:14px;align-items:center}
+.reader{margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:38px 40px 48px;font-family:var(--doc-font);font-size:19px;line-height:1.8;color:#1D2731;width:100%;max-width:680px;position:relative}
+.reader.phone{max-width:390px;padding:26px 20px 34px;font-size:17px}
+.reader.tablet{max-width:640px}
+.reader .rk{font:500 13px var(--ui);color:var(--muted)}
+.reader h3.rt{font:700 30px/1.25 var(--doc-font);margin:.2em 0 1em}
+.reader p,.reader li{margin:0 0 .9em}
+.reader h1{font-size:1.7em;line-height:1.25;margin:1em 0 .5em}.reader h2{font-size:1.3em;margin:1em 0 .45em}
+.reader blockquote{margin:1em 0;padding-left:1em;border-left:3px solid #B9D8DB;font-style:italic}
+.rd-c{float:right;margin:-2px -8px 0 8px;font:600 11px var(--ui);color:var(--accent-2);background:var(--accent-soft);border-radius:10px;padding:1px 7px}
+
+/* right panel */
+.tabs{display:flex;border-bottom:1px solid var(--line-2);padding:0 6px}
+.tabs button{border:0;background:transparent;padding:11px 12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;font-size:14px}
+.tabs button[aria-selected=true]{color:var(--accent-2);border-color:var(--accent)}
+.cm-group{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.cm-group.cur{border-color:var(--accent)}
+.cm-quote{padding:8px 12px;font:italic 14px/1.4 var(--doc-font);color:var(--muted);background:#F3F6F7;border-bottom:1px solid var(--line-2);cursor:pointer}
+.cm-item{padding:9px 12px;border-bottom:1px solid var(--line-2)}
+.cm-item:last-child{border-bottom:0}
+.cm-item .who{font-weight:600;font-size:13px} .cm-item .when{color:var(--faint);font-size:12px;margin-left:6px}
+.cm-item p{margin:3px 0 4px}
+.cm-item.resolved{opacity:.6}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.field>label,.field>.lb{font-weight:600;font-size:13.5px}
+.field .hint{font-size:12px;color:var(--faint)}
+.inp{width:100%;min-height:38px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:#fff;outline:0}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.inp{resize:vertical;min-height:76px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right}
+.note{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
+.note.done .tx{text-decoration:line-through;color:var(--faint)}
+.note .tx{flex:1;white-space:pre-wrap;overflow-wrap:anywhere;padding-top:2px}
+.note input[type=checkbox]{margin-top:5px;width:16px;height:16px;accent-color:var(--accent)}
+
+/* popovers, modals, toasts */
+#popLayer{position:fixed;inset:0;z-index:60;pointer-events:none}
+.pop{position:fixed;pointer-events:auto;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);max-height:min(70vh,560px);overflow:auto;min-width:180px;padding:6px}
+.menu-i{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:0 10px;border:0;background:transparent;border-radius:8px;text-align:left}
+.menu-i:hover,.menu-i.on{background:var(--accent-soft)}
+.menu-i.danger{color:var(--danger)} .menu-i[disabled]{opacity:.4;pointer-events:none}
+.menu-i .k{margin-left:auto;color:var(--faint);font-size:12px}
+.menu-h{padding:8px 10px 4px;font-size:12px;color:var(--faint);font-weight:600}
+.menu-sep{height:1px;background:var(--line-2);margin:4px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px}
+.chip{border:1px solid var(--line);background:var(--panel-2);border-radius:99px;padding:3px 11px;font-size:13px;min-height:28px}
+.chip[aria-pressed=true],.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.swatches{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:6px}
+.sw{width:100%;aspect-ratio:1;min-width:26px;border-radius:6px;border:1px solid rgba(0,0,0,.18);padding:0}
+.sw.auto{background:repeating-linear-gradient(45deg,#fff,#fff 4px,#E6EAED 4px,#E6EAED 8px);position:relative}
+.sw:hover{transform:scale(1.08)}
+.fontpick{width:330px;display:flex;flex-direction:column;max-height:440px}
+.fontpick .flist{overflow:auto;flex:1;min-height:0}
+.frow{display:flex;flex-direction:column;align-items:flex-start;width:100%;border:0;background:transparent;text-align:left;padding:7px 10px;border-radius:8px;gap:0}
+.frow:hover,.frow.on{background:var(--accent-soft)}
+.frow .fn{font-size:20px;line-height:1.25} .frow .fs{font-size:12px;color:var(--faint);font-family:var(--ui)}
+.frow[disabled]{opacity:.45}
+.modal-back{position:fixed;inset:0;background:rgba(15,25,35,.5);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--panel-2);border-radius:16px;box-shadow:var(--shadow);width:min(560px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.modal.wide{width:min(760px,100%)}
+.modal-h{display:flex;align-items:center;padding:14px 16px 10px;gap:8px}
+.modal-h h2{margin:0;font:600 19px/1.2 "Source Serif 4",Georgia,serif;flex:1}
+.modal-b{padding:6px 18px 12px;overflow:auto;flex:1;min-height:0}
+.modal-f{display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:12px 16px;border-top:1px solid var(--line-2);background:var(--panel)}
+.banner{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;border-radius:8px;font-size:14px;margin:6px 0 10px}
+.banner.err{background:var(--danger-soft);color:#7C231C} .banner.warn{background:var(--warn-soft);color:#5E3D00} .banner.ok{background:var(--ok-soft);color:#1C5634}
+#toasts{position:fixed;left:0;right:0;bottom:84px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:90;pointer-events:none;padding:0 12px}
+.toast{background:#1D2731;color:#fff;padding:9px 14px;border-radius:10px;box-shadow:var(--shadow);max-width:520px;font-size:14px;pointer-events:auto}
+.toast.err{background:#8E2E27}
+
+/* cover field */
+.cover-field{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.cover-drop{position:relative;border:2px dashed #B7C2CA;border-radius:10px;background:#F3F6F8;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;color:var(--muted);overflow:hidden;padding:8px;cursor:pointer}
+.cover-drop.landscape{width:240px;aspect-ratio:3/2} .cover-drop.portrait{width:150px;aspect-ratio:2/3}
+.cover-drop:hover,.cover-drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.cover-drop.has{border-style:solid;border-color:var(--line);padding:0;background:#000}
+.cover-drop img{width:100%;height:100%;object-fit:cover;display:block}
+.cover-drop b{color:var(--ink);font-size:14px}
+.cover-meta{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding-top:2px}
+.cover-hint{font-size:12px;color:var(--faint);margin-top:6px}
+
+/* cropper */
+.modal.crop{width:min(860px,100%);height:min(760px,100%)}
+.crop-stage{position:relative;flex:1;min-height:240px;background:#12171B}
+.crop-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
+.crop-stage canvas:active{cursor:grabbing}
+.crop-ctl{display:flex;align-items:center;gap:8px;padding:10px 16px;flex-wrap:wrap;border-top:1px solid var(--line-2)}
+.crop-ctl input[type=range]{flex:1;min-width:120px;accent-color:var(--accent)}
+.crop-prev{border:1px solid var(--line);border-radius:6px;background:#000;flex:none}
+.final-prev{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:#12171B;color:#fff}
+.final-prev img{max-width:100%;max-height:100%;min-height:0;object-fit:contain;border-radius:4px;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+
+/* dock (portrait) */
+#dock{display:none;flex:none;background:var(--panel);border-top:1px solid var(--line)}
+#dockPanel{max-height:min(42vh,320px);overflow:auto;border-bottom:1px solid var(--line-2);padding:6px 4px}
+#dockBar{display:flex;align-items:center;gap:0;overflow-x:auto;padding:4px 6px;scrollbar-width:none}
+#dockBar::-webkit-scrollbar{display:none}
+#dockBar .ib{height:46px}
+.dp-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 6px}
+.dp-row .lbl{font-size:12.5px;color:var(--muted);width:100%;font-weight:600}
+
+/* portrait mode */
+body.portrait #left{position:absolute;inset:0;width:auto;z-index:6;border:0;display:none}
+body.portrait.pane-contents #left{display:flex}
+body.portrait.pane-contents #center{display:none}
+body.portrait #right{position:absolute;left:0;right:0;bottom:0;width:auto;height:72%;z-index:8;border:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.22);display:none}
+body.portrait #right.open{display:flex}
+body.portrait #scrim{position:absolute;inset:0;background:rgba(15,25,35,.35);z-index:7}
+body.portrait #dock{display:block}
+body.portrait.pane-contents #dock{display:none}
+body.portrait #toolbar{display:none}
+body.portrait #statusbar{display:none}
+body.portrait #sheet{margin:0;border:0;border-radius:0;box-shadow:none;max-width:none;padding:16px 30px calc(var(--app-h,100dvh)*.5);min-height:100%;background:var(--paper)}
+body.portrait #scroller{background:var(--paper)}
+body.portrait #chTitle{font-size:26px}
+body.portrait #editor{--doc-size:18px}
+body.portrait .addp{left:-27px;width:24px;height:24px}
+body.portrait .cbub{right:-29px;min-width:24px}
+body.portrait .modal-back{align-items:flex-end;padding:0}
+body.portrait .modal{width:100%;border-radius:16px 16px 0 0;max-height:92%}
+body.portrait .modal.crop{height:100%;border-radius:0;max-height:100%}
+body.portrait .lib-head,body.portrait .lib-grid{padding-left:16px;padding-right:16px}
+body.portrait #topbar{padding:0 4px}
+body.portrait .row2{grid-template-columns:1fr}
+body.portrait #toasts{bottom:120px}
+body.desk #dock{display:none}
+@media (min-width:1000px) and (max-width:1279px){ #sheet{padding-left:48px;padding-right:48px} }
+.modal.crop .modal-b{padding:0;display:flex;flex-direction:column}
+.only-port{display:none}
+body.portrait .only-desk{display:none!important}
+body.portrait .only-port{display:inline-flex}
+body.desk #left.collapsed,body.desk #right.collapsed{display:none}
+#counts{display:none;font-size:12.5px;color:var(--faint);margin-top:6px}
+body.portrait #counts{display:block}
+body.pane-contents #saveStatus,body.pane-contents #btnPreviewP{display:none}
+body.previewing #dock{display:none!important}
+#dockPanel .fontpick{width:100%;max-height:260px}
+#emptyState{margin:auto;padding:40px 24px}
+#rTabs{align-items:center}
+body.portrait #saveStatus{min-width:0;font-size:12px}
+body.portrait #crumb b{max-width:36vw}
+#dockBar .ib{flex:1 1 0;min-width:34px;max-width:56px;width:auto}
+body.portrait #dockBar{padding:2px 4px}
+#dockPanel{max-height:min(34vh,250px)}
+#dockPanel .menu-i{min-height:34px}
+#dockPanel .menu-h{padding:4px 10px 2px}
+#dockPanel .swatches{gap:5px;padding:3px 8px}
+#dockPanel .sw{min-width:0;aspect-ratio:auto;height:28px}
+@media (max-width:1240px){#left{width:244px}#right{width:300px}#fontBtn{width:128px}#toolbar{padding:6px 8px}.sep{margin:0 2px}}
+</style>
+</head>
+<body class="desk">
+<div id="app">
+  <section id="viewLibrary" class="view">
+    <div class="lib-head"><h1>Your stories</h1><span class="spacer"></span><button id="libDev" class="ib" type="button"></button><button id="libNew" class="btn primary" type="button">New story</button></div>
+    <div id="libGrid" class="lib-grid"></div>
+  </section>
+  <section id="viewStudio" class="view">
+    <header id="topbar">
+      <button id="btnBack" class="ib" type="button"></button>
+      <button id="btnLeft" class="ib only-desk" type="button"></button>
+      <div id="crumb"><b id="crumbT"></b><span id="crumbS"></span></div>
+      <span class="spacer"></span>
+      <div class="seg only-desk" id="modeSeg" role="group" aria-label="Write or preview"><button type="button" data-m="write" aria-pressed="true">WRITE</button><button type="button" data-m="preview" aria-pressed="false">PREVIEW</button></div>
+      <span class="spacer only-desk"></span>
+      <div id="saveStatus" role="status" aria-live="polite"></div>
+      <button id="btnSaveDraft" class="btn only-desk" type="button">Save Draft</button>
+      <button id="btnPublish" class="btn primary only-desk" type="button">Publish</button>
+      <button id="btnPreviewP" class="ib only-port" type="button"></button>
+      <button id="btnRight" class="ib" type="button"></button>
+    </header>
+    <div id="workspace">
+      <aside id="left" aria-label="Story structure"><div class="panel-body" id="treeHost" role="tree"></div></aside>
+      <main id="center">
+        <div id="writeArea">
+          <div id="toolbar" role="toolbar" aria-label="Formatting"></div>
+          <div id="scroller">
+            <div id="sheet">
+              <div id="chHead"><div id="chNum"></div><input id="chTitle" type="text" aria-label="Chapter title" autocomplete="off" maxlength="140"><div id="counts"></div></div>
+              <div id="editorWrap"><div id="gutter"></div></div>
+            </div>
+          </div>
+          <div id="statusbar"></div>
+        </div>
+        <div id="preview" hidden></div>
+        <div id="emptyState" class="empty" hidden></div>
+      </main>
+      <div id="scrim" hidden></div>
+      <aside id="right" aria-label="Comments, chapter info and notes"><div class="tabs" id="rTabs" role="tablist"></div><div class="panel-body" id="rBody"></div></aside>
+    </div>
+    <div id="dock"><div id="dockPanel" hidden></div><div id="dockBar" role="toolbar" aria-label="Writing tools"></div></div>
+  </section>
+</div>
+<div id="popLayer"></div>
+<div id="toasts" aria-live="polite"></div>
+<script>
+(function(){
+"use strict";
+/* =====================================================================
+   1. CONFIG
+   Nothing secret lives here. When connecting to production, supply these
+   values from your host page / env, and use short-lived signed upload URLs.
+   ===================================================================== */
+const CONFIG = {
+  ownerId: 'local-user',                 // -> Supabase auth.uid()
+  supabase: { url: null, anonKey: null },// public anon key only, never a service key
+  r2: { publicBase: null, signEndpoint: null }, // Worker / Edge Function that signs PUT + DELETE
+  autosaveMs: 1200, autosaveMaxWaitMs: 12000,
+  targetBytes: 80000,   // cover images must be under 80 KB
+  hardBytes: 120000,    // never accept a cover above this, even with user consent
+  maxInputBytes: 25 * 1024 * 1024,
+  minSourceEdge: 500, maxSourcePixels: 120e6,
+};
+const IMAGE_SPECS = {
+  story_cover:  { type: 'story_cover',  label: 'Story Cover',  rw: 3, rh: 2, w: 1500, h: 1000, orient: 'landscape', ratio: '3:2', hint: 'Recommended ratio: 3:2 · Best at 1500 × 1000 px' },
+  volume_cover: { type: 'volume_cover', label: 'Volume Cover', rw: 2, rh: 3, w: 1000, h: 1500, orient: 'portrait',  ratio: '2:3', hint: 'Recommended ratio: 2:3 · Best at 1000 × 1500 px' },
+  part_cover:   { type: 'part_cover',   label: 'Part Cover',   rw: 2, rh: 3, w: 800,  h: 1200, orient: 'portrait',  ratio: '2:3', hint: 'Recommended ratio: 2:3 · Best at 800 × 1200 px' },
+};
+const CATEGORIES = ['Fantasy','Romance','Mystery & Thriller','Science Fiction','Literary Fiction','Historical','Horror','Adventure','Drama','Poetry','Non-fiction','Other'];
+const STORY_STATUSES = [['draft','Draft'],['ongoing','Ongoing'],['completed','Completed'],['hiatus','On hiatus']];
+const PUB_STATUSES = [['draft','Draft'],['published','Published']];
+
+/* =====================================================================
+   2. UTILITIES
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmtBytes = n => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
+const roman = n => { const m = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let s = ''; n = Math.max(1, n | 0); for (const [v, c] of m) while (n >= v) { s += c; n -= v; } return s; };
+const debounce = (fn, ms) => { let t; const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; d.cancel = () => clearTimeout(t); return d; };
+const raf = (() => { const q = new Map(); return (key, fn) => { if (q.has(key)) return; q.set(key, requestAnimationFrame(() => { q.delete(key); fn(); })); }; })();
+const timeAgo = ts => { const s = (Date.now() - ts) / 1000; if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s / 60) + ' min ago'; if (s < 86400) return Math.floor(s / 3600) + ' h ago'; return new Date(ts).toLocaleDateString(); };
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch {} };
+class StudioError extends Error { constructor(code, msg) { super(msg); this.code = code; } }
+
+const ATTR_ALIAS = { for: 'htmlFor', class: 'className' };
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  if (props) for (const k in props) {
+    const v = props[k]; if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k === 'html') el.innerHTML = v;
+    else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k.startsWith('aria-') || k.startsWith('data-') || k === 'role') el.setAttribute(k, v === true ? '' : v);
+    else if (k in el || ATTR_ALIAS[k]) { try { el[ATTR_ALIAS[k] || k] = v; } catch { el.setAttribute(k, v); } }
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat(Infinity)) { if (kid == null || kid === false) continue; el.append(kid.nodeType ? kid : document.createTextNode(kid)); }
+  return el;
+}
+const P = {
+  undo:'M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3', redo:'m15 14 5-5-5-5M20 9H10a6 6 0 0 0 0 12h3',
+  bold:'M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z', italic:'M14 5h-4M14 19h-4M15 5l-6 14',
+  underline:'M7 4v7a5 5 0 0 0 10 0V4M5 21h14', strike:'M4 12h16M16 7a4 4 0 0 0-4-2c-2.5 0-4 1.2-4 3 0 1.5 1 2.3 4 4M8 17a4.5 4.5 0 0 0 4 2c2.6 0 4-1.3 4-3',
+  color:'M6 19 12 5l6 14M8.5 14h7', hl:'m4 16 9-9 4 4-9 9H4zM13 7l2-2 4 4-2 2M14 21h7',
+  heading:'M6 4v16M18 4v16M6 12h12', alignL:'M4 6h16M4 10h10M4 14h16M4 18h10', alignC:'M4 6h16M7 10h10M4 14h16M7 18h10', alignR:'M4 6h16M10 10h10M4 14h16M10 18h10', alignJ:'M4 6h16M4 10h16M4 14h16M4 18h16',
+  more:'M5 12h.01M12 12h.01M19 12h.01', plus:'M12 5v14M5 12h14', minus:'M5 12h14', chevD:'m6 9 6 6 6-6', chevR:'m9 6 6 6-6 6', chevL:'m15 6-6 6 6 6',
+  comment:'M4 5h16v11H9l-5 4z', note:'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5', info:'M12 8h.01M11 12h1v5h1M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18', panelL:'M4 5h16v14H4zM9 5v14', panelR:'M4 5h16v14H4zM15 5v14',
+  eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6', edit:'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
+  image:'M4 5h16v14H4zM8 10a1.5 1.5 0 1 0 0-.01M4 17l5-5 4 4 3-3 4 4', link:'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+  ul:'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01', ol:'M10 6h10M10 12h10M10 18h10M4 5l1-1v4M4 14h2l-2 3h2', quote:'M6 17c0-4 1-6 4-8M14 17c0-4 1-6 4-8M5 17h4v-4H5zM13 17h4v-4h-4z',
+  divider:'M4 12h4M10 12h4M16 12h4', close:'M6 6l12 12M18 6 6 18', trash:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6', upload:'M12 16V4M7 9l5-5 5 5M4 20h16',
+  check:'m5 12 5 5 9-10', alert:'M12 4 2.5 20h19zM12 10v4M12 17.5h.01', book:'M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10', folder:'M3 6h6l2 2h10v11H3z', file:'M6 3h8l5 5v13H6zM14 3v5h5',
+  up:'M12 19V5M6 11l6-6 6 6', down:'M12 5v14M6 13l6 6 6-6', move:'M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20', save:'M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6',
+  send:'M4 12 20 4l-4 16-4-7z', search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5', reset:'M4 12a8 8 0 1 1 3 6.2M4 19v-5h5', clear:'M5 19h14M8 15 15 5l4 3-6 10zM8 15l-1 4',
+  aa:'M3 18 8 6l5 12M5 14h6M15 18l3.5-8 3 8M16.5 15.5h4', crop:'M6 2v14h14M2 6h14v14', zoom:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5M8 11h6M11 8v6', phone:'M8 3h8v18H8zM11 18h2', tablet:'M5 4h14v16H5zM11 17h2', desk:'M3 5h18v11H3zM8 20h8M12 16v4', lines:'M4 6h16M4 12h16M4 18h16M2 9v6M22 9v6',
+};
+const icon = (n, extra) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('class', 'i' + (extra ? ' ' + extra : '')); s.setAttribute('aria-hidden', 'true'); const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', P[n] || P.file); s.appendChild(p); return s; };
+const ibtn = (name, label, props) => h('button', Object.assign({ class: 'ib', type: 'button', title: label, 'aria-label': label }, props), icon(name));
+
+/* =====================================================================
+   3. STORAGE ABSTRACTION
+   Store   = database (IndexedDB now -> Supabase Postgres later)
+   Objects = binary object store (IndexedDB now -> Cloudflare R2 later)
+   Only these two objects touch persistence; the editor never does.
+   ===================================================================== */
+const Sim = { offline: false, failUpload: 0, failDelete: 0, failSave: 0 };
+function simCheck(kind) {
+  if (Sim.offline) throw new StudioError('network', 'You appear to be offline. Check your connection and try again.');
+  if (kind === 'upload' && Sim.failUpload > 0) { Sim.failUpload--; throw new StudioError('r2', 'The storage service rejected the upload (simulated failure).'); }
+  if (kind === 'delete' && Sim.failDelete > 0) { Sim.failDelete--; throw new StudioError('r2', 'The storage service could not delete the file (simulated failure).'); }
+  if (kind === 'save' && Sim.failSave > 0) { Sim.failSave--; throw new StudioError('db', 'The database did not accept the save (simulated failure).'); }
+}
+const Store = (() => {
+  const NAMES = ['stories', 'chapters', 'comments', 'notes', 'images', 'objects', 'pending'];
+  let db = null, mem = null, mode = 'idb';
+  const useMem = () => { mem = {}; NAMES.forEach(n => mem[n] = new Map()); mode = 'memory'; };
+  const open = () => new Promise(res => {
+    try {
+      const rq = indexedDB.open('aspinora_story_studio_v1', 1);
+      rq.onupgradeneeded = () => { const d = rq.result; NAMES.forEach(n => { if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: 'id' }); }); };
+      rq.onsuccess = () => { db = rq.result; res(mode); };
+      rq.onerror = rq.onblocked = () => { useMem(); res(mode); };
+    } catch (e) { useMem(); res(mode); }
+  });
+  const tx = (name, m, fn) => new Promise((res, rej) => {
+    let out; const t = db.transaction(name, m);
+    try { out = fn(t.objectStore(name)); } catch (e) { rej(e); return; }
+    t.oncomplete = () => res(out && typeof out === 'object' && 'result' in out ? out.result : out);
+    t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error('Transaction aborted'));
+  });
+  return {
+    open, get mode() { return mode; },
+    get: (n, k) => mem ? Promise.resolve(mem[n].get(k)) : tx(n, 'readonly', s => s.get(k)),
+    all: n => mem ? Promise.resolve([...mem[n].values()]) : tx(n, 'readonly', s => s.getAll()),
+    put: (n, o) => mem ? (mem[n].set(o.id, o), Promise.resolve(o)) : tx(n, 'readwrite', s => s.put(o)).then(() => o),
+    del: (n, k) => mem ? (mem[n].delete(k), Promise.resolve()) : tx(n, 'readwrite', s => s.delete(k)),
+    clearAll: async () => { if (mem) NAMES.forEach(n => mem[n].clear()); else for (const n of NAMES) await tx(n, 'readwrite', s => s.clear()); },
+  };
+})();
+
+/* R2-shaped object store. Swap this for an implementation that calls your
+   signing endpoint (CONFIG.r2.signEndpoint) and PUT/DELETEs against R2. */
+const Objects = {
+  cache: new Map(),
+  async put(key, blob) { simCheck('upload'); await Store.put('objects', { id: key, blob, type: blob.type, size: blob.size, createdAt: Date.now() }); return { key, size: blob.size }; },
+  async del(key) { simCheck('delete'); await Store.del('objects', key); const u = this.cache.get(key); if (u) { URL.revokeObjectURL(u); this.cache.delete(key); } },
+  async url(key) { if (this.cache.has(key)) return this.cache.get(key); const r = await Store.get('objects', key); if (!r) return null; const u = URL.createObjectURL(r.blob); this.cache.set(key, u); return u; },
+  publicUrl: key => (CONFIG.r2.publicBase ? CONFIG.r2.publicBase.replace(/\/$/, '') + '/' + key : 'mock-r2://' + key),
+};
+
+const Images = {
+  urls: new Map(),
+  async url(id) {
+    if (!id) return null; if (this.urls.has(id)) return this.urls.get(id);
+    const r = await Store.get('images', id); if (!r) return null;
+    const u = await Objects.url(r.r2_key); if (u) this.urls.set(id, u); return u;
+  },
+  record: id => id ? Store.get('images', id) : Promise.resolve(null),
+  /* Steps 1-2 of the safety flow: upload the object first, then insert the row. */
+  async upload({ type, storyId, volumeId = null, partId = null, chapterId = null, blob, width, height, crop = null }) {
+    const id = uid(), key = `${CONFIG.ownerId}/${storyId}/${type}/${id}.jpg`;
+    await Objects.put(key, blob);
+    const rec = { id, owner_id: CONFIG.ownerId, story_id: storyId, volume_id: volumeId, part_id: partId, chapter_id: chapterId, image_type: type, r2_key: key, public_url: Objects.publicUrl(key), width, height, file_size: blob.size, crop, created_at: new Date().toISOString() };
+    try { await Store.put('images', rec); } catch (e) { await Objects.del(key).catch(() => Store.put('pending', { id: 'del_' + id, imageId: id, key, at: Date.now() })); throw e; }
+    return rec;
+  },
+  /* Permanent deletion. The DB row is kept as a tombstone until R2 confirms, so nothing is orphaned silently. */
+  async remove(id) {
+    const rec = await Store.get('images', id); if (!rec) return true;
+    try { await Objects.del(rec.r2_key); await Store.del('images', id); this.urls.delete(id); return true; }
+    catch (e) { await Store.put('pending', { id: 'del_' + id, imageId: id, key: rec.r2_key, at: Date.now() }); return false; }
+  },
+  async retryPending() {
+    let left = 0;
+    for (const p of await Store.all('pending')) {
+      try { await Objects.del(p.key); await Store.del('images', p.imageId); await Store.del('pending', p.id); this.urls.delete(p.imageId); } catch { left++; }
+    }
+    return left;
+  },
+  async removeMany(ids) { let ok = true; for (const id of ids) if (!(await this.remove(id))) ok = false; return ok; },
+};
+
+/* Replace flow: upload new -> switch DB reference -> only then delete the old object. */
+async function applyCoverChange({ entity, owner, type, staged, persist }) {
+  const rec = await Images.upload({ type, storyId: owner.storyId, volumeId: owner.volumeId, partId: owner.partId, blob: staged.blob, width: staged.width, height: staged.height, crop: staged.crop });
+  const oldId = entity.coverImageId;
+  entity.coverImageId = rec.id;
+  try { await persist(); }
+  catch (e) { entity.coverImageId = oldId; await Images.remove(rec.id); throw e; }
+  Images.urls.set(rec.id, URL.createObjectURL(staged.blob));
+  if (oldId) Images.remove(oldId).then(ok => { if (!ok) toast('The previous image will be removed shortly.'); });
+}
+async function deleteCover({ entity, persist }) {
+  const oldId = entity.coverImageId; if (!oldId) return true;
+  entity.coverImageId = null;
+  try { await persist(); } catch (e) { entity.coverImageId = oldId; throw e; }
+  const ok = await Images.remove(oldId);
+  if (!ok) toast('Image detached. Permanent deletion will retry automatically.');
+  return true;
+}
+/* =====================================================================
+   4. UI INFRASTRUCTURE: toast, popovers, modals, form helpers
+   ===================================================================== */
+function toast(msg, kind) {
+  const t = h('div', { class: 'toast' + (kind === 'err' ? ' err' : ''), role: kind === 'err' ? 'alert' : 'status' }, msg);
+  $('#toasts').append(t); setTimeout(() => t.remove(), kind === 'err' ? 6500 : 3200);
+}
+/* Popovers never steal focus from the editor (buttons swallow pointerdown). */
+const noFocusSteal = e => { if (!e.target.closest('input,textarea,select,[contenteditable="true"],[data-focusable]')) e.preventDefault(); };
+const Pop = {
+  cur: null,
+  open(anchor, content, opts = {}) {
+    this.close();
+    const el = h('div', { class: 'pop ' + (opts.cls || ''), role: opts.role || 'menu' }, content);
+    el.addEventListener('pointerdown', noFocusSteal); el.addEventListener('mousedown', noFocusSteal);
+    $('#popLayer').append(el);
+    const place = () => {
+      const a = anchor.getBoundingClientRect(), vw = innerWidth, vh = (window.visualViewport ? visualViewport.height : innerHeight);
+      el.style.maxHeight = Math.min(vh - 16, 560) + 'px';
+      const w = el.offsetWidth, hh = el.offsetHeight;
+      let x = opts.align === 'end' ? a.right - w : a.left; x = clamp(x, 8, vw - w - 8);
+      let y = a.bottom + 6; if (y + hh > vh - 8) { const up = a.top - hh - 6; y = up >= 8 ? up : Math.max(8, vh - hh - 8); }
+      el.style.left = x + 'px'; el.style.top = y + 'px';
+    };
+    place();
+    const onDown = e => { if (el.contains(e.target) || anchor.contains(e.target)) return; this.close(); };
+    const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); this.close(); } };
+    document.addEventListener('pointerdown', onDown, true); document.addEventListener('keydown', onKey, true);
+    this.cur = { el, anchor, onClose: opts.onClose, off: () => { document.removeEventListener('pointerdown', onDown, true); document.removeEventListener('keydown', onKey, true); } };
+    anchor.setAttribute('aria-expanded', 'true');
+    return el;
+  },
+  close() {
+    const c = this.cur; if (!c) return; this.cur = null; c.off(); c.el.remove(); c.anchor.removeAttribute('aria-expanded'); if (c.onClose) c.onClose();
+  },
+  get isOpen() { return !!this.cur; },
+};
+function menuItem(label, opts = {}) {
+  return h('button', { class: 'menu-i' + (opts.danger ? ' danger' : '') + (opts.on ? ' on' : ''), type: 'button', role: 'menuitem', disabled: opts.disabled, onclick: e => { if (opts.keepOpen !== true) Pop.close(); opts.onClick && opts.onClick(e); } },
+    opts.icon ? icon(opts.icon) : null, h('span', null, label), opts.key ? h('span', { class: 'k' }, opts.key) : null);
+}
+function showMenu(anchor, items, opts) {
+  const kids = items.filter(Boolean).map(it => it === '-' ? h('div', { class: 'menu-sep' }) : typeof it === 'string' ? h('div', { class: 'menu-h' }, it) : menuItem(it.label, it));
+  return Pop.open(anchor, kids, opts);
+}
+
+const Modals = [];
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && Modals.length && !Pop.isOpen) { const m = Modals[Modals.length - 1]; if (m.dismissable) m.close(); } });
+function openModal({ title, body, footer, cls = '', dismissable = true, onClose, restoreEditor = false }) {
+  const closeBtn = ibtn('close', 'Close', { onclick: () => api.close() });
+  const el = h('div', { class: 'modal ' + cls, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
+    h('div', { class: 'modal-h' }, h('h2', null, title), closeBtn),
+    h('div', { class: 'modal-b' }, body), footer ? h('div', { class: 'modal-f' }, footer) : null);
+  const back = h('div', { class: 'modal-back' }, el);
+  back.addEventListener('pointerdown', e => { if (e.target === back && api.dismissable) api.close(); });
+  document.body.append(back);
+  const api = { el, back, dismissable, closed: false,
+    close(result) { if (api.closed) return; api.closed = true; const i = Modals.indexOf(api); if (i >= 0) Modals.splice(i, 1); back.remove(); onClose && onClose(result); if (restoreEditor) Ed.restoreFocus(); },
+    setDismissable(v) { api.dismissable = v; closeBtn.hidden = !v; } };
+  Modals.push(api);
+  setTimeout(() => { const f = $('input:not([type=file]):not([type=hidden]),textarea,select', el); if (f && matchMedia('(pointer:fine)').matches) f.focus(); }, 30);
+  return api;
+}
+function confirmDialog({ title, body, confirm = 'Confirm', cancel = 'Cancel', danger = false }) {
+  return new Promise(res => {
+    let done = false; const fin = v => { if (done) return; done = true; res(v); m.close(); };
+    const m = openModal({ title, body: h('p', { style: { margin: '4px 0 10px', whiteSpace: 'pre-line' } }, body), onClose: () => { if (!done) { done = true; res(false); } },
+      footer: [h('button', { class: 'btn', type: 'button', onclick: () => fin(false) }, cancel), h('button', { class: 'btn ' + (danger ? 'danger' : 'primary'), type: 'button', onclick: () => fin(true) }, confirm)] });
+    $('.btn:last-child', m.el).focus();
+  });
+}
+function promptDialog({ title, label, value = '', placeholder = '', confirm = 'Save', restoreEditor = false, type = 'text' }) {
+  return new Promise(res => {
+    let done = false; const inp = h('input', { class: 'inp', type, value, placeholder, 'aria-label': label });
+    const fin = v => { if (done) return; done = true; res(v); m.close(); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fin(inp.value.trim()); } });
+    const m = openModal({ title, restoreEditor, body: h('div', { class: 'field' }, h('label', null, label), inp), onClose: () => { if (!done) { done = true; res(null); } },
+      footer: [h('button', { class: 'btn', type: 'button', onclick: () => fin(null) }, 'Cancel'), h('button', { class: 'btn primary', type: 'button', onclick: () => fin(inp.value.trim()) }, confirm)] });
+    setTimeout(() => { inp.focus(); inp.select(); }, 40);
+  });
+}
+const field = (label, control, hint) => h('div', { class: 'field' }, label ? h('label', null, label) : null, control, hint ? h('div', { class: 'hint' }, hint) : null);
+const selectEl = (opts, value) => { const s = h('select', { class: 'inp' }, opts.map(([v, l]) => h('option', { value: v }, l))); s.value = value; return s; };
+function tagsInput(initial) {
+  const tags = [...initial]; const wrap = h('div', { class: 'inp', style: { display: 'flex', flexWrap: 'wrap', gap: '6px', height: 'auto', padding: '5px 8px' } });
+  const inp = h('input', { type: 'text', placeholder: 'Add a tag and press Enter', style: { border: 0, outline: 0, flex: '1', minWidth: '120px', minHeight: '26px', background: 'transparent' }, 'aria-label': 'Tags' });
+  const render = () => { wrap.innerHTML = ''; tags.forEach((t, i) => wrap.append(h('span', { class: 'chip on', style: { display: 'inline-flex', gap: '6px', alignItems: 'center' } }, t, h('button', { type: 'button', 'aria-label': 'Remove tag ' + t, style: { border: 0, background: 'transparent', color: 'inherit', padding: 0, lineHeight: 1 }, onclick: () => { tags.splice(i, 1); render(); } }, '×')))); wrap.append(inp); };
+  const add = () => { const v = inp.value.trim().replace(/,$/, ''); if (v && !tags.includes(v) && tags.length < 12) tags.push(v); inp.value = ''; render(); inp.focus(); };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); } else if (e.key === 'Backspace' && !inp.value && tags.length) { tags.pop(); render(); inp.focus(); } });
+  inp.addEventListener('blur', () => { if (inp.value.trim()) add(); });
+  render(); return { el: wrap, get value() { if (inp.value.trim()) { const v = inp.value.trim(); if (!tags.includes(v)) tags.push(v); inp.value = ''; } return tags; } };
+}
+/* =====================================================================
+   5. IMAGE PIPELINE
+   select -> validate/decode -> crop editor -> apply -> resize -> encode JPEG
+   (quality ladder, always from raw pixels, never re-compressing a JPEG)
+   -> preview -> stage -> uploaded only when the writer saves.
+   ===================================================================== */
+const imgErr = (code, msg) => new StudioError(code, msg);
+async function sniffType(file) {
+  const b = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  if (b[0] === 0xFF && b[1] === 0xD8) return 'jpeg';
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) return 'png';
+  if (String.fromCharCode(...b.slice(0, 4)) === 'RIFF' && String.fromCharCode(...b.slice(8, 12)) === 'WEBP') return 'webp';
+  return null;
+}
+function imgFromFile(file) {
+  return new Promise((res, rej) => { const u = URL.createObjectURL(file), i = new Image(); i.onload = () => { URL.revokeObjectURL(u); res(i); }; i.onerror = () => { URL.revokeObjectURL(u); rej(new Error('decode')); }; i.src = u; });
+}
+async function decodeImage(file) {
+  if (!file) throw imgErr('none', 'No file was selected.');
+  if (file.size > CONFIG.maxInputBytes) throw imgErr('too_large', `This file is ${fmtBytes(file.size)}, which is larger than the ${Math.round(CONFIG.maxInputBytes / 1048576)} MB limit. Choose a smaller image.`);
+  if (!file.size) throw imgErr('corrupt', 'This file is empty.');
+  const kind = await sniffType(file);
+  if (!kind) throw imgErr('type', 'Unsupported file type. Choose a JPEG, PNG or WebP image.');
+  let src = null;
+  try { src = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (e1) { try { src = await createImageBitmap(file); } catch (e2) { src = await imgFromFile(file).catch(() => null); } }
+  if (!src) throw imgErr('corrupt', 'This image couldn’t be read. It may be damaged — try exporting it again and choosing the new file.');
+  const w = src.naturalWidth || src.width, hgt = src.naturalHeight || src.height;
+  if (!w || !hgt) throw imgErr('corrupt', 'This image has no readable pixels.');
+  if (Math.max(w, hgt) < CONFIG.minSourceEdge || Math.min(w, hgt) < 300) throw imgErr('dims', `This image is only ${w} × ${hgt} px. Choose an image that is at least ${CONFIG.minSourceEdge} px on its long edge.`);
+  if (w * hgt > CONFIG.maxSourcePixels) throw imgErr('dims', `This image is ${w} × ${hgt} px, which is too large to process safely. Resize it first.`);
+  return { src, w, h: hgt, kind };
+}
+const mkCanvas = (w, hh) => { const c = document.createElement('canvas'); c.width = w; c.height = hh; return c; };
+function renderCrop(src, r, outW, outH) {
+  let cur = src, sx = r.x, sy = r.y, sw = r.w, sh = r.h;
+  while (sw > outW * 2 && sh > outH * 2) { // step down by halves to avoid aliasing
+    const nw = Math.max(outW, Math.round(sw / 2)), nh = Math.max(outH, Math.round(sh / 2));
+    const c = mkCanvas(nw, nh), g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.fillStyle = '#fff'; g.fillRect(0, 0, nw, nh);
+    g.drawImage(cur, sx, sy, sw, sh, 0, 0, nw, nh); cur = c; sx = sy = 0; sw = nw; sh = nh;
+  }
+  const out = mkCanvas(outW, outH), g = out.getContext('2d'); g.imageSmoothingQuality = 'high'; g.fillStyle = '#fff'; g.fillRect(0, 0, outW, outH);
+  g.drawImage(cur, sx, sy, sw, sh, 0, 0, outW, outH); return out;
+}
+const toJpeg = (canvas, q) => new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new StudioError('encode', 'The browser could not encode this image.')), 'image/jpeg', q));
+/* Highest quality under the limit: coarse steps down from 0.95, then 0.01 refinement upward. */
+async function compressUnder(canvas, { limit, minQ = 0.62, onStep }) {
+  let ok = null, failQ = null, smallest = null;
+  for (let q = 0.95; q >= minQ - 1e-6; q -= 0.03) {
+    const qq = +q.toFixed(2), b = await toJpeg(canvas, qq); onStep && onStep(qq, b.size); smallest = { blob: b, q: qq };
+    if (b.size <= limit) { ok = { blob: b, q: qq }; break; } failQ = qq;
+  }
+  if (ok && failQ != null) for (let q = ok.q + 0.01; q < failQ - 1e-6; q += 0.01) { const qq = +q.toFixed(2), b = await toJpeg(canvas, qq); if (b.size <= limit) ok = { blob: b, q: qq }; else break; }
+  return { ok, smallest };
+}
+async function encodeToTarget(src, rect, spec, { limit = CONFIG.targetBytes, onStep, minQ = 0.62 } = {}) {
+  const full = renderCrop(src, rect, spec.w, spec.h);
+  let r = await compressUnder(full, { limit, minQ, onStep });
+  if (r.ok) return { status: 'ok', blob: r.ok.blob, quality: r.ok.q, width: spec.w, height: spec.h, downscaled: false };
+  for (const k of [0.9, 0.8]) { // last resort: a modest reduction, never below 80 %
+    const w = Math.round(spec.w * k), hh = Math.round(spec.h * k), c = renderCrop(src, rect, w, hh);
+    const r2 = await compressUnder(c, { limit, minQ: 0.7, onStep });
+    if (r2.ok) return { status: 'ok', blob: r2.ok.blob, quality: r2.ok.q, width: w, height: hh, downscaled: true };
+  }
+  return { status: 'over', blob: r.smallest.blob, quality: r.smallest.q, width: spec.w, height: spec.h, downscaled: false };
+}
+/* Inline chapter images: same pipeline idea, wider limit, no crop. */
+async function prepareInlineImage(file) {
+  const d = await decodeImage(file);
+  const scale = Math.min(1, 1600 / d.w), w = Math.round(d.w * scale), hh = Math.round(d.h * scale);
+  const c = renderCrop(d.src, { x: 0, y: 0, w: d.w, h: d.h }, w, hh);
+  const r = await compressUnder(c, { limit: 260000, minQ: 0.6 });
+  if (d.src.close) d.src.close();
+  if (!r.ok) throw imgErr('big', 'This image is too detailed to store at a reasonable size. Try a smaller or simpler image.');
+  return { blob: r.ok.blob, width: w, height: hh };
+}
+
+/* ---------------------------------------------------------------- crop editor */
+function openCropper({ spec, src, srcW, srcH, view }) {
+  return new Promise(resolve => {
+    const st = { cx: view ? view.cx : srcW / 2, cy: view ? view.cy : srcH / 2, zoom: view ? view.zoom : 1 };
+    let W = 0, H = 0, fx = 0, fy = 0, fw = 0, fh = 0, cover = 1, maxZoom = 1, dragging = false, mode = 'crop', result = null;
+    const canvas = h('canvas', { tabIndex: 0, role: 'img', 'aria-label': `Crop area, ${spec.ratio}. Drag to move, scroll or pinch to zoom, arrow keys to nudge.` });
+    const ctx = canvas.getContext('2d');
+    const pw = spec.orient === 'landscape' ? 108 : 72, ph = spec.orient === 'landscape' ? 72 : 108;
+    const prev = h('canvas', { class: 'crop-prev', width: pw * 2, height: ph * 2, style: { width: pw + 'px', height: ph + 'px' }, 'aria-label': 'Preview of final crop' });
+    const stage = h('div', { class: 'crop-stage' }, canvas);
+    const slider = h('input', { type: 'range', min: 100, max: 100, step: 1, value: 100, 'aria-label': 'Zoom' });
+    const zoomTxt = h('span', { class: 'small muted', style: { minWidth: '44px', textAlign: 'right' } }, '100%');
+    const lowRes = h('div', { class: 'banner warn', hidden: true, style: { margin: '0 16px 8px' } }, icon('alert'), h('span', null, 'This crop is smaller than the recommended size, so it will be enlarged and may look soft. Zoom out or choose a larger image.'));
+    const ctl = h('div', { class: 'crop-ctl' },
+      ibtn('minus', 'Zoom out', { onclick: () => zoomAt(W / 2, H / 2, 1 / 1.15) }), slider, ibtn('plus', 'Zoom in', { onclick: () => zoomAt(W / 2, H / 2, 1.15) }), zoomTxt,
+      h('button', { class: 'btn sm', type: 'button', onclick: () => { st.cx = srcW / 2; st.cy = srcH / 2; constrain(); sync(); } }, 'Reset position'),
+      h('button', { class: 'btn sm', type: 'button', onclick: () => { zoomAt(W / 2, H / 2, 1 / st.zoom); sync(); } }, 'Reset zoom'), prev);
+    const wrap = h('div', { style: { display: 'flex', flexDirection: 'column', flex: '1', minHeight: 0 } }, stage, lowRes, ctl);
+    const footerHost = h('div', { style: { display: 'flex', gap: '8px', width: '100%', justifyContent: 'flex-end' } });
+    const m = openModal({ title: spec.label + ' · ' + spec.ratio, cls: 'crop', body: wrap, footer: [footerHost], dismissable: true, onClose: () => { ro.disconnect(); if (!result) resolve(null); } });
+    const cancelBtn = h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Cancel');
+    const resetBtn = h('button', { class: 'btn', type: 'button', onclick: () => { st.cx = srcW / 2; st.cy = srcH / 2; st.zoom = 1; constrain(); sync(); } }, 'Reset');
+    const applyBtn = h('button', { class: 'btn primary', type: 'button', onclick: () => applyCrop() }, 'Apply Crop');
+    footerHost.append(cancelBtn, resetBtn, applyBtn);
+
+    function layout() {
+      const r = stage.getBoundingClientRect(); W = Math.max(1, r.width); H = Math.max(1, r.height);
+      const dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      const pad = W < 500 ? 14 : 28; fw = Math.min(W - pad * 2, (H - pad * 2) * spec.rw / spec.rh); fh = fw * spec.rh / spec.rw; fx = (W - fw) / 2; fy = (H - fh) / 2;
+      cover = Math.max(fw / srcW, fh / srcH);
+      maxZoom = clamp((fw / cover) / (spec.w * 0.5), 1, 5);
+      slider.max = Math.round(maxZoom * 100); st.zoom = clamp(st.zoom, 1, maxZoom); constrain(); sync();
+    }
+    function constrain() { const s = cover * st.zoom, hw = fw / (2 * s), hh = fh / (2 * s); st.cx = clamp(st.cx, hw, srcW - hw); st.cy = clamp(st.cy, hh, srcH - hh); }
+    function cropRect() { const s = cover * st.zoom, w = fw / s, hh = fh / s; return { x: clamp(st.cx - w / 2, 0, srcW - w), y: clamp(st.cy - hh / 2, 0, srcH - hh), w, h: hh }; }
+    function sync() { slider.value = Math.round(st.zoom * 100); zoomTxt.textContent = Math.round(st.zoom * 100) + '%'; lowRes.hidden = !(cropRect().w < spec.w * 0.98); raf('crop', draw); }
+    function draw() {
+      if (!W) return; const dpr = canvas.width / W, s = cover * st.zoom;
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#12171B'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(dpr * s, 0, 0, dpr * s, dpr * (fx + fw / 2 - st.cx * s), dpr * (fy + fh / 2 - st.cy * s)); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, 0);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = 'rgba(8,12,16,.64)'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(fx, fy, fw, fh); ctx.fill('evenodd');
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.strokeRect(fx + .5, fy + .5, fw - 1, fh - 1);
+      if (dragging) { ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 1; i < 3; i++) { ctx.moveTo(fx + fw * i / 3, fy); ctx.lineTo(fx + fw * i / 3, fy + fh); ctx.moveTo(fx, fy + fh * i / 3); ctx.lineTo(fx + fw, fy + fh * i / 3); } ctx.stroke(); }
+      const r = cropRect(), pg = prev.getContext('2d'); pg.imageSmoothingQuality = 'high'; pg.drawImage(src, r.x, r.y, r.w, r.h, 0, 0, prev.width, prev.height);
+    }
+    function zoomAt(px, py, f) {
+      const s0 = cover * st.zoom, sx = st.cx + (px - (fx + fw / 2)) / s0, sy = st.cy + (py - (fy + fh / 2)) / s0;
+      st.zoom = clamp(st.zoom * f, 1, maxZoom); const s1 = cover * st.zoom;
+      st.cx = sx - (px - (fx + fw / 2)) / s1; st.cy = sy - (py - (fy + fh / 2)) / s1; constrain(); sync();
+    }
+    const ptrs = new Map(), local = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+    canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, local(e)); dragging = true; canvas.focus({ preventScroll: true }); raf('crop', draw); });
+    canvas.addEventListener('pointermove', e => {
+      if (!ptrs.has(e.pointerId)) return; const old = ptrs.get(e.pointerId), now = local(e);
+      if (ptrs.size === 1) { const s = cover * st.zoom; st.cx -= (now.x - old.x) / s; st.cy -= (now.y - old.y) / s; constrain(); ptrs.set(e.pointerId, now); sync(); }
+      else if (ptrs.size === 2) {
+        const other = [...ptrs.entries()].find(([id]) => id !== e.pointerId)[1], d0 = Math.hypot(old.x - other.x, old.y - other.y), d1 = Math.hypot(now.x - other.x, now.y - other.y);
+        const mid0 = { x: (old.x + other.x) / 2, y: (old.y + other.y) / 2 }, mid1 = { x: (now.x + other.x) / 2, y: (now.y + other.y) / 2 };
+        ptrs.set(e.pointerId, now); const s = cover * st.zoom; st.cx -= (mid1.x - mid0.x) / s; st.cy -= (mid1.y - mid0.y) / s;
+        if (d0 > 8) zoomAt(mid1.x, mid1.y, clamp(d1 / d0, 0.9, 1.1)); else { constrain(); sync(); }
+      }
+    });
+    const up = e => { ptrs.delete(e.pointerId); if (!ptrs.size) { dragging = false; raf('crop', draw); } };
+    canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+    canvas.addEventListener('wheel', e => { e.preventDefault(); const dy = clamp(e.deltaY * (e.deltaMode === 1 ? 16 : 1), -80, 80), p = local(e); zoomAt(p.x, p.y, Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0018))); }, { passive: false });
+    canvas.addEventListener('gesturestart', e => e.preventDefault()); canvas.addEventListener('gesturechange', e => e.preventDefault());
+    canvas.addEventListener('keydown', e => {
+      const step = 24 / (cover * st.zoom); let hit = true;
+      if (e.key === 'ArrowLeft') st.cx -= step; else if (e.key === 'ArrowRight') st.cx += step; else if (e.key === 'ArrowUp') st.cy -= step; else if (e.key === 'ArrowDown') st.cy += step;
+      else if (e.key === '+' || e.key === '=') zoomAt(W / 2, H / 2, 1.1); else if (e.key === '-') zoomAt(W / 2, H / 2, 1 / 1.1); else hit = false;
+      if (hit) { e.preventDefault(); constrain(); sync(); }
+    });
+    slider.addEventListener('input', () => zoomAt(W / 2, H / 2, (slider.value / 100) / st.zoom));
+    const ro = new ResizeObserver(() => layout()); ro.observe(stage);
+
+    async function applyCrop() {
+      const rect = cropRect(), viewSnap = { cx: st.cx, cy: st.cy, zoom: st.zoom };
+      mode = 'busy'; wrap.style.display = 'none'; footerHost.replaceChildren(h('span', { class: 'muted' }, h('span', { class: 'spin' }), ' Optimizing image…'));
+      const msg = h('div', { class: 'final-prev' }, h('span', { class: 'spin' }), h('div', { id: 'encMsg' }, 'Applying crop and finding the best quality under 80 KB…'));
+      $('.modal-b', m.el).append(msg);
+      let res;
+      try { await sleep(30); res = await encodeToTarget(src, rect, spec, { onStep: (q, sz) => { const t = $('#encMsg', msg); if (t) t.textContent = `Trying quality ${Math.round(q * 100)}… ${fmtBytes(sz)}`; } }); }
+      catch (e) { msg.remove(); return showError(e.message || 'Compression failed.'); }
+      msg.remove(); showFinal(res, rect, viewSnap);
+    }
+    function backToCrop() { $('.final-prev', m.el)?.remove(); wrap.style.display = ''; mode = 'crop'; footerHost.replaceChildren(cancelBtn, resetBtn, applyBtn); layout(); }
+    function showError(text) {
+      const box = h('div', { class: 'final-prev' }, h('div', { class: 'banner err', style: { maxWidth: '420px' } }, icon('alert'), h('span', null, text)));
+      $('.modal-b', m.el).append(box);
+      footerHost.replaceChildren(cancelBtn, h('button', { class: 'btn', type: 'button', onclick: backToCrop }, 'Adjust crop'), h('button', { class: 'btn primary', type: 'button', onclick: () => { box.remove(); applyCrop(); } }, 'Try again'));
+    }
+    function showFinal(res, rect, viewSnap) {
+      const url = URL.createObjectURL(res.blob), over = res.status === 'over', usable = res.blob.size <= CONFIG.hardBytes;
+      const info = over
+        ? h('div', { class: 'banner warn', style: { maxWidth: '440px', textAlign: 'left' } }, icon('alert'), h('span', null, usable
+          ? `This area is very detailed. The best acceptable quality is ${fmtBytes(res.blob.size)}, above the 80 KB target. You can use it anyway, or zoom into a simpler area.`
+          : `This area is too detailed to store at an acceptable quality (${fmtBytes(res.blob.size)}). Zoom into a simpler area or choose a different image.`))
+        : h('div', { class: 'small', style: { color: '#C9D3DA' } }, `${res.width} × ${res.height} px · ${fmtBytes(res.blob.size)} · JPEG quality ${Math.round(res.quality * 100)}${res.downscaled ? ' · slightly reduced size to stay under 80 KB' : ''}`);
+      const box = h('div', { class: 'final-prev' }, h('img', { src: url, alt: 'Final cover preview', style: { aspectRatio: spec.rw + '/' + spec.rh, maxHeight: '100%' } }), info);
+      $('.modal-b', m.el).append(box);
+      const done = () => { result = { blob: res.blob, width: res.width, height: res.height, size: res.blob.size, quality: res.quality, url, crop: { x: Math.round(rect.x), y: Math.round(rect.y), w: Math.round(rect.w), h: Math.round(rect.h), srcW, srcH }, view: viewSnap, overTarget: over }; m.close(); resolve(result); };
+      footerHost.replaceChildren(h('button', { class: 'btn', type: 'button', onclick: () => { URL.revokeObjectURL(url); backToCrop(); } }, 'Adjust crop'),
+        (over && !usable) ? null : h('button', { class: 'btn primary', type: 'button', onclick: done }, over ? 'Use anyway' : 'Use this image'));
+    }
+    layout();
+  });
+}
+
+/* ---------------------------------------------------------------- cover field */
+function CoverField({ spec, current, onDeleteSaved }) {
+  let cur = current || null, staged = null, session = null, curUrl = null, errBox = null;
+  const drop = h('button', { class: 'cover-drop ' + spec.orient, type: 'button', 'aria-label': 'Upload ' + spec.label });
+  const input = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp', hidden: true });
+  const meta = h('div', { class: 'cover-meta' });
+  const hint = h('div', { class: 'cover-hint' }, spec.hint);
+  const errHost = h('div');
+  const el = h('div', null, h('div', { class: 'cover-field' }, drop, meta), hint, errHost, input);
+  const showErr = (msg, retry) => { errHost.replaceChildren(h('div', { class: 'banner err', role: 'alert' }, icon('alert'), h('span', { style: { flex: 1 } }, msg), retry ? h('button', { class: 'btn sm', type: 'button', onclick: retry }, 'Retry') : null)); };
+  const clearErr = () => errHost.replaceChildren();
+  async function paint() {
+    const url = staged ? staged.url : (cur ? (curUrl = await Images.url(cur.id)) : null);
+    drop.className = 'cover-drop ' + spec.orient; drop.replaceChildren(); meta.replaceChildren();
+    if (url) { drop.classList.add('has'); drop.append(h('img', { src: url, alt: spec.label })); }
+    else drop.append(icon('upload'), h('b', null, spec.label), h('span', { class: 'small' }, 'Recommended ratio: ' + spec.ratio), h('span', { class: 'small' }, 'Click or drop an image'));
+    if (staged) meta.append(h('div', { class: 'small' }, h('b', null, 'New image ready'), h('br'), `${staged.width} × ${staged.height} · ${fmtBytes(staged.size)}`, h('br'), h('span', { class: 'faint' }, 'Uploads when you press Save')));
+    else if (cur) meta.append(h('div', { class: 'small muted' }, `${cur.width} × ${cur.height} · ${fmtBytes(cur.file_size)}`));
+    if (url) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => input.click() }, 'Change Image'));
+    if (staged && session) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => adjust() }, 'Adjust crop'));
+    if (staged) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => discardStaged() }, 'Discard new image'));
+    if (cur && !staged) meta.append(h('button', { class: 'btn sm', type: 'button', style: { color: 'var(--danger)' }, onclick: () => del() }, 'Delete image'));
+  }
+  function discardStaged() { if (staged) URL.revokeObjectURL(staged.url); staged = null; if (session && session.src.close) session.src.close(); session = null; clearErr(); paint(); }
+  async function cropWith(s) {
+    const r = await openCropper({ spec, src: s.src, srcW: s.w, srcH: s.h, view: s.view });
+    if (!r) return false;
+    if (staged) URL.revokeObjectURL(staged.url);
+    staged = r; session = { src: s.src, w: s.w, h: s.h, view: r.view }; return true;
+  }
+  async function handleFile(file) {
+    clearErr(); let d;
+    try { d = await decodeImage(file); } catch (e) { showErr(e.message); return; }
+    const prevSession = session; session = null;
+    const ok = await cropWith({ src: d.src, w: d.w, h: d.h, view: null });
+    if (ok) { if (prevSession && prevSession.src.close) prevSession.src.close(); } else { if (d.src.close) d.src.close(); session = prevSession; }
+    paint();
+  }
+  async function adjust() { if (await cropWith(session)) paint(); }
+  async function del() {
+    const ok = await confirmDialog({ title: 'Delete this image permanently?', body: 'This image will be removed and cannot be recovered.', confirm: 'Delete image', danger: true });
+    if (!ok) return;
+    try { await onDeleteSaved(); cur = null; toast('Image deleted'); clearErr(); paint(); }
+    catch (e) { showErr('The image could not be deleted: ' + e.message + ' Your current image is unchanged.', del); }
+  }
+  drop.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { const f = input.files[0]; input.value = ''; if (f) handleFile(f); });
+  ['dragenter', 'dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+  paint();
+  return { el, showErr, get staged() { return staged; }, get current() { return cur; }, markSaved(rec) { cur = rec; if (staged) URL.revokeObjectURL(staged.url); staged = null; if (session && session.src.close) session.src.close(); session = null; paint(); },
+    dispose() { if (staged) URL.revokeObjectURL(staged.url); if (session && session.src.close) session.src.close(); } };
+}
+/* =====================================================================
+   6. FONT REGISTRY - only fonts that are verified as loadable are selectable,
+   so a writer can never pick a font the published reader cannot render.
+   ===================================================================== */
+const FONTS = [
+  { n: 'Source Serif 4', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Lora', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Literata', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Merriweather', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Crimson Pro', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'EB Garamond', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Libre Baskerville', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400' },
+  { n: 'Cormorant Garamond', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Playfair Display', c: 'Serif', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Figtree', c: 'Sans', fb: 'sans-serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Source Sans 3', c: 'Sans', fb: 'sans-serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Nunito', c: 'Sans', fb: 'sans-serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Work Sans', c: 'Sans', fb: 'sans-serif', a: 'ital,wght@0,400;0,700;1,400;1,700' },
+  { n: 'Courier Prime', c: 'Handwriting', fb: 'monospace', a: 'ital,wght@0,400;0,700;1,400;1,700', tag: 'Typewriter' },
+  { n: 'Caveat', c: 'Handwriting', fb: 'cursive', a: 'wght@400;700' },
+  { n: 'Noto Serif Devanagari', c: 'Devanagari', fb: 'serif', a: 'wght@400;700', s: 'हिन्दी में कहानी लिखें' },
+  { n: 'Noto Sans Devanagari', c: 'Devanagari', fb: 'sans-serif', a: 'wght@400;700', s: 'हिन्दी में कहानी लिखें' },
+  { n: 'Hind', c: 'Devanagari', fb: 'sans-serif', a: 'wght@400;700', s: 'हिन्दी में कहानी लिखें' },
+  { n: 'Mukta', c: 'Devanagari', fb: 'sans-serif', a: 'wght@400;700', s: 'हिन्दी में कहानी लिखें' },
+  { n: 'Tiro Devanagari Hindi', c: 'Devanagari', fb: 'serif', a: 'ital@0;1', s: 'हिन्दी में कहानी लिखें' },
+  { n: 'Kalam', c: 'Devanagari', fb: 'cursive', a: 'wght@400;700', s: 'हिन्दी में कहानी लिखें' },
+  { n: 'Noto Nastaliq Urdu', c: 'Urdu / Arabic', fb: 'serif', a: 'wght@400;700', s: 'اردو میں کہانی لکھیں', rtl: 1 },
+  { n: 'Amiri', c: 'Urdu / Arabic', fb: 'serif', a: 'ital,wght@0,400;0,700;1,400;1,700', s: 'اردو میں کہانی لکھیں', rtl: 1 },
+  { n: 'Noto Naskh Arabic', c: 'Urdu / Arabic', fb: 'serif', a: 'wght@400;700', s: 'اردو میں کہانی لکھیں', rtl: 1 },
+  { n: 'Scheherazade New', c: 'Urdu / Arabic', fb: 'serif', a: 'wght@400;700', s: 'اردو میں کہانی لکھیں', rtl: 1 },
+  { n: 'Lateef', c: 'Urdu / Arabic', fb: 'serif', a: 'wght@400;700', s: 'اردو میں کہانی لکھیں', rtl: 1 },
+  { n: 'Noto Serif Bengali', c: 'Bengali', fb: 'serif', a: 'wght@400;700', s: 'বাংলায় গল্প লিখুন' },
+  { n: 'Hind Siliguri', c: 'Bengali', fb: 'sans-serif', a: 'wght@400;700', s: 'বাংলায় গল্প লিখুন' },
+];
+const FONT_CATS = ['All', 'Recent', 'Serif', 'Sans', 'Handwriting', 'Devanagari', 'Urdu / Arabic', 'Bengali'];
+const Fonts = {
+  state: new Map(), subs: new Set(),
+  stack: f => `"${f.n}", ${f.fb}`,
+  byName: n => FONTS.find(f => f.n.toLowerCase() === String(n).toLowerCase()),
+  sample: f => f.s || 'The quiet harbour woke before dawn',
+  mark(f, v) { this.state.set(f.n, v); this.subs.forEach(fn => fn()); },
+  load() {
+    FONTS.forEach(f => {
+      this.state.set(f.n, 'loading');
+      const url = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(f.n).replace(/%20/g, '+') + ':' + f.a + '&display=swap';
+      const link = h('link', { rel: 'stylesheet', href: url });
+      const timeout = setTimeout(() => { if (this.state.get(f.n) === 'loading') this.mark(f, 'fail'); }, 12000);
+      link.onerror = () => { clearTimeout(timeout); this.mark(f, 'fail'); };
+      link.onload = async () => { try { const r = await document.fonts.load(`400 16px "${f.n}"`, this.sample(f)); clearTimeout(timeout); this.mark(f, r.length ? 'ok' : 'fail'); } catch { this.mark(f, 'fail'); } };
+      document.head.append(link);
+    });
+  },
+  ok: f => Fonts.state.get(f.n) === 'ok',
+  recent: () => lsGet('sw_recent_fonts', []),
+  use(f) { const r = [f.n, ...this.recent().filter(n => n !== f.n)].slice(0, 6); lsSet('sw_recent_fonts', r); },
+};
+
+/* =====================================================================
+   7. STORY MODEL  Story -> Volume -> (Part) -> Chapter -> Paragraph
+   A volume holds direct chapters and/or parts; parts hold chapters.
+   Chapter *content* lives in its own record, never inside the tree.
+   ===================================================================== */
+const Model = {
+  newStory: () => ({ id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: 'Fantasy', tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
+  newVolume: s => ({ id: uid(), number: (s.volumes.reduce((m, v) => Math.max(m, v.number), 0)) + 1, title: '', description: '', status: 'draft', coverImageId: null, chapters: [], parts: [] }),
+  newPart: v => ({ id: uid(), number: (v.parts.reduce((m, p) => Math.max(m, p.number), 0)) + 1, title: '', description: '', coverImageId: null, chapters: [] }),
+  newChapter(s) { const n = this.all(s).reduce((m, x) => Math.max(m, x.chapter.number), 0) + 1; return { id: uid(), number: n, title: '', status: 'draft', wordCount: 0, updatedAt: Date.now(), publishedAt: null }; },
+  all(s) { const out = []; s.volumes.forEach(v => { v.chapters.forEach(c => out.push({ chapter: c, volume: v, part: null })); v.parts.forEach(p => p.chapters.forEach(c => out.push({ chapter: c, volume: v, part: p }))); }); return out; },
+  find(s, id) { for (const v of s.volumes) { let i = v.chapters.findIndex(c => c.id === id); if (i >= 0) return { chapter: v.chapters[i], list: v.chapters, index: i, volume: v, part: null }; for (const p of v.parts) { i = p.chapters.findIndex(c => c.id === id); if (i >= 0) return { chapter: p.chapters[i], list: p.chapters, index: i, volume: v, part: p }; } } return null; },
+  findPart(s, id) { for (const v of s.volumes) { const i = v.parts.findIndex(p => p.id === id); if (i >= 0) return { part: v.parts[i], volume: v, index: i }; } return null; },
+  vLabel: v => 'Volume ' + roman(v.number) + (v.title ? ' — ' + v.title : ''),
+  pLabel: p => 'Part ' + roman(p.number) + (p.title ? ' — ' + p.title : ''),
+  cLabel: c => 'Chapter ' + c.number + (c.title ? ' — ' + c.title : ''),
+  words: s => Model.all(s).reduce((n, x) => n + (x.chapter.wordCount || 0), 0),
+  coverIds(v) { return [v.coverImageId, ...v.parts.map(p => p.coverImageId)].filter(Boolean); },
+};
+
+/* =====================================================================
+   8. SANITIZER - one whitelist used for paste, load and validation.
+   Only structural formatting survives. No Markdown, no script, no junk.
+   ===================================================================== */
+const Sanitize = {
+  ALLOWED: new Set(['p', 'h1', 'h2', 'blockquote', 'ul', 'ol', 'li', 'hr', 'br', 'b', 'i', 'u', 's', 'span', 'a', 'figure', 'img']),
+  DROP: new Set(['script', 'style', 'head', 'iframe', 'object', 'embed', 'meta', 'link', 'noscript', 'svg', 'canvas', 'video', 'audio', 'form', 'button', 'input', 'select', 'textarea', 'title']),
+  MAP: { div: 'p', section: 'p', article: 'p', pre: 'p', h3: 'h2', h4: 'h2', h5: 'h2', h6: 'h2', strong: 'b', em: 'i', strike: 's', del: 's', ins: 'u' },
+  BLOCKS: new Set(['p', 'h1', 'h2', 'blockquote', 'ul', 'ol', 'hr', 'figure']),
+  color: v => /^(#[0-9a-f]{3,8}|rgba?\([\d\s,.%]+\)|hsla?\([\d\s,.%deg]+\)|inherit|transparent)$/i.test(v.trim()) ? v.trim() : null,
+  style(node, out) {
+    const st = node.style; if (!st) return {}; const css = [], fmt = {};
+    const fw = st.fontWeight; if (fw === 'bold' || parseInt(fw) >= 600) fmt.b = 1;
+    if (st.fontStyle === 'italic') fmt.i = 1;
+    const td = st.textDecorationLine || st.textDecoration || ''; if (/underline/.test(td)) fmt.u = 1; if (/line-through/.test(td)) fmt.s = 1;
+    const c = st.color && this.color(st.color); if (c) css.push('color:' + c);
+    const bg = st.backgroundColor && this.color(st.backgroundColor); if (bg) css.push('background-color:' + bg);
+    if (st.fontFamily) { const f = Fonts.byName(st.fontFamily.split(',')[0].replace(/["']/g, '').trim()); if (f) css.push('font-family:' + Fonts.stack(f)); }
+    if (st.fontSize) { let px = parseFloat(st.fontSize); if (/pt$/.test(st.fontSize)) px *= 1.333; if (/px$|pt$/.test(st.fontSize) && px >= 8 && px <= 96) css.push('font-size:' + Math.round(px * 10) / 10 + 'px'); }
+    if (/^(P|H1|H2|BLOCKQUOTE|LI|DIV)$/.test(node.tagName)) {
+      if (/^(left|right|center|justify)$/.test(st.textAlign)) css.push('text-align:' + st.textAlign);
+      if (st.lineHeight && /^[\d.]+$/.test(st.lineHeight) && +st.lineHeight >= 1 && +st.lineHeight <= 3) css.push('line-height:' + st.lineHeight);
+      const mb = st.marginBottom; if (mb && /^[\d.]+(px|em)$/.test(mb) && parseFloat(mb) >= 0 && parseFloat(mb) <= 80) css.push('margin-bottom:' + mb);
+    }
+    return { css: css.join(';'), fmt };
+  },
+  clean(node, keepIds) {
+    if (node.nodeType === 3) return [document.createTextNode(node.nodeValue)];
+    if (node.nodeType !== 1) return [];
+    let tag = node.tagName.toLowerCase(); if (this.DROP.has(tag)) return [];
+    tag = this.MAP[tag] || tag;
+    const kids = () => Array.from(node.childNodes).flatMap(c => this.clean(c, keepIds));
+    if (!this.ALLOWED.has(tag)) return kids();
+    if (tag === 'img') { const id = node.getAttribute('data-image-id'); if (!keepIds || !id) return []; return [h('img', { 'data-image-id': id, alt: node.getAttribute('alt') || '' })]; }
+    if (tag === 'figure') { const id = node.getAttribute('data-image-id'); if (!keepIds || !id) return []; const f = h('figure', { 'data-image-id': id, contenteditable: 'false' }); Array.from(node.querySelectorAll('img')).slice(0, 1).forEach(i => f.append(h('img', { 'data-image-id': id, alt: i.getAttribute('alt') || '' }))); return [f]; }
+    if (tag === 'br') return [document.createElement('br')];
+    if (tag === 'hr') { const e = h('hr', { class: 'scene-break' }); const pid = node.getAttribute('data-pid'); if (keepIds && pid) e.setAttribute('data-pid', pid); return [e]; }
+    const el = document.createElement(tag), { css, fmt } = this.style(node);
+    if (css) el.setAttribute('style', css);
+    if (keepIds && node.getAttribute('data-pid') && /^(p|h1|h2|blockquote|li)$/.test(tag)) el.setAttribute('data-pid', node.getAttribute('data-pid'));
+    if (node.getAttribute('dir') === 'rtl' || node.getAttribute('dir') === 'ltr') el.setAttribute('dir', node.getAttribute('dir'));
+    if (tag === 'a') { const href = (node.getAttribute('href') || '').trim(); if (!/^(https?:|mailto:)/i.test(href)) return kids(); el.setAttribute('href', href); el.setAttribute('rel', 'noopener noreferrer'); el.setAttribute('target', '_blank'); }
+    kids().forEach(k => el.append(k));
+    let res = el;
+    if (tag === 'span' && !el.getAttribute('style')) { res = null; }
+    const wrap = inner => { let n = inner; for (const t of ['s', 'u', 'i', 'b']) if (fmt[t]) { const w = document.createElement(t); if (Array.isArray(n)) n.forEach(x => w.append(x)); else w.append(n); n = w; } return n; };
+    if (res === null) { const list = Array.from(el.childNodes); return Object.keys(fmt).length && list.length ? [wrap(list)] : list; }
+    if (this.BLOCKS.has(tag) || tag === 'li') { if (fmt.b || fmt.i || fmt.u || fmt.s) { const inner = Array.from(res.childNodes); if (inner.length) { res.replaceChildren(wrap(inner)); } } return [res]; }
+    return [wrap(res)];
+  },
+  toFragment(html, { keepIds = false } = {}) {
+    const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html'), frag = document.createDocumentFragment();
+    let run = null;
+    Array.from(doc.body.childNodes).flatMap(c => this.clean(c, keepIds)).forEach(n => {
+      const isBlock = n.nodeType === 1 && this.BLOCKS.has(n.tagName.toLowerCase());
+      if (isBlock) { run = null; if (!keepIds && /^(p|h1|h2|blockquote)$/.test(n.tagName.toLowerCase()) && !n.textContent.trim() && !n.querySelector('br,img')) return; frag.append(n); return; }
+      if (n.nodeType === 3 && !n.nodeValue.trim() && !run) return;
+      if (!run) { run = document.createElement('p'); frag.append(run); } run.append(n);
+    });
+    return frag;
+  },
+};
+const escHtml = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* =====================================================================
+   9. EDITOR ENGINE  (one chapter at a time, contenteditable + execCommand
+   so the browser's own undo stack, IME and mobile keyboards all behave).
+   Every formatting action is structural HTML: <b>, <i>, <u>, <s>,
+   <h1>, <h2>, <blockquote>, <span style="color:...">. Never symbols.
+   ===================================================================== */
+const BLOCK_SEL = 'p,h1,h2,blockquote,li,hr,figure';
+const Ed = {
+  el: null, chapterId: null, storyId: null, used: new Set(), seq: 0, saved: null, composing: false, dirtyFlag: false, needFix: 0, pendingSize: 18, lastBlock: null, tabFree: false,
+  /* ---- lifecycle */
+  mount() {
+    const old = this.el;
+    const el = h('div', { id: 'editor', contenteditable: 'true', spellcheck: true, role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Chapter text', 'data-ph': 'Start writing…', autocapitalize: 'sentences', 'data-gramm': 'false' });
+    el.addEventListener('input', e => this.onInput(e));
+    el.addEventListener('paste', e => this.onPaste(e));
+    el.addEventListener('keydown', e => this.onKey(e));
+    el.addEventListener('compositionstart', () => { this.composing = true; });
+    el.addEventListener('compositionend', () => { this.composing = false; this.afterInput('composition'); });
+    el.addEventListener('click', e => this.onClick(e));
+    el.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) e.preventDefault(); });
+    el.addEventListener('mousemove', e => Gutter.onHover(e));
+    el.addEventListener('mouseleave', () => Gutter.hover(null));
+    el.addEventListener('focus', () => { Gutter.update(); UI.onEditorFocus(); });
+    el.addEventListener('blur', () => { if (this.dirtyFlag) Save.flush(); });
+    if (old) old.replaceWith(el); else $('#editorWrap').prepend(el);
+    this.el = el; return el;
+  },
+  async load(rec) {
+    this.mount(); this.chapterId = rec.id; this.storyId = rec.storyId; this.saved = null; this.lastBlock = null;
+    document.execCommand('defaultParagraphSeparator', false, 'p');
+    this.el.append(Sanitize.toFragment(rec.html || '', { keepIds: true }));
+    if (!this.el.firstChild) this.el.append(this.newBlock());
+    this.seq = rec.pidSeq || 0; this.used = new Set(); this.normalizeAll();
+    this.dirtyFlag = false;
+    $$('figure[data-image-id] img', this.el).forEach(img => Images.url(img.getAttribute('data-image-id')).then(u => { if (u) img.src = u; else img.alt = img.alt || 'Missing image'; }));
+    this.updateCounts(); Gutter.reset(); Gutter.renderComments();
+  },
+  unload() { this.chapterId = null; if (this.el) this.el.replaceChildren(); },
+  newBlock() { const p = document.createElement('p'); p.append(document.createElement('br')); return p; },
+  nextPid() { let id; do { this.seq++; id = 'paragraph_' + String(this.seq).padStart(3, '0'); } while (this.used.has(id)); this.used.add(id); return id; },
+  isEmptyBlock: b => !b.textContent.replace(/\u200B/g, '').length && !b.querySelector('img,figure'),
+  /* ---- paragraph identity: permanent, unique, survives split / merge / retype */
+  normalizeAll() {
+    const el = this.el; if (!el) return 0; let fixed = 0;
+    for (const n of Array.from(el.childNodes)) {
+      const isEl = n.nodeType === 1, t = isEl ? n.tagName : '';
+      if (isEl && Sanitize.BLOCKS.has(t.toLowerCase())) continue;
+      if (n.nodeType === 3 && !n.nodeValue.trim()) { n.remove(); continue; }
+      if (isEl && t === 'DIV') { const p = document.createElement('p'); while (n.firstChild) p.append(n.firstChild); if (!p.firstChild) p.append(document.createElement('br')); n.replaceWith(p); fixed++; continue; }
+      const p = document.createElement('p'); n.replaceWith(p); p.append(n); fixed++;
+    }
+    if (!el.firstChild) el.append(this.newBlock());
+    if (el.lastElementChild && !/^(P|H1|H2|BLOCKQUOTE|UL|OL)$/.test(el.lastElementChild.tagName)) el.append(this.newBlock());
+    const seen = new Set(); let prev = null;
+    for (const b of el.querySelectorAll(BLOCK_SEL)) {
+      let pid = b.getAttribute('data-pid');
+      if (b.tagName !== 'HR' && b.tagName !== 'FIGURE' && b.getAttribute('dir') !== 'rtl' && b.getAttribute('dir') !== 'ltr' && b.getAttribute('dir') !== 'auto') b.setAttribute('dir', 'auto');
+      if (b.tagName === 'HR' && !b.classList.contains('scene-break')) b.className = 'scene-break';
+      if (b.tagName === 'FIGURE' && b.getAttribute('contenteditable') !== 'false') b.setAttribute('contenteditable', 'false');
+      if (!pid || seen.has(pid)) {
+        if (pid && prev && prev.getAttribute('data-pid') === pid && this.isEmptyBlock(prev) && !this.isEmptyBlock(b)) { prev.setAttribute('data-pid', this.freshPid(seen)); pid = b.getAttribute('data-pid'); }
+        else { pid = this.freshPid(seen); b.setAttribute('data-pid', pid); fixed++; }
+      }
+      seen.add(pid); prev = b;
+    }
+    this.used = seen;
+    const m = /paragraph_(\d+)$/; seen.forEach(id => { const r = m.exec(id); if (r && +r[1] > this.seq) this.seq = +r[1]; });
+    const empty = el.childElementCount === 1 && el.firstElementChild.tagName === 'P' && this.isEmptyBlock(el.firstElementChild);
+    el.setAttribute('data-empty', empty ? '1' : '0');
+    return fixed;
+  },
+  freshPid(seen) { let id; do { this.seq++; id = 'paragraph_' + String(this.seq).padStart(3, '0'); } while (seen.has(id) || this.used.has(id)); return id; },
+  normalizeLocal() {
+    const b = this.currentBlock(); if (!b) return; const trio = [b.previousElementSibling, b, b.nextElementSibling].filter(Boolean);
+    let bad = false; const ids = new Set();
+    for (const x of trio) { const id = x.getAttribute && x.getAttribute('data-pid'); if (!id || ids.has(id)) { bad = true; break; } ids.add(id); }
+    if (bad) this.normalizeAll(); else if (this.el.getAttribute('data-empty') === '1' && this.el.textContent) this.el.setAttribute('data-empty', '0');
+    else if (this.el.getAttribute('data-empty') === '0' && this.el.childElementCount === 1 && !this.el.textContent) this.el.setAttribute('data-empty', '1');
+    if (b.tagName !== 'HR' && b.tagName !== 'FIGURE' && !b.hasAttribute('dir')) b.setAttribute('dir', 'auto');
+  },
+  /* ---- selection helpers */
+  sel() { const s = getSelection(); return s && s.rangeCount && this.el && this.el.contains(s.anchorNode) ? s : null; },
+  blockOf(node) { const e = node && (node.nodeType === 1 ? node : node.parentElement); if (!e || !this.el) return null; if (e === this.el) return null; const b = e.closest(BLOCK_SEL); return b && this.el.contains(b) ? b : null; },
+  currentBlock() { const s = this.sel(); return s ? this.blockOf(s.focusNode) : null; },
+  topBlock(b) { while (b && b.parentElement !== this.el) b = b.parentElement; return b; },
+  blocksInSelection() {
+    const s = this.sel(); if (!s) return []; const r = s.getRangeAt(0); const all = Array.from(this.el.querySelectorAll('p,h1,h2,blockquote,li'));
+    const a = this.blockOf(r.startContainer) || this.blockOf(this.el.childNodes[r.startOffset]), z = this.blockOf(r.endContainer) || a;
+    let i = all.indexOf(a), j = all.indexOf(z); if (i < 0) return []; if (j < i) j = i; return all.slice(i, j + 1);
+  },
+  saveSel() { const s = this.sel(); if (s) this.saved = s.getRangeAt(0).cloneRange(); },
+  restoreFocus() { if (!this.el || !this.chapterId) return; this.el.focus({ preventScroll: true }); if (this.saved) { try { const s = getSelection(); s.removeAllRanges(); s.addRange(this.saved); } catch {} } },
+  focusForCommand() { if (document.activeElement !== this.el) this.restoreFocus(); },
+  placeCaret(node, atStart) { const r = document.createRange(); r.selectNodeContents(node); r.collapse(!!atStart); const s = getSelection(); s.removeAllRanges(); s.addRange(r); this.saved = r.cloneRange(); },
+  /* ---- events */
+  onInput(e) {
+    this.dirtyFlag = true; Save.dirty();
+    if (this.composing) return;
+    this.afterInput(e.inputType || '');
+  },
+  afterInput(kind) {
+    if (this.needFix > 0) this.fixSpans();
+    if (/^(insertFromPaste|insertFromDrop|history|format|delete(By|Content)(Cut|Drag)|insertReplacementText)/.test(kind) || kind === 'composition' || /Cut|Drag/.test(kind)) this.normalizeAll(); else this.normalizeLocal();
+    raf('ed-post', () => { this.ensureCaretVisible(); Gutter.update(); Gutter.commentsSoon(); this.countsSoon(); UI.syncToolbar(); });
+  },
+  fixSpans() {
+    let hit = 0;
+    this.el.querySelectorAll('span[style*="xxx-large"]').forEach(s => { s.style.fontSize = this.pendingSize + 'px'; s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; }); hit++; });
+    this.el.querySelectorAll('span[style*="rgb(1, 2, 3)"]').forEach(s => { s.style.color = 'inherit'; hit++; });
+    this.el.querySelectorAll('span[style*="rgb(1, 2, 4)"]').forEach(s => { s.style.backgroundColor = 'transparent'; hit++; });
+    this.el.querySelectorAll('font').forEach(f => { const s = document.createElement('span'); f.replaceWith(s); while (f.firstChild) s.append(f.firstChild); hit++; });
+    this.needFix = hit ? 0 : this.needFix - 1;
+  },
+  onPaste(e) {
+    e.preventDefault(); const cd = e.clipboardData; if (!cd) return;
+    const html = cd.getData('text/html'), text = cd.getData('text/plain'); let out;
+    if (html) {
+      const frag = Sanitize.toFragment(html, { keepIds: false }), box = document.createElement('div'); box.append(frag);
+      if (box.children.length === 1 && box.firstElementChild.tagName === 'P') out = box.firstElementChild.innerHTML; else out = box.innerHTML;
+    } else { const lines = text.replace(/\r/g, '').split(/\n+/); out = lines.length === 1 ? escHtml(lines[0]) : lines.map(l => '<p>' + (escHtml(l) || '<br>') + '</p>').join(''); }
+    if (out) document.execCommand('insertHTML', false, out);
+  },
+  onKey(e) {
+    const mod = e.metaKey || e.ctrlKey;
+    if (mod && e.key.toLowerCase() === 's') { e.preventDefault(); App.saveDraft(); return; }
+    if (mod && e.key.toLowerCase() === 'k') { e.preventDefault(); Tools.link(); return; }
+    if (mod && e.shiftKey && e.key.toLowerCase() === 'x') { e.preventDefault(); this.cmd('strike'); return; }
+    if (e.key === 'Escape') { this.tabFree = true; return; }
+    if (e.key === 'Tab' && !mod && !e.altKey && !e.shiftKey) { if (this.tabFree) { this.tabFree = false; return; } e.preventDefault(); document.execCommand('insertText', false, '\u2003'); return; }
+    this.tabFree = false;
+  },
+  onClick(e) {
+    const fig = e.target.closest && e.target.closest('figure'); $$('figure.sel', this.el).forEach(f => f.classList.remove('sel'));
+    if (fig && this.el.contains(fig)) { fig.classList.add('sel'); Tools.imageDetails(fig); }
+  },
+  /* ---- commands */
+  exec(cmd, val, css) { document.execCommand('styleWithCSS', false, !!css); return document.execCommand(cmd, false, val); },
+  withPids(fn) {
+    const all0 = Array.from(this.el.querySelectorAll(BLOCK_SEL)), pids0 = all0.map(b => b.getAttribute('data-pid'));
+    const sel = this.blocksInSelection().map(b => all0.indexOf(b)).filter(i => i >= 0); fn(); this.unwrapLists();
+    const all1 = Array.from(this.el.querySelectorAll(BLOCK_SEL));
+    if (all1.length === all0.length) sel.forEach(i => { if (pids0[i] && all1[i].getAttribute('data-pid') !== pids0[i]) all1[i].setAttribute('data-pid', pids0[i]); });
+    this.normalizeAll();
+  },
+  /* Chrome can nest <ul> inside <p>; hoist it so the saved HTML is valid and the paragraph ID moves to the list item. */
+  unwrapLists() {
+    const s = getSelection(), a = s && s.anchorNode ? [s.anchorNode, s.anchorOffset, s.focusNode, s.focusOffset] : null; let moved = false;
+    this.el.querySelectorAll('p > ul, p > ol').forEach(l => { const p = l.parentElement, pid = p.getAttribute('data-pid'), li = l.querySelector('li'); if (li && pid) li.setAttribute('data-pid', pid); if (p.childNodes.length === 1) p.replaceWith(l); else p.after(l); moved = true; });
+    if (moved && a) { try { s.setBaseAndExtent(a[0], a[1], a[2], a[3]); } catch {} }
+  },
+  cmd(name, arg) {
+    if (!this.chapterId) return; this.focusForCommand();
+    const collapsed = !!(this.sel() && this.sel().isCollapsed);
+    switch (name) {
+      case 'undo': this.exec('undo'); break; case 'redo': this.exec('redo'); break;
+      case 'bold': this.exec('bold'); break; case 'italic': this.exec('italic'); break; case 'underline': this.exec('underline'); break; case 'strike': this.exec('strikeThrough'); break;
+      case 'color': this.needFix = 4; this.exec('foreColor', arg || '#010203', true); break;
+      case 'highlight': this.needFix = 4; this.exec('hiliteColor', arg || '#010204', true); break;
+      case 'font': this.exec('fontName', Fonts.stack(arg), true); break;
+      case 'size': this.pendingSize = arg; this.needFix = 4; this.exec('fontSize', '7', true); this.fixSpans(); break;
+      case 'block': this.setBlock(arg); break;
+      case 'align': this.exec({ left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight', justify: 'justifyFull' }[arg], null, true); break;
+      case 'list': this.withPids(() => this.exec(arg === 'ol' ? 'insertOrderedList' : 'insertUnorderedList')); break;
+      case 'divider': this.exec('insertHorizontalRule'); break;
+      case 'lineHeight': this.blocksInSelection().forEach(b => { b.style.lineHeight = arg; }); break;
+      case 'paraSpace': this.blocksInSelection().forEach(b => { b.style.marginBottom = arg; }); break;
+      case 'clear': this.exec('removeFormat'); this.blocksInSelection().forEach(b => { b.style.lineHeight = ''; b.style.marginBottom = ''; }); break;
+      case 'link': if (arg) { if (collapsed) document.execCommand('insertHTML', false, `<a href="${escHtml(arg)}">${escHtml(arg)}</a>`); else this.exec('createLink', arg); $$('a[href]', this.el).forEach(a => { a.setAttribute('rel', 'noopener noreferrer'); a.setAttribute('target', '_blank'); }); } break;
+      case 'unlink': this.exec('unlink'); break;
+    }
+    this.dirtyFlag = true; Save.dirty(); this.afterInput('format');
+  },
+  setBlock(tag) {
+    const cur = this.currentBlock(); if (!cur) return;
+    this.withPids(() => {
+      const li = cur.closest('li'); if (li) this.exec(li.parentElement.tagName === 'OL' ? 'insertOrderedList' : 'insertUnorderedList');
+      this.exec('formatBlock', tag);
+    });
+  },
+  insertFigure(imageId, url) {
+    this.focusForCommand();
+    const src = url ? ` src="${url}"` : '';
+    document.execCommand('insertHTML', false, `<figure data-image-id="${imageId}" contenteditable="false"><img data-image-id="${imageId}"${src} alt=""></figure><p><br></p>`);
+    this.dirtyFlag = true; Save.dirty(); this.afterInput('insertFromPaste');
+  },
+  addParagraphAfter(block) {
+    if (!block || !this.el.contains(block)) return; this.el.focus({ preventScroll: true });
+    const top = this.topBlock(block); const tag = block.tagName;
+    if ((tag === 'P' || tag === 'H1' || tag === 'H2') && block.parentElement === this.el) {
+      const r = document.createRange(); r.selectNodeContents(block); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('insertParagraph');
+      const nb = this.currentBlock(); if (nb && nb !== block && nb.tagName !== 'P') { this.setBlock('p'); }
+    } else { const p = this.newBlock(); top.after(p); this.placeCaret(p, true); }
+    this.dirtyFlag = true; Save.dirty(); this.afterInput('insertParagraph'); this.normalizeAll();
+    const nb = this.currentBlock(); if (nb) this.placeCaret(nb, true);
+  },
+  /* ---- state for toolbars */
+  state() {
+    const s = this.sel(); if (!s) return null; const st = {};
+    try { st.bold = document.queryCommandState('bold'); st.italic = document.queryCommandState('italic'); st.underline = document.queryCommandState('underline'); st.strike = document.queryCommandState('strikeThrough'); st.canUndo = document.queryCommandEnabled('undo'); st.canRedo = document.queryCommandEnabled('redo'); } catch {}
+    const n = s.focusNode, e = n.nodeType === 1 ? n : n.parentElement; if (!e) return st; const cs = getComputedStyle(e);
+    st.size = Math.round(parseFloat(cs.fontSize)); st.fontName = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(); st.color = cs.color;
+    const b = this.blockOf(n); st.block = b ? b.tagName.toLowerCase() : 'p'; st.align = b ? getComputedStyle(b).textAlign : 'left'; st.list = e.closest('ul') ? 'ul' : e.closest('ol') ? 'ol' : ''; st.quote = !!e.closest('blockquote');
+    return st;
+  },
+  /* ---- scroll + counts */
+  caretRect() {
+    const s = this.sel(); if (!s) return null; const r = s.getRangeAt(0).cloneRange(); r.collapse(false); let rect = r.getClientRects()[0];
+    if (!rect || (!rect.height && !rect.width)) { const b = this.blockOf(s.focusNode); rect = b ? b.getBoundingClientRect() : null; } return rect;
+  },
+  ensureCaretVisible() {
+    if (!this.el || document.activeElement !== this.el) return; const s = this.sel(); if (!s || !s.isCollapsed) return; const rect = this.caretRect(); if (!rect) return;
+    const sc = $('#scroller'), b = sc.getBoundingClientRect(), top = b.top + 28, bot = b.bottom - 44;
+    if (rect.bottom > bot) sc.scrollTop += rect.bottom - bot; else if (rect.top < top) sc.scrollTop -= top - rect.top;
+  },
+  countsSoon: debounce(() => Ed.updateCounts(), 450),
+  measure() {
+    let words = 0, chars = 0; const add = t => { chars += t.length; let inw = false; for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i), sp = c <= 32 || c === 160 || c === 0x200B || c === 0x2003 || c === 0x2009; if (!sp && !inw) { words++; inw = true; } else if (sp) inw = false; } };
+    for (const c of this.el.children) { if (c.tagName === 'UL' || c.tagName === 'OL') for (const li of c.children) add(li.textContent); else if (c.tagName !== 'FIGURE' && c.tagName !== 'HR') add(c.textContent); }
+    return { words, chars };
+  },
+  updateCounts() { if (!this.el || !this.chapterId) return; const m = this.measure(); this.counts = m; UI.showCounts(m); },
+  serialize() {
+    this.normalizeAll();
+    let html = this.el.innerHTML.replace(/\u200B/g, '').replace(/(<img\b[^>]*?)\ssrc="[^"]*"/g, '$1').replace(/\sclass="sel"/g, '');
+    html = html.replace(/<span[^>]*><\/span>/g, '').replace(/<span[^>]*><\/span>/g, ''); return html;
+  },
+  snapshot() { const m = this.measure(); return { chapterId: this.chapterId, storyId: this.storyId, html: this.serialize(), pidSeq: this.seq, words: m.words, chars: m.chars, at: Date.now() }; },
+};
+/* =====================================================================
+   10. GUTTER (add-paragraph control + comment indicators, drawn outside
+   the editable surface so it can never disturb typing or the caret)
+   ===================================================================== */
+const Gutter = {
+  host: null, add: null, target: null, hovering: null, bubs: new Map(),
+  init() {
+    this.host = $('#gutter');
+    this.add = h('button', { class: 'addp', type: 'button', title: 'Add paragraph', 'aria-label': 'Add paragraph', onclick: () => { if (this.target) Ed.addParagraphAfter(this.target); } }, icon('plus'));
+    this.add.addEventListener('pointerdown', noFocusSteal); this.add.addEventListener('mousedown', noFocusSteal);
+    this.host.append(this.add);
+  },
+  reset() { this.target = null; this.hovering = null; this.add.classList.remove('show'); this.bubs.forEach(b => b.remove()); this.bubs.clear(); },
+  update() {
+    if (!Ed.el || !Ed.chapterId) return;
+    const focused = document.activeElement === Ed.el;
+    const b = this.hovering || (focused ? Ed.topBlock(Ed.currentBlock()) : null);
+    if (!b || !Ed.el.contains(b)) { this.add.classList.remove('show'); return; }
+    const hr = this.host.getBoundingClientRect(), br = b.getBoundingClientRect(), mb = parseFloat(getComputedStyle(b).marginBottom) || 0;
+    this.add.style.top = (br.bottom - hr.top + mb / 2 - 13) + 'px'; this.target = b; this.add.classList.add('show');
+  },
+  onHover(e) {
+    if (!matchMedia('(hover:hover)').matches) return;
+    let n = e.target; while (n && n.parentElement !== Ed.el) n = n.parentElement;
+    if (!n || n === Ed.el) { const kids = Ed.el.children; let lo = 0, hi = kids.length - 1, best = null; while (lo <= hi) { const mid = (lo + hi) >> 1, r = kids[mid].getBoundingClientRect(); if (r.top <= e.clientY) { best = kids[mid]; lo = mid + 1; } else hi = mid - 1; } n = best; }
+    this.hover(n);
+  },
+  hover(b) { if (this.hovering === b) return; this.hovering = b; raf('g-hover', () => this.update()); },
+  commentsSoon: debounce(() => Gutter.renderComments(), 160),
+  renderComments() {
+    if (!Ed.el || !this.host) return; const hr = this.host.getBoundingClientRect(), seen = new Set();
+    Cm.byPid.forEach((n, pid) => {
+      const blk = Ed.el.querySelector(`[data-pid="${pid}"]`); if (!blk) return; seen.add(pid);
+      let b = this.bubs.get(pid);
+      if (!b) { b = h('button', { class: 'cbub', type: 'button', onclick: () => Panel.showComments(pid) }, icon('comment'), h('span')); b.addEventListener('pointerdown', noFocusSteal); b.addEventListener('mousedown', noFocusSteal); this.bubs.set(pid, b); this.host.append(b); }
+      b.lastChild.textContent = n; b.setAttribute('aria-label', n + (n === 1 ? ' comment' : ' comments') + ' on this paragraph'); b.classList.toggle('cur', Cm.current === pid);
+      b.style.top = (blk.getBoundingClientRect().top - hr.top + 2) + 'px';
+    });
+    this.bubs.forEach((b, pid) => { if (!seen.has(pid)) { b.remove(); this.bubs.delete(pid); } });
+  },
+  flash(blk) { const hr = this.host.getBoundingClientRect(), br = blk.getBoundingClientRect(); const f = h('div', { class: 'flash', style: { top: (br.top - hr.top - 3) + 'px', height: (br.height + 6) + 'px' } }); this.host.append(f); setTimeout(() => f.remove(), 1500); },
+};
+
+/* =====================================================================
+   11. AUTOSAVE - reads a snapshot, writes it, never touches the editor DOM.
+   ===================================================================== */
+const Save = {
+  state: 'saved', lastAt: 0, timer: null, maxTimer: null, retry: null, inflight: null, failed: new Map(), tick: null,
+  dirty() {
+    this.setState('busy'); clearTimeout(this.timer); this.timer = setTimeout(() => this.flush(), CONFIG.autosaveMs);
+    if (!this.maxTimer) this.maxTimer = setTimeout(() => this.flush(), CONFIG.autosaveMaxWaitMs); this.backupSoon();
+  },
+  backupSoon: debounce(() => Save.backupNow(), 2500),
+  backupNow() { if (Ed.chapterId && Ed.dirtyFlag) lsSet('sw_backup', { chapterId: Ed.chapterId, storyId: Ed.storyId, html: Ed.serialize(), pidSeq: Ed.seq, at: Date.now() }); },
+  async flush() {
+    clearTimeout(this.timer); clearTimeout(this.maxTimer); this.maxTimer = null;
+    while (this.inflight) await this.inflight;
+    if (!Ed.chapterId || !Ed.dirtyFlag) { if (this.state === 'busy' && !this.failed.size) this.setState('saved'); return true; }
+    const snap = Ed.snapshot(); Ed.dirtyFlag = false; this.setState('busy');
+    const p = (async () => {
+      try {
+        await App.persistChapter(snap); this.failed.delete(snap.chapterId); this.lastAt = Date.now();
+        if (!Ed.dirtyFlag) { this.setState('saved'); const b = lsGet('sw_backup', null); if (b && b.chapterId === snap.chapterId && b.at <= snap.at) lsDel('sw_backup'); }
+        return true;
+      } catch (e) {
+        if (Ed.chapterId === snap.chapterId) Ed.dirtyFlag = true; this.failed.set(snap.chapterId, snap); this.setState('error', e.message);
+        clearTimeout(this.retry); this.retry = setTimeout(() => this.retryFailed(), 5000); return false;
+      }
+    })();
+    this.inflight = p; const r = await p; this.inflight = null; return r;
+  },
+  async retryFailed() {
+    for (const [id, snap] of [...this.failed]) { if (id === Ed.chapterId && Ed.dirtyFlag) { await this.flush(); continue; } try { await App.persistChapter(snap); this.failed.delete(id); } catch { clearTimeout(this.retry); this.retry = setTimeout(() => this.retryFailed(), 8000); return; } }
+    if (!this.failed.size && !Ed.dirtyFlag) this.setState('saved');
+  },
+  setState(s, msg) {
+    this.state = s; const el = $('#saveStatus'); if (!el) return; clearInterval(this.tick);
+    const paint = () => {
+      el.className = s === 'error' ? 'err' : s === 'busy' ? 'busy' : '';
+      const t = s === 'busy' ? 'Saving…' : s === 'error' ? 'Not saved · retrying' : (Date.now() - this.lastAt < 9000 && this.lastAt ? 'Saved just now' : 'Saved');
+      el.replaceChildren(h('span', { class: 'dot' }), h('span', null, t)); el.title = msg || (this.lastAt ? 'Last saved ' + new Date(this.lastAt).toLocaleTimeString() : '');
+    };
+    paint(); if (s === 'saved') this.tick = setInterval(() => { paint(); if (Date.now() - this.lastAt >= 9000) clearInterval(this.tick); }, 2000);
+  },
+};
+
+/* =====================================================================
+   12. COMMENTS + WRITER NOTES  (comments hang off permanent paragraph IDs)
+   ===================================================================== */
+const Cm = {
+  list: [], byPid: new Map(), current: null, showResolved: false,
+  async load(chapterId) { this.list = (await Store.all('comments')).filter(c => c.chapterId === chapterId).sort((a, b) => a.createdAt - b.createdAt); this.current = null; this.index(); },
+  index() { this.byPid = new Map(); this.list.filter(c => !c.resolved).forEach(c => this.byPid.set(c.paragraphId, (this.byPid.get(c.paragraphId) || 0) + 1)); },
+  async add({ paragraphId, body, author = 'You (writer)', role = 'writer' }) { const c = { id: uid(), storyId: Ed.storyId, chapterId: Ed.chapterId, paragraphId, author, role, body, createdAt: Date.now(), resolved: false }; await Store.put('comments', c); this.list.push(c); this.index(); return c; },
+  async toggle(id) { const c = this.list.find(x => x.id === id); if (!c) return; c.resolved = !c.resolved; await Store.put('comments', c); this.index(); },
+  async remove(id) { await Store.del('comments', id); this.list = this.list.filter(c => c.id !== id); this.index(); },
+};
+const Notes = {
+  list: [],
+  async load(storyId) { this.list = (await Store.all('notes')).filter(n => n.storyId === storyId).sort((a, b) => a.createdAt - b.createdAt); },
+  async add(text, chapterId) { const n = { id: uid(), storyId: App.story.id, chapterId: chapterId || null, text, done: false, createdAt: Date.now() }; await Store.put('notes', n); this.list.push(n); return n; },
+  async toggle(id) { const n = this.list.find(x => x.id === id); n.done = !n.done; await Store.put('notes', n); },
+  async remove(id) { await Store.del('notes', id); this.list = this.list.filter(n => n.id !== id); },
+};
+
+/* =====================================================================
+   13. APP: story/chapter persistence + structural operations
+   ===================================================================== */
+const App = {
+  story: null, rec: null,
+  async listStories() { return (await Store.all('stories')).sort((a, b) => b.updatedAt - a.updatedAt); },
+  storyPersistSoon: debounce(() => App.persistStory().catch(() => {}), 2500),
+  async persistStory() { if (!App.story) return; simCheck('save'); App.story.updatedAt = Date.now(); await Store.put('stories', App.story); },
+  async persistChapter(snap) {
+    simCheck('save');
+    const rec = (await Store.get('chapters', snap.chapterId)) || { id: snap.chapterId, storyId: snap.storyId, published: null };
+    Object.assign(rec, { html: snap.html, pidSeq: snap.pidSeq, wordCount: snap.words, charCount: snap.chars, updatedAt: snap.at });
+    await Store.put('chapters', rec); if (App.rec && App.rec.id === rec.id) App.rec = rec;
+    if (App.story && App.story.id === snap.storyId) { const f = Model.find(App.story, snap.chapterId); if (f) { f.chapter.wordCount = snap.words; f.chapter.updatedAt = snap.at; UI.updateTreeMeta(f.chapter); this.storyPersistSoon(); } }
+    if (UI.infoVisible()) Panel.refresh();
+  },
+  async openStory(id) {
+    const s = await Store.get('stories', id); if (!s) return toast('That story could not be found.', 'err');
+    await Save.flush(); App.story = s; await Notes.load(id); UI.collapsed = new Set(lsGet('sw_collapsed_' + id, []));
+    await UI.warmCovers(); UI.showStudio();
+    const first = Model.find(s, s.lastChapterId) ? s.lastChapterId : (Model.all(s)[0] || {}).chapter && Model.all(s)[0].chapter.id;
+    if (first) await this.openChapter(first, { silentPane: true }); else { Ed.unload(); UI.showEmpty(); }
+  },
+  async openChapter(id, opts = {}) {
+    if (id === Ed.chapterId) { UI.setPane('write'); return; }
+    await Save.flush(); if (Ed.chapterId) await this.gcChapterImages(Ed.chapterId);
+    const f = Model.find(App.story, id); if (!f) return;
+    let rec = (await Store.get('chapters', id)) || { id, storyId: App.story.id, html: '', pidSeq: 0, published: null }, recovered = false;
+    const bk = lsGet('sw_backup', null); if (bk && bk.chapterId === id && bk.at > (rec.updatedAt || 0) + 500 && bk.html) { rec = Object.assign({}, rec, { html: bk.html, pidSeq: bk.pidSeq }); recovered = true; }
+    App.rec = rec; await Ed.load(rec); await Cm.load(id);
+    App.story.lastChapterId = id; this.storyPersistSoon();
+    UI.showChapter(f); if (!opts.silentPane) UI.setPane('write'); else UI.setPane(UI.portrait ? 'contents' : 'write');
+    if (recovered) { Ed.dirtyFlag = true; Save.dirty(); toast('Recovered unsaved changes from your last session.'); }
+    Panel.refresh(); Save.setState('saved');
+    $('#scroller').scrollTop = 0;
+  },
+  async gcChapterImages(chapterId) {
+    try {
+      const rec = await Store.get('chapters', chapterId); const html = ((rec && rec.html) || '') + ((rec && rec.published && rec.published.html) || '');
+      const used = new Set([...html.matchAll(/data-image-id="([^"]+)"/g)].map(m => m[1]));
+      const orphans = (await Store.all('images')).filter(i => i.chapter_id === chapterId && !used.has(i.id)).map(i => i.id);
+      if (orphans.length) await Images.removeMany(orphans);
+    } catch {}
+  },
+  async saveDraft() {
+    if (!Ed.chapterId) return; const ok = await Save.flush(); await this.persistStory().catch(() => {});
+    if (ok) { toast('Draft saved'); this.gcChapterImages(Ed.chapterId); } else toast('Couldn’t save right now. Your text is safe and will retry.', 'err');
+  },
+  /* ---- publishing */
+  validate() {
+    Ed.normalizeAll(); const out = [], f = Model.find(App.story, Ed.chapterId), m = Ed.measure(), s = App.story, add = (level, label, detail) => out.push({ level, label, detail });
+    if (!s.title.trim()) add('fail', 'Story title', 'The story needs a title.'); else add('ok', 'Story title', s.title);
+    if (!f.chapter.title.trim()) add('warn', 'Chapter title', 'Untitled — readers will see “Chapter ' + f.chapter.number + '”.'); else add('ok', 'Chapter title', f.chapter.title);
+    if (!m.words) add('fail', 'Content', 'The chapter is empty.'); else if (m.words < 50) add('warn', 'Content', `Only ${m.words} words. Publishing a very short chapter is allowed.`); else add('ok', 'Content', m.words.toLocaleString() + ' words');
+    if (!s.coverImageId) add('fail', 'Story cover', 'Add a story cover (3:2) in story settings before publishing.'); else add('ok', 'Story cover', 'Present');
+    if (!f.volume.coverImageId) add('warn', 'Volume cover', 'This volume has no cover yet. Readers will see a placeholder.');
+    if (s.status === 'draft') add('warn', 'Story status', 'The story is still marked Draft, so readers won’t see this chapter until it is set to Ongoing.');
+    const bad = new Set(), unavail = new Set();
+    Ed.el.querySelectorAll('[style*="font-family"]').forEach(e => { const n = e.style.fontFamily.split(',')[0].replace(/["']/g, '').trim(), fo = Fonts.byName(n); if (!fo) bad.add(n); else if (!Fonts.ok(fo)) unavail.add(n); });
+    const strange = [...Ed.el.querySelectorAll('*')].filter(e => !Sanitize.ALLOWED.has(e.tagName.toLowerCase()) && e.tagName !== 'FONT').length;
+    if (bad.size || strange) add('fail', 'Formatting', (bad.size ? 'Unsupported fonts: ' + [...bad].join(', ') + '. ' : '') + (strange ? strange + ' unsupported elements.' : '')); else if (unavail.size) add('warn', 'Formatting', 'Fonts not currently available: ' + [...unavail].join(', ')); else add('ok', 'Formatting', 'All fonts and styles are supported');
+    const figs = [...Ed.el.querySelectorAll('figure[data-image-id]')], missing = figs.filter(g => { const i = g.querySelector('img'); return !i || !i.getAttribute('src'); }), noAlt = figs.filter(g => !(g.querySelector('img') || {}).alt);
+    if (missing.length) add('fail', 'Images', missing.length + ' image(s) could not be found in storage.'); else if (noAlt.length) add('warn', 'Images', noAlt.length + ' image(s) have no description (alt text). Click an image to add one.'); else add('ok', 'Images', figs.length ? figs.length + ' image(s) ready' : 'No images');
+    const blocks = [...Ed.el.querySelectorAll(BLOCK_SEL)], ids = blocks.map(b => b.getAttribute('data-pid')); let run = 0, maxRun = 0; [...Ed.el.children].forEach(c => { if (/^(P)$/.test(c.tagName) && Ed.isEmptyBlock(c)) { run++; maxRun = Math.max(maxRun, run); } else run = 0; });
+    if (ids.some(x => !x) || new Set(ids).size !== ids.length) add('fail', 'Paragraph structure', 'Some paragraphs are missing unique IDs.'); else if (maxRun > 3) add('warn', 'Paragraph structure', 'There are ' + maxRun + ' empty paragraphs in a row. Use a scene break instead.'); else add('ok', 'Paragraph structure', ids.length.toLocaleString() + ' paragraphs, all with permanent IDs');
+    return out;
+  },
+  async publishChapter() {
+    const rec = await Store.get('chapters', Ed.chapterId); if (!rec) throw new Error('Chapter not saved yet.');
+    rec.published = { html: rec.html, at: Date.now(), title: Model.find(App.story, rec.id).chapter.title }; await Store.put('chapters', rec); App.rec = rec;
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; await this.persistStory(); UI.renderTree(); Panel.refresh();
+  },
+  async unpublishChapter() {
+    const rec = await Store.get('chapters', Ed.chapterId); rec.published = null; await Store.put('chapters', rec); App.rec = rec;
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; await this.persistStory(); UI.renderTree(); Panel.refresh();
+  },
+  /* ---- structure */
+  async mutate(fn) { const snap = JSON.stringify(App.story); try { fn(); await this.persistStory(); UI.renderTree(); UI.syncCrumb(); } catch (e) { App.story = JSON.parse(snap); toast('Change not saved: ' + e.message, 'err'); UI.renderTree(); } },
+  move(list, i, d) { const j = i + d; if (j < 0 || j >= list.length) return; return this.mutate(() => { const [x] = list.splice(i, 1); list.splice(j, 0, x); }); },
+  async purge({ chapterIds = [], imageIds = [] }) {
+    let ok = true;
+    for (const id of chapterIds) {
+      await Store.del('chapters', id);
+      for (const c of (await Store.all('comments')).filter(c => c.chapterId === id)) await Store.del('comments', c.id);
+      for (const n of (await Store.all('notes')).filter(n => n.chapterId === id)) await Store.del('notes', n.id);
+      const imgs = (await Store.all('images')).filter(i => i.chapter_id === id).map(i => i.id); if (!(await Images.removeMany(imgs))) ok = false;
+    }
+    if (imageIds.length && !(await Images.removeMany(imageIds))) ok = false;
+    if (!ok) toast('Some files will be permanently removed shortly (retrying automatically).');
+  },
+  async deleteChapter(f) {
+    const words = f.chapter.wordCount || 0;
+    if (!await confirmDialog({ title: 'Delete this chapter?', body: `“${Model.cLabel(f.chapter)}” (${words.toLocaleString()} words), its comments and images will be permanently deleted. This can’t be undone.`, confirm: 'Delete chapter', danger: true })) return;
+    const id = f.chapter.id, wasOpen = Ed.chapterId === id;
+    if (wasOpen) { Save.dirtyCancel && Save.dirtyCancel(); Ed.dirtyFlag = false; clearTimeout(Save.timer); }
+    await this.mutate(() => { f.list.splice(f.index, 1); });
+    await this.purge({ chapterIds: [id] });
+    if (wasOpen) { Ed.unload(); Ed.chapterId = null; const n = Model.all(App.story)[0]; if (n) await this.openChapter(n.chapter.id, { silentPane: true }); else UI.showEmpty(); if (UI.portrait) UI.setPane('contents'); }
+  },
+  async deleteContainer(kind, obj, parentList, index) {
+    const chapters = kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters, words = chapters.reduce((n, c) => n + (c.wordCount || 0), 0);
+    const name = kind === 'volume' ? Model.vLabel(obj) : Model.pLabel(obj);
+    if (!await confirmDialog({ title: `Delete this ${kind}?`, body: `“${name}” contains ${chapters.length} chapter${chapters.length === 1 ? '' : 's'} (${words.toLocaleString()} words). Everything inside it, including comments, covers and images, will be permanently deleted. This can’t be undone.`, confirm: `Delete ${kind}`, danger: true })) return;
+    const ids = chapters.map(c => c.id), covers = kind === 'volume' ? Model.coverIds(obj) : [obj.coverImageId].filter(Boolean), cur = Ed.chapterId;
+    if (ids.includes(cur)) { Ed.dirtyFlag = false; clearTimeout(Save.timer); }
+    await this.mutate(() => { parentList.splice(index, 1); }); await this.purge({ chapterIds: ids, imageIds: covers });
+    if (ids.includes(cur)) { Ed.unload(); const n = Model.all(App.story)[0]; if (n) await this.openChapter(n.chapter.id, { silentPane: true }); else UI.showEmpty(); if (UI.portrait) UI.setPane('contents'); }
+  },
+  async deleteStory(s) {
+    const total = Model.words(s);
+    if (!await confirmDialog({ title: 'Delete this story?', body: `“${s.title || 'Untitled'}” (${total.toLocaleString()} words) and everything in it will be permanently deleted, including all cover images. This can’t be undone.`, confirm: 'Delete story', danger: true })) return;
+    const chapters = Model.all(s).map(x => x.chapter.id), covers = [s.coverImageId, ...s.volumes.flatMap(Model.coverIds)].filter(Boolean);
+    if (App.story && App.story.id === s.id) { App.story = null; Ed.unload(); }
+    await Store.del('stories', s.id); for (const n of (await Store.all('notes')).filter(n => n.storyId === s.id)) await Store.del('notes', n.id);
+    await this.purge({ chapterIds: chapters, imageIds: covers }); UI.renderLibrary(); toast('Story deleted');
+  },
+  async renumber() {
+    if (!await confirmDialog({ title: 'Renumber everything?', body: 'Volumes, parts and chapters will be numbered in their current order. Titles are not changed.', confirm: 'Renumber' })) return;
+    await this.mutate(() => { let n = 0; App.story.volumes.forEach((v, i) => { v.number = i + 1; v.chapters.forEach(c => { c.number = ++n; }); v.parts.forEach((p, j) => { p.number = j + 1; p.chapters.forEach(c => { c.number = ++n; }); }); }); });
+  },
+};
+
+/* ---------- sample data + stress-test generator */
+const Seed = {
+  para: (id, html, attrs = '') => `<p data-pid="${id}"${attrs}>${html}</p>`,
+  async ensure() {
+    if ((await Store.all('stories')).length) return;
+    const s = Model.newStory(); Object.assign(s, { title: 'The Last Voyage', description: 'A lighthouse keeper, a stranger with salt-stained hands, and a door that was never on the map.', category: 'Adventure', tags: ['sea', 'mystery'], status: 'ongoing' });
+    const mk = (n, t) => Object.assign(Model.newChapter(s), { number: n, title: t });
+    const v1 = Object.assign(Model.newVolume(s), { title: 'The Awakening' }), p1 = Object.assign(Model.newPart(v1), { title: 'The Beginning' });
+    p1.chapters.push(mk(1, 'The Arrival'), mk(2, 'The Stranger'), mk(3, 'The Door')); const p2 = Object.assign(Model.newPart(v1), { number: 2, title: 'The Discovery' }); p2.chapters.push(mk(4, ''), mk(5, ''));
+    v1.parts.push(p1, p2); const v2 = Object.assign(Model.newVolume(s), { number: 2, title: 'The Journey' }); v2.number = 2; const p3 = Object.assign(Model.newPart(v2), { title: 'Into the Unknown' }); v2.parts.push(p3);
+    s.volumes.push(v1, v2); s.lastChapterId = p1.chapters[2].id;
+    const P = this.para, ch3 = [
+      '<h2 data-pid="paragraph_001">Before the storm</h2>',
+      P('paragraph_002', 'The lamp had burned for eleven years without a single night of rest, and Mara had begun to think of it as a <b>living thing</b> — patient, hungry, and faintly ashamed of its own light.'),
+      P('paragraph_003', 'The stranger stood at the bottom of the spiral stair, one hand on the cold iron rail. “You’ve never asked what’s behind it,” he said. It wasn’t a question.'),
+      '<blockquote data-pid="paragraph_004">Some doors are built to keep things out. Others are built to remind you that you can be left.</blockquote>',
+      '<hr class="scene-break" data-pid="paragraph_005">',
+      P('paragraph_006', 'By morning the fog had come in from the east, <i>thick as wool</i>, and the sea below had gone quiet in the way that always meant listening.'),
+      P('paragraph_007', 'Mara wrote two words in the logbook, crossed out one, and then — for the first time in eleven years — <span style="color:#B23A31">left the page unfinished</span>.'),
+    ].join('');
+    const recs = [{ id: p1.chapters[0].id, html: [P('paragraph_001', 'The ferry left Harrow Point an hour late, and the harbour master swore it was the last one the season would allow.')].join(''), pid: 1 }, { id: p1.chapters[1].id, html: P('paragraph_001', 'He arrived with the tide and no luggage, and Mara knew from the way he stood that he had come a long way to be disappointed.'), pid: 1 }, { id: p1.chapters[2].id, html: ch3, pid: 7 }];
+    for (const r of recs) { const c = Model.find(s, r.id).chapter; const wc = r.html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length; c.wordCount = wc; await Store.put('chapters', { id: r.id, storyId: s.id, html: r.html, pidSeq: r.pid, wordCount: wc, charCount: 0, updatedAt: Date.now(), published: null }); }
+    await Store.put('stories', s);
+    const cm = (pid, author, role, body, mins) => Store.put('comments', { id: uid(), storyId: s.id, chapterId: p1.chapters[2].id, paragraphId: pid, author, role, body, createdAt: Date.now() - mins * 60000, resolved: false });
+    await cm('paragraph_002', 'Reader: Anika', 'reader', 'I love this image of the lamp as something alive.', 190); await cm('paragraph_004', 'Reader: Sam', 'reader', 'This line gave me chills. Is the door literal?', 75); await cm('paragraph_004', 'Reader: Priya', 'reader', 'Agreed — please don’t explain it too soon.', 20);
+    await Store.put('notes', { id: uid(), storyId: s.id, chapterId: p1.chapters[2].id, text: 'Check chapter ending — does Mara leave the lamp?', done: false, createdAt: Date.now() });
+    await Store.put('notes', { id: uid(), storyId: s.id, chapterId: null, text: 'Fix timeline: the ferry can’t arrive before the storm in Vol. I.', done: false, createdAt: Date.now() });
+  },
+  words: 'harbour lantern salt ledger thunder orchard whisper copper meridian kestrel embers corridor tide compass vellum glacier saffron ember lantern quiet river marble harvest signal thread shadow anchor market mirror winter island engine letter bridge garden forge silence'.split(' '),
+  sentence(r) { const n = 8 + Math.floor(r() * 12), w = []; for (let i = 0; i < n; i++) w.push(this.words[Math.floor(r() * this.words.length)]); const s = w.join(' '); return s[0].toUpperCase() + s.slice(1) + '.'; },
+  async stress(totalWords = 120000) {
+    let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const s = Model.newStory(); Object.assign(s, { title: 'Stress Test Saga', description: 'Generated content for performance testing.', status: 'draft' });
+    let words = 0, n = 0; const perChapter = 6000;
+    for (let vi = 0; vi < 2; vi++) {
+      const v = Object.assign(Model.newVolume(s), { title: 'Volume ' + (vi + 1) }); s.volumes.push(v);
+      for (let pi = 0; pi < 2; pi++) { const p = Object.assign(Model.newPart(v), { title: 'Part ' + (pi + 1) }); v.parts.push(p);
+        for (let ci = 0; ci < 5 && words < totalWords; ci++) {
+          const c = Object.assign(Model.newChapter(s), { number: ++n, title: 'Chapter ' + n }); p.chapters.push(c);
+          let html = '', pid = 0, cw = 0; while (cw < perChapter) { const k = 3 + Math.floor(r() * 4); let t = ''; for (let i = 0; i < k; i++) t += this.sentence(r) + ' '; cw += t.split(' ').length - 1; html += `<p data-pid="paragraph_${String(++pid).padStart(3, '0')}">${t.trim()}</p>`; }
+          c.wordCount = cw; words += cw; await Store.put('chapters', { id: c.id, storyId: s.id, html, pidSeq: pid, wordCount: cw, updatedAt: Date.now(), published: null });
+        } }
+    }
+    s.lastChapterId = Model.all(s)[0].chapter.id; await Store.put('stories', s); return s;
+  },
+};
+/* =====================================================================
+   14. UI CORE
+   ===================================================================== */
+const UI = {
+  portrait: false, pane: 'write', mode: 'write', leftOpen: true, rightOpen: true, collapsed: new Set(), syncFns: [], maxH: 0, scrollTop: 0, previewWidth: 'desktop',
+  init() {
+    Gutter.init();
+    const set = (id, n, l) => { const b = $(id); b.replaceChildren(icon(n)); b.setAttribute('aria-label', l); b.title = l; };
+    set('#btnLeft', 'panelL', 'Show or hide story structure'); set('#btnRight', 'panelR', 'Comments, chapter info and notes'); set('#libDev', 'more', 'Developer tools');
+    $('#btnBack').addEventListener('click', () => this.back());
+    $('#btnLeft').addEventListener('click', () => { this.leftOpen = !this.leftOpen; this.applyMode(); });
+    $('#btnRight').addEventListener('click', () => { if (this.portrait) { $('#right').classList.contains('open') ? this.closeRight() : this.openRight(); } else { this.rightOpen = !this.rightOpen; this.applyMode(); } });
+    $('#scrim').addEventListener('click', () => this.closeRight());
+    $$('#modeSeg button').forEach(b => b.addEventListener('click', () => this.setMode(b.dataset.m)));
+    $('#btnPreviewP').addEventListener('click', () => this.setMode(this.mode === 'preview' ? 'write' : 'preview'));
+    $('#btnSaveDraft').addEventListener('click', () => App.saveDraft()); $('#btnPublish').addEventListener('click', () => this.publishDialog());
+    $('#libNew').addEventListener('click', () => this.newStory()); $('#libDev').addEventListener('click', e => this.devMenu(e.currentTarget));
+    const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
+    t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Ed.focusForCommand(); const first = Ed.el.firstElementChild; if (first) Ed.placeCaret(first, true); } });
+    Panel.init(); Tools.build();
+    const onResize = () => { this.applyMode(); this.syncViewport(); raf('crop-resize', () => Gutter.renderComments()); };
+    addEventListener('resize', onResize); addEventListener('orientationchange', () => { this.maxH = 0; setTimeout(onResize, 250); });
+    if (window.visualViewport) { visualViewport.addEventListener('resize', () => { this.syncViewport(); raf('kb', () => Ed.ensureCaretVisible()); }); visualViewport.addEventListener('scroll', () => this.syncViewport()); }
+    addEventListener('scroll', () => { if (scrollY) scrollTo(0, 0); });
+    document.addEventListener('selectionchange', () => { if (!Ed.sel()) return; Ed.saveSel(); raf('sel-ui', () => { this.syncToolbar(); Gutter.update(); if (!Ed.composing) Ed.ensureCaretVisible(); }); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { Save.backupNow(); Save.flush(); } });
+    addEventListener('pagehide', () => { Save.backupNow(); Save.flush(); });
+    addEventListener('beforeunload', e => { if (Ed.dirtyFlag || Save.failed.size) { Save.backupNow(); e.preventDefault(); e.returnValue = ''; } });
+    this.rightOpen = innerWidth >= 1280; this.applyMode(); this.syncViewport();
+  },
+  syncViewport() {
+    const vv = window.visualViewport, app = $('#app'); if (!vv) return;
+    app.style.setProperty('--app-h', vv.height + 'px'); app.style.setProperty('--app-top', vv.offsetTop + 'px');
+    this.maxH = Math.max(this.maxH, vv.height, innerHeight); document.body.classList.toggle('kb', this.portrait && vv.height < this.maxH - 140);
+  },
+  applyMode() {
+    const portrait = innerWidth < 1000, changed = portrait !== this.portrait || !document.body.classList.contains(portrait ? 'portrait' : 'desk');
+    this.portrait = portrait; document.body.classList.toggle('portrait', portrait); document.body.classList.toggle('desk', !portrait);
+    if (changed) { if (!portrait) { this.rightOpen = innerWidth >= 1280; this.closeRight(); } this.setPane(this.pane); Tools.rebuildFor(); }
+    $('#left').classList.toggle('collapsed', !this.leftOpen); $('#right').classList.toggle('collapsed', !this.rightOpen && !portrait);
+    if (!portrait) $('#right').classList.remove('open');
+  },
+  setPane(p) { this.pane = p; document.body.classList.toggle('pane-contents', this.portrait && p === 'contents' && $('#viewStudio').classList.contains('on')); this.syncCrumb(); if (p === 'write') raf('pane', () => { Gutter.renderComments(); }); },
+  back() { if (this.portrait && this.pane === 'write' && Ed.chapterId) { Ed.saveSel(); this.setMode('write'); this.setPane('contents'); } else this.showLibrary(); },
+  openRight() { Panel.refresh(); if (this.portrait) { $('#right').classList.add('open'); $('#scrim').hidden = false; } else { this.rightOpen = true; this.applyMode(); } },
+  closeRight() { $('#right').classList.remove('open'); $('#scrim').hidden = true; },
+  infoVisible() { return Panel.tab === 'info' && (this.portrait ? $('#right').classList.contains('open') : this.rightOpen); },
+  onEditorFocus() { this.syncToolbar(); },
+  showCounts(m) {
+    const rt = m.words ? Math.max(1, Math.ceil(m.words / 230)) + ' min read' : '0 min read';
+    $('#statusbar').textContent = `${m.words.toLocaleString()} words · ${m.chars.toLocaleString()} characters · ${rt}`; $('#counts').textContent = `${m.words.toLocaleString()} words · ${rt}`;
+    if (this.infoVisible()) Panel.refresh();
+  },
+  syncCrumb() {
+    const s = App.story; if (!s) return; const f = Ed.chapterId && Model.find(s, Ed.chapterId);
+    const inWrite = f && (!this.portrait || this.pane === 'write');
+    $('#crumbT').textContent = inWrite ? Model.cLabel(f.chapter) : (s.title || 'Untitled story');
+    $('#crumbS').textContent = inWrite ? [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' › ') : (this.portrait ? 'Contents' : '');
+    $('#chNum').textContent = f ? 'Chapter ' + f.chapter.number : '';
+    $('#btnBack').replaceChildren(icon('chevL')); $('#btnBack').setAttribute('aria-label', this.portrait && this.pane === 'write' ? 'Back to contents' : 'Back to your stories');
+    $('#btnPreviewP').replaceChildren(icon(this.mode === 'preview' ? 'edit' : 'eye')); $('#btnPreviewP').setAttribute('aria-label', this.mode === 'preview' ? 'Back to writing' : 'Preview');
+  },
+  /* ---- screens */
+  async showLibrary() {
+    await Save.flush(); await App.gcChapterImages(Ed.chapterId || ''); Ed.unload(); Ed.chapterId = null; App.story = null; this.mode = 'write';
+    $('#viewStudio').classList.remove('on'); $('#viewLibrary').classList.add('on'); document.body.classList.remove('pane-contents'); this.closeRight(); await this.renderLibrary();
+  },
+  showStudio() { $('#viewLibrary').classList.remove('on'); $('#viewStudio').classList.add('on'); this.renderTree(); this.setPane(this.portrait ? 'contents' : 'write'); this.syncCrumb(); Panel.refresh(); $('#emptyState').hidden = true; $('#writeArea').hidden = false; $('#preview').hidden = true; },
+  showChapter(f) {
+    $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; $('#chTitle').value = f.chapter.title; $('#chTitle').placeholder = 'Chapter ' + f.chapter.number + ' title';
+    this.syncCrumb(); this.renderTree(); this.syncToolbar(); Gutter.renderComments(); if (this.mode === 'preview') this.renderPreview();
+  },
+  showEmpty() {
+    $('#writeArea').hidden = true; $('#preview').hidden = true; const e = $('#emptyState'); e.hidden = false; const s = App.story; const hasVol = s.volumes.length;
+    e.replaceChildren(h('h2', { style: { fontFamily: 'var(--doc-font)' } }, hasVol ? 'Add your first chapter' : 'Start with a volume'), h('p', null, hasVol ? 'Chapters are where the writing happens. Each one saves on its own.' : 'Every story lives in a volume. Parts are optional, so a short work can go straight from volume to chapters.'),
+      h('button', { class: 'btn primary', type: 'button', onclick: () => hasVol ? this.addChapter(s.volumes[0], null) : this.addVolume() }, hasVol ? 'New chapter' : 'New volume'));
+    this.syncCrumb(); this.renderTree();
+  },
+  async warmCovers() { const s = App.story; const ids = [s.coverImageId, ...s.volumes.flatMap(Model.coverIds)].filter(Boolean); await Promise.all(ids.map(i => Images.url(i))); },
+  /* ---- library */
+  async renderLibrary() {
+    const stories = await App.listStories(), grid = $('#libGrid'); grid.replaceChildren();
+    await Promise.all(stories.map(s => Images.url(s.coverImageId)));
+    grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New story'), h('span', { class: 'small muted' }, 'Cover, title, description and tags')));
+    stories.forEach(s => {
+      const url = s.coverImageId && Images.urls.get(s.coverImageId), chapters = Model.all(s).length;
+      const menuBtn = ibtn('more', 'Story actions', { style: { position: 'absolute', top: '6px', right: '6px', background: 'rgba(255,255,255,.85)' }, onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
+      grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
+        h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
+        h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill ' + s.status }, (STORY_STATUSES.find(x => x[0] === s.status) || [0, s.status])[1])),
+          h('span', { class: 'small muted' }, `${s.volumes.length} volume${s.volumes.length === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
+    });
+  },
+  newStory() { const s = Model.newStory(); this.entityDialog({ kind: 'story', entity: s, isNew: true, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => (simCheck('save'), Store.put('stories', s)), after: async () => { toast('Story created'); await App.openStory(s.id); } } }); },
+  /* ---- tree */
+  updateTreeMeta(c) { const row = $(`#treeHost .t-row[data-id="${c.id}"]`); if (!row) return; const l = $('.lbl', row); l.replaceChildren(Model.cLabel(c), c.wordCount ? h('small', null, c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : c.wordCount) : ''); $('.sdot', row).className = 'sdot ' + c.status; },
+  toggleCollapse(id) { this.collapsed.has(id) ? this.collapsed.delete(id) : this.collapsed.add(id); lsSet('sw_collapsed_' + App.story.id, [...this.collapsed]); this.renderTree(); },
+  row({ kind, id, label, sub, open, collapsible, active, status, menu, onOpen }) {
+    const chev = collapsible ? h('span', { class: 'chev' }, icon(open ? 'chevD' : 'chevR')) : h('span', { class: 'chev' });
+    const r = h('div', { class: 't-row ' + kind + (active ? ' active' : ''), role: 'treeitem', tabindex: 0, 'data-id': id, 'aria-expanded': collapsible ? String(!!open) : null, 'aria-selected': active ? 'true' : null }, chev,
+      status ? h('span', { class: 'sdot ' + status }) : null, h('span', { class: 'lbl' }, label, sub ? h('small', null, sub) : null),
+      menu ? ibtn('more', 'Actions', { class: 'ib rowmenu', style: { width: '30px', height: '30px' }, onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, menu(), { align: 'end' }); } }) : null);
+    const act = () => (collapsible ? this.toggleCollapse(id) : onOpen && onOpen());
+    r.addEventListener('click', e => { if (!e.target.closest('.rowmenu')) act(); }); r.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } });
+    return r;
+  },
+  renderTree() {
+    const host = $('#treeHost'), s = App.story; if (!host || !s) return; const st = host.scrollTop; host.replaceChildren();
+    const cover = s.coverImageId && Images.urls.get(s.coverImageId);
+    host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words')),
+      ibtn('more', 'Story actions', { onclick: e => showMenu(e.currentTarget, [{ label: 'Story settings…', icon: 'edit', onClick: () => this.editStory() }, { label: 'Renumber everything…', icon: 'lines', onClick: () => App.renumber() }, '-', { label: 'Back to all stories', icon: 'book', onClick: () => this.showLibrary() }], { align: 'end' }) })));
+    const chRow = (c, list, i, v, p) => this.row({ kind: 'chapter', id: c.id, label: Model.cLabel(c), sub: c.wordCount ? (c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : String(c.wordCount)) : '', status: c.status, active: c.id === Ed.chapterId, onOpen: () => App.openChapter(c.id), menu: () => [
+      { label: 'Rename…', icon: 'edit', onClick: () => this.renameChapter(c) }, { label: 'Edit details…', icon: 'file', onClick: () => this.editChapter(c) }, '-',
+      { label: 'Move up', icon: 'up', disabled: i === 0, onClick: () => App.move(list, i, -1) }, { label: 'Move down', icon: 'down', disabled: i === list.length - 1, onClick: () => App.move(list, i, 1) }, { label: 'Move to…', icon: 'move', onClick: () => this.moveDialog('chapter', c) }, '-',
+      { label: 'Delete chapter…', icon: 'trash', danger: true, onClick: () => App.deleteChapter(Model.find(s, c.id)) }] });
+    const addRow = (parts) => h('div', { class: 't-add' }, ...parts);
+    s.volumes.forEach((v, vi) => {
+      const open = !this.collapsed.has(v.id), vcover = v.coverImageId && Images.urls.get(v.coverImageId);
+      host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, menu: () => [
+        { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) }, '-',
+        { label: 'Move up', icon: 'up', disabled: vi === 0, onClick: () => App.move(s.volumes, vi, -1) }, { label: 'Move down', icon: 'down', disabled: vi === s.volumes.length - 1, onClick: () => App.move(s.volumes, vi, 1) }, '-',
+        { label: 'Delete volume…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('volume', v, s.volumes, vi) }] }));
+      if (!open) return; const kids = h('div', { class: 't-kids' });
+      v.chapters.forEach((c, i) => kids.append(chRow(c, v.chapters, i, v, null)));
+      v.parts.forEach((p, pi) => {
+        const po = !this.collapsed.has(p.id);
+        kids.append(this.row({ kind: 'part', id: p.id, label: Model.pLabel(p), open: po, collapsible: true, menu: () => [
+          { label: 'Edit part…', icon: 'edit', onClick: () => this.editPart(p, v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, p) }, '-',
+          { label: 'Move up', icon: 'up', disabled: pi === 0, onClick: () => App.move(v.parts, pi, -1) }, { label: 'Move down', icon: 'down', disabled: pi === v.parts.length - 1, onClick: () => App.move(v.parts, pi, 1) }, { label: 'Move to another volume…', icon: 'move', onClick: () => this.moveDialog('part', p) }, '-',
+          { label: 'Delete part…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('part', p, v.parts, pi) }] }));
+        if (po) { const pk = h('div', { class: 't-kids' }); p.chapters.forEach((c, i) => pk.append(chRow(c, p.chapters, i, v, p))); pk.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, p) }, icon('plus'), 'Chapter')])); kids.append(pk); }
+      });
+      kids.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, null) }, icon('plus'), 'Chapter'), h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addPart(v) }, icon('plus'), 'Part')])); host.append(kids);
+    });
+    host.append(addRow([h('button', { class: 'btn sm', type: 'button', onclick: () => this.addVolume() }, icon('plus'), 'Volume')])); host.scrollTop = st;
+  },
+  async renameChapter(c) { const v = await promptDialog({ title: 'Rename chapter', label: 'Chapter title', value: c.title, confirm: 'Rename' }); if (v === null) return; await App.mutate(() => { c.title = v; }); if (c.id === Ed.chapterId) { $('#chTitle').value = v; } },
+  moveDialog(kind, obj) {
+    const s = App.story; let opts;
+    if (kind === 'chapter') opts = s.volumes.flatMap(v => [['v:' + v.id, Model.vLabel(v) + ' (chapters directly in volume)'], ...v.parts.map(p => ['p:' + p.id, Model.vLabel(v) + ' › ' + Model.pLabel(p)])]);
+    else opts = s.volumes.map(v => ['v:' + v.id, Model.vLabel(v)]);
+    const sel = selectEl(opts, opts[0][0]);
+    const m = openModal({ title: kind === 'chapter' ? 'Move chapter' : 'Move part', body: field('Move to', sel), footer: [h('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), h('button', { class: 'btn primary', onclick: async () => {
+      const [t, id] = sel.value.split(':'); m.close();
+      await App.mutate(() => {
+        if (kind === 'chapter') { const f = Model.find(s, obj.id); f.list.splice(f.index, 1); const dest = t === 'v' ? s.volumes.find(v => v.id === id).chapters : Model.findPart(s, id).part.chapters; dest.push(obj); }
+        else { const f = Model.findPart(s, obj.id); f.volume.parts.splice(f.index, 1); s.volumes.find(v => v.id === id).parts.push(obj); }
+      }); if (kind === 'chapter' && obj.id === Ed.chapterId) this.syncCrumb();
+    } }, 'Move')] });
+  },
+  /* ---- entity creation / editing */
+  editStory() { const s = App.story; this.entityDialog({ kind: 'story', entity: s, isNew: false, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
+  addVolume() { const s = App.story, v = Model.newVolume(s); this.entityDialog({ kind: 'volume', entity: v, isNew: true, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach: () => s.volumes.push(v), detach: () => { s.volumes = s.volumes.filter(x => x !== v); }, persist: () => App.persistStory(), after: () => { this.renderTree(); if (!Ed.chapterId) this.showEmpty(); } } }); },
+  editVolume(v) { const s = App.story; this.entityDialog({ kind: 'volume', entity: v, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
+  addPart(v) { const s = App.story, p = Model.newPart(v); this.entityDialog({ kind: 'part', entity: p, isNew: true, ctx: { owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach: () => v.parts.push(p), detach: () => { v.parts = v.parts.filter(x => x !== p); }, persist: () => App.persistStory(), after: () => this.renderTree() } }); },
+  editPart(p, v) { const s = App.story; this.entityDialog({ kind: 'part', entity: p, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
+  addChapter(v, p) { const s = App.story, c = Model.newChapter(s), list = p ? p.chapters : v.chapters; this.entityDialog({ kind: 'chapter', entity: c, isNew: true, ctx: { attach: () => list.push(c), detach: () => { const i = list.indexOf(c); if (i >= 0) list.splice(i, 1); }, persist: () => App.persistStory(), after: async () => { this.collapsed.delete(v.id); if (p) this.collapsed.delete(p.id); this.renderTree(); await App.openChapter(c.id); setTimeout(() => { if (matchMedia('(pointer:fine)').matches) $('#chTitle').focus(); }, 60); } } }); },
+  editChapter(c) { this.entityDialog({ kind: 'chapter', entity: c, isNew: false, ctx: { attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); if (c.id === Ed.chapterId) { $('#chTitle').value = c.title; } } } }); },
+  async entityDialog({ kind, entity, isNew, ctx }) {
+    const spec = IMAGE_SPECS[kind + '_cover'], names = { story: 'story', volume: 'volume', part: 'part', chapter: 'chapter' };
+    const curRec = spec && entity.coverImageId ? await Images.record(entity.coverImageId) : null;
+    const els = {}, body = h('div'); let cover = null, tags = null;
+    if (spec) cover = CoverField({ spec, current: curRec, onDeleteSaved: () => deleteCover({ entity, persist: ctx.persist }) });
+    const errHost = h('div');
+    if (kind === 'story') {
+      body.append(field(null, cover.el), field('Title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'The title of your story', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, placeholder: 'What is this story about?', maxLength: 2000 })),
+        h('div', { class: 'row2' }, field('Category', els.cat = selectEl(CATEGORIES.map(c => [c, c]), entity.category || 'Other')), field('Status', els.status = selectEl(STORY_STATUSES, entity.status))), field('Tags', (tags = tagsInput(entity.tags || [])).el, 'Press Enter to add each tag'));
+    } else if (kind === 'volume') {
+      body.append(field(null, cover.el), h('div', { class: 'row2' }, field('Volume number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', els.status = selectEl(PUB_STATUSES, entity.status))), field('Volume title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Awakening', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
+    } else if (kind === 'part') {
+      body.append(h('div', { class: 'row2' }, field('Part number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Part title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Beginning', maxLength: 140 }))), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })), h('div', { class: 'lb', style: { fontWeight: 600, fontSize: '13.5px', marginBottom: '6px' } }, 'Cover (optional)'), cover.el);
+    } else {
+      body.append(h('div', { class: 'row2' }, field('Chapter number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', h('div', null, h('span', { class: 'pill ' + entity.status }, entity.status === 'published' ? 'Published' : 'Draft'), h('div', { class: 'hint', style: { marginTop: '4px' } }, 'Use Publish in the toolbar when the chapter is ready.')))), field('Chapter title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'Optional', maxLength: 140 })));
+    }
+    body.append(errHost);
+    const saveBtn = h('button', { class: 'btn primary', type: 'button' }, isNew ? 'Create' : 'Save'), cancelBtn = h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Cancel');
+    const title = (isNew ? 'New ' : 'Edit ') + names[kind];
+    const m = openModal({ title, body, footer: [cancelBtn, saveBtn], onClose: () => cover && cover.dispose() });
+    saveBtn.addEventListener('click', async () => {
+      errHost.replaceChildren(); const vals = {};
+      if (els.title) vals.title = els.title.value.trim(); if (els.desc) vals.description = els.desc.value.trim(); if (els.num) vals.number = Math.max(1, parseInt(els.num.value, 10) || 1);
+      if (els.status) vals.status = els.status.value; if (els.cat) vals.category = els.cat.value; if (tags) vals.tags = [...tags.value];
+      if (kind === 'story' && !vals.title) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Your story needs a title.')); els.title.focus(); return; }
+      saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.replaceChildren(h('span', { class: 'spin' }), ' Saving…'); m.setDismissable(false);
+      const snap = JSON.stringify(entity);
+      try {
+        Object.assign(entity, vals); if (isNew) ctx.attach();
+        if (cover && cover.staged) await applyCoverChange({ entity, owner: ctx.owner, type: spec.type, staged: cover.staged, persist: ctx.persist }); else await ctx.persist();
+        if (cover) cover.markSaved(await Images.record(entity.coverImageId));
+        m.setDismissable(true); m.close(); await ctx.after(entity);
+      } catch (e) {
+        const old = JSON.parse(snap); Object.keys(entity).forEach(k => delete entity[k]); Object.assign(entity, old); if (isNew) ctx.detach();
+        errHost.replaceChildren(h('div', { class: 'banner err', role: 'alert' }, icon('alert'), h('span', null, `Couldn’t save: ${e.message} ` + (cover && cover.staged ? 'Your current image was kept. Try again when you’re ready.' : 'Nothing was changed.'))));
+        saveBtn.disabled = false; cancelBtn.disabled = false; saveBtn.textContent = 'Retry'; m.setDismissable(true);
+      }
+    });
+  },
+  /* ---- publish */
+  async publishDialog() {
+    if (!Ed.chapterId) return; if (this.mode === 'preview') this.setMode('write');
+    const okSave = await Save.flush(); if (!okSave) { toast('Save failed, so publishing is paused. Your text is safe; try again in a moment.', 'err'); return; }
+    const items = App.validate(), fails = items.filter(i => i.level === 'fail').length, warns = items.filter(i => i.level === 'warn').length, f = Model.find(App.story, Ed.chapterId);
+    const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
+    const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
+    const already = f.chapter.status === 'published';
+    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); toast('Published'); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Publish changes' : 'Publish chapter');
+    const m = openModal({ title: 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
+  },
+  /* ---- developer tools */
+  devMenu(anchor) {
+    const on = b => b ? '✓ ' : '';
+    showMenu(anchor, ['Storage: ' + Store.mode, { label: on(Sim.offline) + 'Simulate offline', keepOpen: false, onClick: () => { Sim.offline = !Sim.offline; toast('Offline simulation ' + (Sim.offline ? 'on' : 'off')); if (!Sim.offline) Save.retryFailed(); } },
+      { label: 'Fail next image upload', onClick: () => { Sim.failUpload = 1; toast('The next upload will fail'); } }, { label: 'Fail next R2 delete', onClick: () => { Sim.failDelete = 1; toast('The next delete will fail'); } }, { label: 'Fail next save', onClick: () => { Sim.failSave = 1; toast('The next save will fail'); } }, '-',
+      { label: 'Generate 120,000-word test story', onClick: async () => { toast('Generating…'); const s = await Seed.stress(120000); await this.renderLibrary(); toast('Created “' + s.title + '”'); } },
+      { label: 'Erase all local data…', danger: true, onClick: async () => { if (await confirmDialog({ title: 'Erase everything?', body: 'All stories, chapters and images stored in this browser will be deleted.', confirm: 'Erase', danger: true })) { Ed.unload(); Ed.chapterId = null; await Store.clearAll(); lsDel('sw_backup'); await Seed.ensure(); await this.showLibrary(); } } }], { align: 'end' });
+  },
+};
+/* =====================================================================
+   15. TOOLS: toolbar (desktop/tablet landscape) + dock (portrait) + pickers
+   All controls swallow pointerdown so the editor never loses focus, which is
+   what keeps the software keyboard open on phones and tablets.
+   ===================================================================== */
+const SIZES = [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 24, 26, 28, 32, 36, 40, 48, 64, 72];
+const TEXT_COLORS = ['#1D2731', '#4A5560', '#7A8590', '#000000', '#B23A31', '#C2571A', '#A66B00', '#5E7A1E', '#2B7A4B', '#1D6B73', '#1F4E9E', '#5B3FA0', '#8E2C6B', '#7A4A2A', '#D64545', '#E58A2B'];
+const HL_COLORS = ['#FFF3A8', '#FFE0B2', '#FFCDD2', '#F8BBD0', '#E1BEE7', '#C5CAE9', '#B3E5FC', '#B2EBF2', '#C8E6C9', '#DCEDC8', '#D7CCC8', '#E0E0E0'];
+const LINE_H = [['1.2', '1.2'], ['1.5', '1.5'], ['1.75', '1.75'], ['2.0', '2'], ['2.4', '2.4']];
+const PARA_S = [['None', '0'], ['Tight', '0.4em'], ['Normal', '0.9em'], ['Roomy', '1.4em'], ['Wide', '2em']];
+const BLOCK_NAMES = { p: 'Normal', h1: 'Heading', h2: 'Subheading', blockquote: 'Quote', li: 'List' };
+const Tools = {
+  build() { this.buildToolbar(); this.buildDock(); },
+  rebuildFor() { Pop.close(); Dock.close(); },
+  curSize() { const s = Ed.state(); return (s && s.size) || 19; },
+  stepSize(d) { const c = this.curSize(); const n = d > 0 ? SIZES.find(x => x > c) : [...SIZES].reverse().find(x => x < c); if (n) Ed.cmd('size', n); },
+  sizeMenu(ctx) { const c = this.curSize(); return SIZES.map(s => menuItem(String(s), { on: s === c, onClick: () => { Ed.cmd('size', s); ctx.done && ctx.done(); } })); },
+  colorMenu(kind, ctx) {
+    const isText = kind === 'color', colors = isText ? TEXT_COLORS : HL_COLORS, key = 'sw_recent_' + kind, rec = lsGet(key, []);
+    const apply = c => { Ed.cmd(kind, c); if (c) lsSet(key, [c, ...rec.filter(x => x !== c)].slice(0, 8)); ctx.done && ctx.done(); };
+    const sw = c => h('button', { class: 'sw', type: 'button', style: { background: c }, title: c, 'aria-label': c, onclick: () => apply(c) });
+    const custom = h('input', { type: 'color', 'data-focusable': '', value: '#1D6B73', style: { width: '100%', height: '34px', border: '1px solid var(--line)', borderRadius: '8px', padding: '2px', background: '#fff' }, 'aria-label': 'Custom colour' });
+    custom.addEventListener('change', () => { Ed.restoreFocus(); apply(custom.value); });
+    return h('div', { style: { width: '270px' } }, h('div', { class: 'menu-h' }, isText ? 'Text colour' : 'Highlight'), menuItem(isText ? 'Automatic' : 'No highlight', { onClick: () => apply(null) }),
+      h('div', { class: 'swatches' }, colors.map(sw)), rec.length ? [h('div', { class: 'menu-h' }, 'Recent'), h('div', { class: 'swatches' }, rec.map(sw))] : null, h('div', { class: 'menu-h' }, 'Custom'), h('div', { style: { padding: '0 6px 6px' } }, custom));
+  },
+  fontPicker(ctx) {
+    let cat = 'All', q = ''; const cur = (Ed.state() || {}).fontName, wrap = h('div', { class: 'fontpick' }), chips = h('div', { class: 'chips' }), list = h('div', { class: 'flist' });
+    const search = h('input', { class: 'inp', 'data-focusable': '', type: 'search', placeholder: 'Search fonts', 'aria-label': 'Search fonts', style: { margin: '2px 4px 4px', width: 'calc(100% - 8px)' }, oninput: e => { q = e.target.value.toLowerCase(); render(); } });
+    const row = f => { const st = Fonts.state.get(f.n), ok = st === 'ok';
+      return h('button', { class: 'frow' + (f.n === cur ? ' on' : ''), type: 'button', disabled: !ok, onclick: () => { Fonts.use(f); Ed.cmd('font', f); ctx.done && ctx.done(); } },
+        h('span', { class: 'fn', style: { fontFamily: Fonts.stack(f) }, dir: f.rtl ? 'rtl' : 'ltr' }, f.n), h('span', { class: 'fs', style: { fontFamily: ok ? Fonts.stack(f) : '', fontSize: '14px' }, dir: f.rtl ? 'rtl' : 'ltr' }, ok ? Fonts.sample(f) : st === 'loading' ? 'Loading…' : 'Not available right now (needs a connection)')); };
+    function render() {
+      chips.replaceChildren(...FONT_CATS.map(c => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(c === cat), onclick: () => { cat = c; render(); } }, c)));
+      let fs = FONTS; if (cat === 'Recent') fs = Fonts.recent().map(Fonts.byName).filter(Boolean); else if (cat !== 'All') fs = FONTS.filter(f => f.c === cat);
+      if (q) fs = fs.filter(f => f.n.toLowerCase().includes(q) || f.c.toLowerCase().includes(q));
+      list.replaceChildren(...(fs.length ? fs.map(row) : [h('div', { class: 'muted', style: { padding: '14px' } }, cat === 'Recent' ? 'Fonts you use will appear here.' : 'No fonts match.')]));
+    }
+    const sub = () => { if (wrap.isConnected) render(); else Fonts.subs.delete(sub); }; Fonts.subs.add(sub);
+    wrap.append(search, chips, list); render(); return wrap;
+  },
+  blockItems(ctx) {
+    const st = Ed.state() || {}, it = (label, ic, on, run) => menuItem(label, { icon: ic, on, onClick: () => { run(); ctx.done && ctx.done(); } });
+    return [it('Normal text', 'file', st.block === 'p' && !st.list && !st.quote, () => Ed.cmd('block', 'p')), it('Heading', 'heading', st.block === 'h1', () => Ed.cmd('block', 'h1')), it('Subheading', 'heading', st.block === 'h2', () => Ed.cmd('block', 'h2')),
+      it('Quote', 'quote', st.quote, () => Ed.cmd('block', st.quote ? 'p' : 'blockquote')), it('Bulleted list', 'ul', st.list === 'ul', () => Ed.cmd('list', 'ul')), it('Numbered list', 'ol', st.list === 'ol', () => Ed.cmd('list', 'ol'))];
+  },
+  alignItems(ctx) { const st = Ed.state() || {}, a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; return [['left', 'alignL', 'Align left'], ['center', 'alignC', 'Centre'], ['right', 'alignR', 'Align right'], ['justify', 'alignJ', 'Justify']].map(([v, ic, l]) => menuItem(l, { icon: ic, on: a === v, onClick: () => { Ed.cmd('align', v); ctx.done && ctx.done(); } })); },
+  chipRow(label, opts, run, ctx) { return h('div', null, h('div', { class: 'menu-h' }, label), h('div', { class: 'chips' }, opts.map(([l, v]) => h('button', { class: 'chip', type: 'button', onclick: () => { run(v); ctx.done && ctx.done(); } }, l)))); },
+  moreItems(ctx) {
+    return [menuItem('Strikethrough', { icon: 'strike', key: 'Ctrl+Shift+X', onClick: () => Ed.cmd('strike') }), this.chipRow('Line spacing', LINE_H, v => Ed.cmd('lineHeight', v), ctx), this.chipRow('Paragraph spacing', PARA_S, v => Ed.cmd('paraSpace', v), ctx), h('div', { class: 'menu-sep' }),
+      menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', key: 'Ctrl+K', onClick: () => this.link() }), menuItem('Insert image…', { icon: 'image', onClick: () => this.image() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') })];
+  },
+  async link() {
+    Ed.saveSel(); const s = Ed.sel(), a = s && s.anchorNode, existing = a && (a.nodeType === 1 ? a : a.parentElement).closest('a');
+    const v = await promptDialog({ title: 'Link', label: 'Web address', placeholder: 'https://example.com', value: existing ? existing.getAttribute('href') : '', confirm: 'Apply', restoreEditor: true, type: 'url' });
+    if (v === null) return; if (!v) { if (existing) Ed.cmd('unlink'); return; }
+    let url = v; if (!/^(https?:|mailto:)/i.test(url)) url = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(url) ? 'mailto:' + url : 'https://' + url; Ed.cmd('link', url);
+  },
+  image() {
+    if (!Ed.chapterId) return; Ed.saveSel(); const inp = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
+    inp.onchange = async () => {
+      const f = inp.files[0]; if (!f) return;
+      try { toast('Adding image…'); const p = await prepareInlineImage(f); const rec = await Images.upload({ type: 'chapter_image', storyId: Ed.storyId, chapterId: Ed.chapterId, blob: p.blob, width: p.width, height: p.height }); const url = URL.createObjectURL(p.blob); Images.urls.set(rec.id, url); Ed.insertFigure(rec.id, url); }
+      catch (e) { toast('Couldn’t add the image: ' + e.message, 'err'); }
+    }; inp.click();
+  },
+  imageDetails(fig) {
+    const img = fig.querySelector('img'); if (!img) return;
+    const alt = h('input', { class: 'inp', 'data-focusable': '', value: img.getAttribute('alt') || '', placeholder: 'Describe the image for readers' });
+    alt.addEventListener('change', () => { img.setAttribute('alt', alt.value); Ed.dirtyFlag = true; Save.dirty(); });
+    const rm = h('button', { class: 'btn sm danger', type: 'button', onclick: () => { Pop.close(); const r = document.createRange(); r.selectNode(fig); const s = getSelection(); s.removeAllRanges(); s.addRange(r); Ed.el.focus({ preventScroll: true }); document.execCommand('delete'); Ed.dirtyFlag = true; Save.dirty(); Ed.afterInput('deleteContentBackward'); } }, 'Remove image');
+    Pop.open(fig, h('div', { style: { padding: '8px', width: '280px' } }, field('Image description', alt), rm), { role: 'dialog', onClose: () => fig.classList.remove('sel') });
+  },
+  /* ---- desktop toolbar */
+  buildToolbar() {
+    const tb = $('#toolbar'); tb.replaceChildren(); tb.addEventListener('pointerdown', noFocusSteal); tb.addEventListener('mousedown', noFocusSteal);
+    const toggle = (name, label, run, pred) => { const b = ibtn(name, label, { onclick: run }); b.setAttribute('aria-pressed', 'false'); UI.syncFns.push(st => b.setAttribute('aria-pressed', String(!!pred(st)))); return b; };
+    const undo = ibtn('undo', 'Undo (Ctrl+Z)', { onclick: () => Ed.cmd('undo') }), redo = ibtn('redo', 'Redo (Ctrl+Shift+Z)', { onclick: () => Ed.cmd('redo') });
+    UI.syncFns.push(st => { undo.disabled = !st.canUndo; redo.disabled = !st.canRedo; });
+    const fontLbl = h('span', { class: 'nm' }, 'Source Serif 4'), fontBtn = h('button', { class: 'tsel', id: 'fontBtn', type: 'button', 'aria-label': 'Font', 'aria-haspopup': 'dialog', onclick: () => Pop.open(fontBtn, this.fontPicker({ done: () => Pop.close() }), { role: 'dialog' }) }, fontLbl, icon('chevD'));
+    const sizeVal = h('button', { class: 'sv', type: 'button', 'aria-label': 'Font size', onclick: e => Pop.open(e.currentTarget, this.sizeMenu({ done: () => Pop.close() }), {}) }, '19');
+    const size = h('div', { class: 'size' }, h('button', { type: 'button', 'aria-label': 'Decrease font size', onclick: () => this.stepSize(-1) }, icon('minus')), sizeVal, h('button', { type: 'button', 'aria-label': 'Increase font size', onclick: () => this.stepSize(1) }, icon('plus')));
+    const colorBar = h('span', { class: 'tcolor' }), colorBtn = h('button', { class: 'ib', type: 'button', title: 'Text colour', 'aria-label': 'Text colour', 'aria-haspopup': 'dialog', onclick: () => Pop.open(colorBtn, this.colorMenu('color', { done: () => Pop.close() }), { role: 'dialog' }) }, icon('color'), colorBar);
+    const hlBtn = ibtn('hl', 'Highlight colour', { 'aria-haspopup': 'dialog', onclick: () => Pop.open(hlBtn, this.colorMenu('highlight', { done: () => Pop.close() }), { role: 'dialog' }) });
+    const blockLbl = h('span', { class: 'nm' }, 'Normal'), blockBtn = h('button', { class: 'tsel', type: 'button', style: { minWidth: '100px', justifyContent: 'space-between' }, 'aria-label': 'Paragraph style', onclick: () => Pop.open(blockBtn, this.blockItems({ done: () => Pop.close() })) }, blockLbl, icon('chevD'));
+    const alignBtn = ibtn('alignL', 'Alignment', { onclick: () => Pop.open(alignBtn, this.alignItems({ done: () => Pop.close() })) });
+    const moreBtn = ibtn('more', 'More formatting', { onclick: () => Pop.open(moreBtn, this.moreItems({ done: () => Pop.close() }), { align: 'end', cls: '' }) });
+    UI.syncFns.push(st => { fontLbl.textContent = Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'; fontLbl.style.fontFamily = ''; sizeVal.textContent = st.size || 19; blockLbl.textContent = st.list ? (st.list === 'ul' ? 'Bulleted list' : 'Numbered list') : st.quote ? 'Quote' : (BLOCK_NAMES[st.block] || 'Normal'); const a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; alignBtn.replaceChildren(icon(a === 'center' ? 'alignC' : a === 'right' ? 'alignR' : a === 'justify' ? 'alignJ' : 'alignL')); colorBar.style.background = st.color || 'var(--ink)'; });
+    const g = (...k) => h('div', { class: 'tg' }, ...k), sep = () => h('span', { class: 'sep' });
+    tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn);
+  },
+  /* ---- portrait dock */
+  buildDock() {
+    const bar = $('#dockBar'), panel = $('#dockPanel'); bar.replaceChildren(); [bar, panel].forEach(x => { x.addEventListener('pointerdown', noFocusSteal); x.addEventListener('mousedown', noFocusSteal); });
+    const toggle = (name, label, run, pred) => { const b = ibtn(name, label, { onclick: run }); b.setAttribute('aria-pressed', 'false'); UI.syncFns.push(st => b.setAttribute('aria-pressed', String(!!pred(st)))); return b; };
+    const undo = ibtn('undo', 'Undo', { onclick: () => Ed.cmd('undo') }), redo = ibtn('redo', 'Redo', { onclick: () => Ed.cmd('redo') }); UI.syncFns.push(st => { undo.disabled = !st.canUndo; redo.disabled = !st.canRedo; });
+    const pbtn = (name, ic, label) => { const b = ibtn(ic, label, { onclick: () => Dock.toggle(name) }); b.setAttribute('aria-pressed', 'false'); Dock.btns[name] = b; return b; };
+    const addP = ibtn('plus', 'Add paragraph', { onclick: () => { const b = Ed.topBlock(Ed.currentBlock()) || (Ed.saved && Ed.topBlock(Ed.blockOf(Ed.saved.endContainer))) || (Ed.el && Ed.el.lastElementChild); Ed.addParagraphAfter(b); } });
+    bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'));
+  },
+};
+const Dock = {
+  name: null, btns: {},
+  toggle(n) { this.name === n ? this.close() : this.show(n); },
+  show(n) {
+    const panel = $('#dockPanel'), ctx = { done: () => this.close() }, keep = { done: null }; let el;
+    if (n === 'color') el = h('div', null, Tools.colorMenu('color', ctx), h('div', { class: 'menu-sep' }), Tools.colorMenu('highlight', ctx));
+    else if (n === 'block') el = h('div', null, h('div', { class: 'dp-row' }, ...Tools.blockItems(ctx).map(b => { b.style.width = 'auto'; b.style.flex = '1 1 46%'; return b; })), h('div', { class: 'menu-sep' }), h('div', { class: 'dp-row' }, ...Tools.alignItems(ctx).map(b => { const s = b.querySelector('span'); if (s) s.remove(); b.style.width = 'auto'; b.style.flex = '1'; b.style.justifyContent = 'center'; return b; })));
+    else if (n === 'font') { el = Tools.fontPicker(ctx); el.style.width = '100%'; }
+    else if (n === 'text') {
+      const st = Ed.state() || {}, f = h('button', { class: 'tsel', type: 'button', style: { width: '100%', justifyContent: 'space-between', margin: '2px 0 6px' }, onclick: () => this.show('font') }, h('span', { class: 'nm' }, Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'), icon('chevD'));
+      const val = h('span', { style: { minWidth: '44px', textAlign: 'center', fontWeight: 600 } }, String(Tools.curSize()));
+      const step = d => { Tools.stepSize(d); val.textContent = String(Tools.curSize()); };
+      el = h('div', { style: { padding: '4px 8px' } }, f, h('div', { class: 'dp-row', style: { justifyContent: 'space-between' } }, h('span', { class: 'muted' }, 'Size'), h('div', { class: 'size' }, h('button', { type: 'button', 'aria-label': 'Smaller', onclick: () => step(-1) }, icon('minus')), val, h('button', { type: 'button', 'aria-label': 'Larger', onclick: () => step(1) }, icon('plus')))),
+        Tools.chipRow('Line spacing', LINE_H, v => Ed.cmd('lineHeight', v), keep), Tools.chipRow('Paragraph spacing', PARA_S, v => Ed.cmd('paraSpace', v), keep));
+    } else if (n === 'more') {
+      el = h('div', null, menuItem('Strikethrough', { icon: 'strike', onClick: () => Ed.cmd('strike') }), menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', onClick: () => Tools.link() }), menuItem('Insert image…', { icon: 'image', onClick: () => Tools.image() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') }), h('div', { class: 'menu-sep' }),
+        menuItem('Comments, info and notes', { icon: 'comment', onClick: () => { UI.openRight(); } }), menuItem('Save draft', { icon: 'save', onClick: () => App.saveDraft() }), menuItem('Publish…', { icon: 'send', onClick: () => UI.publishDialog() }));
+      el.querySelectorAll('.menu-i').forEach(b => b.addEventListener('click', () => this.close()));
+    }
+    panel.replaceChildren(el); panel.hidden = false; this.name = n; Object.entries(this.btns).forEach(([k, b]) => b.setAttribute('aria-pressed', String(k === n || (n === 'font' && k === 'text'))));
+    raf('dock', () => Ed.ensureCaretVisible());
+  },
+  close() { const p = $('#dockPanel'); if (!p) return; p.hidden = true; p.replaceChildren(); this.name = null; Object.values(this.btns).forEach(b => b.setAttribute('aria-pressed', 'false')); raf('dock', () => Ed.ensureCaretVisible()); },
+};
+UI.syncToolbar = function () { if (this.mode === 'preview') return; const st = Ed.state(); if (!st) return; this.syncFns.forEach(fn => { try { fn(st); } catch {} }); };
+
+/* =====================================================================
+   16. RIGHT PANEL: comments / chapter info / private writer notes
+   ===================================================================== */
+const Panel = {
+  tab: 'comments',
+  init() {
+    const tabs = $('#rTabs'); tabs.replaceChildren(...[['comments', 'Comments'], ['info', 'Chapter'], ['notes', 'Notes']].map(([k, l]) => h('button', { role: 'tab', type: 'button', 'data-t': k, 'aria-selected': String(k === 'comments'), onclick: () => this.setTab(k) }, l)), h('span', { class: 'spacer' }), ibtn('close', 'Close panel', { class: 'ib only-port', onclick: () => UI.closeRight() }));
+  },
+  setTab(t) { this.tab = t; $$('#rTabs [role=tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t))); this.refresh(); },
+  showComments(pid) { Cm.current = pid; this.tab = 'comments'; $$('#rTabs [role=tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === 'comments'))); UI.openRight(); Gutter.renderComments(); setTimeout(() => { const g = $('#rBody [data-pid="' + pid + '"]'); if (g) g.scrollIntoView({ block: 'nearest' }); }, 30); },
+  jumpTo(pid) { const b = Ed.el && Ed.el.querySelector(`[data-pid="${pid}"]`); if (!b) return; Cm.current = pid; if (UI.portrait) { UI.closeRight(); UI.setPane('write'); UI.setMode('write'); } b.scrollIntoView({ block: 'center' }); Gutter.flash(b); Gutter.renderComments(); this.refresh(); },
+  refresh() { const body = $('#rBody'); if (!body || !App.story) return; body.replaceChildren(this.tab === 'comments' ? this.renderComments() : this.tab === 'info' ? this.renderInfo() : this.renderNotes()); },
+  renderComments() {
+    const wrap = h('div'); if (!Ed.chapterId) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its comments.');
+    const order = new Map(); if (Ed.el) Ed.el.querySelectorAll('[data-pid]').forEach((b, i) => order.set(b.getAttribute('data-pid'), i));
+    const shown = Cm.list.filter(c => Cm.showResolved || !c.resolved), groups = new Map(); shown.forEach(c => { if (!groups.has(c.paragraphId)) groups.set(c.paragraphId, []); groups.get(c.paragraphId).push(c); });
+    const ids = [...groups.keys()].sort((a, b) => (order.has(a) ? order.get(a) : 1e9) - (order.has(b) ? order.get(b) : 1e9));
+    wrap.append(h('div', { style: { display: 'flex', alignItems: 'center', padding: '2px 4px 8px', gap: '8px' } }, h('span', { class: 'muted small', style: { flex: 1 } }, `${Cm.list.filter(c => !c.resolved).length} open`), h('button', { class: 'chip', type: 'button', 'aria-pressed': String(Cm.showResolved), onclick: () => { Cm.showResolved = !Cm.showResolved; this.refresh(); } }, 'Show resolved')));
+    if (!ids.length) wrap.append(h('div', { class: 'muted', style: { padding: '8px 6px 16px' } }, 'No comments on this chapter yet. When readers comment, each thread appears here, attached to the exact paragraph.'));
+    ids.forEach(pid => {
+      const blk = Ed.el && Ed.el.querySelector(`[data-pid="${pid}"]`), text = blk ? blk.textContent.trim() : '';
+      wrap.append(h('div', { class: 'cm-group' + (Cm.current === pid ? ' cur' : ''), 'data-pid': pid }, h('div', { class: 'cm-quote', role: 'button', tabindex: 0, onclick: () => blk && this.jumpTo(pid), onkeydown: e => { if (e.key === 'Enter' && blk) this.jumpTo(pid); } }, blk ? (text ? text.slice(0, 90) + (text.length > 90 ? '…' : '') : 'Empty paragraph') : 'This paragraph was removed from the chapter.'),
+        groups.get(pid).map(c => h('div', { class: 'cm-item' + (c.resolved ? ' resolved' : '') }, h('div', null, h('span', { class: 'who' }, c.author), h('span', { class: 'when' }, timeAgo(c.createdAt))), h('p', null, c.body),
+          h('div', null, h('button', { class: 'btn sm ghost', type: 'button', onclick: async () => { await Cm.toggle(c.id); this.refresh(); Gutter.renderComments(); } }, c.resolved ? 'Reopen' : 'Resolve'), h('button', { class: 'btn sm ghost', type: 'button', style: { color: 'var(--danger)' }, onclick: async () => { if (await confirmDialog({ title: 'Delete this comment?', body: 'It will be removed permanently.', confirm: 'Delete', danger: true })) { await Cm.remove(c.id); this.refresh(); Gutter.renderComments(); } } }, 'Delete'))))));
+    });
+    const ta = h('textarea', { class: 'inp', placeholder: 'Reply or leave a note on the selected paragraph', 'aria-label': 'Comment' }), cur = () => Cm.current || (Ed.currentBlock() && Ed.currentBlock().getAttribute('data-pid')) || (Ed.saved && Ed.blockOf(Ed.saved.endContainer) && Ed.blockOf(Ed.saved.endContainer).getAttribute('data-pid'));
+    wrap.append(h('div', { style: { padding: '6px 4px' } }, ta, h('button', { class: 'btn sm primary', type: 'button', style: { marginTop: '6px' }, onclick: async () => { const pid = cur(); if (!ta.value.trim()) return; if (!pid) return toast('Click into a paragraph first, then add your comment.'); await Cm.add({ paragraphId: pid, body: ta.value.trim() }); this.refresh(); Gutter.renderComments(); } }, 'Add comment to paragraph')));
+    return wrap;
+  },
+  renderInfo() {
+    const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
+    const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
+    const kv = h('dl', { class: 'kv' }); [['Chapter', Model.cLabel(f.chapter)], ['Volume', Model.vLabel(f.volume)], ['Part', f.part ? Model.pLabel(f.part) : '—'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole story', Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
+    return h('div', { style: { padding: '6px 6px 16px' } }, kv, h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
+      pub ? h('button', { class: 'btn', type: 'button', onclick: async () => { if (await confirmDialog({ title: 'Unpublish this chapter?', body: 'Readers will no longer see it. Your draft is kept.', confirm: 'Unpublish' })) { await App.unpublishChapter(); toast('Unpublished'); } } }, 'Unpublish') : null));
+  },
+  renderNotes() {
+    const scope = this.scope || 'chapter'; const cid = Ed.chapterId;
+    const sel = selectEl([['chapter', 'This chapter'], ['story', 'Whole story']], scope); sel.addEventListener('change', () => { this.scope = sel.value; this.refresh(); });
+    const list = Notes.list.filter(n => scope === 'story' ? !n.chapterId : n.chapterId === cid), ta = h('textarea', { class: 'inp', placeholder: 'e.g. Fix timeline, add character description…', 'aria-label': 'New note' });
+    return h('div', { style: { padding: '2px 4px' } }, h('div', { class: 'small muted', style: { padding: '2px 2px 8px' } }, 'Private. Never shown to readers or included in published text.'), h('div', { style: { marginBottom: '10px' } }, sel),
+      list.length ? list.map(n => h('div', { class: 'note' + (n.done ? ' done' : '') }, h('input', { type: 'checkbox', checked: n.done, 'aria-label': 'Done', onchange: async () => { await Notes.toggle(n.id); this.refresh(); } }), h('div', { class: 'tx' }, n.text), ibtn('trash', 'Delete note', { style: { width: '30px', height: '30px' }, onclick: async () => { await Notes.remove(n.id); this.refresh(); } }))) : h('div', { class: 'muted', style: { padding: '4px 2px 10px' } }, 'No notes yet.'),
+      ta, h('button', { class: 'btn sm primary', type: 'button', style: { marginTop: '6px' }, onclick: async () => { const t = ta.value.trim(); if (!t) return; await Notes.add(t, scope === 'story' ? null : cid); this.refresh(); } }, 'Add note'));
+  },
+};
+
+/* =====================================================================
+   17. PREVIEW (reader-style rendering of the current, unsaved text)
+   ===================================================================== */
+UI.setMode = function (m) {
+  if (!Ed.chapterId || m === this.mode) return;
+  const sc = $('#scroller');
+  if (m === 'preview') { Ed.saveSel(); this.scrollTop = sc.scrollTop; Pop.close(); Dock.close(); this.renderPreview(); $('#writeArea').hidden = true; $('#preview').hidden = false; }
+  else { $('#preview').hidden = true; $('#writeArea').hidden = false; sc.scrollTop = this.scrollTop || 0; if (!this.portrait) Ed.restoreFocus(); }
+  this.mode = m; document.body.classList.toggle('previewing', m === 'preview'); $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m))); this.syncCrumb();
+  if (m === 'write') raf('pv', () => { Gutter.renderComments(); this.syncToolbar(); });
+};
+UI.renderPreview = function () {
+  const f = Model.find(App.story, Ed.chapterId), s = App.story, pv = $('#preview');
+  const frag = Sanitize.toFragment(Ed.serialize(), { keepIds: true }), body = h('div'); body.append(frag);
+  body.querySelectorAll('p,h1,h2,blockquote,li').forEach(b => { b.setAttribute('dir', 'auto'); const n = Cm.byPid.get(b.getAttribute('data-pid')); if (n) b.prepend(h('span', { class: 'rd-c', title: n + ' comment' + (n > 1 ? 's' : '') }, String(n))); });
+  body.querySelectorAll('figure[data-image-id]').forEach(fg => { const img = fg.querySelector('img'); if (img) Images.url(fg.getAttribute('data-image-id')).then(u => { if (u) img.src = u; }); });
+  const art = h('article', { class: 'reader ' + (this.previewWidth === 'desktop' ? '' : this.previewWidth) }, h('div', { class: 'rk' }, [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · ')), h('div', { class: 'rk', style: { marginTop: '4px' } }, 'Chapter ' + f.chapter.number), h('h3', { class: 'rt' }, f.chapter.title || 'Chapter ' + f.chapter.number), body);
+  const dev = (k, ic, l) => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(this.previewWidth === k), onclick: () => { this.previewWidth = k; art.className = 'reader ' + (k === 'desktop' ? '' : k); $$('.pv-tools .chip', pv).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.k === k))); } }, l); 
+  const tools = h('div', { class: 'pv-tools' }, ...[['phone', 'phone', 'Phone'], ['tablet', 'tablet', 'Tablet'], ['desktop', 'desk', 'Desktop']].map(([k, ic, l]) => { const b = dev(k, ic, l); b.dataset.k = k; return b; }));
+  pv.replaceChildren(tools, art); pv.scrollTop = 0;
+};
+
+/* =====================================================================
+   18. BOOT
+   ===================================================================== */
+(async function boot() {
+  try {
+    await Store.open(); await Seed.ensure(); Fonts.load(); UI.init();
+    $('#viewLibrary').classList.add('on'); await UI.renderLibrary(); Images.retryPending();
+    if (Store.mode === 'memory') toast('Browser storage is unavailable here, so work will not persist after you close this page.', 'err');
+    window.__studio = { Ed, App, UI, Store, Save, Cm, Sim, Model, Sanitize, Seed, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools };
+  } catch (e) { console.error(e); document.body.prepend(h('div', { style: { padding: '24px' } }, 'Story Studio could not start: ' + e.message)); }
+})();
+})();
+</script>
+</body>
+</html>
