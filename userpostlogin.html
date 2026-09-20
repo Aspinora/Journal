@@ -3514,6 +3514,21 @@ function syncSectionPath(replace){
 function navigateTo(view, params){
   params = params || {};
   const replace = !!params.replace;
+  // Portfolios live on their own page (portfolio.html); there is no #view-portfolio in this SPA.
+  // Hand off BEFORE touching any view: looking the missing element up used to throw here, which
+  // blanked the page (all views already deactivated) and, on first load, kept the loader up forever.
+  if (view === 'portfolio'){
+    window.location.href = 'portfolio.html?u=' + encodeURIComponent(params.username || '');
+    return;
+  }
+  // Any other view name without a matching container falls back to Home instead of throwing.
+  const targetId = '#view-' + (view === 'explore' ? 'home' : view);
+  const targetEl = qs(targetId);
+  if (!targetEl){
+    console.warn('navigateTo: no such view:', view);
+    if (view !== 'home') navigateTo('home', { replace: replace });
+    return;
+  }
   // 'explore' is only ever a boot-time entry signal (see the ?category=
   // entry point in init()) for landing directly on a category — it's
   // the exact same screen as 'home' (see targetId just below, which
@@ -3527,8 +3542,7 @@ function navigateTo(view, params){
   // all, which is why swipe kept working there).
   state.currentView = (view === 'explore') ? 'home' : view;
   qsa('.view').forEach(function(v){ v.classList.remove('active'); });
-  const targetId = '#view-' + (view === 'explore' ? 'home' : view);
-  qs(targetId).classList.add('active');
+  targetEl.classList.add('active');
   qsa('[data-nav]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-nav') === view); });
   window.scrollTo({ top:0, behavior:'auto' });
   /* Category-colour page theming only applies while an actual Work is
@@ -3550,7 +3564,6 @@ function navigateTo(view, params){
   if (view === 'drafts') renderDraftsView();
   if (view === 'published') renderPublishedView();
   if (view === 'read') renderReadView(params.journalId, replace, params.preloadedJournal);
-  if (view === 'portfolio'){ window.location.href = 'portfolio.html?u=' + encodeURIComponent(params.username || ''); }
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
   if (view === 'home' || view === 'explore') renderHomeStatic();
@@ -5253,76 +5266,90 @@ document.addEventListener('click', function(e){
    17. APP INIT
    ------------------------------------------------------------------ */
 async function init(){
-  qs('#demo-badge').hidden = !DEMO_MODE;
-  loadDemoDB();
-  wireNav();
-  initUserDropdown();
-  initAuthModal();
-  initUsernameOnboardingModal();
-  initGuestModal();
-  initPublishModal();
-  initHomeControls();
-  initWriteViewEvents();
-  initMobileSwipeNav();
+  // If anything below throws (a bad route, a render error...), the page must still finish loading:
+  // hide the loader, mark the feed ready and listen for back/forward. Otherwise the visitor is left
+  // staring at the loader forever. Only the "not logged in -> back to index.html" redirect keeps the
+  // loader up, because the page is about to be replaced anyway.
+  let redirecting = false;
+  try{
+    qs('#demo-badge').hidden = !DEMO_MODE;
+    loadDemoDB();
+    wireNav();
+    initUserDropdown();
+    initAuthModal();
+    initUsernameOnboardingModal();
+    initGuestModal();
+    initPublishModal();
+    initHomeControls();
+    initWriteViewEvents();
+    initMobileSwipeNav();
 
-  // This page is for logged-in members only. Restore the session first;
-  // if there isn't one, send the visitor back to the main site to log in.
-  // The page loader stays up the whole time, so there's nothing to
-  // flash either way — it's only hidden once we're actually ready to
-  // show this page's content.
-  await restoreSession();
-  if (!state.currentUser){
-    window.location.href = 'index.html';
-    return;
-  }
-  syncAuthUI();
+    // This page is for logged-in members only. Restore the session first;
+    // if there isn't one, send the visitor back to the main site to log in.
+    // The page loader stays up the whole time, so there's nothing to
+    // flash either way — it's only hidden once we're actually ready to
+    // show this page's content.
+    await restoreSession();
+    if (!state.currentUser){
+      redirecting = true;
+      window.location.href = 'index.html';
+      return;
+    }
+    syncAuthUI();
 
-  // Query-param entry points let other standalone pages (e.g.
-  // portfolio.html) deep-link into this SPA without needing to know
-  // its clean-URL path scheme.
-  const entryParams = new URLSearchParams(window.location.search);
-  const readId = entryParams.get('read');
-  const entryCategory = entryParams.get('category');
-  const entryNav = entryParams.get('nav');
-  const entryPath = entryParams.get('path');
-  const NAV_ENTRY_VIEWS = ['drafts', 'published', 'saved', 'notifications'];
-  if (readId){
-    navigateTo('read', { journalId: readId, replace: true });
-  } else if (entryCategory){
-    // entryCategory can arrive as either a slug or a display name
-    // depending on which page linked here — match either, and fall
-    // back to 'all' (never a random category) if neither matches, so
-    // a bad/unknown value can't silently empty out the whole feed.
-    const entryCat = CATEGORIES.find(function(c){ return c.slug === entryCategory || c.name === entryCategory; });
-    state.activeFilter = entryCat ? entryCat.slug : 'all';
-    navigateTo('explore', { replace: true });
-  } else if (entryNav && NAV_ENTRY_VIEWS.indexOf(entryNav) !== -1){
-    navigateTo(entryNav, { replace: true });
-  } else if (entryPath){
-    // index.html hands an authenticated direct-post visit off as
-    // userpostlogin.html?path=/username/slug. window.location.pathname
-    // is just "/userpostlogin.html" in that case, so the
-    // routeFromPath(true) fallback below can't see the real path — it
-    // would fall through to Home. Parse entryPath the same way
-    // routeFromPath() parses window.location.pathname, and hand a
-    // username/slug pair to the same loader it would have called.
-    const entryPathParts = entryPath.split('/').filter(Boolean);
-    if (entryPathParts.length === 2){
-      await loadJournalByUsernameAndSlug(entryPathParts[0], entryPathParts[1], true);
+    // Query-param entry points let other standalone pages (e.g.
+    // portfolio.html) deep-link into this SPA without needing to know
+    // its clean-URL path scheme.
+    const entryParams = new URLSearchParams(window.location.search);
+    const readId = entryParams.get('read');
+    const entryCategory = entryParams.get('category');
+    const entryNav = entryParams.get('nav');
+    const entryPath = entryParams.get('path');
+    const NAV_ENTRY_VIEWS = ['drafts', 'published', 'saved', 'notifications'];
+    if (readId){
+      navigateTo('read', { journalId: readId, replace: true });
+    } else if (entryCategory){
+      // entryCategory can arrive as either a slug or a display name
+      // depending on which page linked here — match either, and fall
+      // back to 'all' (never a random category) if neither matches, so
+      // a bad/unknown value can't silently empty out the whole feed.
+      const entryCat = CATEGORIES.find(function(c){ return c.slug === entryCategory || c.name === entryCategory; });
+      state.activeFilter = entryCat ? entryCat.slug : 'all';
+      navigateTo('explore', { replace: true });
+    } else if (entryNav && NAV_ENTRY_VIEWS.indexOf(entryNav) !== -1){
+      navigateTo(entryNav, { replace: true });
+    } else if (entryPath){
+      // index.html hands an authenticated direct-post visit off as
+      // userpostlogin.html?path=/username/slug. window.location.pathname
+      // is just "/userpostlogin.html" in that case, so the
+      // routeFromPath(true) fallback below can't see the real path — it
+      // would fall through to Home. Parse entryPath the same way
+      // routeFromPath() parses window.location.pathname, and hand a
+      // username/slug pair to the same loader it would have called.
+      const entryPathParts = entryPath.split('/').filter(Boolean);
+      if (entryPathParts.length === 2){
+        await loadJournalByUsernameAndSlug(entryPathParts[0], entryPathParts[1], true);
+      } else {
+        await routeFromPath(true);
+      }
     } else {
       await routeFromPath(true);
     }
-  } else {
-    await routeFromPath(true);
+  }catch(err){
+    console.error('init failed, falling back to Home:', err);
+    try{ if (state.currentUser) navigateTo('home', { replace: true }); }catch(e2){ console.error(e2); }
+  }finally{
+    if (!redirecting){
+      // The real starting view/category is now decided and its first
+      // renderLatestFeed() call (if any) has already been kicked off —
+      // safe from here on for the infinite-scroll observer to add pages
+      // on top of it (see state.homeReady's own comment above).
+      state.homeReady = true;
+      window.addEventListener('popstate', function(){ routeFromPath(false); });
+      const loader = qs('#page-loader');
+      if (loader) loader.classList.add('is-hidden');
+    }
   }
-  // The real starting view/category is now decided and its first
-  // renderLatestFeed() call (if any) has already been kicked off —
-  // safe from here on for the infinite-scroll observer to add pages
-  // on top of it (see state.homeReady's own comment above).
-  state.homeReady = true;
-  window.addEventListener('popstate', function(){ routeFromPath(false); });
-  const loader = qs('#page-loader');
-  if (loader) loader.classList.add('is-hidden');
 }
 
 /* ------------------------------------------------------------------
