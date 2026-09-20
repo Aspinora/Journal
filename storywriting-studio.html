@@ -145,11 +145,6 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .addp{position:absolute;left:-46px;width:26px;height:26px;border-radius:50%;border:1px solid var(--line);background:var(--panel-2);color:var(--accent-2);display:flex;align-items:center;justify-content:center;opacity:.0;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .addp svg{width:15px;height:15px}
 .addp.show{opacity:.85} .addp:hover{opacity:1;background:var(--accent-soft)}
-.cbub{position:absolute;right:-46px;min-width:26px;height:24px;padding:0 7px;border-radius:12px;border:1px solid var(--accent-line);background:var(--accent-soft);color:var(--accent-2);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px}
-.cbub svg{width:13px;height:13px}
-.cbub.cur{background:var(--accent);color:#fff;border-color:var(--accent)}
-.flash{position:absolute;left:-10px;right:-10px;background:rgba(29,107,115,.16);border-radius:6px;pointer-events:none!important;animation:fl 1.4s ease-out forwards}
-@keyframes fl{to{opacity:0}}
 #statusbar{display:flex;gap:14px;align-items:center;padding:6px 14px;font-size:12.5px;color:var(--muted);background:var(--panel);border-top:1px solid var(--line);flex:none}
 
 /* preview */
@@ -163,20 +158,11 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .reader p,.reader li{margin:0 0 .9em}
 .reader h1{font-size:1.7em;line-height:1.25;margin:1em 0 .5em}.reader h2{font-size:1.3em;margin:1em 0 .45em}
 .reader blockquote{margin:1em 0;padding-left:1em;border-left:3px solid #B9D8DB;font-style:italic}
-.rd-c{float:right;margin:-2px -8px 0 8px;font:600 11px var(--ui);color:var(--accent-2);background:var(--accent-soft);border-radius:10px;padding:1px 7px}
 
 /* right panel */
 .tabs{display:flex;border-bottom:1px solid var(--line-2);padding:0 6px}
 .tabs button{border:0;background:transparent;padding:11px 12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;font-size:14px}
 .tabs button[aria-selected=true]{color:var(--accent-2);border-color:var(--accent)}
-.cm-group{background:var(--panel-2);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
-.cm-group.cur{border-color:var(--accent)}
-.cm-quote{padding:8px 12px;font:italic 14px/1.4 var(--doc-font);color:var(--muted);background:#F3F6F7;border-bottom:1px solid var(--line-2);cursor:pointer}
-.cm-item{padding:9px 12px;border-bottom:1px solid var(--line-2)}
-.cm-item:last-child{border-bottom:0}
-.cm-item .who{font-weight:600;font-size:13px} .cm-item .when{color:var(--faint);font-size:12px;margin-left:6px}
-.cm-item p{margin:3px 0 4px}
-.cm-item.resolved{opacity:.6}
 .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
 .field>label,.field>.lb{font-weight:600;font-size:13.5px}
 .field .hint{font-size:12px;color:var(--faint)}
@@ -273,7 +259,6 @@ body.portrait #scroller{background:var(--paper)}
 body.portrait #chTitle{font-size:26px}
 body.portrait #editor{--doc-size:18px}
 body.portrait .addp{left:-27px;width:24px;height:24px}
-body.portrait .cbub{right:-29px;min-width:24px}
 body.portrait .modal-back{align-items:flex-end;padding:0}
 body.portrait .modal{width:100%;border-radius:16px 16px 0 0;max-height:92%}
 body.portrait .modal.crop{height:100%;border-radius:0;max-height:100%}
@@ -305,6 +290,16 @@ body.portrait #dockBar{padding:2px 4px}
 #dockPanel .swatches{gap:5px;padding:3px 8px}
 #dockPanel .sw{min-width:0;aspect-ratio:auto;height:28px}
 @media (max-width:1240px){#left{width:244px}#right{width:300px}#fontBtn{width:128px}#toolbar{padding:6px 8px}.sep{margin:0 2px}}
+
+#btnFocus{width:32px;height:32px}#btnFocus svg{width:18px;height:18px}
+body.pane-contents #btnFocus{display:none}
+body.focus #topbar{height:34px;padding:0 6px}
+body.focus #topbar>*:not(#saveStatus):not(#btnFocus):not(.spacer){display:none!important}
+body.focus #left,body.focus #right,body.focus #scrim,body.focus #statusbar{display:none!important}
+body.focus #chNum,body.focus #counts{display:none}
+body.focus #sheet{margin-top:0}
+body.focus.portrait #sheet{padding-top:8px}
+body.focus.portrait #chTitle{font-size:22px}
 </style>
 </head>
 <body class="desk">
@@ -325,6 +320,7 @@ body.portrait #dockBar{padding:2px 4px}
       <button id="btnSaveDraft" class="btn only-desk" type="button">Save Draft</button>
       <button id="btnPublish" class="btn primary only-desk" type="button">Publish</button>
       <button id="btnPreviewP" class="ib only-port" type="button"></button>
+      <button id="btnFocus" class="ib" type="button" aria-pressed="false"></button>
       <button id="btnRight" class="ib" type="button"></button>
     </header>
     <div id="workspace">
@@ -366,7 +362,7 @@ const CONFIG = {
   autosaveMs: 1200, autosaveMaxWaitMs: 12000,
   targetBytes: 80000,   // cover images must be under 80 KB
   hardBytes: 120000,    // never accept a cover above this, even with user consent
-  maxInputBytes: 25 * 1024 * 1024,
+  maxInputBytes: 80 * 1024 * 1024,
   minSourceEdge: 500, maxSourcePixels: 120e6,
 };
 const IMAGE_SPECS = {
@@ -423,7 +419,7 @@ const P = {
   eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6', edit:'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   image:'M4 5h16v14H4zM8 10a1.5 1.5 0 1 0 0-.01M4 17l5-5 4 4 3-3 4 4', link:'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
   ul:'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01', ol:'M10 6h10M10 12h10M10 18h10M4 5l1-1v4M4 14h2l-2 3h2', quote:'M6 17c0-4 1-6 4-8M14 17c0-4 1-6 4-8M5 17h4v-4H5zM13 17h4v-4h-4z',
-  divider:'M4 12h4M10 12h4M16 12h4', close:'M6 6l12 12M18 6 6 18', trash:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6', upload:'M12 16V4M7 9l5-5 5 5M4 20h16',
+  divider:'M4 12h4M10 12h4M16 12h4', focus:'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5', unfocus:'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5', close:'M6 6l12 12M18 6 6 18', trash:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6', upload:'M12 16V4M7 9l5-5 5 5M4 20h16',
   check:'m5 12 5 5 9-10', alert:'M12 4 2.5 20h19zM12 10v4M12 17.5h.01', book:'M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h10', folder:'M3 6h6l2 2h10v11H3z', file:'M6 3h8l5 5v13H6zM14 3v5h5',
   up:'M12 19V5M6 11l6-6 6 6', down:'M12 5v14M6 13l6 6 6-6', move:'M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20', save:'M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6',
   send:'M4 12 20 4l-4 16-4-7z', search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5', reset:'M4 12a8 8 0 1 1 3 6.2M4 19v-5h5', clear:'M5 19h14M8 15 15 5l4 3-6 10zM8 15l-1 4',
@@ -681,27 +677,18 @@ async function compressUnder(canvas, { limit, minQ = 0.62, onStep }) {
   return { ok, smallest };
 }
 async function encodeToTarget(src, rect, spec, { limit = CONFIG.targetBytes, onStep, minQ = 0.62 } = {}) {
-  const full = renderCrop(src, rect, spec.w, spec.h);
+  /* Sensible final size: the target size, but never enlarge a small crop by more than 2x. */
+  const w0 = Math.min(spec.w, Math.max(Math.round(spec.w * 0.5), Math.round(rect.w))), h0 = Math.round(w0 * spec.rh / spec.rw);
+  const full = renderCrop(src, rect, w0, h0);
   let r = await compressUnder(full, { limit, minQ, onStep });
-  if (r.ok) return { status: 'ok', blob: r.ok.blob, quality: r.ok.q, width: spec.w, height: spec.h, downscaled: false };
+  if (r.ok) return { status: 'ok', blob: r.ok.blob, quality: r.ok.q, width: w0, height: h0, downscaled: false };
   for (const k of [0.9, 0.8]) { // last resort: a modest reduction, never below 80 %
-    const w = Math.round(spec.w * k), hh = Math.round(spec.h * k), c = renderCrop(src, rect, w, hh);
+    const w = Math.round(w0 * k), hh = Math.round(w * spec.rh / spec.rw), c = renderCrop(src, rect, w, hh);
     const r2 = await compressUnder(c, { limit, minQ: 0.7, onStep });
     if (r2.ok) return { status: 'ok', blob: r2.ok.blob, quality: r2.ok.q, width: w, height: hh, downscaled: true };
   }
-  return { status: 'over', blob: r.smallest.blob, quality: r.smallest.q, width: spec.w, height: spec.h, downscaled: false };
+  return { status: 'over', blob: r.smallest.blob, quality: r.smallest.q, width: w0, height: h0, downscaled: false };
 }
-/* Inline chapter images: same pipeline idea, wider limit, no crop. */
-async function prepareInlineImage(file) {
-  const d = await decodeImage(file);
-  const scale = Math.min(1, 1600 / d.w), w = Math.round(d.w * scale), hh = Math.round(d.h * scale);
-  const c = renderCrop(d.src, { x: 0, y: 0, w: d.w, h: d.h }, w, hh);
-  const r = await compressUnder(c, { limit: 260000, minQ: 0.6 });
-  if (d.src.close) d.src.close();
-  if (!r.ok) throw imgErr('big', 'This image is too detailed to store at a reasonable size. Try a smaller or simpler image.');
-  return { blob: r.ok.blob, width: w, height: hh };
-}
-
 /* ---------------------------------------------------------------- crop editor */
 function openCropper({ spec, src, srcW, srcH, view }) {
   return new Promise(resolve => {
@@ -730,9 +717,13 @@ function openCropper({ spec, src, srcW, srcH, view }) {
     function layout() {
       const r = stage.getBoundingClientRect(); W = Math.max(1, r.width); H = Math.max(1, r.height);
       const dpr = Math.min(devicePixelRatio || 1, 2); canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-      const pad = W < 500 ? 14 : 28; fw = Math.min(W - pad * 2, (H - pad * 2) * spec.rw / spec.rh); fh = fw * spec.rh / spec.rw; fx = (W - fw) / 2; fy = (H - fh) / 2;
-      cover = Math.max(fw / srcW, fh / srcH);
-      maxZoom = clamp((fw / cover) / (spec.w * 0.5), 1, 5);
+      /* Initial fit = CONTAIN: the whole source image is visible. The crop frame is the largest
+         target-ratio rectangle that fits inside that fitted image, so it never contains blank area. */
+      const pad = W < 500 ? 14 : 28; cover = Math.min((W - pad * 2) / srcW, (H - pad * 2) / srcH);
+      const dw = srcW * cover, dh = srcH * cover;
+      if (dw / dh > spec.rw / spec.rh) { fh = dh; fw = fh * spec.rw / spec.rh; } else { fw = dw; fh = fw * spec.rh / spec.rw; }
+      fx = (W - fw) / 2; fy = (H - fh) / 2;
+      maxZoom = clamp((fw / cover) / (spec.w * 0.5), 1, 6);
       slider.max = Math.round(maxZoom * 100); st.zoom = clamp(st.zoom, 1, maxZoom); constrain(); sync();
     }
     function constrain() { const s = cover * st.zoom, hw = fw / (2 * s), hh = fh / (2 * s); st.cx = clamp(st.cx, hw, srcW - hw); st.cy = clamp(st.cy, hh, srcH - hh); }
@@ -974,8 +965,7 @@ const Sanitize = {
     tag = this.MAP[tag] || tag;
     const kids = () => Array.from(node.childNodes).flatMap(c => this.clean(c, keepIds));
     if (!this.ALLOWED.has(tag)) return kids();
-    if (tag === 'img') { const id = node.getAttribute('data-image-id'); if (!keepIds || !id) return []; return [h('img', { 'data-image-id': id, alt: node.getAttribute('alt') || '' })]; }
-    if (tag === 'figure') { const id = node.getAttribute('data-image-id'); if (!keepIds || !id) return []; const f = h('figure', { 'data-image-id': id, contenteditable: 'false' }); Array.from(node.querySelectorAll('img')).slice(0, 1).forEach(i => f.append(h('img', { 'data-image-id': id, alt: i.getAttribute('alt') || '' }))); return [f]; }
+    if (tag === 'img' || tag === 'figure') return []; // inline images are not part of the writing studio
     if (tag === 'br') return [document.createElement('br')];
     if (tag === 'hr') { const e = h('hr', { class: 'scene-break' }); const pid = node.getAttribute('data-pid'); if (keepIds && pid) e.setAttribute('data-pid', pid); return [e]; }
     const el = document.createElement(tag), { css, fmt } = this.style(node);
@@ -1023,7 +1013,6 @@ const Ed = {
     el.addEventListener('keydown', e => this.onKey(e));
     el.addEventListener('compositionstart', () => { this.composing = true; });
     el.addEventListener('compositionend', () => { this.composing = false; this.afterInput('composition'); });
-    el.addEventListener('click', e => this.onClick(e));
     el.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) e.preventDefault(); });
     el.addEventListener('mousemove', e => Gutter.onHover(e));
     el.addEventListener('mouseleave', () => Gutter.hover(null));
@@ -1039,8 +1028,7 @@ const Ed = {
     if (!this.el.firstChild) this.el.append(this.newBlock());
     this.seq = rec.pidSeq || 0; this.used = new Set(); this.normalizeAll();
     this.dirtyFlag = false;
-    $$('figure[data-image-id] img', this.el).forEach(img => Images.url(img.getAttribute('data-image-id')).then(u => { if (u) img.src = u; else img.alt = img.alt || 'Missing image'; }));
-    this.updateCounts(); Gutter.reset(); Gutter.renderComments();
+    this.updateCounts(); Gutter.reset();
   },
   unload() { this.chapterId = null; if (this.el) this.el.replaceChildren(); },
   newBlock() { const p = document.createElement('p'); p.append(document.createElement('br')); return p; },
@@ -1108,13 +1096,13 @@ const Ed = {
   afterInput(kind) {
     if (this.needFix > 0) this.fixSpans();
     if (/^(insertFromPaste|insertFromDrop|history|format|delete(By|Content)(Cut|Drag)|insertReplacementText)/.test(kind) || kind === 'composition' || /Cut|Drag/.test(kind)) this.normalizeAll(); else this.normalizeLocal();
-    raf('ed-post', () => { this.ensureCaretVisible(); Gutter.update(); Gutter.commentsSoon(); this.countsSoon(); UI.syncToolbar(); });
+    raf('ed-post', () => { this.ensureCaretVisible(); Gutter.update(); this.countsSoon(); UI.syncToolbar(); });
   },
   fixSpans() {
-    let hit = 0;
-    this.el.querySelectorAll('span[style*="xxx-large"]').forEach(s => { s.style.fontSize = this.pendingSize + 'px'; s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; }); hit++; });
-    this.el.querySelectorAll('span[style*="rgb(1, 2, 3)"]').forEach(s => { s.style.color = 'inherit'; hit++; });
-    this.el.querySelectorAll('span[style*="rgb(1, 2, 4)"]').forEach(s => { s.style.backgroundColor = 'transparent'; hit++; });
+    let hit = 0; /* execCommand may put the style on an existing <i>/<b>/<u>, not only on a <span>, so match any element */
+    this.el.querySelectorAll('[style*="xxx-large"]').forEach(s => { s.style.fontSize = this.pendingSize + 'px'; s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; }); hit++; });
+    this.el.querySelectorAll('[style*="rgb(1, 2, 3)"]').forEach(s => { s.style.color = 'inherit'; hit++; });
+    this.el.querySelectorAll('[style*="rgb(1, 2, 4)"]').forEach(s => { s.style.backgroundColor = 'transparent'; hit++; });
     this.el.querySelectorAll('font').forEach(f => { const s = document.createElement('span'); f.replaceWith(s); while (f.firstChild) s.append(f.firstChild); hit++; });
     this.needFix = hit ? 0 : this.needFix - 1;
   },
@@ -1135,10 +1123,6 @@ const Ed = {
     if (e.key === 'Escape') { this.tabFree = true; return; }
     if (e.key === 'Tab' && !mod && !e.altKey && !e.shiftKey) { if (this.tabFree) { this.tabFree = false; return; } e.preventDefault(); document.execCommand('insertText', false, '\u2003'); return; }
     this.tabFree = false;
-  },
-  onClick(e) {
-    const fig = e.target.closest && e.target.closest('figure'); $$('figure.sel', this.el).forEach(f => f.classList.remove('sel'));
-    if (fig && this.el.contains(fig)) { fig.classList.add('sel'); Tools.imageDetails(fig); }
   },
   /* ---- commands */
   exec(cmd, val, css) { document.execCommand('styleWithCSS', false, !!css); return document.execCommand(cmd, false, val); },
@@ -1184,12 +1168,6 @@ const Ed = {
       this.exec('formatBlock', tag);
     });
   },
-  insertFigure(imageId, url) {
-    this.focusForCommand();
-    const src = url ? ` src="${url}"` : '';
-    document.execCommand('insertHTML', false, `<figure data-image-id="${imageId}" contenteditable="false"><img data-image-id="${imageId}"${src} alt=""></figure><p><br></p>`);
-    this.dirtyFlag = true; Save.dirty(); this.afterInput('insertFromPaste');
-  },
   addParagraphAfter(block) {
     if (!block || !this.el.contains(block)) return; this.el.focus({ preventScroll: true });
     const top = this.topBlock(block); const tag = block.tagName;
@@ -1234,18 +1212,18 @@ const Ed = {
   snapshot() { const m = this.measure(); return { chapterId: this.chapterId, storyId: this.storyId, html: this.serialize(), pidSeq: this.seq, words: m.words, chars: m.chars, at: Date.now() }; },
 };
 /* =====================================================================
-   10. GUTTER (add-paragraph control + comment indicators, drawn outside
+   10. GUTTER (add-paragraph control, drawn outside
    the editable surface so it can never disturb typing or the caret)
    ===================================================================== */
 const Gutter = {
-  host: null, add: null, target: null, hovering: null, bubs: new Map(),
+  host: null, add: null, target: null, hovering: null,
   init() {
     this.host = $('#gutter');
     this.add = h('button', { class: 'addp', type: 'button', title: 'Add paragraph', 'aria-label': 'Add paragraph', onclick: () => { if (this.target) Ed.addParagraphAfter(this.target); } }, icon('plus'));
     this.add.addEventListener('pointerdown', noFocusSteal); this.add.addEventListener('mousedown', noFocusSteal);
     this.host.append(this.add);
   },
-  reset() { this.target = null; this.hovering = null; this.add.classList.remove('show'); this.bubs.forEach(b => b.remove()); this.bubs.clear(); },
+  reset() { this.target = null; this.hovering = null; this.add.classList.remove('show'); },
   update() {
     if (!Ed.el || !Ed.chapterId) return;
     const focused = document.activeElement === Ed.el;
@@ -1261,19 +1239,6 @@ const Gutter = {
     this.hover(n);
   },
   hover(b) { if (this.hovering === b) return; this.hovering = b; raf('g-hover', () => this.update()); },
-  commentsSoon: debounce(() => Gutter.renderComments(), 160),
-  renderComments() {
-    if (!Ed.el || !this.host) return; const hr = this.host.getBoundingClientRect(), seen = new Set();
-    Cm.byPid.forEach((n, pid) => {
-      const blk = Ed.el.querySelector(`[data-pid="${pid}"]`); if (!blk) return; seen.add(pid);
-      let b = this.bubs.get(pid);
-      if (!b) { b = h('button', { class: 'cbub', type: 'button', onclick: () => Panel.showComments(pid) }, icon('comment'), h('span')); b.addEventListener('pointerdown', noFocusSteal); b.addEventListener('mousedown', noFocusSteal); this.bubs.set(pid, b); this.host.append(b); }
-      b.lastChild.textContent = n; b.setAttribute('aria-label', n + (n === 1 ? ' comment' : ' comments') + ' on this paragraph'); b.classList.toggle('cur', Cm.current === pid);
-      b.style.top = (blk.getBoundingClientRect().top - hr.top + 2) + 'px';
-    });
-    this.bubs.forEach((b, pid) => { if (!seen.has(pid)) { b.remove(); this.bubs.delete(pid); } });
-  },
-  flash(blk) { const hr = this.host.getBoundingClientRect(), br = blk.getBoundingClientRect(); const f = h('div', { class: 'flash', style: { top: (br.top - hr.top - 3) + 'px', height: (br.height + 6) + 'px' } }); this.host.append(f); setTimeout(() => f.remove(), 1500); },
 };
 
 /* =====================================================================
@@ -1320,16 +1285,8 @@ const Save = {
 };
 
 /* =====================================================================
-   12. COMMENTS + WRITER NOTES  (comments hang off permanent paragraph IDs)
+   12. PRIVATE WRITER NOTES (never visible to readers)
    ===================================================================== */
-const Cm = {
-  list: [], byPid: new Map(), current: null, showResolved: false,
-  async load(chapterId) { this.list = (await Store.all('comments')).filter(c => c.chapterId === chapterId).sort((a, b) => a.createdAt - b.createdAt); this.current = null; this.index(); },
-  index() { this.byPid = new Map(); this.list.filter(c => !c.resolved).forEach(c => this.byPid.set(c.paragraphId, (this.byPid.get(c.paragraphId) || 0) + 1)); },
-  async add({ paragraphId, body, author = 'You (writer)', role = 'writer' }) { const c = { id: uid(), storyId: Ed.storyId, chapterId: Ed.chapterId, paragraphId, author, role, body, createdAt: Date.now(), resolved: false }; await Store.put('comments', c); this.list.push(c); this.index(); return c; },
-  async toggle(id) { const c = this.list.find(x => x.id === id); if (!c) return; c.resolved = !c.resolved; await Store.put('comments', c); this.index(); },
-  async remove(id) { await Store.del('comments', id); this.list = this.list.filter(c => c.id !== id); this.index(); },
-};
 const Notes = {
   list: [],
   async load(storyId) { this.list = (await Store.all('notes')).filter(n => n.storyId === storyId).sort((a, b) => a.createdAt - b.createdAt); },
@@ -1367,7 +1324,7 @@ const App = {
     const f = Model.find(App.story, id); if (!f) return;
     let rec = (await Store.get('chapters', id)) || { id, storyId: App.story.id, html: '', pidSeq: 0, published: null }, recovered = false;
     const bk = lsGet('sw_backup', null); if (bk && bk.chapterId === id && bk.at > (rec.updatedAt || 0) + 500 && bk.html) { rec = Object.assign({}, rec, { html: bk.html, pidSeq: bk.pidSeq }); recovered = true; }
-    App.rec = rec; await Ed.load(rec); await Cm.load(id);
+    App.rec = rec; await Ed.load(rec);
     App.story.lastChapterId = id; this.storyPersistSoon();
     UI.showChapter(f); if (!opts.silentPane) UI.setPane('write'); else UI.setPane(UI.portrait ? 'contents' : 'write');
     if (recovered) { Ed.dirtyFlag = true; Save.dirty(); toast('Recovered unsaved changes from your last session.'); }
@@ -1399,8 +1356,6 @@ const App = {
     Ed.el.querySelectorAll('[style*="font-family"]').forEach(e => { const n = e.style.fontFamily.split(',')[0].replace(/["']/g, '').trim(), fo = Fonts.byName(n); if (!fo) bad.add(n); else if (!Fonts.ok(fo)) unavail.add(n); });
     const strange = [...Ed.el.querySelectorAll('*')].filter(e => !Sanitize.ALLOWED.has(e.tagName.toLowerCase()) && e.tagName !== 'FONT').length;
     if (bad.size || strange) add('fail', 'Formatting', (bad.size ? 'Unsupported fonts: ' + [...bad].join(', ') + '. ' : '') + (strange ? strange + ' unsupported elements.' : '')); else if (unavail.size) add('warn', 'Formatting', 'Fonts not currently available: ' + [...unavail].join(', ')); else add('ok', 'Formatting', 'All fonts and styles are supported');
-    const figs = [...Ed.el.querySelectorAll('figure[data-image-id]')], missing = figs.filter(g => { const i = g.querySelector('img'); return !i || !i.getAttribute('src'); }), noAlt = figs.filter(g => !(g.querySelector('img') || {}).alt);
-    if (missing.length) add('fail', 'Images', missing.length + ' image(s) could not be found in storage.'); else if (noAlt.length) add('warn', 'Images', noAlt.length + ' image(s) have no description (alt text). Click an image to add one.'); else add('ok', 'Images', figs.length ? figs.length + ' image(s) ready' : 'No images');
     const blocks = [...Ed.el.querySelectorAll(BLOCK_SEL)], ids = blocks.map(b => b.getAttribute('data-pid')); let run = 0, maxRun = 0; [...Ed.el.children].forEach(c => { if (/^(P)$/.test(c.tagName) && Ed.isEmptyBlock(c)) { run++; maxRun = Math.max(maxRun, run); } else run = 0; });
     if (ids.some(x => !x) || new Set(ids).size !== ids.length) add('fail', 'Paragraph structure', 'Some paragraphs are missing unique IDs.'); else if (maxRun > 3) add('warn', 'Paragraph structure', 'There are ' + maxRun + ' empty paragraphs in a row. Use a scene break instead.'); else add('ok', 'Paragraph structure', ids.length.toLocaleString() + ' paragraphs, all with permanent IDs');
     return out;
@@ -1430,7 +1385,7 @@ const App = {
   },
   async deleteChapter(f) {
     const words = f.chapter.wordCount || 0;
-    if (!await confirmDialog({ title: 'Delete this chapter?', body: `“${Model.cLabel(f.chapter)}” (${words.toLocaleString()} words), its comments and images will be permanently deleted. This can’t be undone.`, confirm: 'Delete chapter', danger: true })) return;
+    if (!await confirmDialog({ title: 'Delete this chapter?', body: `“${Model.cLabel(f.chapter)}” (${words.toLocaleString()} words) and its notes will be permanently deleted. This can’t be undone.`, confirm: 'Delete chapter', danger: true })) return;
     const id = f.chapter.id, wasOpen = Ed.chapterId === id;
     if (wasOpen) { Save.dirtyCancel && Save.dirtyCancel(); Ed.dirtyFlag = false; clearTimeout(Save.timer); }
     await this.mutate(() => { f.list.splice(f.index, 1); });
@@ -1440,7 +1395,7 @@ const App = {
   async deleteContainer(kind, obj, parentList, index) {
     const chapters = kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters, words = chapters.reduce((n, c) => n + (c.wordCount || 0), 0);
     const name = kind === 'volume' ? Model.vLabel(obj) : Model.pLabel(obj);
-    if (!await confirmDialog({ title: `Delete this ${kind}?`, body: `“${name}” contains ${chapters.length} chapter${chapters.length === 1 ? '' : 's'} (${words.toLocaleString()} words). Everything inside it, including comments, covers and images, will be permanently deleted. This can’t be undone.`, confirm: `Delete ${kind}`, danger: true })) return;
+    if (!await confirmDialog({ title: `Delete this ${kind}?`, body: `“${name}” contains ${chapters.length} chapter${chapters.length === 1 ? '' : 's'} (${words.toLocaleString()} words). Everything inside it, including notes and covers, will be permanently deleted. This can’t be undone.`, confirm: `Delete ${kind}`, danger: true })) return;
     const ids = chapters.map(c => c.id), covers = kind === 'volume' ? Model.coverIds(obj) : [obj.coverImageId].filter(Boolean), cur = Ed.chapterId;
     if (ids.includes(cur)) { Ed.dirtyFlag = false; clearTimeout(Save.timer); }
     await this.mutate(() => { parentList.splice(index, 1); }); await this.purge({ chapterIds: ids, imageIds: covers });
@@ -1483,8 +1438,6 @@ const Seed = {
     const recs = [{ id: p1.chapters[0].id, html: [P('paragraph_001', 'The ferry left Harrow Point an hour late, and the harbour master swore it was the last one the season would allow.')].join(''), pid: 1 }, { id: p1.chapters[1].id, html: P('paragraph_001', 'He arrived with the tide and no luggage, and Mara knew from the way he stood that he had come a long way to be disappointed.'), pid: 1 }, { id: p1.chapters[2].id, html: ch3, pid: 7 }];
     for (const r of recs) { const c = Model.find(s, r.id).chapter; const wc = r.html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length; c.wordCount = wc; await Store.put('chapters', { id: r.id, storyId: s.id, html: r.html, pidSeq: r.pid, wordCount: wc, charCount: 0, updatedAt: Date.now(), published: null }); }
     await Store.put('stories', s);
-    const cm = (pid, author, role, body, mins) => Store.put('comments', { id: uid(), storyId: s.id, chapterId: p1.chapters[2].id, paragraphId: pid, author, role, body, createdAt: Date.now() - mins * 60000, resolved: false });
-    await cm('paragraph_002', 'Reader: Anika', 'reader', 'I love this image of the lamp as something alive.', 190); await cm('paragraph_004', 'Reader: Sam', 'reader', 'This line gave me chills. Is the door literal?', 75); await cm('paragraph_004', 'Reader: Priya', 'reader', 'Agreed — please don’t explain it too soon.', 20);
     await Store.put('notes', { id: uid(), storyId: s.id, chapterId: p1.chapters[2].id, text: 'Check chapter ending — does Mara leave the lamp?', done: false, createdAt: Date.now() });
     await Store.put('notes', { id: uid(), storyId: s.id, chapterId: null, text: 'Fix timeline: the ferry can’t arrive before the storm in Vol. I.', done: false, createdAt: Date.now() });
   },
@@ -1514,11 +1467,14 @@ const UI = {
   init() {
     Gutter.init();
     const set = (id, n, l) => { const b = $(id); b.replaceChildren(icon(n)); b.setAttribute('aria-label', l); b.title = l; };
-    set('#btnLeft', 'panelL', 'Show or hide story structure'); set('#btnRight', 'panelR', 'Comments, chapter info and notes'); set('#libDev', 'more', 'Developer tools');
+    set('#btnLeft', 'panelL', 'Show or hide story structure'); set('#btnRight', 'panelR', 'Chapter info and notes'); set('#btnFocus', 'focus', 'Focus mode'); set('#libDev', 'more', 'Developer tools');
     $('#btnBack').addEventListener('click', () => this.back());
     $('#btnLeft').addEventListener('click', () => { this.leftOpen = !this.leftOpen; this.applyMode(); });
     $('#btnRight').addEventListener('click', () => { if (this.portrait) { $('#right').classList.contains('open') ? this.closeRight() : this.openRight(); } else { this.rightOpen = !this.rightOpen; this.applyMode(); } });
     $('#scrim').addEventListener('click', () => this.closeRight());
+    const fb = $('#btnFocus'); fb.addEventListener('pointerdown', noFocusSteal); fb.addEventListener('mousedown', noFocusSteal); fb.addEventListener('click', () => this.toggleFocus());
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('focus') && !Modals.length && !Pop.isOpen) this.toggleFocus(false); });
+    document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.classList.contains('focus') && this.usedFs) this.toggleFocus(false); });
     $$('#modeSeg button').forEach(b => b.addEventListener('click', () => this.setMode(b.dataset.m)));
     $('#btnPreviewP').addEventListener('click', () => this.setMode(this.mode === 'preview' ? 'write' : 'preview'));
     $('#btnSaveDraft').addEventListener('click', () => App.saveDraft()); $('#btnPublish').addEventListener('click', () => this.publishDialog());
@@ -1526,7 +1482,7 @@ const UI = {
     const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
     t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Ed.focusForCommand(); const first = Ed.el.firstElementChild; if (first) Ed.placeCaret(first, true); } });
     Panel.init(); Tools.build();
-    const onResize = () => { this.applyMode(); this.syncViewport(); raf('crop-resize', () => Gutter.renderComments()); };
+    const onResize = () => { this.applyMode(); this.syncViewport();  };
     addEventListener('resize', onResize); addEventListener('orientationchange', () => { this.maxH = 0; setTimeout(onResize, 250); });
     if (window.visualViewport) { visualViewport.addEventListener('resize', () => { this.syncViewport(); raf('kb', () => Ed.ensureCaretVisible()); }); visualViewport.addEventListener('scroll', () => this.syncViewport()); }
     addEventListener('scroll', () => { if (scrollY) scrollTo(0, 0); });
@@ -1548,8 +1504,20 @@ const UI = {
     $('#left').classList.toggle('collapsed', !this.leftOpen); $('#right').classList.toggle('collapsed', !this.rightOpen && !portrait);
     if (!portrait) $('#right').classList.remove('open');
   },
-  setPane(p) { this.pane = p; document.body.classList.toggle('pane-contents', this.portrait && p === 'contents' && $('#viewStudio').classList.contains('on')); this.syncCrumb(); if (p === 'write') raf('pane', () => { Gutter.renderComments(); }); },
-  back() { if (this.portrait && this.pane === 'write' && Ed.chapterId) { Ed.saveSel(); this.setMode('write'); this.setPane('contents'); } else this.showLibrary(); },
+  setPane(p) { this.pane = p; document.body.classList.toggle('pane-contents', this.portrait && p === 'contents' && $('#viewStudio').classList.contains('on')); this.syncCrumb(); },
+  /* Focus mode: only CSS classes change, so the editor element, its selection, its undo history and
+     the keyboard are untouched. The viewport-synced app height makes the editor use the visible area. */
+  toggleFocus(force) {
+    const on = force === undefined ? !document.body.classList.contains('focus') : force;
+    if (on === document.body.classList.contains('focus') || (on && !Ed.chapterId)) return;
+    if (on && this.mode === 'preview') this.setMode('write');
+    Ed.saveSel(); Pop.close(); this.closeRight(); document.body.classList.toggle('focus', on);
+    const b = $('#btnFocus'); b.replaceChildren(icon(on ? 'unfocus' : 'focus')); b.setAttribute('aria-label', on ? 'Exit focus mode' : 'Focus mode'); b.title = on ? 'Exit focus mode' : 'Focus mode'; b.setAttribute('aria-pressed', String(on));
+    if (on && !this.portrait && document.documentElement.requestFullscreen && !document.fullscreenElement) { this.usedFs = true; document.documentElement.requestFullscreen().catch(() => { this.usedFs = false; }); }
+    if (!on && document.fullscreenElement) { this.usedFs = false; document.exitFullscreen().catch(() => {}); }
+    raf('focus', () => { this.syncViewport(); Ed.ensureCaretVisible(); Gutter.update(); });
+  },
+  back() { if (document.body.classList.contains('focus')) this.toggleFocus(false); if (this.portrait && this.pane === 'write' && Ed.chapterId) { Ed.saveSel(); this.setMode('write'); this.setPane('contents'); } else this.showLibrary(); },
   openRight() { Panel.refresh(); if (this.portrait) { $('#right').classList.add('open'); $('#scrim').hidden = false; } else { this.rightOpen = true; this.applyMode(); } },
   closeRight() { $('#right').classList.remove('open'); $('#scrim').hidden = true; },
   infoVisible() { return Panel.tab === 'info' && (this.portrait ? $('#right').classList.contains('open') : this.rightOpen); },
@@ -1576,7 +1544,7 @@ const UI = {
   showStudio() { $('#viewLibrary').classList.remove('on'); $('#viewStudio').classList.add('on'); this.renderTree(); this.setPane(this.portrait ? 'contents' : 'write'); this.syncCrumb(); Panel.refresh(); $('#emptyState').hidden = true; $('#writeArea').hidden = false; $('#preview').hidden = true; },
   showChapter(f) {
     $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; $('#chTitle').value = f.chapter.title; $('#chTitle').placeholder = 'Chapter ' + f.chapter.number + ' title';
-    this.syncCrumb(); this.renderTree(); this.syncToolbar(); Gutter.renderComments(); if (this.mode === 'preview') this.renderPreview();
+    this.syncCrumb(); this.renderTree(); this.syncToolbar(); if (this.mode === 'preview') this.renderPreview();
   },
   showEmpty() {
     $('#writeArea').hidden = true; $('#preview').hidden = true; const e = $('#emptyState'); e.hidden = false; const s = App.story; const hasVol = s.volumes.length;
@@ -1773,28 +1741,13 @@ const Tools = {
   chipRow(label, opts, run, ctx) { return h('div', null, h('div', { class: 'menu-h' }, label), h('div', { class: 'chips' }, opts.map(([l, v]) => h('button', { class: 'chip', type: 'button', onclick: () => { run(v); ctx.done && ctx.done(); } }, l)))); },
   moreItems(ctx) {
     return [menuItem('Strikethrough', { icon: 'strike', key: 'Ctrl+Shift+X', onClick: () => Ed.cmd('strike') }), this.chipRow('Line spacing', LINE_H, v => Ed.cmd('lineHeight', v), ctx), this.chipRow('Paragraph spacing', PARA_S, v => Ed.cmd('paraSpace', v), ctx), h('div', { class: 'menu-sep' }),
-      menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', key: 'Ctrl+K', onClick: () => this.link() }), menuItem('Insert image…', { icon: 'image', onClick: () => this.image() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') })];
+      menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', key: 'Ctrl+K', onClick: () => this.link() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') })];
   },
   async link() {
     Ed.saveSel(); const s = Ed.sel(), a = s && s.anchorNode, existing = a && (a.nodeType === 1 ? a : a.parentElement).closest('a');
     const v = await promptDialog({ title: 'Link', label: 'Web address', placeholder: 'https://example.com', value: existing ? existing.getAttribute('href') : '', confirm: 'Apply', restoreEditor: true, type: 'url' });
     if (v === null) return; if (!v) { if (existing) Ed.cmd('unlink'); return; }
     let url = v; if (!/^(https?:|mailto:)/i.test(url)) url = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(url) ? 'mailto:' + url : 'https://' + url; Ed.cmd('link', url);
-  },
-  image() {
-    if (!Ed.chapterId) return; Ed.saveSel(); const inp = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
-    inp.onchange = async () => {
-      const f = inp.files[0]; if (!f) return;
-      try { toast('Adding image…'); const p = await prepareInlineImage(f); const rec = await Images.upload({ type: 'chapter_image', storyId: Ed.storyId, chapterId: Ed.chapterId, blob: p.blob, width: p.width, height: p.height }); const url = URL.createObjectURL(p.blob); Images.urls.set(rec.id, url); Ed.insertFigure(rec.id, url); }
-      catch (e) { toast('Couldn’t add the image: ' + e.message, 'err'); }
-    }; inp.click();
-  },
-  imageDetails(fig) {
-    const img = fig.querySelector('img'); if (!img) return;
-    const alt = h('input', { class: 'inp', 'data-focusable': '', value: img.getAttribute('alt') || '', placeholder: 'Describe the image for readers' });
-    alt.addEventListener('change', () => { img.setAttribute('alt', alt.value); Ed.dirtyFlag = true; Save.dirty(); });
-    const rm = h('button', { class: 'btn sm danger', type: 'button', onclick: () => { Pop.close(); const r = document.createRange(); r.selectNode(fig); const s = getSelection(); s.removeAllRanges(); s.addRange(r); Ed.el.focus({ preventScroll: true }); document.execCommand('delete'); Ed.dirtyFlag = true; Save.dirty(); Ed.afterInput('deleteContentBackward'); } }, 'Remove image');
-    Pop.open(fig, h('div', { style: { padding: '8px', width: '280px' } }, field('Image description', alt), rm), { role: 'dialog', onClose: () => fig.classList.remove('sel') });
   },
   /* ---- desktop toolbar */
   buildToolbar() {
@@ -1839,8 +1792,8 @@ const Dock = {
       el = h('div', { style: { padding: '4px 8px' } }, f, h('div', { class: 'dp-row', style: { justifyContent: 'space-between' } }, h('span', { class: 'muted' }, 'Size'), h('div', { class: 'size' }, h('button', { type: 'button', 'aria-label': 'Smaller', onclick: () => step(-1) }, icon('minus')), val, h('button', { type: 'button', 'aria-label': 'Larger', onclick: () => step(1) }, icon('plus')))),
         Tools.chipRow('Line spacing', LINE_H, v => Ed.cmd('lineHeight', v), keep), Tools.chipRow('Paragraph spacing', PARA_S, v => Ed.cmd('paraSpace', v), keep));
     } else if (n === 'more') {
-      el = h('div', null, menuItem('Strikethrough', { icon: 'strike', onClick: () => Ed.cmd('strike') }), menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', onClick: () => Tools.link() }), menuItem('Insert image…', { icon: 'image', onClick: () => Tools.image() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') }), h('div', { class: 'menu-sep' }),
-        menuItem('Comments, info and notes', { icon: 'comment', onClick: () => { UI.openRight(); } }), menuItem('Save draft', { icon: 'save', onClick: () => App.saveDraft() }), menuItem('Publish…', { icon: 'send', onClick: () => UI.publishDialog() }));
+      el = h('div', null, menuItem('Strikethrough', { icon: 'strike', onClick: () => Ed.cmd('strike') }), menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', onClick: () => Tools.link() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') }), h('div', { class: 'menu-sep' }),
+        menuItem('Chapter info and notes', { icon: 'info', onClick: () => { UI.openRight(); } }), menuItem('Save draft', { icon: 'save', onClick: () => App.saveDraft() }), menuItem('Publish…', { icon: 'send', onClick: () => UI.publishDialog() }));
       el.querySelectorAll('.menu-i').forEach(b => b.addEventListener('click', () => this.close()));
     }
     panel.replaceChildren(el); panel.hidden = false; this.name = n; Object.entries(this.btns).forEach(([k, b]) => b.setAttribute('aria-pressed', String(k === n || (n === 'font' && k === 'text'))));
@@ -1851,34 +1804,15 @@ const Dock = {
 UI.syncToolbar = function () { if (this.mode === 'preview') return; const st = Ed.state(); if (!st) return; this.syncFns.forEach(fn => { try { fn(st); } catch {} }); };
 
 /* =====================================================================
-   16. RIGHT PANEL: comments / chapter info / private writer notes
+   16. RIGHT PANEL: chapter info / private writer notes
    ===================================================================== */
 const Panel = {
-  tab: 'comments',
+  tab: 'info',
   init() {
-    const tabs = $('#rTabs'); tabs.replaceChildren(...[['comments', 'Comments'], ['info', 'Chapter'], ['notes', 'Notes']].map(([k, l]) => h('button', { role: 'tab', type: 'button', 'data-t': k, 'aria-selected': String(k === 'comments'), onclick: () => this.setTab(k) }, l)), h('span', { class: 'spacer' }), ibtn('close', 'Close panel', { class: 'ib only-port', onclick: () => UI.closeRight() }));
+    const tabs = $('#rTabs'); tabs.replaceChildren(...[['info', 'Chapter'], ['notes', 'Notes']].map(([k, l]) => h('button', { role: 'tab', type: 'button', 'data-t': k, 'aria-selected': String(k === 'info'), onclick: () => this.setTab(k) }, l)), h('span', { class: 'spacer' }), ibtn('close', 'Close panel', { class: 'ib only-port', onclick: () => UI.closeRight() }));
   },
   setTab(t) { this.tab = t; $$('#rTabs [role=tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t))); this.refresh(); },
-  showComments(pid) { Cm.current = pid; this.tab = 'comments'; $$('#rTabs [role=tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === 'comments'))); UI.openRight(); Gutter.renderComments(); setTimeout(() => { const g = $('#rBody [data-pid="' + pid + '"]'); if (g) g.scrollIntoView({ block: 'nearest' }); }, 30); },
-  jumpTo(pid) { const b = Ed.el && Ed.el.querySelector(`[data-pid="${pid}"]`); if (!b) return; Cm.current = pid; if (UI.portrait) { UI.closeRight(); UI.setPane('write'); UI.setMode('write'); } b.scrollIntoView({ block: 'center' }); Gutter.flash(b); Gutter.renderComments(); this.refresh(); },
-  refresh() { const body = $('#rBody'); if (!body || !App.story) return; body.replaceChildren(this.tab === 'comments' ? this.renderComments() : this.tab === 'info' ? this.renderInfo() : this.renderNotes()); },
-  renderComments() {
-    const wrap = h('div'); if (!Ed.chapterId) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its comments.');
-    const order = new Map(); if (Ed.el) Ed.el.querySelectorAll('[data-pid]').forEach((b, i) => order.set(b.getAttribute('data-pid'), i));
-    const shown = Cm.list.filter(c => Cm.showResolved || !c.resolved), groups = new Map(); shown.forEach(c => { if (!groups.has(c.paragraphId)) groups.set(c.paragraphId, []); groups.get(c.paragraphId).push(c); });
-    const ids = [...groups.keys()].sort((a, b) => (order.has(a) ? order.get(a) : 1e9) - (order.has(b) ? order.get(b) : 1e9));
-    wrap.append(h('div', { style: { display: 'flex', alignItems: 'center', padding: '2px 4px 8px', gap: '8px' } }, h('span', { class: 'muted small', style: { flex: 1 } }, `${Cm.list.filter(c => !c.resolved).length} open`), h('button', { class: 'chip', type: 'button', 'aria-pressed': String(Cm.showResolved), onclick: () => { Cm.showResolved = !Cm.showResolved; this.refresh(); } }, 'Show resolved')));
-    if (!ids.length) wrap.append(h('div', { class: 'muted', style: { padding: '8px 6px 16px' } }, 'No comments on this chapter yet. When readers comment, each thread appears here, attached to the exact paragraph.'));
-    ids.forEach(pid => {
-      const blk = Ed.el && Ed.el.querySelector(`[data-pid="${pid}"]`), text = blk ? blk.textContent.trim() : '';
-      wrap.append(h('div', { class: 'cm-group' + (Cm.current === pid ? ' cur' : ''), 'data-pid': pid }, h('div', { class: 'cm-quote', role: 'button', tabindex: 0, onclick: () => blk && this.jumpTo(pid), onkeydown: e => { if (e.key === 'Enter' && blk) this.jumpTo(pid); } }, blk ? (text ? text.slice(0, 90) + (text.length > 90 ? '…' : '') : 'Empty paragraph') : 'This paragraph was removed from the chapter.'),
-        groups.get(pid).map(c => h('div', { class: 'cm-item' + (c.resolved ? ' resolved' : '') }, h('div', null, h('span', { class: 'who' }, c.author), h('span', { class: 'when' }, timeAgo(c.createdAt))), h('p', null, c.body),
-          h('div', null, h('button', { class: 'btn sm ghost', type: 'button', onclick: async () => { await Cm.toggle(c.id); this.refresh(); Gutter.renderComments(); } }, c.resolved ? 'Reopen' : 'Resolve'), h('button', { class: 'btn sm ghost', type: 'button', style: { color: 'var(--danger)' }, onclick: async () => { if (await confirmDialog({ title: 'Delete this comment?', body: 'It will be removed permanently.', confirm: 'Delete', danger: true })) { await Cm.remove(c.id); this.refresh(); Gutter.renderComments(); } } }, 'Delete'))))));
-    });
-    const ta = h('textarea', { class: 'inp', placeholder: 'Reply or leave a note on the selected paragraph', 'aria-label': 'Comment' }), cur = () => Cm.current || (Ed.currentBlock() && Ed.currentBlock().getAttribute('data-pid')) || (Ed.saved && Ed.blockOf(Ed.saved.endContainer) && Ed.blockOf(Ed.saved.endContainer).getAttribute('data-pid'));
-    wrap.append(h('div', { style: { padding: '6px 4px' } }, ta, h('button', { class: 'btn sm primary', type: 'button', style: { marginTop: '6px' }, onclick: async () => { const pid = cur(); if (!ta.value.trim()) return; if (!pid) return toast('Click into a paragraph first, then add your comment.'); await Cm.add({ paragraphId: pid, body: ta.value.trim() }); this.refresh(); Gutter.renderComments(); } }, 'Add comment to paragraph')));
-    return wrap;
-  },
+  refresh() { const body = $('#rBody'); if (!body || !App.story) return; body.replaceChildren(this.tab === 'info' ? this.renderInfo() : this.renderNotes()); },
   renderInfo() {
     const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
     const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
@@ -1905,13 +1839,12 @@ UI.setMode = function (m) {
   if (m === 'preview') { Ed.saveSel(); this.scrollTop = sc.scrollTop; Pop.close(); Dock.close(); this.renderPreview(); $('#writeArea').hidden = true; $('#preview').hidden = false; }
   else { $('#preview').hidden = true; $('#writeArea').hidden = false; sc.scrollTop = this.scrollTop || 0; if (!this.portrait) Ed.restoreFocus(); }
   this.mode = m; document.body.classList.toggle('previewing', m === 'preview'); $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m))); this.syncCrumb();
-  if (m === 'write') raf('pv', () => { Gutter.renderComments(); this.syncToolbar(); });
+  if (m === 'write') raf('pv', () => { this.syncToolbar(); });
 };
 UI.renderPreview = function () {
   const f = Model.find(App.story, Ed.chapterId), s = App.story, pv = $('#preview');
   const frag = Sanitize.toFragment(Ed.serialize(), { keepIds: true }), body = h('div'); body.append(frag);
-  body.querySelectorAll('p,h1,h2,blockquote,li').forEach(b => { b.setAttribute('dir', 'auto'); const n = Cm.byPid.get(b.getAttribute('data-pid')); if (n) b.prepend(h('span', { class: 'rd-c', title: n + ' comment' + (n > 1 ? 's' : '') }, String(n))); });
-  body.querySelectorAll('figure[data-image-id]').forEach(fg => { const img = fg.querySelector('img'); if (img) Images.url(fg.getAttribute('data-image-id')).then(u => { if (u) img.src = u; }); });
+  body.querySelectorAll('p,h1,h2,blockquote,li').forEach(b => b.setAttribute('dir', 'auto'));
   const art = h('article', { class: 'reader ' + (this.previewWidth === 'desktop' ? '' : this.previewWidth) }, h('div', { class: 'rk' }, [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · ')), h('div', { class: 'rk', style: { marginTop: '4px' } }, 'Chapter ' + f.chapter.number), h('h3', { class: 'rt' }, f.chapter.title || 'Chapter ' + f.chapter.number), body);
   const dev = (k, ic, l) => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(this.previewWidth === k), onclick: () => { this.previewWidth = k; art.className = 'reader ' + (k === 'desktop' ? '' : k); $$('.pv-tools .chip', pv).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.k === k))); } }, l); 
   const tools = h('div', { class: 'pv-tools' }, ...[['phone', 'phone', 'Phone'], ['tablet', 'tablet', 'Tablet'], ['desktop', 'desk', 'Desktop']].map(([k, ic, l]) => { const b = dev(k, ic, l); b.dataset.k = k; return b; }));
@@ -1926,7 +1859,7 @@ UI.renderPreview = function () {
     await Store.open(); await Seed.ensure(); Fonts.load(); UI.init();
     $('#viewLibrary').classList.add('on'); await UI.renderLibrary(); Images.retryPending();
     if (Store.mode === 'memory') toast('Browser storage is unavailable here, so work will not persist after you close this page.', 'err');
-    window.__studio = { Ed, App, UI, Store, Save, Cm, Sim, Model, Sanitize, Seed, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools };
+    window.__studio = { Ed, App, UI, Store, Save, Sim, Model, Sanitize, Seed, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools };
   } catch (e) { console.error(e); document.body.prepend(h('div', { style: { padding: '24px' } }, 'Story Studio could not start: ' + e.message)); }
 })();
 })();
