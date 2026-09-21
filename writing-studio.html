@@ -178,7 +178,7 @@ textarea.inp{resize:vertical;min-height:76px}
 .note input[type=checkbox]{margin-top:5px;width:16px;height:16px;accent-color:var(--accent)}
 
 /* popovers, modals, toasts */
-#popLayer{position:fixed;inset:0;z-index:60;pointer-events:none}
+#popLayer{position:fixed;inset:0;z-index:95;pointer-events:none}
 .pop{position:fixed;pointer-events:auto;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);max-height:min(70vh,560px);overflow:auto;min-width:180px;padding:6px}
 .menu-i{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:0 10px;border:0;background:transparent;border-radius:8px;text-align:left}
 .menu-i:hover,.menu-i.on{background:var(--accent-soft)}
@@ -315,6 +315,10 @@ body.desk.no-tree #btnWork{display:inline-flex}
 body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 .reader.line-mode p,.reader.line-mode li{margin:0}
 .reader.k-shayari{text-align:center}
+
+.cr-i{padding:8px 10px;border-radius:8px}
+.cr-i.on{background:var(--accent-soft)}
+.cr-i b{font-weight:600;display:block}
 </style>
 </head>
 <body class="desk">
@@ -564,7 +568,7 @@ const Pop = {
     $('#popLayer').append(el);
     const place = () => {
       const a = anchor.getBoundingClientRect(), vw = innerWidth, vh = (window.visualViewport ? visualViewport.height : innerHeight);
-      el.style.maxHeight = Math.min(vh - 16, 560) + 'px';
+      el.style.maxHeight = Math.min(vh - 16, opts.maxH || 560) + 'px';
       const w = el.offsetWidth, hh = el.offsetHeight;
       let x = opts.align === 'end' ? a.right - w : a.left; x = clamp(x, 8, vw - w - 8);
       let y = a.bottom + 6; if (y + hh > vh - 8) { const up = a.top - hh - 6; y = up >= 8 ? up : Math.max(8, vh - hh - 8); }
@@ -960,6 +964,17 @@ const KINDS = {
   shayari: { one: 'Shayari', plural: 'Shayari',  unit: 'shayari', line: true },
   thought: { one: 'Thought', plural: 'Thoughts', unit: 'thought' },
 };
+const COPYRIGHTS = [
+  ['exclusive', 'Exclusive Rights Reserved', 'Others may not reuse, modify, or distribute your work without your permission, except where permitted by law.'],
+  ['public-domain', 'Public Domain', 'The work is free from exclusive copyright restrictions, to the extent permitted by law.'],
+  ['by', 'Attribution License', 'Others may use, modify, and commercially reuse your work, provided they credit you.'],
+  ['by-nd', 'Attribution \u2014 No Derivatives', 'Others may share the original work with credit, but may not distribute modified versions.'],
+  ['by-nc', 'Attribution \u2014 Non-Commercial', 'Others may use and modify your work with credit, but not for commercial purposes.'],
+  ['by-nc-nd', 'Attribution \u2014 Non-Commercial \u2014 No Derivatives', 'Others may share the original work with credit for non-commercial purposes, but may not modify it.'],
+  ['by-sa', 'Attribution \u2014 Share Alike', 'Others may use, modify, and commercially reuse your work with credit, but adaptations must use the same license.'],
+  ['by-nc-sa', 'Attribution \u2014 Non-Commercial \u2014 Share Alike', 'Others may use and modify your work with credit for non-commercial purposes, but adaptations must use the same license.'],
+];
+const copyrightOf = k => COPYRIGHTS.find(c => c[0] === k);
 const VISIBILITY = [['public', 'Public'], ['unlisted', 'Unlisted'], ['private', 'Private']];
 const VIS_HINT = { public: 'Anyone can find and read it.', unlisted: 'Only people with the link can read it.', private: 'Only you can see it.' };
 const Kind = {
@@ -972,7 +987,7 @@ const Kind = {
   visibility: s => (s && s.visibility) || 'public', impressions: s => !(s && s.allowImpressions === false),
 };
 const Model = {
-  newStory: () => ({ kind: 'story', structure: null, visibility: 'public', allowImpressions: true, id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: 'Fantasy', tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
+  newStory: () => ({ kind: 'story', structure: null, visibility: 'public', allowImpressions: true, copyright: null, id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: 'Fantasy', tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
   newVolume: s => ({ id: uid(), number: (s.volumes.reduce((m, v) => Math.max(m, v.number), 0)) + 1, title: '', description: '', status: 'draft', coverImageId: null, chapters: [], parts: [] }),
   newPart: v => ({ id: uid(), number: (v.parts.reduce((m, p) => Math.max(m, p.number), 0)) + 1, title: '', description: '', coverImageId: null, chapters: [] }),
   newChapter(s) { const n = this.all(s).reduce((m, x) => Math.max(m, x.chapter.number), 0) + 1; return { id: uid(), number: n, title: '', status: 'draft', wordCount: 0, updatedAt: Date.now(), publishedAt: null }; },
@@ -1411,6 +1426,7 @@ const App = {
     if (!m.words) add('fail', 'Content', 'The chapter is empty.'); else if (m.words < 50) add('warn', 'Content', `Only ${m.words} words. Publishing a very short chapter is allowed.`); else add('ok', 'Content', m.words.toLocaleString() + ' words');
     if (!s.coverImageId) add(isStory ? 'fail' : 'warn', KN + ' cover', 'Add a cover (3:2) in the details before publishing.'); else add('ok', KN + ' cover', 'Present');
     if (!f.volume.implicit && !f.volume.coverImageId) add('warn', 'Volume cover', 'This volume has no cover yet. Readers will see a placeholder.');
+    if (!copyrightOf(s.copyright)) add('fail', 'Copyright', 'Choose a copyright in the details before publishing.'); else add('ok', 'Copyright', copyrightOf(s.copyright)[1]);
     add('ok', 'Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)] + ' \u00b7 impressions ' + (Kind.impressions(s) ? 'allowed' : 'turned off'));
     if (isStory && s.status === 'draft') add('warn', 'Story status', 'The story is still marked Draft, so readers won’t see this chapter until it is set to Ongoing.');
     const bad = new Set(), unavail = new Set();
@@ -1636,6 +1652,10 @@ const UI = {
           h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${s.volumes.length} volume${s.volumes.length === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
     });
   },
+  copyrightInfo(anchor, cur) {
+    Pop.open(anchor, h('div', { style: { width: 'min(380px, 88vw)', padding: '4px' }, class: 'cr-list' }, h('div', { class: 'menu-h' }, 'Copyright options'),
+      COPYRIGHTS.map(([k, l, d]) => h('div', { class: 'cr-i' + (k === cur ? ' on' : '') }, h('b', null, l), h('div', { class: 'small muted' }, d)))), { role: 'dialog', maxH: 760 });
+  },
   buildKindBar() { const bar = $('#kindBar'); bar.replaceChildren(...Object.keys(KINDS).map(k => h('button', { class: 'chip kind', type: 'button', role: 'tab', 'aria-selected': String(k === this.kind), 'aria-pressed': String(k === this.kind), onclick: () => this.setKind(k) }, KINDS[k].plural))); },
   setKind(k) { this.kind = k; lsSet('sw_kind', k); this.renderLibrary(); },
   newStory() { this.newWork(this.kind); },
@@ -1714,12 +1734,16 @@ const UI = {
     if (kind === 'story') {
       const statusOpts = plain ? PUB_STATUSES : STORY_STATUSES, curStatus = statusOpts.some(x => x[0] === entity.status) ? entity.status : 'draft';
       const visHint = h('div', { class: 'hint' }, VIS_HINT[Kind.visibility(entity)]);
+      const crHint = h('div', { class: 'hint' }, (copyrightOf(entity.copyright) || [0, 0, 'Choose how others may use your work.'])[2]);
+      els.cr = selectEl([['', 'Select a copyright\u2026'], ...COPYRIGHTS.map(c => [c[0], c[1]])], entity.copyright || ''); els.cr.id = 'crSel';
+      els.cr.addEventListener('change', () => { crHint.textContent = (copyrightOf(els.cr.value) || [0, 0, 'Choose how others may use your work.'])[2]; });
       els.vis = selectEl(VISIBILITY, Kind.visibility(entity)); els.vis.addEventListener('change', () => { visHint.textContent = VIS_HINT[els.vis.value]; });
       els.imp = selectEl([['on', 'Allow impressions'], ['off', 'Turn off impressions']], Kind.impressions(entity) ? 'on' : 'off');
       body.append(field(null, cover.el), field('Title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'The title of your ' + KN.one.toLowerCase(), maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, placeholder: 'What is this about?', maxLength: 2000 })),
-        isNew && KN.structures ? field('Structure', els.structure = selectEl(KN.structures, KN.structures[0][0]), wk === 'journal' ? 'A journal can be one piece of writing or many entries.' : 'Sections are optional. Choose Simple if you only want one continuous article.') : null,
+        isNew && KN.structures ? field('Structure', els.structure = selectEl(KN.structures, KN.structures[0][0]), wk === 'journal' ? 'A journal can be one piece of writing or many entries.' : 'Sections are optional. Choose Simple if you only want one continuous article.') : '',
         plain ? field('Status', els.status = selectEl(statusOpts, curStatus)) : h('div', { class: 'row2' }, field('Category', els.cat = selectEl(CATEGORIES.map(c => [c, c]), entity.category || 'Other')), field('Status', els.status = selectEl(statusOpts, curStatus))),
         field('Tags', (tags = tagsInput(entity.tags || [])).el, 'Press Enter to add each tag'),
+        h('div', { class: 'field' }, h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, h('label', { for: 'crSel' }, 'Copyright'), h('button', { class: 'ib', type: 'button', style: { width: '28px', height: '28px' }, title: 'What do these mean?', 'aria-label': 'What do the copyright options mean?', onclick: e => this.copyrightInfo(e.currentTarget, els.cr.value) }, icon('info'))), els.cr, crHint),
         h('div', { class: 'row2' }, field('Visibility', els.vis, null), field('Impressions', els.imp, null)), visHint);
     } else if (kind === 'volume') {
       body.append(field(null, cover.el), h('div', { class: 'row2' }, field('Volume number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', els.status = selectEl(PUB_STATUSES, entity.status))), field('Volume title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Awakening', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
@@ -1739,9 +1763,11 @@ const UI = {
     saveBtn.addEventListener('click', async () => {
       errHost.replaceChildren(); const vals = {};
       if (els.title) vals.title = els.title.value.trim(); if (els.desc) vals.description = els.desc.value.trim(); if (els.num) vals.number = Math.max(1, parseInt(els.num.value, 10) || 1);
+      if (els.cr) vals.copyright = els.cr.value;
       if (els.vis) { vals.visibility = els.vis.value; vals.allowImpressions = els.imp.value === 'on'; }
       if (els.status) vals.status = els.status.value; if (els.cat) vals.category = els.cat.value; if (tags) vals.tags = [...tags.value];
       if (kind === 'story' && !vals.title) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Your ' + KN.one.toLowerCase() + ' needs a title.')); els.title.focus(); return; }
+      if (kind === 'story' && !vals.copyright) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Choose a copyright before saving.')); els.cr.focus(); return; }
       saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.replaceChildren(h('span', { class: 'spin' }), ' Saving…'); m.setDismissable(false);
       const snap = JSON.stringify(entity);
       try {
@@ -1905,7 +1931,7 @@ const Panel = {
   renderInfo() {
     const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
     const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
-    const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
+    const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Copyright', (copyrightOf(App.story.copyright) || [0, 'Not chosen'])[1]], ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
     return h('div', { style: { padding: '6px 6px 16px' } }, kv, h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
       pub ? h('button', { class: 'btn', type: 'button', onclick: async () => { if (await confirmDialog({ title: 'Unpublish this chapter?', body: 'Readers will no longer see it. Your draft is kept.', confirm: 'Unpublish' })) { await App.unpublishChapter(); toast('Unpublished'); } } }, 'Unpublish') : null));
   },
