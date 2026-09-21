@@ -455,6 +455,10 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
 .password-toggle:hover{ color:var(--ink); background:var(--paper-dark, rgba(0,0,0,.04)); }
 .password-toggle[aria-pressed="true"]{ color:var(--orange-deep); }
 .auth-alt-action{ text-align:center; margin:14px 0 0; font-size:.86rem; }
+/* Forgot password? (Log In tab only) hands off to index.html, which owns the reset flow. */
+.auth-forgot-row{ display:none; justify-content:flex-end; margin-top:8px; font-size:.82rem; }
+#auth-form[data-mode="login"] .auth-forgot-row{ display:flex; }
+.auth-forgot-row a.link-btn{ text-decoration:underline; }
 .link-btn{ background:none; border:none; padding:0; color:var(--orange-deep); font-weight:700; text-decoration:underline; font-size:inherit; cursor:pointer; }
 .error-msg{ color:#B3432B; font-size:.8rem; margin-top:6px; font-weight:600; display:flex; align-items:center; gap:6px; }
 .field-title-input{ font-family:var(--font-display); font-size:1.6rem; font-weight:600; border:none; background:none; padding:6px 0; width:100%; }
@@ -1367,6 +1371,7 @@ body.is-reading .comment-form textarea{
             <svg viewBox="0 0 20 20" fill="none"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
           </button>
         </div>
+        <div class="auth-forgot-row"><a class="link-btn" href="index.html?forgot=1" id="auth-forgot-link">Forgot password?</a></div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="auth-submit-btn">Continue as Demo User</button>
     </form>
