@@ -596,7 +596,15 @@ body.is-reading .comment-form textarea{
      instead of floating at its own intrinsic size — combined with the
      shared radius/shadow split below, the two read as one joined card
      rather than two separate floating panels. */
-  #auth-modal-scrim{ gap:0; align-items:stretch; }
+  #auth-modal-scrim{ gap:0; align-items:stretch; padding-top:5vh; padding-bottom:5vh; }
+  /* Height-match fix: the scrim is a full-viewport flex row, so
+     "stretch" resolves against the viewport, not the modal's content.
+     The modal box is capped at max-height:90vh (see .modal-box) but the
+     panel has no cap, so on tall screens the panel used to stretch to
+     100vh-40px and hang below the box. 5vh top+bottom padding makes the
+     scrim's inner height exactly 90vh - the same value as the box's
+     cap - so both items always resolve to the identical height and the
+     pair stays vertically centred. */
   .auth-illustration-panel{
     display:block; flex-shrink:0; width:320px;
     border-radius:var(--radius-lg) 0 0 var(--radius-lg); overflow:hidden;
@@ -615,6 +623,24 @@ body.is-reading .comment-form textarea{
 .auth-last-used{ background:var(--orange-soft); color:var(--ink); padding:10px 14px; border-radius:10px; font-size:.82rem; margin-bottom:18px; font-weight:600; }
 .auth-divider{ display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--ink-faint); font-size:.8rem; }
 .auth-divider::before, .auth-divider::after{ content:''; flex:1; height:1px; background:var(--line-strong); }
+/* Forgot password: the link only shows on the Log In tab, and the
+   reset panel replaces the tabs/form/social buttons while it is open
+   (class on the modal box, so removing it restores whatever the
+   normal tab state was, including inline display toggles). */
+.auth-forgot-row{ display:none; justify-content:flex-end; margin-top:8px; font-size:.82rem; }
+#auth-form[data-mode="login"] .auth-forgot-row{ display:flex; }
+#auth-forgot-panel{ display:none; }
+#auth-modal-scrim .modal-box.is-forgot #auth-forgot-panel{ display:block; }
+#auth-modal-scrim .modal-box.is-forgot > .modal-sub,
+#auth-modal-scrim .modal-box.is-forgot > .auth-tabs,
+#auth-modal-scrim .modal-box.is-forgot > .demo-note,
+#auth-modal-scrim .modal-box.is-forgot > .auth-last-used,
+#auth-modal-scrim .modal-box.is-forgot > #auth-form,
+#auth-modal-scrim .modal-box.is-forgot > .auth-divider,
+#auth-modal-scrim .modal-box.is-forgot > #social-auth-buttons{ display:none !important; }
+.auth-forgot-status{ margin:0 0 16px; padding:10px 14px; border-radius:10px; font-size:.84rem; line-height:1.45; background:var(--orange-soft); color:var(--ink); }
+.auth-forgot-status.is-error{ background:#fdecea; color:#a93226; }
+.auth-forgot-back-row{ text-align:center; margin:16px 0 0; font-size:.86rem; }
 
 .publish-summary{ background:var(--cream-deep); border-radius:14px; padding:18px; margin:18px 0; display:flex; flex-direction:column; gap:8px; }
 .publish-summary-row{ display:flex; justify-content:space-between; font-size:.86rem; }
@@ -1130,6 +1156,7 @@ body.is-reading .comment-form textarea{
             <svg viewBox="0 0 20 20" fill="none"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
           </button>
         </div>
+        <div class="auth-forgot-row"><button type="button" class="link-btn" id="auth-forgot-link">Forgot password?</button></div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="auth-submit-btn">Continue as Demo User</button>
     </form>
@@ -1153,6 +1180,25 @@ body.is-reading .comment-form textarea{
         <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" style="flex-shrink:0;"><path fill="#1877F2" d="M20 10a10 10 0 1 0-11.56 9.88v-6.99H5.9V10h2.54V7.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V10h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 20 10Z"/></svg>
         <span id="facebook-oauth-label">Sign in with Facebook</span>
       </button>
+    </div>
+
+    <!-- Forgot password: shown instead of the tabs/form/social buttons
+         while .modal-box has the is-forgot class (see showForgotPanel()).
+         Email-only on purpose: looking an email up from a username would
+         leak whether/which email belongs to an account. The reset email
+         itself is sent by Supabase Auth (needs working SMTP: see the
+         PASSWORD RESET notes at the bottom of this file). -->
+    <div id="auth-forgot-panel">
+      <p class="modal-sub">Enter the email you signed up with and we will email you a link to set a new password.</p>
+      <form id="auth-forgot-form" novalidate>
+        <div class="field">
+          <label for="auth-forgot-email">Email</label>
+          <input type="email" id="auth-forgot-email" class="input" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <p class="auth-forgot-status" id="auth-forgot-status" role="status" aria-live="polite" style="display:none;"></p>
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="auth-forgot-submit">Send reset link</button>
+      </form>
+      <p class="auth-forgot-back-row"><button type="button" class="link-btn" id="auth-forgot-back">&larr; Back to log in</button></p>
     </div>
   </div>
 </div>
@@ -1178,6 +1224,37 @@ body.is-reading .comment-form textarea{
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="onboard-username-submit">Continue</button>
     </form>
+  </div>
+</div>
+
+<!-- ============================================================
+     SET A NEW PASSWORD (opened when someone arrives from a password
+     reset email). No X button and no click-outside / Escape dismissal;
+     the only ways out are updating the password or Cancel (which signs
+     the temporary recovery session out again).
+     ============================================================ -->
+<div class="modal-scrim" id="recovery-modal-scrim">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="recovery-modal-title">
+    <h2 id="recovery-modal-title">Set a new password</h2>
+    <p class="modal-sub">Choose a new password for your account.</p>
+    <form id="recovery-form" novalidate>
+      <div class="field">
+        <label for="recovery-password">New password</label>
+        <div class="password-shell">
+          <input type="password" id="recovery-password" class="input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password">
+          <button type="button" class="password-toggle" id="recovery-password-toggle" aria-label="Show password" aria-pressed="false">
+            <svg viewBox="0 0 20 20" fill="none"><path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="2.4" stroke="currentColor" stroke-width="1.4"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="recovery-password2">Confirm new password</label>
+        <input type="password" id="recovery-password2" class="input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password">
+        <p class="field-hint" id="recovery-hint" role="status" aria-live="polite"></p>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="recovery-submit">Update password</button>
+    </form>
+    <p class="auth-forgot-back-row"><button type="button" class="link-btn" id="recovery-cancel">Cancel</button></p>
   </div>
 </div>
 
@@ -1258,6 +1335,17 @@ body.is-reading .comment-form textarea{
    ------------------------------------------------------------------ */
 const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+
+/* Password-reset email links land back on this page carrying the
+   recovery token in the URL hash (#access_token=...&type=recovery).
+   supabase-js consumes and clears that hash while it initialises, so
+   these flags must be read BEFORE createClient() below. They let the
+   session-restore code tell "this is a password-reset visit" apart
+   from a normal returning login (which would otherwise be redirected
+   straight to userpostlogin.html, skipping the new-password step). */
+const RECOVERY_LANDING = /(?:^|[#&?])type=recovery(?:&|$)/.test((window.location.hash || '') + '&' + (window.location.search || ''));
+const LINK_EXPIRED = /(?:^|[#&?])error_code=otp_expired(?:&|$)/.test(window.location.hash || '');
+if (LINK_EXPIRED){ try{ history.replaceState(null, '', window.location.pathname + window.location.search); }catch(e){} }
 
 let supabaseClient = null;
 try{
@@ -1698,8 +1786,10 @@ function closeAllModals(){
   // The username-onboarding modal is intentionally excluded: it's a
   // mandatory step (no close button, can't be dismissed with Escape
   // or a click outside) until a unique username is actually set.
-  qsa('.modal-scrim.open').forEach(function(m){ if (m.id !== 'username-modal-scrim') m.classList.remove('open'); });
-  document.body.style.overflow = qs('#username-modal-scrim').classList.contains('open') ? 'hidden' : '';
+  // The set-new-password modal (opened from a reset email) is mandatory
+  // in the same way.
+  qsa('.modal-scrim.open').forEach(function(m){ if (m.id !== 'username-modal-scrim' && m.id !== 'recovery-modal-scrim') m.classList.remove('open'); });
+  document.body.style.overflow = (qs('#username-modal-scrim').classList.contains('open') || qs('#recovery-modal-scrim').classList.contains('open')) ? 'hidden' : '';
 }
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape'){
@@ -2153,6 +2243,20 @@ async function restoreSession(){
         if (event === 'SIGNED_OUT'){
           state.currentUser = null;
           syncAuthUI();
+          finishOnce();
+          return;
+        }
+        // Arrived from a password-reset email: Supabase signed the person
+        // in with a temporary recovery session. That must NOT run the
+        // normal sign-in handling below (its redirect to
+        // userpostlogin.html would skip the new-password step) — show the
+        // set-new-password modal instead and leave state.currentUser unset
+        // so init() doesn't redirect either. Depending on timing Supabase
+        // reports this as PASSWORD_RECOVERY, INITIAL_SESSION or SIGNED_IN,
+        // so RECOVERY_LANDING (read from the URL before supabase-js
+        // cleared it) covers all three.
+        if (event === 'PASSWORD_RECOVERY' || (RECOVERY_LANDING && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN'))){
+          if (session && session.user) openRecoveryModal();
           finishOnce();
           return;
         }
@@ -3903,6 +4007,159 @@ function resetAuthPanel(){
   qs('.auth-tabs').hidden = false;
   qs('#auth-form').reset();
   resetUsernameHint('auth-username-hint');
+  resetForgotPanel();
+}
+
+/* ---------- Forgot password / set a new password ---------- */
+var forgotCooldownTimer = null;
+
+function setForgotStatus(message, isError){
+  const el = qs('#auth-forgot-status');
+  if (!message){ el.style.display = 'none'; el.textContent = ''; el.classList.remove('is-error'); return; }
+  el.textContent = message;
+  el.classList.toggle('is-error', !!isError);
+  el.style.display = 'block';
+}
+function stopForgotCooldown(){
+  if (forgotCooldownTimer){ clearInterval(forgotCooldownTimer); forgotCooldownTimer = null; }
+  const btn = qs('#auth-forgot-submit');
+  btn.disabled = false;
+  btn.textContent = 'Send reset link';
+}
+/* Matches Supabase's own default: one reset email per address per 60s. */
+function startForgotCooldown(seconds){
+  stopForgotCooldown();
+  const btn = qs('#auth-forgot-submit');
+  let left = seconds;
+  btn.disabled = true;
+  btn.textContent = 'Resend in ' + left + 's';
+  forgotCooldownTimer = setInterval(function(){
+    left -= 1;
+    if (left <= 0){ stopForgotCooldown(); return; }
+    btn.textContent = 'Resend in ' + left + 's';
+  }, 1000);
+}
+/* Quiet reset used whenever the auth modal is (re)opened or closed. */
+function resetForgotPanel(){
+  qs('#auth-modal-scrim .modal-box').classList.remove('is-forgot');
+  stopForgotCooldown();
+  setForgotStatus('');
+  qs('#auth-forgot-form').reset();
+}
+function showForgotPanel(on){
+  const box = qs('#auth-modal-scrim .modal-box');
+  if (on){
+    const typed = qs('#auth-email').value.trim();
+    box.classList.add('is-forgot');
+    qs('#auth-modal-title').textContent = 'Reset your password';
+    stopForgotCooldown();
+    setForgotStatus('');
+    // Carry over an email already typed into the login box (never a username).
+    qs('#auth-forgot-email').value = typed.indexOf('@') !== -1 ? typed : '';
+    setTimeout(function(){ qs('#auth-forgot-email').focus(); }, 0);
+  } else {
+    resetForgotPanel();
+    setAuthTab('login');
+  }
+}
+function describeResetError(err){
+  const msg = String((err && err.message) || '');
+  const code = err && (err.code || err.error_code);
+  const status = err && err.status;
+  if (code === 'over_email_send_rate_limit'){
+    return 'Too many reset emails have been sent recently. Please wait a few minutes and try again.';
+  }
+  if (code === 'over_request_rate_limit' || status === 429 || /only request this after|for security purposes/i.test(msg)){
+    return 'Please wait a minute before requesting another reset link.';
+  }
+  return 'We could not send the reset email right now. Please try again in a little while.';
+}
+function openRecoveryModal(){
+  const scrim = qs('#recovery-modal-scrim');
+  if (scrim.classList.contains('open')) return;
+  closeModal('auth-modal-scrim');
+  qs('#recovery-form').reset();
+  const hint = qs('#recovery-hint');
+  hint.textContent = '';
+  hint.style.color = '';
+  openModal('recovery-modal-scrim');
+  setTimeout(function(){ qs('#recovery-password').focus(); }, 0);
+}
+function initPasswordReset(){
+  qs('#auth-forgot-link').addEventListener('click', function(){ showForgotPanel(true); });
+  qs('#auth-forgot-back').addEventListener('click', function(){ showForgotPanel(false); });
+
+  qs('#auth-forgot-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    if (!AUTH_LIVE){ setForgotStatus('Password reset is unavailable right now.', true); return; }
+    const email = qs('#auth-forgot-email').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      setForgotStatus('Enter the email address you signed up with (not your username).', true);
+      return;
+    }
+    const btn = qs('#auth-forgot-submit');
+    btn.disabled = true;
+    setForgotStatus('');
+    try{
+      const options = {};
+      // Send the person back to the site root, where the recovery link is
+      // handled (see RECOVERY_LANDING). Skipped on file:// previews.
+      if (/^https?:$/.test(window.location.protocol)) options.redirectTo = window.location.origin + '/';
+      const result = await supabaseClient.auth.resetPasswordForEmail(email, options);
+      if (result.error) throw result.error;
+      // Same message whether or not the email has an account, so this
+      // form can't be used to find out who is registered.
+      setForgotStatus('If an account exists for ' + email + ', a reset link is on its way. Check your inbox and spam folder. The link works once and expires soon.');
+      startForgotCooldown(60);
+    }catch(err){
+      console.warn('Password reset request failed:', err);
+      setForgotStatus(describeResetError(err), true);
+      btn.disabled = false;
+    }
+  });
+
+  qs('#recovery-password-toggle').addEventListener('click', function(){
+    const input = qs('#recovery-password');
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    this.setAttribute('aria-pressed', String(!showing));
+    this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+  });
+
+  qs('#recovery-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const pw = qs('#recovery-password').value;
+    const pw2 = qs('#recovery-password2').value;
+    const hint = qs('#recovery-hint');
+    const btn = qs('#recovery-submit');
+    function fail(message){ hint.textContent = message; hint.style.color = '#c0392b'; }
+    hint.textContent = '';
+    if (!pw){ fail('Enter a new password.'); return; }
+    if (pw !== pw2){ fail('The two passwords do not match.'); return; }
+    btn.disabled = true;
+    try{
+      const result = await supabaseClient.auth.updateUser({ password: pw });
+      if (result.error) throw result.error;
+      closeModal('recovery-modal-scrim');
+      showToast('Password updated. Taking you in...');
+      setTimeout(function(){ window.location.href = 'userpostlogin.html'; }, 900);
+    }catch(err){
+      const message = String((err && err.message) || '');
+      if (err && (err.name === 'AuthSessionMissingError' || /session missing/i.test(message))){
+        fail('This reset link has expired or was already used. Cancel and request a new one.');
+      } else {
+        fail(message || 'Could not update your password. Please try again.');
+      }
+      btn.disabled = false;
+    }
+  });
+
+  qs('#recovery-cancel').addEventListener('click', async function(){
+    try{ if (AUTH_LIVE) await supabaseClient.auth.signOut(); }catch(e){}
+    state.currentUser = null;
+    closeModal('recovery-modal-scrim');
+    showToast('Password not changed.');
+  });
 }
 
 function initAuthModal(){
@@ -4004,7 +4261,7 @@ function initPublishModal(){
 }
 
 qsa('.modal-scrim').forEach(function(scrim){
-  if (scrim.id === 'username-modal-scrim') return; // mandatory — no click-outside dismiss
+  if (scrim.id === 'username-modal-scrim' || scrim.id === 'recovery-modal-scrim') return; // mandatory — no click-outside dismiss
   scrim.addEventListener('click', function(e){ if (e.target === scrim) closeAllModals(); });
 });
 
@@ -4091,6 +4348,7 @@ async function init(){
   initHamburger();
   initUserDropdown();
   initAuthModal();
+  initPasswordReset();
   initGuestModal();
   initHomeControls();
   syncAuthUI();
@@ -4111,6 +4369,19 @@ async function init(){
   // Query-param entry point so portfolio.html can deep-link a signed-out
   // reader straight to a public Work without requiring login first.
   const entryParams = new URLSearchParams(window.location.search);
+  // ?forgot=1 (linked from the session-expired login box on
+  // userpostlogin.html): open the reset panel straight away.
+  if (entryParams.get('forgot') === '1' && !state.currentUser && AUTH_LIVE){
+    openAuthModal('login');
+    showForgotPanel(true);
+    try{ history.replaceState(null, '', window.location.pathname); }catch(e){}
+  } else if (LINK_EXPIRED && !state.currentUser && AUTH_LIVE){
+    // An emailed link (reset or sign-up confirmation) that was already
+    // used or has expired: the login box's Forgot password? link is
+    // the way to get a fresh one.
+    openAuthModal('login');
+    showToast('That email link has expired or was already used.');
+  }
   const readId = entryParams.get('read');
   if (readId){
     navigateTo('read', { journalId: readId, replace: true });
@@ -4419,6 +4690,30 @@ else init();
           gave no photo, or the fetch/upload fails, the person just
           keeps the lettered avatar — nothing else in the app depends
           on it succeeding.
+
+     PASSWORD RESET (Forgot password?)
+        - The Log In tab's Forgot password? link calls
+          supabase.auth.resetPasswordForEmail(email, { redirectTo:
+          <site origin>/ }). Supabase emails a one time link; opening it
+          brings the person back to this page, where RECOVERY_LANDING
+          plus the PASSWORD_RECOVERY event open the set-new-password
+          modal, which calls supabase.auth.updateUser({ password }).
+        - Supabase dashboard, Authentication > URL Configuration: the
+          Site URL should be https://journal.aspinora.in and the
+          Redirect URLs list should include https://journal.aspinora.in/
+          (or https://journal.aspinora.in/** ). Without it Supabase
+          falls back to the Site URL, which still works if that is the
+          site root.
+        - Supabase's built-in email sender only delivers to the email
+          addresses of your Supabase organization's team members and is
+          limited to a couple of emails per hour, so real members will
+          not receive reset emails until custom SMTP is configured
+          (Authentication > Emails > SMTP Settings, using a free
+          provider such as Resend or Brevo). After enabling custom SMTP,
+          check Authentication > Rate Limits for the hourly email cap.
+        - Optionally edit the Reset Password email template (Authentication
+          > Emails) to match the site. Keep the {{ .ConfirmationURL }}
+          link in it.
 
      Moderation actions (hiding a comment, removing a journal, acting
      on a report) should be restricted to rows where the requesting
