@@ -9,7 +9,7 @@
   // this page's own JS ever runs. 404.html catches that and redirects
   // here with the real path encoded in the query string; this restores
   // it via history.replaceState *before* anything below reads
-  // window.location, so the app's own router (see routeFromPath) sees
+  // window.location, so the app's own router (see parseRoute) sees
   // the real path exactly as if the server had served it directly.
   (function(l){
     if (l.search[1] === '/'){
@@ -25,11 +25,11 @@
       // "l" off "userpostlogin.html" and glued the decoded path onto
       // that as an extra segment (e.g. ".../userpostlogin.htm/priya/
       // my-work") instead of replacing the filename with it — which
-      // routeFromPath() below could never correctly parse, so a
+      // parseRoute() below could never correctly parse, so a
       // logged-in visitor landing here via this redirect never
       // reached the right post (and a refresh on the resulting mangled
       // URL just repeated the same broken round trip). Strip the real
-      // filename the same way routeFromPath() does, instead.
+      // filename the same way parseRoute() does, instead.
       var base = l.pathname.replace(/\/?userpostlogin\.html$/i, '');
       window.history.replaceState(null, null, base + decoded + l.hash);
     }
@@ -1753,6 +1753,7 @@ const state = {
   latestPageSize: 6,
   latestFeedToken: 0,   // guards against a stale renderLatestFeed() call overwriting a newer one
   readRequestToken: 0,  // guards against a stale renderReadView() call overwriting a newer one
+  routeToken: 0,        // bumped by every navigation; lets a slow route load (see loadJournalByUsernameAndSlug) notice it was superseded
   // The infinite-scroll IntersectionObserver (see wireInfiniteScroll)
   // is wired up on DOMContentLoaded, which fires and can trigger the
   // observer's callback before init()'s own async routing (which
@@ -3510,7 +3511,7 @@ function setPath(path, replace){
    state instead of reloading this app. Keeping userpostlogin.html
    itself in the path means a refresh re-requests this exact file (a
    real, always-servable static file — no 404 involved at all), and
-   routeFromPath()'s own filename-stripping regex already turns a bare
+   parseRoute()'s own filename-stripping regex already turns a bare
    "/userpostlogin.html" back into the empty path it expects for Home. */
 function syncSectionPath(replace){
   const cat = (state.activeFilter && state.activeFilter !== 'all') ? state.activeFilter : '';
@@ -3519,6 +3520,8 @@ function syncSectionPath(replace){
 function navigateTo(view, params){
   params = params || {};
   const replace = !!params.replace;
+  // Any navigation supersedes a route load that is still waiting on the network.
+  state.routeToken++;
   // Portfolios live on their own page (portfolio.html); there is no #view-portfolio in this SPA.
   // Hand off BEFORE touching any view: looking the missing element up used to throw here, which
   // blanked the page (all views already deactivated) and, on first load, kept the loader up forever.
@@ -5302,44 +5305,10 @@ async function init(){
     }
     syncAuthUI();
 
-    // Query-param entry points let other standalone pages (e.g.
-    // portfolio.html) deep-link into this SPA without needing to know
-    // its clean-URL path scheme.
-    const entryParams = new URLSearchParams(window.location.search);
-    const readId = entryParams.get('read');
-    const entryCategory = entryParams.get('category');
-    const entryNav = entryParams.get('nav');
-    const entryPath = entryParams.get('path');
-    const NAV_ENTRY_VIEWS = ['drafts', 'published', 'saved', 'notifications'];
-    if (readId){
-      navigateTo('read', { journalId: readId, replace: true });
-    } else if (entryCategory){
-      // entryCategory can arrive as either a slug or a display name
-      // depending on which page linked here — match either, and fall
-      // back to 'all' (never a random category) if neither matches, so
-      // a bad/unknown value can't silently empty out the whole feed.
-      const entryCat = CATEGORIES.find(function(c){ return c.slug === entryCategory || c.name === entryCategory; });
-      state.activeFilter = entryCat ? entryCat.slug : 'all';
-      navigateTo('explore', { replace: true });
-    } else if (entryNav && NAV_ENTRY_VIEWS.indexOf(entryNav) !== -1){
-      navigateTo(entryNav, { replace: true });
-    } else if (entryPath){
-      // index.html hands an authenticated direct-post visit off as
-      // userpostlogin.html?path=/username/slug. window.location.pathname
-      // is just "/userpostlogin.html" in that case, so the
-      // routeFromPath(true) fallback below can't see the real path — it
-      // would fall through to Home. Parse entryPath the same way
-      // routeFromPath() parses window.location.pathname, and hand a
-      // username/slug pair to the same loader it would have called.
-      const entryPathParts = entryPath.split('/').filter(Boolean);
-      if (entryPathParts.length === 2){
-        await loadJournalByUsernameAndSlug(entryPathParts[0], entryPathParts[1], true);
-      } else {
-        await routeFromPath(true);
-      }
-    } else {
-      await routeFromPath(true);
-    }
+    // Work out where the URL says we should be (clean path, or one of the
+    // ?read= / ?category= / ?nav= / ?path= entry points other pages use)
+    // and go there. See parseRoute()/applyRoute() below.
+    await applyRoute(parseRoute(window.location.pathname, window.location.search), { boot: true });
   }catch(err){
     console.error('init failed, falling back to Home:', err);
     try{ if (state.currentUser) navigateTo('home', { replace: true }); }catch(e2){ console.error(e2); }
@@ -5350,7 +5319,10 @@ async function init(){
       // safe from here on for the infinite-scroll observer to add pages
       // on top of it (see state.homeReady's own comment above).
       state.homeReady = true;
-      window.addEventListener('popstate', function(){ routeFromPath(false); });
+      window.addEventListener('popstate', function(){
+        applyRoute(parseRoute(window.location.pathname, window.location.search), { boot: false })
+          .catch(function(err){ console.error('popstate routing failed:', err); });
+      });
       const loader = qs('#page-loader');
       if (loader) loader.classList.add('is-hidden');
     }
@@ -5365,49 +5337,85 @@ async function init(){
    /drafts /published /saved /notifications -> the matching private view
    /<username>              -> that author's Portfolio
    /<username>/<slug>       -> that specific Work
-   Refreshing or opening any of these directly restores that exact
-   screen instead of always falling back to the homepage. `replace`
-   is true only for the very first load, so we don't leave a
-   duplicate history entry behind the URL the browser already had.
+   ?category=<slug>         -> Home filtered to that section
+   Entry points from other pages: ?read=<id>, ?nav=<view>, ?category=,
+   and ?path=/<any of the paths above> (index.html's hand-off).
+
+   parseRoute() is a pure function: (pathname, search) -> route object.
+   applyRoute() takes a route and shows it. Both first load and the
+   browser's back/forward buttons go through this same pair, so they can
+   no longer disagree about what a URL means.
+
+   applyRoute() NEVER pushes a history entry: on first load the URL the
+   browser already has is the entry, and on back/forward the browser has
+   already moved to the right entry — pushing there is what used to
+   throw away the forward history and rewrite the address bar to
+   whatever section was last selected in memory. At most it replaces the
+   current entry with the canonical form of the same address.
    ------------------------------------------------------------------ */
 const RESERVED_PATHS = ['write', 'drafts', 'published', 'saved', 'notifications', 'home'];
-async function routeFromPath(replace){
-  const path = window.location.pathname;
+const NAV_ENTRY_VIEWS = ['drafts', 'published', 'saved', 'notifications'];
+function routeFromParts(parts){
+  if (parts.length === 0) return { type:'home', category:'all' };
+  if (RESERVED_PATHS.includes(parts[0])){
+    if (parts[0] === 'write') return { type:'write', draftId: parts[1] || null };
+    if (parts[0] === 'home') return { type:'home', category:'all' };
+    return { type:'view', view: parts[0] };
+  }
+  if (parts.length === 1) return { type:'portfolio', username: parts[0] };
+  if (parts.length === 2) return { type:'work', username: parts[0], slug: parts[1] };
+  return { type:'home', category:'all' };
+}
+function parseRoute(pathname, search){
+  const q = new URLSearchParams(search || '');
+  // Same precedence the entry-point chain in init() always had.
+  const readId = q.get('read');
+  if (readId) return { type:'read', journalId: readId };
+  const entryCategory = q.get('category');
+  if (entryCategory){
+    // entryCategory can arrive as either a slug or a display name
+    // depending on which page linked here — match either, and fall
+    // back to 'all' (never a random category) if neither matches, so
+    // a bad/unknown value can't silently empty out the whole feed.
+    const cat = CATEGORIES.find(function(c){ return c.slug === entryCategory || c.name === entryCategory; });
+    return { type:'home', category: cat ? cat.slug : 'all', fromQuery: true };
+  }
+  const entryNav = q.get('nav');
+  if (entryNav && NAV_ENTRY_VIEWS.indexOf(entryNav) !== -1) return { type:'view', view: entryNav };
+  // index.html hands a signed-in visit off as userpostlogin.html?path=/whatever,
+  // because window.location.pathname is just the file name in that case.
+  const entryPath = q.get('path');
+  if (entryPath){
+    return routeFromParts(entryPath.split('/').filter(Boolean));
+  }
   /* This is a plain static file (not a rewritten clean URL), so the
      browser's pathname is literally ".../userpostlogin.html" on a
      normal page load — strip that off first, or the routing below
-     misreads the filename itself as a route (e.g. a username) and
-     throws trying to render a view that doesn't exist, leaving the
-     page blank until something else (like clicking the logo)
-     triggers a working navigateTo() call. */
-  const parts = path.replace(/\/?userpostlogin\.html$/i, '').split('/').filter(Boolean);
-
-  if (parts.length === 0){
-    navigateTo('home', { replace: replace });
+     misreads the filename itself as a route (e.g. a username). */
+  return routeFromParts(pathname.replace(/\/?userpostlogin\.html$/i, '').split('/').filter(Boolean));
+}
+async function applyRoute(route, opts){
+  opts = opts || {};
+  const myToken = ++state.routeToken;
+  // 'explore' (Home + scroll down to the sections) is only for landing on a
+  // ?category= link from another page; back/forward to the same URL is plain Home.
+  if (route.type === 'home'){
+    const next = route.category || 'all';
+    if (state.activeFilter !== next){ state.activeFilter = next; state.latestPage = 1; }
+    navigateTo((opts.boot && route.fromQuery) ? 'explore' : 'home', { replace: true });
     return;
   }
-
-  if (RESERVED_PATHS.includes(parts[0])){
-    if (parts[0] === 'write'){ navigateTo('write', { draftId: parts[1] || null, replace: replace }); return; }
-    if (parts[0] === 'home'){ navigateTo('home', { replace: replace }); return; }
-    navigateTo(parts[0], { replace: replace });
-    return;
-  }
-
-  if (parts.length === 1){
-    navigateTo('portfolio', { username: parts[0], replace: replace });
-    return;
-  }
-
-  if (parts.length === 2){
-    await loadJournalByUsernameAndSlug(parts[0], parts[1], replace);
-    return;
-  }
-
-  navigateTo('home', { replace: replace });
+  if (route.type === 'read'){ navigateTo('read', { journalId: route.journalId, replace: true }); return; }
+  if (route.type === 'view'){ navigateTo(route.view, { replace: true }); return; }
+  if (route.type === 'write'){ navigateTo('write', { draftId: route.draftId, replace: true }); return; }
+  if (route.type === 'portfolio'){ navigateTo('portfolio', { username: route.username, replace: true }); return; }
+  if (route.type === 'work'){ await loadJournalByUsernameAndSlug(route.username, route.slug, true, myToken); return; }
+  navigateTo('home', { replace: true });
 }
 
-async function loadJournalByUsernameAndSlug(username, slug, replace) {
+async function loadJournalByUsernameAndSlug(username, slug, replace, token) {
+  // True once a newer navigation (back/forward, a click...) has started while this was still loading.
+  const stale = function(){ return token !== undefined && token !== state.routeToken; };
   try {
     if (DEMO_MODE){
       const author = mockAuthorByUsername(username);
@@ -5435,10 +5443,14 @@ async function loadJournalByUsernameAndSlug(username, slug, replace) {
       .select('id')
       .eq('username', username)
       .single();
+    if (stale()) return;
 
+    // A link that leads nowhere REPLACES its own history entry with Home
+    // (instead of pushing Home on top of it): otherwise Back returned to the
+    // dead link, which failed again and pushed Home again — a back-button trap.
     if (!profile) {
       showToast('Work not found');
-      navigateTo('home');
+      navigateTo('home', { replace: true });
       return;
     }
 
@@ -5447,10 +5459,11 @@ async function loadJournalByUsernameAndSlug(username, slug, replace) {
       .eq('author_id', profile.id).eq('slug', slug).eq('status', 'published');
     if (!isOwner) journalQuery = journalQuery.neq('visibility', 'private');
     const { data: journal, error } = await journalQuery.single();
+    if (stale()) return;
 
     if (error || !journal) {
       showToast('Work not found');
-      navigateTo('home');
+      navigateTo('home', { replace: true });
       return;
     }
 
@@ -5460,11 +5473,12 @@ async function loadJournalByUsernameAndSlug(username, slug, replace) {
     // with the isOwner exception above) straight through, instead of
     // letting the read view re-fetch it itself — see renderReadView's
     // own comment on preloadedJournal for why that re-fetch was the bug.
-    navigateTo('read', { journalId: normalized.id, preloadedJournal: normalized });
+    navigateTo('read', { journalId: normalized.id, preloadedJournal: normalized, replace: replace });
   } catch (err) {
     console.error(err);
+    if (stale()) return;
     showToast('Error loading Work');
-    navigateTo('home');
+    navigateTo('home', { replace: true });
   }
 }
 
