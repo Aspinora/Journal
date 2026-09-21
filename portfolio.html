@@ -14,9 +14,10 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portfolio · Aspinora Writing</title>
-<meta name="description" content="A writer's portfolio on Aspinora Writing.">
-<link rel="icon" type="image/svg+xml" href="journal-logo.svg">
+<title>Portfolio · Journals By Aspinora</title>
+<meta name="description" content="A writer's portfolio on Journals By Aspinora.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2170,7 +2171,7 @@ async function initPortfolio(){
   shareBtn.addEventListener('click', async function(){
     if (navigator.share){
       try{
-        await navigator.share({ title: (profile.display_name || profile.username) + ' on Aspinora Writing', url: realUrl });
+        await navigator.share({ title: (profile.display_name || profile.username) + ' on Journals By Aspinora', url: realUrl });
         return;
       }catch(e){ /* user cancelled the share sheet — fall through to copy */ if (e && e.name === 'AbortError') return; }
     }
