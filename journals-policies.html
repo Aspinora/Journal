@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Journals — Terms, Policies & Community Standards." />
+  <title>Terms, Policies & Community Standards | Journals</title>
+  <style>
+    :root {
+      --orange: #f47b00;
+      --orange-dark: #c85f00;
+      --ink: #202124;
+      --muted: #667085;
+      --soft: #fff7ed;
+      --line: #e7e1da;
+      --surface: #ffffff;
+      --background: #fbfaf8;
+      --shadow: 0 18px 45px rgba(34, 29, 24, .08);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--background);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.7;
+    }
+
+    a { color: var(--orange-dark); }
+    button, input { font: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, .92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      width: min(1220px, calc(100% - 32px));
+      min-height: 74px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 800;
+      letter-spacing: -.03em;
+    }
+
+    .brand img {
+      width: 170px;
+      max-height: 58px;
+      object-fit: contain;
+      object-position: left center;
+    }
+
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-button, .outline-button {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 9px 13px;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .icon-button:hover, .outline-button:hover { border-color: var(--orange); color: var(--orange-dark); }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 76px 20px 66px;
+      background: linear-gradient(135deg, #fff 0%, #fff8f0 58%, #fff0df 100%);
+      border-bottom: 1px solid var(--line);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 420px;
+      height: 420px;
+      right: -120px;
+      top: -160px;
+      border-radius: 50%;
+      background: rgba(244, 123, 0, .10);
+    }
+    .hero-inner { position: relative; z-index: 1; width: min(1000px, 100%); margin: auto; text-align: center; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--orange-dark);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: -.035em; }
+    h1 { margin: 18px 0 15px; font-family: Georgia, serif; font-size: clamp(2.4rem, 6vw, 5rem); }
+    .hero p { max-width: 740px; margin: 0 auto; color: var(--muted); font-size: 1.08rem; }
+    .hero-meta { margin-top: 22px; color: var(--muted); font-size: .92rem; }
+
+    .layout {
+      width: min(1220px, calc(100% - 32px));
+      margin: 38px auto 70px;
+      display: grid;
+      grid-template-columns: 285px minmax(0, 1fr);
+      gap: 32px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 98px;
+      max-height: calc(100vh - 120px);
+      overflow: auto;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .sidebar h2 { margin: 0 0 15px; font-size: 1rem; }
+    .search {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      outline: none;
+      margin-bottom: 14px;
+    }
+    .search:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(244, 123, 0, .12); }
+    .toc { display: grid; gap: 3px; }
+    .toc a {
+      display: block;
+      padding: 8px 10px;
+      border-radius: 8px;
+      color: #4b5563;
+      text-decoration: none;
+      font-size: .91rem;
+      line-height: 1.35;
+    }
+    .toc a:hover, .toc a.active { background: var(--soft); color: var(--orange-dark); }
+    .toc a.sub { padding-left: 25px; font-size: .84rem; }
+
+    .document {
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(24px, 5vw, 60px);
+    }
+    .notice {
+      margin-bottom: 35px;
+      padding: 17px 19px;
+      border-left: 4px solid var(--orange);
+      background: var(--soft);
+      border-radius: 10px;
+      color: #694019;
+    }
+    .policy-section { scroll-margin-top: 105px; padding: 23px 0 30px; border-bottom: 1px solid var(--line); }
+    .policy-section:last-child { border-bottom: 0; }
+    h2 { margin: 0 0 16px; font-family: Georgia, serif; font-size: clamp(1.65rem, 3vw, 2.3rem); }
+    h3 { margin: 27px 0 9px; font-size: 1.13rem; }
+    p { margin: 10px 0; }
+    ul { margin: 10px 0 18px; padding-left: 22px; }
+    li { margin: 6px 0; }
+    .section-number { color: var(--orange); margin-right: 7px; }
+
+    .policy-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: .95rem;
+    }
+    .policy-table th, .policy-table td { padding: 13px 15px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    .policy-table th { background: var(--soft); color: #593713; }
+    .policy-table tr:nth-child(even) td { background: #fffdfa; }
+
+    .footer {
+      padding: 35px 20px 48px;
+      background: #211f1d;
+      color: #d8d3ce;
+      text-align: center;
+    }
+    .footer img { width: 180px; background: white; border-radius: 7px; padding: 4px 9px; margin-bottom: 10px; }
+    .footer p { margin: 4px 0; font-size: .92rem; }
+    .back-top {
+      display: none;
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      border: 0;
+      border-radius: 50%;
+      width: 46px;
+      height: 46px;
+      background: var(--orange);
+      color: #fff;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+    .back-top.visible { display: block; }
+
+    @media (max-width: 850px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: relative; top: auto; max-height: none; }
+      .toc { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .topbar-inner { min-height: 64px; }
+      .brand img { width: 145px; }
+      .outline-button { display: none; }
+      .hero { padding: 55px 18px 45px; }
+      .layout { width: min(100% - 20px, 1220px); margin-top: 20px; }
+      .document { padding: 23px 18px; }
+      .toc { grid-template-columns: 1fr; }
+      .policy-table { display: block; overflow-x: auto; white-space: nowrap; }
+    }
+    @media print {
+      .topbar, .sidebar, .back-top { display: none !important; }
+      .hero { padding: 25px 0; }
+      .layout { display: block; width: 100%; margin: 0; }
+      .document { border: 0; box-shadow: none; }
+      .footer { color: #111; background: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top" aria-label="Journals home">
+        <img src="Powered-by-Aspinora-logo.jpeg" alt="Journals powered by Aspinora" />
+      </a>
+      <div class="top-actions">
+        <button class="outline-button" id="printBtn" type="button">Print / Save PDF</button>
+        <button class="icon-button" id="themeBtn" type="button" aria-label="Toggle reading mode">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-inner">
+        <span class="eyebrow">Journals, powered by Aspinora</span>
+        <h1>Terms, Policies &amp; Community Standards</h1>
+        <p>Clear guidelines for writing, publishing, reading, discovering and discussing creative work on Journals.</p>
+        <div class="hero-meta">Effective date: 21 September 2026 · Last updated: 21 September 2026</div>
+      </div>
+    </section>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Table of contents">
+        <h2>On this page</h2>
+        <input class="search" id="searchInput" type="search" placeholder="Search policies…" aria-label="Search policies" />
+        <nav class="toc" id="toc">
+          <a href="#section-1">1. Terms of Service</a>
+          <a href="#section-2">2. Privacy Policy</a>
+          <a href="#section-3">3. Community Guidelines</a>
+          <a href="#section-4">4. Comments and Replies</a>
+          <a href="#section-5">5. Profiles and Portfolios</a>
+          <a href="#section-6">6. Messaging</a>
+          <a href="#section-7">7. AI-Assisted Content</a>
+          <a href="#section-8">8. Copyright</a>
+          <a href="#section-9">9. Reporting System</a>
+          <a href="#section-10">10. Moderation</a>
+          <a href="#section-11">11. Account Restrictions</a>
+          <a href="#section-12">12. Account Deletion</a>
+          <a href="#section-13">13. Child and Teen Safety</a>
+          <a href="#section-14">14. Creative Writing</a>
+          <a href="#section-15">15. Third-Party Services</a>
+          <a href="#section-16">16. Platform Security</a>
+          <a href="#section-17">17. Legal Compliance</a>
+          <a href="#section-18">18. Grievance Redressal</a>
+          <a href="#section-19">19. Policy Changes</a>
+          <a href="#section-20">20. Governing Law</a>
+          <a href="#section-21">21. User Responsibilities</a>
+          <a href="#section-22">22. Quick Guide</a>
+          <a href="#section-23">23. Final Principle</a>
+        </nav>
+      </aside>
+
+      <article class="document" id="document">
+        <div class="notice">Please read these policies carefully. By creating or using a Journals account, you agree to follow these standards and applicable law.</div>
+
+        <section class="policy-section" id="section-1"><h2><span class="section-number">1.</span>Terms of Service</h2>
+          <h3>1.1 Acceptance</h3><p>By creating or using a Journals account, you agree to these Terms, the Community Guidelines, Privacy Policy, Copyright Policy and other policies that apply to the service. If you do not agree with these terms, do not use Journals.</p>
+          <h3>1.2 Age Requirement</h3><p>Journals is available to people aged 12 and above. Users aged 12–17 may use Journals subject to the additional protections and restrictions that apply to minors. Being permitted to create an account does not mean that a minor is treated as an adult for data-protection purposes.</p>
+          <h3>1.3 Account Rules</h3><p>You are responsible for:</p><ul><li>Providing accurate information where required.</li><li>Keeping your account credentials secure.</li><li>Using only accounts you are authorized to use.</li><li>Complying with applicable laws.</li></ul><p>You must not create accounts to evade a suspension, impersonate another person, deceive users or abuse the service.</p>
+          <h3>1.4 Your Content</h3><p>You retain ownership of original content you create and publish on Journals. By submitting content, you grant Journals a limited, non-exclusive, worldwide, royalty-free license to host, store, reproduce, format, display, distribute and otherwise process that content only as reasonably necessary to operate, maintain, secure, moderate and provide the service. This license does not transfer ownership of your work to Journals.</p>
+          <h3>1.5 Prohibited Uses</h3><p>You must not use Journals to:</p><ul><li>Violate another person’s rights.</li><li>Upload prohibited sexual or exploitative content.</li><li>Sexually exploit or sexualize minors.</li><li>Harass, threaten or target people.</li><li>Distribute non-consensual intimate material.</li><li>Infringe copyright or other intellectual-property rights.</li><li>Scam, defraud or deceive users.</li><li>Expose private personal information without authorization.</li><li>Distribute malicious software or abuse security systems.</li><li>Evade moderation or account restrictions.</li><li>Interfere with the normal operation of Journals.</li></ul>
+          <h3>1.6 Service Availability</h3><p>Journals may change, suspend or discontinue features when reasonably necessary for maintenance, security, legal compliance, safety or other operational reasons.</p>
+        </section>
+
+        <section class="policy-section" id="section-2"><h2><span class="section-number">2.</span>Privacy Policy</h2>
+          <h3>2.1 Information You Provide</h3><p>Depending on the features you use, Journals may process account and authentication information; usernames, profiles and biographies; profile images; content; comments, replies, likes, saves and follows; messages; reports; appeals and support communications.</p>
+          <h3>2.2 Information Generated Through Use</h3><p>Journals may process activity and interaction information, technical and device information needed to operate and secure the service, logs, security information and information relating to moderation and reports.</p>
+          <h3>2.3 How Information Is Used</h3><p>Information may be used to provide and operate Journals, authenticate users, store and display content, personalize relevant features, maintain security, prevent abuse and fraud, investigate reports, provide support, comply with legal obligations and improve reliability.</p>
+          <h3>2.4 Public Information</h3><p>Information you intentionally publish publicly, including public profiles and published works, may be visible to other users and potentially accessible through the internet. Do not publish information you want to keep private.</p>
+          <h3>2.5 Cookies and Similar Technologies</h3><p>Journals and its service providers may use cookies, local storage or similar technologies where reasonably necessary for authentication, preferences, security, analytics or service functionality.</p>
+          <h3>2.6 Security, Retention and Deletion</h3><p>Journals uses reasonable technical and organizational safeguards appropriate to the service, but no internet service can guarantee absolute security. Information may be retained as reasonably necessary for security, legal obligations, dispute resolution, fraud prevention and backups. Deleting an account or content may not immediately remove every copy from backups, caches or systems where retention is necessary.</p>
+          <h3>2.7 Children, Legal Requests and Privacy Rights</h3><p>Journals provides additional protections for users under 18 and does not permit sexual exploitation or sexualization of minors. Information may be disclosed where required or permitted by applicable law, lawful governmental requests, court orders or other valid processes. Depending on applicable law and your circumstances, you may have rights concerning access, correction, deletion, withdrawal of consent or other processing of personal data.</p><p>Privacy requests can be directed to <a href="mailto:support@aspinora.in">support@aspinora.in</a>.</p>
+        </section>
+
+        <section class="policy-section" id="section-3"><h2><span class="section-number">3.</span>Community Guidelines</h2><p>Journals is intended for creative expression and discussion. Freedom of expression does not permit content that violates the safety, privacy or legal rights of others.</p>
+          <h3>3.1 Respect Others</h3><p>Do not repeatedly target, humiliate, intimidate or harass another person.</p>
+          <h3>3.2 Mature Literary Themes</h3><p>Mature themes may appear in genuine literary, artistic, educational, journalistic or narrative works where the content is not otherwise prohibited. Creative or fictional context does not override rules concerning pornography, sexual exploitation of minors, non-consensual intimate material, harassment or other prohibited conduct.</p>
+          <h3>3.3 Pornography and Explicit Sexual Content</h3><p>Pornography is prohibited. For these policies, pornography means content whose primary purpose is sexual stimulation or explicit sexual gratification rather than legitimate creative, literary, artistic, educational or journalistic expression.</p>
+          <h3>3.4 Sexual Content Involving Minors</h3><p>Any sexualization, sexual exploitation or sexual depiction of anyone under 18 is prohibited. This applies to real people, fictional characters, generated characters, manipulated media and attempts to evade the rule through labels, disclaimers or fictional framing.</p>
+          <h3>3.5 Other Prohibited Conduct</h3><p>Do not use Journals for sexual harassment or solicitation, non-consensual intimate material, targeted harassment, hate-based abuse, credible threats, meaningful facilitation of violence, self-harm encouragement, serious illegal activity, privacy violations, scams, spam, malicious technical content or deceptive impersonation.</p>
+        </section>
+
+        <section class="policy-section" id="section-4"><h2><span class="section-number">4.</span>Comments and Replies</h2><p>Comments and replies must follow the same core safety rules as published works. Do not use comments to harass or bully, sexually harass or solicit users, post prohibited sexual content, target minors sexually, threaten people, spread hateful abuse, expose private information, scam users, spam or deliberately disrupt discussions. Constructive disagreement and criticism are permitted when they remain within these rules.</p></section>
+
+        <section class="policy-section" id="section-5"><h2><span class="section-number">5.</span>Profiles and Portfolios</h2><p>Profiles and portfolios must not be used to impersonate another person, harass or target others, promote prohibited sexual content, sexually exploit or sexualize minors, operate scams, distribute spam, publish unauthorized private information or deliberately mislead users about identity or affiliation.</p></section>
+
+        <section class="policy-section" id="section-6"><h2><span class="section-number">6.</span>Messaging and Message Requests</h2><p>Private messages are subject to the same safety standards as public content. Prohibited messaging includes harassment, unwanted sexual content or solicitation, sexual content involving minors, serious threats, hate-based abuse, scams, fraud, spam and unauthorized disclosure of private information. Users may report messages that violate these policies.</p></section>
+
+        <section class="policy-section" id="section-7"><h2><span class="section-number">7.</span>AI-Assisted and AI-Generated Content</h2><p>AI-assisted and AI-generated writing, images or other content may be used where the feature permits it. AI does not create an exception to these policies. AI-generated or manipulated content must not be used to sexually exploit or sexualize minors, create non-consensual intimate material, impersonate people deceptively, harass or threaten people, commit fraud, violate copyright or bypass safety restrictions.</p></section>
+
+        <section class="policy-section" id="section-8"><h2><span class="section-number">8.</span>Copyright and Intellectual Property</h2><p>Only publish work that you created yourself or that you have the necessary rights or permission to use. Do not copy and publish another person’s stories, novels, poems, articles, artwork, photographs, illustrations, videos, audio, translations or substantially similar adaptations without appropriate rights or permission.</p><h3>Copyright Reports</h3><p>If you believe content on Journals infringes your copyright, report what work you claim ownership of, where the allegedly infringing content appears, why you believe you have the relevant rights, how you can be contacted and any other information reasonably necessary to investigate the claim. False or abusive reports may result in enforcement. Repeated or serious infringement may result in removal, restrictions, suspension or termination.</p></section>
+
+        <section class="policy-section" id="section-9"><h2><span class="section-number">9.</span>Reporting and Grievance System</h2><p>Users can report content, accounts, comments or messages that violate these policies. Report categories may include sexual or pornographic content, sexual content involving minors, non-consensual intimate content, harassment, hate, threats, self-harm encouragement, illegal activity, privacy violations, copyright infringement, scams, spam, impersonation, malicious content and other policy violations. Reports must not be used to harass, silence, retaliate against or manipulate another user. Knowingly false or malicious reporting may result in enforcement.</p></section>
+
+        <section class="policy-section" id="section-10"><h2><span class="section-number">10.</span>Content Moderation and Enforcement</h2><p>Journals may review content or activity when necessary to enforce these policies, investigate reports, protect users, maintain platform security or comply with law. Depending on the circumstances, Journals may take no action, provide a warning, remove or restrict content, limit features, restrict visibility, suspend an account, terminate an account or preserve or disclose information where legally required or permitted. Serious violations may result in immediate suspension or termination.</p></section>
+
+        <section class="policy-section" id="section-11"><h2><span class="section-number">11.</span>Account Restrictions and Termination</h2><p>Journals may restrict or terminate accounts for serious or repeated violations, including sexual exploitation of minors, serious threats, severe harassment, repeated copyright infringement, fraud, security abuse, ban evasion, deliberate platform manipulation or other serious violations. Where appropriate, users may have an opportunity to appeal an enforcement action.</p></section>
+
+        <section class="policy-section" id="section-12"><h2><span class="section-number">12.</span>Account Deletion</h2><p>You may request deletion of your account where the relevant account feature permits it. Some information may remain for a limited period where necessary for legal compliance, fraud prevention, security, dispute resolution, backups or enforcement records. Public copies or copies saved by other users may also remain outside Journals’ control.</p></section>
+
+        <section class="policy-section" id="section-13"><h2><span class="section-number">13.</span>Child and Teen Safety</h2><p>Journals aims to provide a safer environment for users aged 12–17. Sexual exploitation of minors, sexual solicitation of minors, sexualized content involving minors, grooming, coercion of minors into sexual or intimate activity and non-consensual intimate material involving minors are strictly prohibited. Where required by law, serious child-safety matters may be reported to appropriate authorities or handled through lawful processes.</p></section>
+
+        <section class="policy-section" id="section-14"><h2><span class="section-number">14.</span>Safety in Creative Writing</h2><p>Journals supports fiction, poetry, personal writing, storytelling and other forms of creative expression. A fictional setting does not automatically make prohibited conduct acceptable. Creative work may contain difficult subjects, mature themes, conflict, fictional violence or other serious topics where the presentation remains within these policies. Content that becomes pornography, sexual exploitation, sexualization of minors, targeted harassment, serious threats or meaningful facilitation of harm remains prohibited regardless of whether it is fictional.</p></section>
+
+        <section class="policy-section" id="section-15"><h2><span class="section-number">15.</span>Third-Party Services and Links</h2><p>Journals may rely on third-party services for authentication, hosting, storage, analytics, communications, security or other operations. Third-party websites and services may have their own terms and privacy policies. Journals is not responsible for the content or practices of third-party services that it does not control.</p></section>
+
+        <section class="policy-section" id="section-16"><h2><span class="section-number">16.</span>Platform Integrity and Security</h2><p>You must not bypass security controls, access another person’s account without authorization, exploit vulnerabilities for unauthorized access, interfere with platform infrastructure, overload or intentionally disrupt the service, use automation to abuse platform features or circumvent moderation and enforcement systems. Security vulnerabilities may be reported responsibly through the appropriate support or security channel.</p></section>
+
+        <section class="policy-section" id="section-17"><h2><span class="section-number">17.</span>Legal Compliance</h2><p>Journals operates subject to applicable law. Relevant Indian legal frameworks may include, as applicable:</p><ul><li>Information Technology Act, 2000.</li><li>Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, as amended.</li><li>Digital Personal Data Protection Act, 2023.</li><li>Digital Personal Data Protection Rules, 2025, as applicable.</li><li>Copyright Act, 1957.</li><li>Other applicable laws and regulations.</li></ul><p>Where laws or regulations change, Journals may update these policies accordingly.</p></section>
+
+        <section class="policy-section" id="section-18"><h2><span class="section-number">18.</span>Grievance Redressal</h2><p>For complaints, policy concerns, copyright matters, privacy concerns or other grievances, contact <a href="mailto:support@aspinora.in">support@aspinora.in</a>. Please provide enough information to identify the issue and allow it to be reviewed. Journals may request additional information where reasonably necessary.</p></section>
+
+        <section class="policy-section" id="section-19"><h2><span class="section-number">19.</span>Changes to These Policies</h2><p>Journals may update these policies to reflect changes to the service, changes in law, new safety risks, new features or improvements to moderation and privacy practices. Material changes may be communicated through appropriate notices. The latest version published by Journals will apply from its stated effective date.</p></section>
+
+        <section class="policy-section" id="section-20"><h2><span class="section-number">20.</span>Governing Law and Disputes</h2><p>These policies are intended to operate in accordance with applicable Indian law. Any dispute will be handled according to applicable law and any valid dispute-resolution process communicated by Journals.</p></section>
+
+        <section class="policy-section" id="section-21"><h2><span class="section-number">21.</span>User Responsibilities</h2><p>By using Journals, you are responsible for the content you publish, the rights you have to publish it, how you interact with other users, respecting privacy and intellectual-property rights, complying with these policies and applicable law, and reporting serious violations honestly.</p></section>
+
+        <section class="policy-section" id="section-22"><h2><span class="section-number">22.</span>Quick Guide</h2><table class="policy-table"><thead><tr><th>Generally allowed</th><th>Not allowed</th></tr></thead><tbody><tr><td>Original creative writing</td><td>Pornography</td></tr><tr><td>Mature literary themes within the rules</td><td>Sexual content involving minors</td></tr><tr><td>Poetry and shayari</td><td>Sexual exploitation or solicitation</td></tr><tr><td>Fictional stories</td><td>Non-consensual intimate material</td></tr><tr><td>Constructive criticism</td><td>Targeted harassment or bullying</td></tr><tr><td>Fictional violence within the rules</td><td>Serious threats</td></tr><tr><td>AI-assisted writing</td><td>Self-harm encouragement or facilitation</td></tr><tr><td>Creative discussion</td><td>Doxxing or unauthorized private information</td></tr><tr><td>Lawful personal expression</td><td>Scams, spam and artificial manipulation</td></tr><tr><td>—</td><td>Malicious code, deceptive impersonation or copyright infringement</td></tr></tbody></table></section>
+
+        <section class="policy-section" id="section-23"><h2><span class="section-number">23.</span>Final Principle</h2><p><strong>Write privately. Publish beautifully. Share your world.</strong></p><p>Creative freedom and community safety are intended to exist together. Users are encouraged to express themselves while respecting the rights, privacy, safety and dignity of others.</p></section>
+      </article>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <img src="Powered-by-Aspinora-logo.jpeg" alt="Journals powered by Aspinora" />
+    <p>Journals, powered by Aspinora</p>
+    <p>Support: <a href="mailto:support@aspinora.in">support@aspinora.in</a></p>
+  </footer>
+
+  <button class="back-top" id="backTop" type="button" aria-label="Back to top">↑</button>
+
+  <script>
+    const searchInput = document.getElementById('searchInput');
+    const sections = [...document.querySelectorAll('.policy-section')];
+    const tocLinks = [...document.querySelectorAll('.toc a')];
+    const backTop = document.getElementById('backTop');
+
+    searchInput.addEventListener('input', () => {
+      const query = searchInput.value.trim().toLowerCase();
+      sections.forEach(section => {
+        const match = !query || section.textContent.toLowerCase().includes(query);
+        section.style.display = match ? '' : 'none';
+      });
+      tocLinks.forEach(link => {
+        const target = document.querySelector(link.getAttribute('href'));
+        link.style.display = !query || (target && target.textContent.toLowerCase().includes(query)) ? '' : 'none';
+      });
+    });
+
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      document.body.classList.toggle('reading-mode');
+      const active = document.body.classList.contains('reading-mode');
+      document.documentElement.style.setProperty('--background', active ? '#f1ede7' : '#fbfaf8');
+      document.documentElement.style.setProperty('--surface', active ? '#fffdf9' : '#ffffff');
+    });
+
+    window.addEventListener('scroll', () => {
+      backTop.classList.toggle('visible', window.scrollY > 500);
+      let current = '';
+      sections.forEach(section => {
+        if (window.scrollY >= section.offsetTop - 140) current = section.id;
+      });
+      tocLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + current));
+    });
+
+    backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  </script>
+</body>
+</html>
