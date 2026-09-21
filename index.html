@@ -22,9 +22,10 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Aspinora Writing</title>
-<meta name="description" content="Write privately. Publish beautifully. Share your world. Aspinora Writing is where writers, poets and shayars build a home for their words.">
-<link rel="icon" type="image/svg+xml" href="journal-logo.svg">
+<title>Journals By Aspinora</title>
+<meta name="description" content="Write privately. Publish beautifully. Share your world. Journals By Aspinora is where writers, poets and shayars build a home for their words.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -639,6 +640,12 @@ body.is-reading .comment-form textarea{
 #auth-modal-scrim .modal-box.is-forgot > #auth-form,
 #auth-modal-scrim .modal-box.is-forgot > .auth-divider,
 #auth-modal-scrim .modal-box.is-forgot > #social-auth-buttons{ display:none !important; }
+/* Mandatory "I agree to the Terms" tick (sign-up form + username onboarding). */
+.auth-terms{ margin:2px 0 16px; }
+.auth-terms label{ display:flex; align-items:flex-start; gap:10px; margin:0; font-size:.84rem; font-weight:500; line-height:1.5; color:var(--ink-soft); cursor:pointer; }
+.auth-terms input[type="checkbox"]{ flex:0 0 auto; width:18px; height:18px; margin:2px 0 0; accent-color:var(--orange-deep); cursor:pointer; }
+.auth-terms a{ color:var(--orange-deep); font-weight:700; text-decoration:underline; }
+.auth-terms-error{ margin:6px 0 0 28px; font-size:.78rem; line-height:1.4; color:#a93226; }
 .auth-forgot-status{ margin:0 0 16px; padding:10px 14px; border-radius:10px; font-size:.84rem; line-height:1.45; background:var(--orange-soft); color:var(--ink); }
 .auth-forgot-status.is-error{ background:#fdecea; color:#a93226; }
 .auth-forgot-back-row{ text-align:center; margin:16px 0 0; font-size:.86rem; }
@@ -1117,7 +1124,7 @@ body.is-reading .comment-form textarea{
     <button type="button" class="modal-close" id="auth-modal-close" aria-label="Close">
       <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
-    <h2 id="auth-modal-title">Welcome to Aspinora Writing</h2>
+    <h2 id="auth-modal-title">Welcome to Journals By Aspinora</h2>
     <p class="modal-sub">Log in or create an account to write, appreciate and leave Impressions.</p>
 
     <!-- Shown when someone opens an emailed link that was already used or
@@ -1164,6 +1171,13 @@ body.is-reading .comment-form textarea{
           </button>
         </div>
         <div class="auth-forgot-row"><button type="button" class="link-btn" id="auth-forgot-link">Forgot password?</button></div>
+      </div>
+      <div class="auth-terms" id="signup-terms-field" hidden>
+        <label for="auth-terms">
+          <input type="checkbox" id="auth-terms">
+          <span>I agree to the <a href="/journal-policies.html" target="_blank" rel="noopener">Terms, Policies &amp; Community Standards</a> of Journals By Aspinora.</span>
+        </label>
+        <p class="auth-terms-error" id="auth-terms-error" role="alert" hidden>Please tick the box to agree before continuing.</p>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="auth-submit-btn">Continue as Demo User</button>
     </form>
@@ -1228,6 +1242,13 @@ body.is-reading .comment-form textarea{
         <label for="onboard-username">Username</label>
         <input type="text" id="onboard-username" class="input" placeholder="e.g. priya_writes" autocomplete="username" maxlength="20">
         <p class="field-hint" id="onboard-username-hint">3–20 characters: lowercase letters, numbers or underscores.</p>
+      </div>
+      <div class="auth-terms" id="onboard-terms-field" hidden>
+        <label for="onboard-terms">
+          <input type="checkbox" id="onboard-terms">
+          <span>I agree to the <a href="/journal-policies.html" target="_blank" rel="noopener">Terms, Policies &amp; Community Standards</a> of Journals By Aspinora.</span>
+        </label>
+        <p class="auth-terms-error" id="onboard-terms-error" role="alert" hidden>Please tick the box to agree before continuing.</p>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%;" id="onboard-username-submit">Continue</button>
     </form>
@@ -1431,7 +1452,7 @@ function categoryBadgeHTML(cat, size){
 /* ------------------------------------------------------------------
    4. MOCK DATA (used only while DEMO_MODE is true)
    ------------------------------------------------------------------ */
-const DEMO_USER = { id:'demo-user-1', display_name:'You', username:'you', bio:'Testing Aspinora Writing.', creative_identity:'Author' };
+const DEMO_USER = { id:'demo-user-1', display_name:'You', username:'you', bio:'Testing Journals By Aspinora.', creative_identity:'Author' };
 
 const MOCK_AUTHORS = {
   'a1':{ id:'a1', display_name:'Meera Nair',  username:'meera',  creative_identity:'Author' },
@@ -2113,6 +2134,15 @@ function openUsernameOnboarding(){
   try{ pending = localStorage.getItem(PENDING_USERNAME_KEY) || ''; }catch(e){}
   qs('#onboard-username').value = pending;
   try{ localStorage.removeItem(PENDING_USERNAME_KEY); }catch(e){}
+  // A pending username only exists if it came through the Sign Up form,
+  // which already required the Terms tick; keep that knowledge for this tab
+  // in case this modal is opened again before it is completed.
+  if (pending) rememberTermsAccepted();
+  let agreed = false;
+  try{ agreed = sessionStorage.getItem(TERMS_OK_KEY) === '1'; }catch(e){}
+  qs('#onboard-terms').checked = false;
+  qs('#onboard-terms-error').hidden = true;
+  qs('#onboard-terms-field').hidden = agreed;
   resetUsernameHint('onboard-username-hint');
   openModal('username-modal-scrim');
   if (pending) qs('#onboard-username').dispatchEvent(new Event('input'));
@@ -2397,12 +2427,29 @@ function showLastAuthMethodNote(){
     note.style.display = 'none';
   }
 }
+/* Mandatory Terms tick. The same #auth-terms box guards the Sign Up form
+   AND the Google button on the Sign Up tab. TERMS_OK_KEY (per-tab
+   sessionStorage) remembers that the box was ticked, so a Google sign-up
+   — which returns on userpostlogin.html in this same tab — is not asked
+   again on the username step. A person who instead uses Google from the
+   Log In tab, and turns out to be new, ticks the box on the username step. */
+const TERMS_OK_KEY = 'aspinora_terms_ok';
+function termsTickedOrWarn(boxId, errId){
+  const box = qs('#' + boxId);
+  const err = qs('#' + errId);
+  if (box.checked){ err.hidden = true; return true; }
+  err.hidden = false;
+  try{ box.focus(); }catch(e){}
+  return false;
+}
+function rememberTermsAccepted(){ try{ sessionStorage.setItem(TERMS_OK_KEY, '1'); }catch(e){} }
 function setAuthTab(tab){
   qsa('[data-auth-tab]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-auth-tab') === tab); });
   const emailLabel = qs('#auth-email-label');
   const emailInput = qs('#auth-email');
   const isSignup = tab === 'signup';
   qs('#signup-username-field').hidden = !isSignup;
+  qs('#signup-terms-field').hidden = !isSignup;
   if (isSignup){
     emailLabel.textContent = 'Email';
     emailInput.placeholder = 'you@example.com';
@@ -3082,7 +3129,7 @@ function navigateTo(view, params){
 
   if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
   if (view === 'read') renderReadView(params.journalId, replace);
-  if (view === 'portfolio'){ window.location.href = 'portfolio.html?u=' + encodeURIComponent(params.username || ''); }
+  if (view === 'portfolio'){ window.location.href = '/portfolio.html?u=' + encodeURIComponent(params.username || ''); }
   if (view === 'home' || view === 'explore') renderHomeStatic();
   if (view === 'explore'){
     setTimeout(function(){ const el = qs('#explore-section'); if (el) el.scrollIntoView({ behavior:'smooth' }); }, 60);
@@ -3099,7 +3146,7 @@ function journalCardHTML(j){
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
       '<p class="j-excerpt">' + escapeHtml(j.excerpt) + '</p>' +
-      '<a class="j-meta" href="portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarHTML(j.author_id, authorName(j.author_id)) +
+      '<a class="j-meta" href="/portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarHTML(j.author_id, authorName(j.author_id)) +
         '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
         '<span class="sub">' + (j.reading_time||readingTimeMinutes(words||400)) + ' min read · ' + formatDate(j.published_at) + '</span></div>' +
       '</a>' +
@@ -4055,6 +4102,7 @@ async function completeLoginSuccess(form, result){
 function resetAuthPanel(){
   qs('.auth-tabs').hidden = false;
   qs('#auth-form').reset();
+  qs('#auth-terms-error').hidden = true;
   resetUsernameHint('auth-username-hint');
   resetForgotPanel();
   qs('#auth-link-notice').style.display = 'none';
@@ -4229,6 +4277,9 @@ function initAuthModal(){
     this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
   });
 
+  qs('#auth-terms').addEventListener('change', function(){ if (this.checked) qs('#auth-terms-error').hidden = true; });
+  qs('#onboard-terms').addEventListener('change', function(){ if (this.checked) qs('#onboard-terms-error').hidden = true; });
+
   // Same provider button, same handler, on both the Log In and Sign
   // Up tabs — see signInWithOAuth()'s comment for why one call covers
   // both cases. Disabled providers (Facebook, for now) never fire a
@@ -4240,6 +4291,10 @@ function initAuthModal(){
       // intent even though both tabs share the same provider buttons.
       const intent = qs('#auth-form').getAttribute('data-mode') || 'login';
       const provider = this.getAttribute('data-oauth-provider');
+      if (intent === 'signup'){
+        if (!termsTickedOrWarn('auth-terms', 'auth-terms-error')) return;
+        rememberTermsAccepted();
+      }
       setLastAuthMethod(provider);
       signInWithOAuth(provider, intent);
     });
@@ -4252,6 +4307,10 @@ function initAuthModal(){
     const username = qs('#auth-username').value.trim();
     const password = qs('#auth-password').value;
     const btn = qs('#auth-submit-btn');
+    if (mode === 'signup'){
+      if (!termsTickedOrWarn('auth-terms', 'auth-terms-error')) return;
+      rememberTermsAccepted();
+    }
     btn.disabled = true;
     try{
       const result = mode === 'signup' ? await signUp(username, identifier, password) : await signIn(identifier, password);
@@ -4280,9 +4339,11 @@ function initAuthModal(){
     const input = qs('#onboard-username');
     const hint = qs('#onboard-username-hint');
     const btn = qs('#onboard-username-submit');
+    if (!qs('#onboard-terms-field').hidden && !termsTickedOrWarn('onboard-terms', 'onboard-terms-error')) return;
     btn.disabled = true;
     try{
       await completeUsernameOnboarding(input.value);
+      try{ sessionStorage.removeItem(TERMS_OK_KEY); }catch(e){}
       if (state.pendingAuthAction){
         const action = state.pendingAuthAction;
         state.pendingAuthAction = null;
