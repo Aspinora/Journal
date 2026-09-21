@@ -634,6 +634,7 @@ body.is-reading .comment-form textarea{
 #auth-modal-scrim .modal-box.is-forgot > .modal-sub,
 #auth-modal-scrim .modal-box.is-forgot > .auth-tabs,
 #auth-modal-scrim .modal-box.is-forgot > .demo-note,
+#auth-modal-scrim .modal-box.is-forgot > .auth-link-notice,
 #auth-modal-scrim .modal-box.is-forgot > .auth-last-used,
 #auth-modal-scrim .modal-box.is-forgot > #auth-form,
 #auth-modal-scrim .modal-box.is-forgot > .auth-divider,
@@ -641,6 +642,8 @@ body.is-reading .comment-form textarea{
 .auth-forgot-status{ margin:0 0 16px; padding:10px 14px; border-radius:10px; font-size:.84rem; line-height:1.45; background:var(--orange-soft); color:var(--ink); }
 .auth-forgot-status.is-error{ background:#fdecea; color:#a93226; }
 .auth-forgot-back-row{ text-align:center; margin:16px 0 0; font-size:.86rem; }
+.auth-link-notice{ margin:0 0 18px; padding:10px 14px; border-radius:10px; font-size:.84rem; line-height:1.45; background:#fdecea; color:#a93226; }
+.auth-link-notice .link-btn{ color:#a93226; }
 
 .publish-summary{ background:var(--cream-deep); border-radius:14px; padding:18px; margin:18px 0; display:flex; flex-direction:column; gap:8px; }
 .publish-summary-row{ display:flex; justify-content:space-between; font-size:.86rem; }
@@ -1116,6 +1119,10 @@ body.is-reading .comment-form textarea{
     </button>
     <h2 id="auth-modal-title">Welcome to Aspinora Writing</h2>
     <p class="modal-sub">Log in or create an account to write, appreciate and leave Impressions.</p>
+
+    <!-- Shown when someone opens an emailed link that was already used or
+         has expired (see LINK_EXPIRED). Stays visible, unlike a toast. -->
+    <p class="auth-link-notice" id="auth-link-notice" style="display:none;">That email link has expired or was already used. Reset links only work once. <button type="button" class="link-btn" id="auth-link-notice-btn">Get a new reset link</button></p>
 
     <div class="auth-tabs">
       <button type="button" class="is-active" data-auth-tab="login">Log In</button>
@@ -4008,6 +4015,7 @@ function resetAuthPanel(){
   qs('#auth-form').reset();
   resetUsernameHint('auth-username-hint');
   resetForgotPanel();
+  qs('#auth-link-notice').style.display = 'none';
 }
 
 /* ---------- Forgot password / set a new password ---------- */
@@ -4051,6 +4059,7 @@ function showForgotPanel(on){
   if (on){
     const typed = qs('#auth-email').value.trim();
     box.classList.add('is-forgot');
+    qs('#auth-link-notice').style.display = 'none';
     qs('#auth-modal-title').textContent = 'Reset your password';
     stopForgotCooldown();
     setForgotStatus('');
@@ -4087,6 +4096,7 @@ function openRecoveryModal(){
 }
 function initPasswordReset(){
   qs('#auth-forgot-link').addEventListener('click', function(){ showForgotPanel(true); });
+  qs('#auth-link-notice-btn').addEventListener('click', function(){ showForgotPanel(true); });
   qs('#auth-forgot-back').addEventListener('click', function(){ showForgotPanel(false); });
 
   qs('#auth-forgot-form').addEventListener('submit', async function(e){
@@ -4380,7 +4390,7 @@ async function init(){
     // used or has expired: the login box's Forgot password? link is
     // the way to get a fresh one.
     openAuthModal('login');
-    showToast('That email link has expired or was already used.');
+    qs('#auth-link-notice').style.display = 'block';
   }
   const readId = entryParams.get('read');
   if (readId){
