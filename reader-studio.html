@@ -490,12 +490,8 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
 
 /* ================= v2 additions ================= */
 /* structure: optional parts, part covers, plain chapter group */
-.part{display:flex;gap:20px}
-.part__body{flex:1;min-width:0}
-.part__cover{flex:0 0 68px;margin-top:8px}
 .part--plain .ch:first-child{border-top:1px solid var(--rule-strong)}
 .part--plain{margin-top:26px}
-@media (max-width:520px){.part__cover{flex-basis:52px}}
 .vol__prog{display:inline-flex;align-items:center;gap:10px}
 .cta__alt{margin-top:14px}
 .bar--lg{flex:none;width:100%;height:5px;margin-top:12px}
@@ -537,6 +533,42 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
   .cta__where{text-align:center}
   .cta__where b{font-size:18px}
 }
+
+/* ---- part covers: 2:3 thumbnail sits in the part heading row, chapters stay full width ---- */
+.part--cov{margin-top:46px}
+.part--cov .part__head{align-items:center;justify-content:flex-start;gap:20px;padding-top:0;padding-bottom:18px}
+.part__cover{flex:0 0 84px;width:84px}
+.part__cover .cover--port{border-radius:2px 3px 3px 2px;box-shadow:0 1px 0 rgba(0,0,0,.06),0 12px 20px -12px rgba(50,30,5,.55),0 0 0 1px rgba(0,0,0,.1)}
+html[data-theme="dark"] .part__cover .cover--port{box-shadow:0 0 0 1px rgba(255,255,255,.08),0 12px 20px -10px rgba(0,0,0,.8)}
+.part__cover .cover--ph .ph{inset:5px;padding:4px;gap:0}
+.part__cover .ph__no{font-size:26px}
+.part__cover .ph__t{display:none}
+.part--cov .part__ttl{flex:1;min-width:0;flex-direction:column;align-items:flex-start;gap:6px}
+.part--cov .part__title{font-size:28px}
+.part__meta{margin-top:2px;font:400 12.5px var(--font-ui);color:var(--ink-3)}
+@media (max-width:699px){
+  .part--cov{margin-top:38px}
+  .part__cover{flex-basis:60px;width:60px}
+  .part--cov .part__head{gap:16px;padding-bottom:14px}
+  .part--cov .part__title{font-size:24px}
+  .part__cover .ph__no{font-size:20px}
+}
+
+/* ---- comment icon: sticks to the right edge of the paragraph on phones & tablets ---- */
+@media (max-width:999px){
+  .cbtn{float:right;display:inline-flex;margin:0 0 0 .6em;height:30px;min-width:30px;vertical-align:baseline}
+  .blk--p .txt::after,.blk--quote .txt::after,.blk--li .txt::after{content:"";display:block;clear:both}
+  .blk[data-rtl] .cbtn{float:none;display:flex;margin:2px 0 0 auto}
+}
+
+/* ---- demo story switcher ---- */
+.bm--one{grid-template-columns:1fr}
+.bm__go.st{display:flex;align-items:center;gap:14px}
+.bm__go.st .st__cov{display:block;flex:0 0 104px}
+.bm__go.st .st__txt{flex:1;min-width:0}
+.bm__go.st .cover--land{box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.st__on{margin-top:6px;font:600 10.5px var(--font-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)}
+.st__txt .bm__w{margin-top:4px;text-transform:none;letter-spacing:0;font:400 12.5px var(--font-ui);color:var(--ink-2)}
 
 </style>
 <script>
@@ -721,6 +753,109 @@ ${frame(800,1200)}
 <rect width="800" height="1200" fill="url(#vg${u})"/><rect width="800" height="1200" filter="url(#g${u})" opacity=".5"/></svg>`;
 };
 
+
+/* ---------- Part cover 2:3 (demo artwork; a real part cover is just an uploaded 2:3 image) ---------- */
+ART.part=(u,c)=>{
+  const PAL=[
+    {sky:['#7D90A3','#D3CBB9','#F2DCB4'],g:['#5F7371','#3A4D52'],sun:'#FFF0C8',t:'#1D2A3A',st:0},
+    {sky:['#C98A5A','#E9B47A','#F6D6A2'],g:['#6B4A3A','#3D2A25'],sun:'#FFF3D0',t:'#2A1B14',st:0},
+    {sky:['#2F4655','#587582','#9DB3B0'],g:['#22343D','#131F26'],sun:'#E8E3CF',t:'#EEF1EA',st:1},
+    {sky:['#1A2530','#34474F','#6F858A'],g:['#14202A','#0A1218'],sun:'#C9D6D4',t:'#E6ECEA',st:1},
+    {sky:['#2A1C3F','#8A3A4C','#E98A4A'],g:['#1A1024','#0C0716'],sun:'#FFE2A0',t:'#FBEBC8',st:1},
+    {sky:['#F0B46A','#F8D79A','#FFF0CF'],g:['#8A6A5A','#4B3A3A'],sun:'#FFFAE6',t:'#3A2416',st:0}
+  ][(c.v||0)%6];
+  const words=String(c.title||'').split(' ');let l1=c.title||'',l2='';
+  if((c.title||'').length>11&&words.length>1){let best=1,bd=1e9;for(let i=1;i<words.length;i++){const d=Math.abs(words.slice(0,i).join(' ').length-words.slice(i).join(' ').length);if(d<bd){bd=d;best=i}}l1=words.slice(0,best).join(' ');l2=words.slice(best).join(' ')}
+  return `<svg viewBox="0 0 800 1200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs>
+<linearGradient id="sk${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${PAL.sky[0]}"/><stop offset=".55" stop-color="${PAL.sky[1]}"/><stop offset="1" stop-color="${PAL.sky[2]}"/></linearGradient>
+<radialGradient id="sn${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${PAL.sun}" stop-opacity=".75"/><stop offset="1" stop-color="${PAL.sun}" stop-opacity="0"/></radialGradient>
+${grainDefs(u)}${vignette(u)}</defs>
+<rect width="800" height="800" fill="url(#sk${u})"/>
+${PAL.st?stars(c.v+3,50,0,800,0,520):''}
+<circle cx="400" cy="700" r="300" fill="url(#sn${u})"/>${c.motif==='clock'?clockFace(400,690,96,PAL.g[1],PAL.sun):`<circle cx="400" cy="700" r="84" fill="${PAL.sun}"/>`}
+${c.motif==='clock'?skyline(41+(c.v||0),PAL.g[0],PAL.g[1]):`<path d="M0 742C120 704 240 718 340 734C460 754 560 712 680 718C740 721 780 732 800 740V820H0Z" fill="${PAL.g[0]}"/>`}
+${c.motif==='clock'?'':`<path d="M0 806C140 772 280 792 420 806C560 820 690 792 800 802V1200H0Z" fill="${PAL.g[1]}"/>`}
+<rect y="900" width="800" height="300" fill="${PAL.g[1]}"/>
+<g fill="${PAL.t}" font-family="${SERIF}" text-anchor="middle">
+<text x="400" y="150" font-size="20" letter-spacing="10" font-weight="500" font-family="${UIF}">${esc(c.label||'')}</text>
+<text x="400" y="${l2?248:262}" font-size="74" font-weight="600">${esc(l1)}</text>
+${l2?`<text x="400" y="330" font-size="74" font-weight="600">${esc(l2)}</text>`:''}
+<rect x="370" y="${l2?372:312}" width="60" height="1.6" opacity=".6"/></g>
+<g fill="#F5EAD0" text-anchor="middle" font-family="${UIF}"><text x="400" y="1122" font-size="14" letter-spacing="6" opacity=".85">THE LAST LIGHT OF MERIDIAN</text></g>
+${frame(800,1200,PAL.st?'#F5EAD0':'#FFF6E0')}
+<rect width="800" height="1200" fill="url(#vg${u})"/><rect width="800" height="1200" filter="url(#g${u})" opacity=".5"/></svg>`;
+};
+
+
+/* ---------- Clockwork helpers + second demo story artwork ---------- */
+function clockFace(cx,cy,r,fg,face){
+  const hand=(a,l,w)=>`<line x1="${cx}" y1="${cy}" x2="${(cx+l*Math.sin(a)).toFixed(1)}" y2="${(cy-l*Math.cos(a)).toFixed(1)}" stroke="${fg}" stroke-width="${w.toFixed(1)}" stroke-linecap="round"/>`;
+  let s=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${face}" stroke="${fg}" stroke-width="${(r*.05).toFixed(1)}"/>`;
+  for(let i=0;i<12;i++){const a=i*Math.PI/6,r1=r*(i%3?.84:.76),r2=r*.92;
+    s+=`<line x1="${(cx+r1*Math.sin(a)).toFixed(1)}" y1="${(cy-r1*Math.cos(a)).toFixed(1)}" x2="${(cx+r2*Math.sin(a)).toFixed(1)}" y2="${(cy-r2*Math.cos(a)).toFixed(1)}" stroke="${fg}" stroke-width="${(r*(i%3?.02:.038)).toFixed(1)}" stroke-linecap="round"/>`}
+  /* stopped at 4:17 */
+  s+=hand((4+17/60)*Math.PI/6,r*.5,r*.055)+hand(17*Math.PI/30,r*.76,r*.035)+`<circle cx="${cx}" cy="${cy}" r="${(r*.055).toFixed(1)}" fill="${fg}"/>`;
+  return s;
+}
+function gear(cx,cy,r,teeth,col,op){
+  const circ=2*Math.PI*r,seg=(circ/teeth/2).toFixed(1);
+  return `<g opacity="${op||1}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${(r*.3).toFixed(1)}" stroke-dasharray="${seg} ${seg}"/><circle cx="${cx}" cy="${cy}" r="${(r*.84).toFixed(1)}" fill="none" stroke="${col}" stroke-width="${(r*.16).toFixed(1)}"/><circle cx="${cx}" cy="${cy}" r="${(r*.5).toFixed(1)}" fill="none" stroke="${col}" stroke-width="${(r*.05).toFixed(1)}" stroke-dasharray="5 11"/><circle cx="${cx}" cy="${cy}" r="${(r*.15).toFixed(1)}" fill="${col}"/></g>`;
+}
+function skyline(seed,fill,fill2){
+  const R=rng(seed);let s='',x=-10;
+  while(x<810){const w=34+R()*60,h=40+R()*100,y=790-h;
+    s+=`<rect x="${f0(x)}" y="${f0(y)}" width="${f0(w)}" height="${f0(h+420)}" fill="${R()>.5?fill:fill2}"/>`;
+    if(R()>.6)s+=`<polygon points="${f0(x)},${f0(y)} ${f0(x+w)},${f0(y)} ${f0(x+w/2)},${f0(y-26-R()*30)}" fill="${fill}"/>`;
+    x+=w+R()*6;}
+  return s+`<rect y="850" width="800" height="360" fill="${fill2}"/>`;
+}
+
+/* Story cover 3:2 */
+ART.clockStory=u=>{
+  const R=rng(77);let city='',x=0;
+  while(x<1200){const w=44+R()*76,h=80+R()*190,y=800-h;
+    city+=`<rect x="${f0(x)}" y="${f0(y)}" width="${f0(w)}" height="${f0(h)}" fill="#0A1418"/>`;
+    for(let k=0;k<5;k++)if(R()>.55)city+=`<rect x="${f0(x+8+R()*(w-24))}" y="${f0(y+10+R()*(h-30))}" width="6" height="8" fill="#F2B968" opacity="${(.5+R()*.4).toFixed(2)}"/>`;
+    if(R()>.7)city+=`<polygon points="${f0(x)},${f0(y)} ${f0(x+w)},${f0(y)} ${f0(x+w/2)},${f0(y-34-R()*30)}" fill="#0A1418"/>`;
+    x+=w+R()*8}
+  return `<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs>
+<linearGradient id="sk${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B1820"/><stop offset=".45" stop-color="#1D4450"/><stop offset=".78" stop-color="#B9823F"/><stop offset="1" stop-color="#F0C27A"/></linearGradient>
+<radialGradient id="gl${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFD9A0" stop-opacity=".55"/><stop offset="1" stop-color="#FFD9A0" stop-opacity="0"/></radialGradient>
+${grainDefs(u)}${vignette(u)}</defs>
+<rect width="1200" height="800" fill="url(#sk${u})"/>${stars(5,70,0,1200,0,360)}
+<circle cx="910" cy="330" r="360" fill="url(#gl${u})"/>
+${clockFace(910,330,214,'#1B2A2F','#F2E2B8')}
+${city}
+<g fill="#F6EAD0" font-family="${SERIF}"><text x="76" y="72" font-size="15" letter-spacing="6" opacity=".82" font-family="${UIF}">A NOVEL IN THREE VOLUMES</text>
+<text x="72" y="154" font-size="82" font-weight="600">The Clockmaker</text>
+<text x="72" y="240" font-size="82" font-weight="500" font-style="italic">of Halcyon Row</text>
+<text x="76" y="736" font-size="18" letter-spacing="9" opacity=".9" font-family="${UIF}">CASSIAN VALE</text></g>
+${frame(1200,800)}<rect width="1200" height="800" fill="url(#vg${u})"/><rect width="1200" height="800" filter="url(#g${u})" opacity=".55"/></svg>`;
+};
+
+/* Volume covers 2:3 */
+ART.clockVol=(u,c)=>{
+  const v=(c.v||0)%3;
+  const P=[{s:['#2A1D12','#7A5424','#E9C27A'],ink:'#F6E8C8'},{s:['#071A20','#123E47','#2E7379'],ink:'#DDF0EE'},{s:['#150F2E','#5A2A5A','#EFA35A'],ink:'#FBE9C8'}][v];
+  let art='';
+  if(v===0)art=`<circle cx="400" cy="640" r="330" fill="url(#gl${u})"/>${clockFace(400,640,240,'#3B2A1A','#F3E3B9')}${skyline(12,'#1C130B','#120C07')}`;
+  if(v===1)art=gear(210,520,190,22,'#0A2B31',1)+gear(560,430,130,16,'#0D3840',.9)+gear(640,760,170,20,'#0A2B31',1)+gear(150,930,140,17,'#0D3840',.95)+gear(420,1010,90,12,'#0A2B31',1)+
+    [[300,680],[520,600],[430,860],[280,820],[600,560]].map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="5" fill="#F4C36E" opacity=".85"/><circle cx="${p[0]}" cy="${p[1]}" r="22" fill="#F4C36E" opacity=".12"/>`).join('');
+  if(v===2){let rays='';for(let a=-90;a<=90;a+=15)rays+=`<polygon points="0,0 -14,-1000 14,-1000" transform="rotate(${a})" fill="#FFE2A8" opacity="${a%30===0?.12:.06}"/>`;
+    art=`<g transform="translate(400 560)">${rays}</g><circle cx="400" cy="560" r="300" fill="url(#gl${u})"/><rect x="340" y="470" width="120" height="560" fill="#0B0716"/><polygon points="330,470 470,470 400,340" fill="#0B0716"/><line x1="400" y1="340" x2="400" y2="300" stroke="#0B0716" stroke-width="4"/>${clockFace(400,560,46,'#150F2E','#F6E2B0')}<rect x="360" y="700" width="14" height="24" fill="#F4C36E" opacity=".8"/><rect x="426" y="780" width="14" height="24" fill="#F4C36E" opacity=".7"/>${skyline(21,'#0E0919','#080510')}`}
+  return `<svg viewBox="0 0 800 1200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs>
+<linearGradient id="sk${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.s[0]}"/><stop offset=".6" stop-color="${P.s[1]}"/><stop offset="1" stop-color="${P.s[2]}"/></linearGradient>
+<radialGradient id="gl${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFE3A8" stop-opacity=".6"/><stop offset="1" stop-color="#FFE3A8" stop-opacity="0"/></radialGradient>
+${grainDefs(u)}${vignette(u)}</defs>
+<rect width="800" height="1200" fill="url(#sk${u})"/>${v!==0?stars(9+v,40,0,800,0,420):''}${art}
+<g fill="${P.ink}" font-family="${SERIF}" text-anchor="middle">
+<text x="400" y="134" font-size="19" letter-spacing="10" font-weight="500" font-family="${UIF}">${esc(c.label||'')}</text>
+<text x="400" y="232" font-size="82" font-weight="600">${esc(c.title||'')}</text>
+<rect x="370" y="270" width="60" height="1.6" opacity=".6"/></g>
+<g fill="${P.ink}" text-anchor="middle" font-family="${UIF}"><text x="400" y="1146" font-size="14" letter-spacing="6" opacity=".88">THE CLOCKMAKER OF HALCYON ROW</text><text x="400" y="1170" font-size="12" letter-spacing="7" opacity=".66">CASSIAN VALE</text></g>
+${frame(800,1200,P.ink)}<rect width="800" height="1200" fill="url(#vg${u})"/><rect width="800" height="1200" filter="url(#g${u})" opacity=".5"/></svg>`;
+};
+
 /* =========================================================
    DEMO DATA — "The Last Light of Meridian"
    Written in the SAME shape the Writing Studio saves:
@@ -871,7 +1006,9 @@ const B13=[
 ];
 
 /* ---------- Images table (coverImageId → image) ---------- */
-const IMG={img_story:{art:'story'},img_v1:{art:'vol1'},img_v2:{art:'vol2'},img_v3:{art:'vol3'}};
+const IMG={img_story:{art:'story'},img_v1:{art:'vol1'},img_v2:{art:'vol2'},img_v3:{art:'vol3'},
+  img_pt1:{art:'part',v:0,label:'PART I',title:'Before the Storm'},img_pt2:{art:'part',v:1,label:'PART II',title:'The Road West'},
+  img_pt5:{art:'part',v:4,label:'PART I',title:'The Keeper’s Tower'},img_pt6:{art:'part',v:5,label:'PART II',title:'Dawn'}};
 const PROFILES={u_ilse:{id:'u_ilse',name:'Ilse Varrow'}};
 
 /* ---------- Work: volumes → (direct chapters | parts → chapters) ---------- */
@@ -885,12 +1022,12 @@ function mkCh(title,n,draft){
 }
 const DEF=[
 {title:'The Beginning',desc:`A letter arrives in a city that has forgotten the sea. Wren Alder leaves the life she has drawn for herself to answer a grandfather she has not seen in eleven years — and a light she has never quite stopped counting.`,
- parts:[{title:'Before the Storm',ch:[['The Letter',1],['Across the River',2],['The Night Train',3]]},{title:'The Road West',ch:[['A Stranger’s Umbrella',4],['The Salt Road',5],['First Sight of the Sea',6]]}]},
+ parts:[{img:'img_pt1',title:'Before the Storm',ch:[['The Letter',1],['Across the River',2],['The Night Train',3]]},{img:'img_pt2',title:'The Road West',ch:[['A Stranger’s Umbrella',4],['The Salt Road',5],['First Sight of the Sea',6]]}]},
 {title:'The Long Dark',desc:`Meridian keeps its lights low and its secrets lower. As the autumn storms close in, Wren learns why the great lamp has begun to stumble — and who has been counting on it to fail.`,
  parts:[{title:'The Harbour Town',ch:[['Meridian in Rain',7],['The Keeper’s Cottage',8],['What the Logbooks Kept',9]]},{title:'Salt and Iron',ch:[['The Council Meets',10],['The Wreck of the Calloway',11],['The Lamp Fails',12]]}]},
 {title:'The Last Light',desc:`One night remains before the lamp is put out for good. What Wren finds in the tower will decide whether Meridian is remembered for its light, or for the dark it chose.`,
  direct:[['The Last Evening',13]],
- parts:[{title:'The Keeper’s Tower',ch:[['Two Hundred and Eleven Steps',14],['What Tobias Knew',15]]},{title:'Dawn',ch:[['The Storm Turns',16],['Lamp and Lens',17],['The Morning Tide',18],['Epilogue',19,true]]}]}
+ parts:[{img:'img_pt5',title:'The Keeper’s Tower',ch:[['Two Hundred and Eleven Steps',14],['What Tobias Knew',15]]},{img:'img_pt6',title:'Dawn',ch:[['The Storm Turns',16],['Lamp and Lens',17],['The Morning Tide',18],['Epilogue',19,true]]}]}
 ];
 const WORK={
   id:'story_meridian',kind:'story',structure:null,visibility:'public',allowImpressions:true,ownerId:'u_ilse',
@@ -899,7 +1036,7 @@ const WORK={
   category:'Adventure',tags:['lighthouse','sea','family','mystery'],status:'ongoing',coverImageId:'img_story',
   volumes:DEF.map((d,i)=>({id:'vol'+(i+1),number:i+1,title:d.title,description:d.desc,status:'published',coverImageId:'img_v'+(i+1),
     chapters:(d.direct||[]).map(([t,n])=>mkCh(t,n)),
-    parts:d.parts.map((p,j)=>({id:`part${i+1}_${j+1}`,number:j+1,title:p.title,description:'',coverImageId:null,chapters:p.ch.map(([t,n,dr])=>mkCh(t,n,dr))}))}))
+    parts:d.parts.map((p,j)=>({id:`part${i+1}_${j+1}`,number:j+1,title:p.title,description:'',coverImageId:p.img||null,chapters:p.ch.map(([t,n,dr])=>mkCh(t,n,dr))}))}))
 };
 
 /* ---------- Demo people & seeded comments (reader-side data, separate from the work) ---------- */
@@ -943,6 +1080,134 @@ function seedComments(now){
 }
 
 /* =========================================================
+   SECOND DEMO STORY — "The Clockmaker of Halcyon Row"
+   Every level has cover art: story (3:2), volumes (2:3), parts (2:3).
+   ========================================================= */
+Object.assign(IMG,{
+  img2_story:{art:'clockStory'},
+  img2_v1:{art:'clockVol',v:0,label:'VOLUME I',title:'The Stopped Hour'},
+  img2_v2:{art:'clockVol',v:1,label:'VOLUME II',title:'The Long Minute'},
+  img2_v3:{art:'clockVol',v:2,label:'VOLUME III',title:'The Turning'},
+  img2_p1:{art:'part',motif:'clock',v:0,label:'PART I',title:'The Shop on Halcyon Row'},
+  img2_p2:{art:'part',motif:'clock',v:1,label:'PART II',title:'The Apprentice'},
+  img2_p3:{art:'part',motif:'clock',v:2,label:'PART I',title:'Verrin Below'},
+  img2_p4:{art:'part',motif:'clock',v:3,label:'PART II',title:'The Guild of Hours'},
+  img2_p5:{art:'part',motif:'clock',v:4,label:'PART I',title:'The Great Clock'},
+  img2_p6:{art:'part',motif:'clock',v:5,label:'PART II',title:'Midnight, Again'}
+});
+PROFILES.u_cassian={id:'u_cassian',name:'Cassian Vale'};
+
+const TX2={
+1:[
+`The great clock of Verrin stopped at seventeen minutes past four, on a Thursday morning in the last week of October, and nobody in the city noticed for almost an hour. Bakers went on baking by feel. Ferrymen went on ferrying by the tide. Only the clockmakers of Halcyon Row woke, all at once, as if a hand had closed around the same thought.`,
+`Isolde Fenn was seventeen and asleep above the shop when the silence woke her. It was not an absence of sound so much as an absence of pattern: the forty-one clocks downstairs had all begun to tick a little out of step, the way a choir falters when its conductor collapses. She lay still, counting, and reached eleven before she understood what was wrong.`,
+`Master Corrow’s chair was empty. His spectacles lay folded on the bench beside a half-finished watch, and his coat still hung on its peg, which was strange, because the old man had not gone anywhere without that coat in the forty years she had known him. She called his name once. The clocks, in their small disordered chorus, answered for him.`,
+`By the time the sun came up over the river, the whole Row had gathered in the street in their nightclothes, looking up at the tower of the Guildhall, where the great clock’s hands stood together at seventeen past four, like two fingers held to a lip. Nobody spoke. Somewhere a shutter banged. A child asked what time it was, and for the first time in living memory no one could say.`],
+3:[
+`Inside the case lay a single watch, plain as a pebble and warm as a hand. Its face had no numerals, only a ring of small dark holes, and its second hand moved backward, gathering seconds up instead of spending them. Isolde held it to her ear. It was not ticking. It was listening.`,
+`She should have closed the lid. Every instinct the master had drilled into her said so. Instead she found herself reaching for the loupe, then the tiny screwdriver, then the notebook in which Corrow had recorded every job for forty years. Under the last entry, dated the night before, three words had been written in an unsteady hand: *It has begun.*`,
+`The bell above the door rang. A woman stood there in a grey coat too heavy for the season, holding an umbrella that had plainly never been opened. She looked at the open case, and at the watch, and at Isolde, and for a moment her face held the expression of someone who has been running for a very long time and has just been told she may stop. “Who cut the thread?” she asked.`,
+`“I did.” Isolde did not know why she said it so steadily. “Then you had better close the shop,” said the woman, “and put the kettle on. We have about nine minutes, and after that I am afraid the story becomes rather more difficult to tell.”`],
+4:[
+`Her name, she said, was Perrin Quill, and she had been a Warden of the Guild of Hours until the previous winter, when she had discovered what the Guild was actually guarding. She did not say what that was. She looked at the kettle as though it might be listening.`,
+`The water boiled. Isolde poured, hands not quite steady. Quill drank hers standing, watching the street through the window, where the neighbours still loitered beneath the stopped tower. “Time in Verrin is not what you think,” she said. “It is rationed. Every clock in the city draws from a common store, laid down two hundred years ago by people who believed it would last for ever.”`,
+`“And it hasn’t?” “It has been running low for a decade. The Guild hid that by slowing the tower a little each year, a minute here, a minute there, so that no one noticed the days growing shorter. Ansel Corrow noticed. He was the only one who kept a true accounting, and last night he took it to the Guildhall to make them stop.”`,
+`Isolde set down her cup. “And the tower stopped.” “The tower stopped,” said Quill gently, “because there was nothing left to run it. And your master has not come back because he stayed behind to hold the last of it in his own two hands.”`],
+5:[
+`The watch in the black case, Quill explained, was a reserve: one minute, sealed by Corrow decades ago, never spent, never lent, never entered in any ledger. A minute that belonged to nobody. “Which makes it,” she said, “the most valuable object in Verrin, and the only thing the Guild cannot account for.”`,
+`Isolde turned it over. The backward second hand ticked once, delicately, and the light in the shop seemed to lean toward it, the way a room leans toward a fire. Forty-one clocks fell silent. It was not frightening. It was more like being noticed by something that had been patient for a very long time.`,
+`“If I wind it,” she said, “what happens?” “A minute happens.” Quill smiled without warmth. “One minute in which nothing anywhere in Verrin is late. Long enough, perhaps, to walk into a stopped tower and start it again. Not long enough, I think, to walk out.” Outside, the Row began, one door at a time, to close its shutters.`,
+`Isolde hung the master’s coat on her own peg, pinned the watch inside her waistcoat, and chalked one more line beneath the rules: *Never leave a job half done.* Then she went to find the stair that Corrow had always said did not exist.`],
+6:[
+`It was behind the shelf of stopped pocket-watches, exactly where a careful person would never think to look, and it went down for far longer than the building above had any right to be tall. The steps were worn into shallow dishes. Isolde counted them out of habit and lost the number at two hundred, when the air began to smell of oil and cold iron.`,
+`The walls sweated. Somewhere below, something enormous turned with a sound like a slow, deep breath, and the light of her lantern, when it fell on the stone, seemed to arrive a moment late, as though even light had to queue. Quill followed a few steps behind, silent, her closed umbrella tapping every seventh stair.`,
+`“Nobody comes down here,” Quill said. “The Guild believes the works are automatic. They are not. They are kept.” “By whom?” “By whoever is still willing to.” A door of green-black bronze appeared in the lantern-light, taller than a house, its surface crowded with tiny engraved dials, each stopped at a different hour. Isolde put her palm against it and felt the metal hum.`,
+`It opened before she pushed. On the other side, the dark was full of small, patient lights.`],
+7:[
+`Beneath Verrin there was another Verrin, and it was made entirely of clockwork. Streets of brass rail wound between towers of interlocking wheels, each as wide as a market square, turning against one another so slowly that whole minutes passed between one tooth and the next. Lamps burned in their hubs. Small figures crossed the bridges between them, carrying oilcans and lanterns.`,
+`They were the Winders: hundreds of them, gaunt, grey-handed, older than they looked, who had tended the city’s time for generations and were paid, Quill said, in the only currency the Guild would spare them: a little extra of it. Nobody up above had ever asked who kept the seconds turning. Nobody had ever thought the seconds needed keeping.`,
+`A girl no older than Isolde met them on the third bridge, wiping her palms on an apron black with grease. “You’re the one with the spare,” she said, and it was not a question. “I’m Wick. Master Corrow came through an hour before the tower failed. He left something for you at the Long Wheel. He said you’d be either very clever or very foolish, and that it would come to the same thing.”`,
+`The Long Wheel turned at the centre of the city, wider than the cathedral above it, and at its rim, chained to a spoke, stood a small brass automaton with Ansel Corrow’s spectacles balanced on its nose.`],
+8:[
+`The automaton spoke in the old man’s voice, cracked and dry, recorded onto a wax cylinder in its chest. “If you are hearing this, Isolde, the tower has stopped and I have been foolish. Do not weep. Do not wind the watch yet. First, go up and find out who profits.” There was a long pause full of hiss. “And eat something. You never do.”`,
+`Wick unchained it. It followed them to the surface on stiff brass legs, ticking gently, and by the time they emerged into the shop the sky over Verrin had gone the colour of pewter. Three carriages stood in the Row. The Guild’s crest, an hourglass held in a gauntlet, gleamed on their doors.`,
+`The Masters of the Guild of Hours received her in the shop as if it had always belonged to them. There were five, in long coats the colour of dust, and the eldest laid a ledger on the counter and opened it with one gloved finger. “Every minute in this city,” he said, “is entered here. Yours, mine, the baker’s, the child’s. Master Corrow has been overdrawn for thirty years.”`,
+`“Overdrawn,” Isolde repeated. “It is a technical term,” said the Master. “It means that what he owes can only be repaid by the person who inherits his shop.” He smiled, and it was the smile of a man setting a table. “Which, Miss Fenn, is you.”`],
+9:[
+`They gave her until evening. The Masters withdrew to the tavern at the end of the Row and left a clerk at the door, and Isolde sat on the workbench with the automaton on her knee, reading her master’s accounts by candle. Every page confirmed it: the store was failing, the Guild knew, and the debt they meant her to inherit was the debt of the whole city.`,
+`Wick and Quill arrived at dusk, bringing bread. They ate in silence, three conspirators and a machine. “There is one thing they cannot do,” Quill said at last. “They cannot stop the spare from being spent. It belongs to no ledger. If the tower is restarted on a minute nobody owns, then for that minute the Guild has no power at all.”`,
+`The clerk knocked at eight. The eldest Master had returned, alone, hat in hand, a different man in a different voice. “Miss Fenn. I have been unkind. Let me put it plainly. Give us the watch. The Guild will forgive the debt, fund the shop, and make you a Master before you are twenty. Refuse, and the tower stays stopped, and Verrin learns what it costs to lose an hour.”`,
+`Isolde looked at the small brass face in her lap, at Ansel Corrow’s spectacles winking in the candlelight, and understood, quite calmly, that she was being offered the thing she had always wanted at the exact price of everything she believed. “May I have until midnight?” she asked. The Master bowed. Behind him, the tower said nothing at all.`],
+10:[
+`The Guildhall tower had ninety-nine steps and a sign at the bottom forbidding anyone to climb them. Isolde climbed them at eleven o’clock, by lantern-light, with Wick behind her and the automaton clicking at her heels, while below in the square the whole of Verrin stood silent in the dark with candles, waiting for something they could not name.`,
+`On the fortieth step she stopped to breathe. Through a slit in the stone she could see the Row, a crooked line of small lit windows, and beyond it the river, and beyond that the smooth black hills. It occurred to her that she had never once looked at the city from above, and that from here it looked almost exactly like the inside of a watch.`,
+`On the seventieth step Quill caught her up, breathing hard, umbrella furled. “They are on their way,” she said. “Five minutes behind. They will not risk being seen on the stairs, but they will be waiting at the top.” “Then we do it before they arrive,” said Isolde, and found that her voice no longer shook. The last stretch she climbed two at a time.`,
+`The door at the top was not locked. It swung inward onto a room full of the sound of a slowly beating heart, and there, in the dark at the centre of the great clock’s works, sat Ansel Corrow, very small, holding a length of chain in both hands as if it were a rope thrown to a drowning man.`],
+11:[
+`“You took your time,” said Corrow, and grinned, and his face was so much thinner than she remembered that for a moment she could not answer. He had been holding the failing mainspring together for twenty hours with nothing but his own attention, and his knuckles were white as candle wax. “Don’t hug me. If I let go, the day ends.”`,
+`She knelt beside him. The works of the great clock towered above them, wheels the size of carriage-wheels, escapements like iron flowers, all of it motionless except for one great arbor turning by a fraction of a degree every few seconds under the old man’s straining hands. “How long can you hold?” “Long enough for you to say yes or no,” said Corrow. “I am aware that it is not long.”`,
+`She told him everything: the ledger, the offer, the watch. He listened with his eyes closed. “The Masters were not always wicked,” he said. “They were afraid. It is very hard to admit that something you love is ending. So they hid it, and the hiding became a kind of theft, and the theft became a habit. That is how most wickedness starts, Isolde. Mind you don’t inherit it.”`,
+`“Then what do I do?” He opened his eyes. They were the same pale grey they had always been, the colour of a winter morning just before it decides. “The only thing a clockmaker can,” he said. “Wind it. Honestly. And tell everyone how much is left.”`],
+12:[
+`She took the spare minute from her waistcoat at four seconds to midnight. It was warm in her palm, and heavier than any watch had a right to be, and when she opened its case the ring of dark holes along its rim began, one by one, to glow. Below, the whole city inhaled. She fitted the watch into the heart of the mechanism, where the old mainspring had been, and turned the key.`,
+`Nothing happened for a very long time, which was about eleven seconds. Then the great arbor shuddered, and the wheels remembered themselves, and the ninety-nine steps rang like a struck bell from the roof to the cellar as every clock in Verrin, all at once, caught up. Forty-one on Halcyon Row. Thousands more across the river. The hands of the great face swept from seventeen past four to midnight in a single silver breath.`,
+`The bells began. Twelve slow strokes, each one a small, clear, ordinary miracle: a tower, ringing, precisely on time. In the square the candles guttered and rose. Someone started to laugh. Someone else, a long way down, began to cry, and both sounds came up the stairwell together like a single kind of relief.`,
+`The Masters arrived on the twelfth stroke and stopped in the doorway. They looked at the turning wheels, and at the old man asleep in the corner with his head on Wick’s shoulder, and at Isolde, who stood with her hands still on the key. No one said anything. On the far side of the room the great clock ticked, and ticked, and ticked.`],
+13:[
+`It could not last. Isolde knew that, and so did they all: one minute of borrowed time had bought a single night, and a night is a very small thing to set against a city’s debt. But she had done what Corrow asked. She had wound it honestly. And in the square below, with the whole of Verrin looking up at the tower, she told them exactly how much was left.`,
+`It was not quite a speech. It was more like an accounting: how many years, by the old master’s measure, remained in the store; how the Winders had kept it turning in the dark; what the Guild had hidden and why. The crowd did not riot. They listened, the way people listen when someone finally says aloud what they have privately known for years, and by morning the Masters had unlocked the ledgers.`,
+`It took a long time to mend, and it is not mended yet. There are new clocks in Verrin, slower, kinder, built to be wound by hand, and every family on the Row keeps one. The Winders are paid in daylight. The tower runs a minute slow, by decree, to remind the city that time is something you are lent. Ansel Corrow lived to see the first spring, and slept through most of it.`,
+`Corrow & Fenn still stands on Halcyon Row, and the sign has been repainted a third time. The rules are chalked on the wall behind the counter, in two hands now, and the last of them reads: *Never leave a job half done.* Beneath it, in smaller letters, someone has added, *Or a minute unspent.* Nobody on the Row will say who, but the chalk is always fresh.`]
+};
+/* Chapter 2 uses the richer blocks: list, quote and a scene break */
+const B2=[
+['p',`Halcyon Row was barely a street at all, more a crooked lane of forty-odd shopfronts leaning toward one another over the cobbles like old men sharing a secret. Every door had a clock above it, and no two clocks agreed, which was, the Row liked to say, the whole point. Agreement was for institutions. Accuracy was for people who could afford it.`],
+['p',`Corrow &amp; Fenn — the sign had been repainted twice, and Isolde’s half of the name was still the newer one — sold watches, repaired everything, and asked no questions of anyone who arrived with a stopped heart in a velvet pouch. Its rules were chalked on the wall behind the counter, in the master’s cramped hand:`],
+['ul',[`Never force a spring that does not wish to move.`,`Never tell a customer how long a repair will take.`,`Never wind a clock that is not yours.`,`Never, under any circumstances, open the case marked with a blue thread.`]],
+['p',`Isolde had obeyed the first three for six years and wondered about the fourth for all of them. The case sat on the top shelf behind the counter, small and black and tied shut with a length of blue thread, humming very faintly, the way a kettle hums an hour before it boils.`],
+['quote',`Time is not kept. It is borrowed, and the interest is paid in attention.<br>— chalked above the workbench, Ansel Corrow`],
+['hr'],
+['p',`That morning she took the chalk in her hand and, for the first time, rubbed out a word. The list now read <i>Never, under any circumstances, open the case.</i> The blue thread lay on the counter where she had cut it. Nothing happened. Then, very softly, from inside the black case, something began to count.`]
+];
+
+const DEF2=[
+{title:'The Stopped Hour',desc:`The great clock of Verrin stops at 4:17, and the man who kept the Row’s true time is missing. An apprentice with one forbidden case on a high shelf discovers that a city’s hours are not free.`,img:'img2_v1',
+ direct:[['4:17',1]],
+ parts:[{img:'img2_p1',title:'The Shop on Halcyon Row',ch:[['The Shop on Halcyon Row',2],['What the Case Held',3]]},{img:'img2_p2',title:'The Apprentice',ch:[['A Visitor from the Guild',4],['The Spare Minute',5]]}]},
+{title:'The Long Minute',desc:`Beneath the shop, a second city of brass and oil keeps the seconds turning. The Guild of Hours comes calling with a ledger, an offer, and a debt that belongs to everyone.`,img:'img2_v2',
+ parts:[{img:'img2_p3',title:'Verrin Below',ch:[['The Stair Beneath the Shop',6],['The City of Gears',7]]},{img:'img2_p4',title:'The Guild of Hours',ch:[['Masters and Rations',8],['An Offer at Dusk',9]]}]},
+{title:'The Turning',desc:`Ninety-nine steps, one borrowed minute, and a choice between the thing Isolde has always wanted and everything she believes. Midnight comes to Verrin, twice.`,img:'img2_v3',
+ parts:[{img:'img2_p5',title:'The Great Clock',ch:[['Ninety-Nine Steps',10],['The Face of Old Patience',11]]},{img:'img2_p6',title:'Midnight, Again',ch:[['The Hour Returns',12],['What Isolde Kept',13]]}]}
+];
+function mkCh2(title,n){
+  const id='hc'+pad2(n),blocks=n===2?B2:TX2[n].map(t=>['p',md(t)]);
+  const html=toHtml(blocks),wc=wcHtml(html),at=NOW0-(20-n)*864e5;
+  CHAPTERS[id]={id,storyId:'story_clockmaker',html,pidSeq:(html.match(/data-pid=/g)||[]).length,wordCount:wc,updatedAt:NOW0,published:{html,at,title}};
+  return{id,number:n,title,status:'published',wordCount:wc,updatedAt:NOW0,publishedAt:at};
+}
+const WORK2={
+  id:'story_clockmaker',kind:'story',structure:null,visibility:'public',allowImpressions:true,ownerId:'u_cassian',
+  title:'The Clockmaker of Halcyon Row',
+  description:`In the river city of Verrin every hour is rationed, and the only people who know it are the clockmakers of one crooked street. When the great clock stops at 4:17 and her master vanishes, seventeen-year-old Isolde Fenn is left with forty-one restless clocks, a forbidden case, and one minute that belongs to nobody.`,
+  category:'Fantasy',tags:['clocks','mystery','apprentice','city'],status:'ongoing',coverImageId:'img2_story',
+  volumes:DEF2.map((d,i)=>({id:'hv'+(i+1),number:i+1,title:d.title,description:d.desc,status:'published',coverImageId:d.img.replace('img2_','img2_'),
+    chapters:(d.direct||[]).map(([t,n])=>mkCh2(t,n)),
+    parts:d.parts.map((p,j)=>({id:`hp${i+1}_${j+1}`,number:j+1,title:p.title,description:'',coverImageId:p.img,chapters:p.ch.map(([t,n])=>mkCh2(t,n))}))}))
+};
+function seedComments2(now){
+  const H=3600e3,C=(id,chapterId,paragraphId,parent,user,body,likes,ago)=>({id,chapterId,paragraphId,parent,user,body,likes,ts:now-ago*H});
+  return [
+    C('hm_001','hc01','paragraph_003',null,'u_ines',`The coat still on its peg. Forty years, and the one detail that tells you everything is wrong.`,9,30),
+    C('hm_002','hc01','paragraph_003','hm_001','u_elias',`And the clocks “answering for him” — chills.`,4,26),
+    C('hm_003','hc01','paragraph_004',null,'u_dara',`A child asks what time it is and nobody can say. What a way to end a chapter.`,6,22),
+    C('hm_004','hc02','paragraph_008',null,'u_petra',`“Time is not kept. It is borrowed, and the interest is paid in attention.” I’m stealing that for my wall.`,13,18),
+    C('hm_005','hc02','paragraph_004',null,'u_callum',`I love that the fourth rule is the only one anybody ever wants to break.`,5,15),
+    C('hm_006','hc03','paragraph_003',null,'u_marg',`The umbrella that has never been opened. Perrin Quill is going to be a favourite.`,7,12),
+    C('hm_007','hc12','paragraph_003',null,'u_toby',`Twelve strokes, each a small ordinary miracle. I re-read this paragraph three times.`,11,4)
+  ];
+}
+
+/* =========================================================
    APP
    ========================================================= */
 const CONFIG={overviewUrl:null}; // set to the Story Overview URL when integrated
@@ -973,12 +1238,14 @@ const IP={
   pen:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
   flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
   reply:'<path d="m15 10 5 5-5 5"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/>',
+  library:'<path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/>',
   book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>'
 };
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IP[n]}</svg>`;
 
 /* ---------- Persistence (localStorage guarded; falls back to memory) ---------- */
-const K={prefs:'journals.reader.prefs.v2',data:'journals.reader.data.v2',cm:'journals.reader.comments.v2'};
+const K={prefs:'journals.reader.prefs.v2',demo:'journals.reader.demo.v1'};
+const kData=()=>'journals.reader.data.v2.'+STORY.id,kCm=()=>'journals.reader.comments.v2.'+STORY.id; // reader state is kept per story
 const mem={};
 const ls={
   get(k){try{const v=localStorage.getItem(k);if(v)return JSON.parse(v)}catch(e){}return mem[k]||null},
@@ -1034,7 +1301,7 @@ function setTheme(t,opts){
    DATA LAYER (mock) — swap `api` for the real backend
    ========================================================= */
 const api={
-  getWork(){return WORK},
+  getWork(){return DEMOS[DEMO_I].work},
   getImage(id){return id?IMG[id]||null:null},                 // coverImageId → {src}|{art}
   getAuthor(id){return PROFILES[id]||null},
   getChapter(id){return Promise.resolve(CHAPTERS[id]||null)}  // one chapter record; reader uses .published.html
@@ -1067,7 +1334,7 @@ function loadWork(work){
   });
   STORY=S;
 }
-loadWork(api.getWork());
+let DEMO_I=0; // set below, once DEMOS exists
 const volLabel=v=>'Volume '+roman(v.number);
 const partLabel=p=>'Part '+roman(p.number);
 const chName=c=>c.title||('Chapter '+c.number);
@@ -1084,15 +1351,15 @@ function seedData(){
       {id:'bm_s1',chapterId:'ch04',paragraphId:'paragraph_003',excerpt:excerptOf('ch04','paragraph_003'),ts:NOW-90*3600e3}]};
 }
 function seedCms(){return{items:seedComments(NOW),likes:{cm_001:true,cm_005:true},reported:{}}}
-let data,cms; // initialised below, once the chapter parser exists
+let data,cms; // initialised by initState(), once the chapter parser exists
 /* Drop reader records that point at chapters that are no longer published/available. */
 function pruneData(){
   Object.keys(data.progress).forEach(id=>{if(!byId[id])delete data.progress[id]});
   data.bookmarks=data.bookmarks.filter(b=>byId[b.chapterId]);
   if(data.position&&!byId[data.position.chapterId])data.position=null;
 }
-const saveData=()=>ls.set(K.data,data);
-const saveCms=()=>ls.set(K.cm,cms);
+const saveData=()=>ls.set(kData(),data);
+const saveCms=()=>ls.set(kCm(),cms);
 
 /* ---------- Progress helpers ---------- */
 const chStatus=id=>{const p=data.progress[id];if(p&&p.done)return'done';if(p&&p.pct>=.02)return'current';return'todo'};
@@ -1124,7 +1391,7 @@ function coverHTML(c,cls,label,ph){
   if(!c){ // graceful placeholder when a cover was never added
     return`<div class="cover ${cls} cover--ph" role="img" aria-label="${esc(label)}"><div class="ph">${ph||''}</div></div>`;
   }
-  const inner=c.art?ART[c.art](uid()):`<img src="${esc(c.src)}" alt="" loading="lazy" decoding="async">`;
+  const inner=c.art?ART[c.art](uid(),c):`<img src="${esc(c.src)}" alt="" loading="lazy" decoding="async">`;
   return`<div class="cover ${cls}" role="img" aria-label="${esc(label)}">${inner}</div>`;
 }
 const brand=()=>`<a class="brand" href="#/" aria-label="Journals, powered by Aspinora"><span class="lg l"></span><span class="lg d"></span></a>`;
@@ -1222,12 +1489,23 @@ function excerptOf(chId,pid,n){
   return t.length>max?t.slice(0,max-3).replace(/\s+\S*$/,'')+'…':t;
 }
 
-/* ---------- Initialise reader-side state (needs the parser for demo excerpts) ---------- */
-data=ls.get(K.data)||seedData();
-data.progress=data.progress||{};data.bookmarks=data.bookmarks||[];
-cms=ls.get(K.cm)||seedCms();
-cms.items=cms.items||[];cms.likes=cms.likes||{};cms.reported=cms.reported||{};
-pruneData();
+/* ---------- Demo stories + reader-side state (needs the parser for demo excerpts) ---------- */
+const emptyData=()=>({progress:{},position:null,bookmarks:[]});
+const emptyCms=()=>({items:[],likes:{},reported:{}});
+const DEMOS=[
+  {work:WORK,seedData:seedData,seedCms:seedCms},
+  {work:WORK2,seedData:emptyData,seedCms:()=>({items:seedComments2(NOW),likes:{},reported:{}})}
+];
+function initState(){
+  data=ls.get(kData())||DEMOS[DEMO_I].seedData();
+  data.progress=data.progress||{};data.bookmarks=data.bookmarks||[];
+  cms=ls.get(kCm())||DEMOS[DEMO_I].seedCms();
+  cms.items=cms.items||[];cms.likes=cms.likes||{};cms.reported=cms.reported||{};
+  pruneData();
+}
+DEMO_I=Math.min(DEMOS.length-1,Math.max(0,+ls.get(K.demo)||0));
+loadWork(DEMOS[DEMO_I].work);
+initState();
 
 /* =========================================================
    CONTENTS PAGE
@@ -1242,6 +1520,7 @@ function structHeader(){
     <span class="hdr__ctx">Reader Studio</span>
     <span class="hdr__sp"></span>
     <nav class="hdr__tools" aria-label="Reader tools">
+      <button class="ibtn" data-action="stories" aria-haspopup="dialog" aria-expanded="false" aria-label="Demo stories" title="Demo stories">${ic('library')}</button>
       <button class="ibtn" data-action="bookmarks" aria-haspopup="dialog" aria-expanded="false" aria-label="Bookmarks, ${nb} saved">${ic('bookmark')}${nb?`<span class="badge" aria-hidden="true">${nb}</span>`:''}</button>
       ${themeBtn()}
       <span class="avatar" role="img" aria-label="Signed in as ${esc(ME.name)}">${esc(ME.name[0])}</span>
@@ -1262,14 +1541,20 @@ function chRow(c,cur){
     <span class="ch__main">${c.title?`<span class="ch__no">Chapter ${c.number}</span>`:''}<span class="ch__title"><span class="sr-only">${sr}</span>${esc(chName(c))}</span>${st==='current'?`<span class="ch__bar" aria-hidden="true"><i style="width:${pct}%"></i></span>`:''}</span>
     <span class="ch__meta">${bm?`<span title="Bookmarked">${ic('bookmark')}<span class="sr-only">Bookmarked</span></span>`:''}<span>${label}</span></span></a>`;
 }
-function partHTML(p,cur){
-  const mins=p.chapters.reduce((n,c)=>n+c.mins,0);
-  return`<div class="part">${p.cover?`<div class="part__cover">${coverHTML(p.cover,'cover--port',partLabel(p)+' cover')}</div>`:''}<div class="part__body"><div class="part__head"><div class="part__ttl"><span class="part__no">${partLabel(p)}</span>${p.title?`<h3 class="part__title">${esc(p.title)}</h3>`:''}</div><span class="part__count">${p.chapters.length} ${p.chapters.length===1?'chapter':'chapters'} · ${fmtMins(mins)}</span></div>${p.chapters.map(c=>chRow(c,cur)).join('')}</div></div>`;
+function partHTML(p,cur,withCovers){
+  const mins=p.chapters.reduce((n,c)=>n+c.mins,0),meta=`${p.chapters.length} ${p.chapters.length===1?'chapter':'chapters'} · ${fmtMins(mins)}`;
+  const ttl=`<span class="part__no">${partLabel(p)}</span>${p.title?`<h3 class="part__title">${esc(p.title)}</h3>`:''}`;
+  const rows=p.chapters.map(c=>chRow(c,cur)).join('');
+  if(!withCovers)return`<div class="part"><div class="part__head"><div class="part__ttl">${ttl}</div><span class="part__count">${meta}</span></div>${rows}</div>`;
+  /* Volume uses part covers: every part gets the same 2:3 slot (a quiet placeholder when one is missing), so headings stay aligned. */
+  const ph=`<span class="ph__no">${roman(p.number)}</span>`;
+  return`<div class="part part--cov"><div class="part__head"><div class="part__cover">${coverHTML(p.cover,'cover--port',partLabel(p)+' cover'+(p.title?': '+p.title:''),ph)}</div><div class="part__ttl">${ttl}<span class="part__meta">${meta}</span></div></div>${rows}</div>`;
 }
 function volumeHTML(v,cur){
   const chs=v.chapters,done=chs.filter(c=>chStatus(c.id)==='done').length;
   const vp=chs.reduce((n,c)=>n+chPct(c.id),0)/chs.length,mins=chs.reduce((n,c)=>n+c.mins,0);
   const ph=`<span class="ph__no">${roman(v.number)}</span><span class="ph__t">${esc(v.title||volLabel(v))}</span>`;
+  const partCovers=v.parts.some(p=>p.cover);   // only reserve a cover slot when this volume actually has part covers
   return`<section class="vol" aria-labelledby="${v.id}-t">
     <div class="vol__cover">${coverHTML(v.cover,'cover--port',`${volLabel(v)} cover${v.title?': '+v.title:''}`,ph)}</div>
     <div class="vol__head"><p class="vol__no">${volLabel(v)}</p>${v.title?`<h2 class="vol__title" id="${v.id}-t">${esc(v.title)}</h2>`:`<h2 class="sr-only" id="${v.id}-t">${volLabel(v)}</h2>`}
@@ -1277,7 +1562,7 @@ function volumeHTML(v,cur){
       <div class="vol__meta">${v.parts.length?`<span>${v.parts.length} ${v.parts.length===1?'part':'parts'}</span>`:''}<span>${chs.length} ${chs.length===1?'chapter':'chapters'}</span><span>${fmtMins(mins)}</span>
         <span class="vol__prog"><span class="bar" aria-hidden="true"><i style="width:${Math.round(vp*100)}%"></i></span>${done} of ${chs.length} read</span>
         <button class="vol__toggle" data-action="toggle-vol" aria-expanded="true" aria-controls="${v.id}-c">${ic('chev')}<span>Chapters</span></button></div></div>
-    <div class="vol__contents" id="${v.id}-c">${v.direct.length?`<div class="part part--plain"><div class="part__body">${v.direct.map(c=>chRow(c,cur)).join('')}</div></div>`:''}${v.parts.map(p=>partHTML(p,cur)).join('')}</div></section>`;
+    <div class="vol__contents" id="${v.id}-c">${v.direct.length?`<div class="part part--plain">${v.direct.map(c=>chRow(c,cur)).join('')}</div>`:''}${v.parts.map(p=>partHTML(p,cur,partCovers)).join('')}</div></section>`;
 }
 function heroHTML(cur,tgt){
   const sp=storyProgress(),pct=Math.round(sp.pct*100),nParts=STORY.volumes.reduce((n,v)=>n+v.parts.length,0);
@@ -1552,12 +1837,26 @@ function bookmarksHTML(){
     return`<li class="bm"><button class="bm__go" data-action="goto-bm" data-ch="${b.chapterId}" data-pid="${b.paragraphId||''}"><span class="bm__w">Chapter ${c.number} · Vol. ${roman(c.vol.number)} · ${ago(b.ts)}</span><span class="bm__t">${esc(chName(c))}</span>${b.excerpt?`<span class="bm__x">${esc(b.excerpt)}</span>`:''}</button><button class="ibtn bm__rm" data-action="rm-bm" data-id="${b.id}" aria-label="Remove bookmark: ${esc(chName(c))}">${ic('x')}</button></li>`}).join('')}</ul>`
   :`<div class="empty"><b>No bookmarks yet</b>Tap the bookmark icon while reading to save your place.</div>`);
 }
+const countPub=w=>w.volumes.reduce((n,v)=>n+(v.chapters||[]).concat(...(v.parts||[]).map(p=>p.chapters||[])).filter(isPub).length,0);
+function storiesHTML(){
+  return`${grab}<div class="pop__h"><span id="popT">Demo stories</span><button class="ibtn" data-action="close-pop" aria-label="Close">${ic('x')}</button></div>
+  <ul class="bm-list">${DEMOS.map((d,i)=>{const w=d.work,au=api.getAuthor(w.ownerId),on=i===DEMO_I;
+    return`<li class="bm bm--one"><button class="bm__go st" data-action="switch-demo" data-i="${i}"${on?' aria-current="true"':''}><span class="st__cov">${coverHTML(api.getImage(w.coverImageId),'cover--land','')}</span><span class="st__txt"><span class="bm__t">${esc(w.title)}</span><span class="bm__w">${au?'by '+esc(au.name)+' · ':''}${w.volumes.length} volumes · ${countPub(w)} chapters</span>${on?'<span class="st__on">Currently open</span>':''}</span></button></li>`}).join('')}</ul>`;
+}
+function switchDemo(i){
+  if(i===DEMO_I){closePop();return}
+  if(R){saveReadingState();teardownReader()}
+  DEMO_I=i;ls.set(K.demo,i);
+  PARSED.clear();loadWork(DEMOS[i].work);initState();
+  closePop(false);LAST_READ=null;toast('Now showing “'+STORY.title+'”');
+  go('#/');
+}
 function openPop(kind,trigger){
   if(POP.kind===kind){closePop();return}
   closePop(false);
   if(panelMode()!=='dock')closeCP(false);
   const el=$('#pop');
-  el.innerHTML=kind==='settings'?settingsHTML():bookmarksHTML();
+  el.innerHTML=kind==='settings'?settingsHTML():kind==='stories'?storiesHTML():bookmarksHTML();
   POP={kind,trigger};
   el.classList.add('open');$('#popScrim').classList.add('open');
   if(trigger)trigger.setAttribute('aria-expanded','true');
@@ -1776,7 +2075,9 @@ document.addEventListener('click',e=>{
       const bb=$('[data-action="bookmarks"]');if(bb){const n=data.bookmarks.length;bb.setAttribute('aria-label',`Bookmarks, ${n} saved`);const bd=$('.badge',bb);if(bd){if(n)bd.textContent=n;else bd.remove()}}
       const f=$('#pop button');f&&f.focus();break}
     case'reset-prefs':withAnchor(()=>{prefs=cleanPrefs({theme:prefs.theme});savePrefs();applyPrefs()});syncSettings();break;
-    case'reset-demo':ls.del(K.data);ls.del(K.cm);data=seedData();cms=seedCms();LAST_READ=null;toast('Demo data reset');render();break;
+    case'reset-demo':ls.del(kData());ls.del(kCm());initState();LAST_READ=null;toast('Demo data reset');render();break;
+    case'stories':openPop('stories',a);break;
+    case'switch-demo':switchDemo(+a.dataset.i);break;
     case'retry':render();break;
     case'skip':{const b=$('#chBody');window.scrollTo(0,Math.max(0,absTop(b)-headerH()-16));b.setAttribute('tabindex','-1');b.focus({preventScroll:true});break}
   }
@@ -1828,7 +2129,7 @@ addEventListener('hashchange',render);
 applyPrefs();setTheme(prefs.theme,{instant:true});
 render();
 /* Test/integration hook: swap in another work (same shape as the Writing Studio's) without touching the page. */
-window.__reader={chapters:CHAPTERS,loadWork(w){PARSED.clear();loadWork(w);pruneData();render()},get story(){return STORY}};
+window.__reader={chapters:CHAPTERS,images:IMG,demos:DEMOS,switchDemo,loadWork(w){PARSED.clear();loadWork(w);data=emptyData();cms=emptyCms();render()},get story(){return STORY}};
 
 })();
 </script>
