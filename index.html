@@ -2308,10 +2308,10 @@ async function restoreSession(){
           // Returning social-login user: keep their avatar in sync
           // automatically (in case it changed at Google since last
           // time), not just the very first sign-in.
-          // AWAITED, not fire-and-forget: this page redirects to
-          // userpostlogin.html right after this — a fire-and-forget
-          // upload would routinely get cut off mid-flight by that
-          // navigation, which is exactly why the avatar sync from a
+          // AWAITED, not fire-and-forget: this page sends the person on to
+          // userpostlogin.html right after this (see sendMemberToApp()) — a
+          // fire-and-forget upload would routinely get cut off mid-flight by
+          // that navigation, which is exactly why the avatar sync from a
           // login started here wasn't reliably completing before.
           const updates = await persistProviderProfileData(session.user, user.id);
           if (updates && updates.avatar_url) state.currentUser.avatar_url = updates.avatar_url;
@@ -2319,7 +2319,15 @@ async function restoreSession(){
           syncAuthUI();
           await hydrateUserActivity(user.id);
           finishOnce();
-          window.location.href = 'userpostlogin.html';
+          // init() is normally still waiting on finishOnce() and does the
+          // redirect itself, with the address the person actually opened
+          // (so a shared Work link, /drafts, ?read=... arrive where they
+          // meant to). Only when init() has already moved on — this
+          // sign-in was slower than its 8 second wait — do it from here.
+          // This used to be an unconditional redirect to the bare app URL,
+          // which threw the destination away and, when it raced init()'s
+          // own redirect, could beat it.
+          if (initPastSessionRestore) sendMemberToApp();
         }).catch(function(e){ console.warn('Could not load profile:', e); finishOnce(); });
       });
       setTimeout(finishOnce, 8000);
@@ -3938,8 +3946,42 @@ function goToProtectedView(view, message){
    the server has custom rewrite rules for it. */
 function handoffUrl(pathOrView){
   const path = pathOrView.indexOf('/') === 0 ? pathOrView : '/' + pathOrView;
-  return 'userpostlogin.html?path=' + encodeURIComponent(path);
+  return '/userpostlogin.html?path=' + encodeURIComponent(path);
 }
+/* Signed-in people never use this page (everything a member can open lives
+   on userpostlogin.html), so wherever they arrive here from they are sent
+   on — to the SAME destination there, not just to the front door. This maps
+   the address that was actually opened onto the matching userpostlogin.html
+   entry point, in the same order userpostlogin.html's parseRoute() reads
+   them: ?read= > ?category= > ?nav= > the path (/write, /drafts, /<user>,
+   /<user>/<slug>, ...). The Wall is its own page.
+   These URLs start with "/" on purpose: the address bar can be a nested
+   clean path such as /alice/my-story, and a relative "userpostlogin.html"
+   would resolve to /alice/userpostlogin.html, a page that does not exist. */
+function memberDestinationUrl(){
+  const q = new URLSearchParams(window.location.search);
+  const readId = q.get('read');
+  if (readId) return '/userpostlogin.html?read=' + encodeURIComponent(readId);
+  const category = q.get('category');
+  if (category) return '/userpostlogin.html?category=' + encodeURIComponent(category);
+  const nav = q.get('nav');
+  if (nav) return '/userpostlogin.html?nav=' + encodeURIComponent(nav);
+  const parts = window.location.pathname.replace(/\/?index\.html$/i, '').split('/').filter(Boolean);
+  if (!parts.length) return '/userpostlogin.html';
+  if (parts.length === 1 && parts[0] === 'wall') return '/thewall.html';
+  return handoffUrl('/' + parts.join('/'));
+}
+/* replace(), not href: index.html must not stay in the back stack, or Back
+   from the app would land here and bounce forward again. Runs at most once. */
+let memberRedirectStarted = false;
+function sendMemberToApp(){
+  if (memberRedirectStarted) return;
+  memberRedirectStarted = true;
+  window.location.replace(memberDestinationUrl());
+}
+/* True once init() has finished waiting on restoreSession(); see the end of
+   the sign-in handler in restoreSession(). */
+let initPastSessionRestore = false;
 function wireNav(){
   qsa('[data-nav]').forEach(function(btn){
     btn.addEventListener('click', function(){
@@ -4003,7 +4045,7 @@ async function completeLoginSuccess(form, result){
     state.pendingAuthAction = null;
     action();
   } else {
-    window.location.href = 'userpostlogin.html';
+    window.location.href = '/userpostlogin.html';
   }
 }
 
@@ -4152,7 +4194,7 @@ function initPasswordReset(){
       if (result.error) throw result.error;
       closeModal('recovery-modal-scrim');
       showToast('Password updated. Taking you in...');
-      setTimeout(function(){ window.location.href = 'userpostlogin.html'; }, 900);
+      setTimeout(function(){ window.location.href = '/userpostlogin.html'; }, 900);
     }catch(err){
       const message = String((err && err.message) || '');
       if (err && (err.name === 'AuthSessionMissingError' || /session missing/i.test(message))){
@@ -4246,7 +4288,7 @@ function initAuthModal(){
         state.pendingAuthAction = null;
         action();
       } else if (!IS_MEMBER_PAGE){
-        window.location.href = 'userpostlogin.html';
+        window.location.href = '/userpostlogin.html';
       } else {
         await routeFromPath(true);
       }
@@ -4369,10 +4411,17 @@ async function init(){
   // visitors live on userpostlogin.html, so send them straight there
   // instead of rendering the guest homepage underneath them.
   await restoreSession();
+  initPastSessionRestore = true;
   syncAuthUI();
-  const partsNow = window.location.pathname.replace(/\/?index\.html$/i, '').split('/').filter(Boolean);
-  if (state.currentUser && (partsNow.length === 0 || MEMBER_PATHS.indexOf(partsNow[0]) !== -1)){
-    window.location.replace(partsNow.length ? handoffUrl('/' + partsNow.join('/')) : 'userpostlogin.html');
+  // Every signed-in visitor goes on to the app, whatever address they opened
+  // (the front door, /write, a shared Work link, /<username>, ?read=...):
+  // previously only "/" and a few member paths were forwarded, so a signed-in
+  // person opening a shared Work or a portfolio link was bounced to the bare
+  // app home by the sign-in handler and lost where they were going.
+  // A password-reset visit never gets here signed in: restoreSession()
+  // leaves state.currentUser unset for it.
+  if (state.currentUser){
+    sendMemberToApp();
     return;
   }
 
