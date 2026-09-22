@@ -2999,12 +2999,23 @@ async function fetchJournal(idOrSlug){
     JOURNAL_CACHE[j.id] = j;
     return j;
   }
-  const { data, error } = await supabaseClient.from('journals')
+  let query = supabaseClient.from('journals')
     .select(JOURNAL_CARD_FIELDS)
     .or('id.eq.' + idOrSlug + ',slug.eq.' + idOrSlug)
-    .eq('status', 'published')
-    .neq('visibility', 'private')
-    .single();
+    .eq('status', 'published');
+  // Same isOwner exception loadJournalByUsernameAndSlug already makes at
+  // the query level, and the DEMO_MODE branch above already makes in JS:
+  // a private Work is excluded for everyone except its own author. This
+  // was previously unconditional here, so every way of opening your own
+  // private Work EXCEPT the one direct-link route (which reuses an
+  // already-fetched, already-checked copy via preloadedJournal — see the
+  // comment on that in renderReadView) threw and bounced you to Home.
+  if (!state.currentUser){
+    query = query.neq('visibility', 'private');
+  } else {
+    query = query.or('visibility.neq.private,author_id.eq.' + state.currentUser.id);
+  }
+  const { data, error } = await query.single();
   if (error) throw error;
   const j = normalizeJournalRow(data);
   JOURNAL_CACHE[j.id] = j;
