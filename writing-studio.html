@@ -319,6 +319,8 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 .cr-i{padding:8px 10px;border-radius:8px}
 .cr-i.on{background:var(--accent-soft)}
 .cr-i b{font-weight:600;display:block}
+
+.inp.bad{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
 </style>
 </head>
 <body class="desk">
@@ -1428,7 +1430,6 @@ const App = {
     if (!f.volume.implicit && !f.volume.coverImageId) add('warn', 'Volume cover', 'This volume has no cover yet. Readers will see a placeholder.');
     if (!copyrightOf(s.copyright)) add('fail', 'Copyright', 'Choose a copyright in the details before publishing.'); else add('ok', 'Copyright', copyrightOf(s.copyright)[1]);
     add('ok', 'Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)] + ' \u00b7 impressions ' + (Kind.impressions(s) ? 'allowed' : 'turned off'));
-    if (isStory && s.status === 'draft') add('warn', 'Story status', 'The story is still marked Draft, so readers won’t see this chapter until it is set to Ongoing.');
     const bad = new Set(), unavail = new Set();
     Ed.el.querySelectorAll('[style*="font-family"]').forEach(e => { const n = e.style.fontFamily.split(',')[0].replace(/["']/g, '').trim(), fo = Fonts.byName(n); if (!fo) bad.add(n); else if (!Fonts.ok(fo)) unavail.add(n); });
     const strange = [...Ed.el.querySelectorAll('*')].filter(e => !Sanitize.ALLOWED.has(e.tagName.toLowerCase()) && e.tagName !== 'FONT').length;
@@ -1497,7 +1498,7 @@ const Seed = {
   para: (id, html, attrs = '') => `<p data-pid="${id}"${attrs}>${html}</p>`,
   async ensure() {
     if ((await Store.all('stories')).length) return;
-    const s = Model.newStory(); Object.assign(s, { title: 'The Last Voyage', description: 'A lighthouse keeper, a stranger with salt-stained hands, and a door that was never on the map.', category: 'Adventure', tags: ['sea', 'mystery'], status: 'ongoing' });
+    const s = Model.newStory(); Object.assign(s, { title: 'The Last Voyage', description: 'A lighthouse keeper, a stranger with salt-stained hands, and a door that was never on the map.', category: 'Adventure', tags: ['sea', 'mystery'], status: 'ongoing', copyright: 'exclusive' });
     const mk = (n, t) => Object.assign(Model.newChapter(s), { number: n, title: t });
     const v1 = Object.assign(Model.newVolume(s), { title: 'The Awakening' }), p1 = Object.assign(Model.newPart(v1), { title: 'The Beginning' });
     p1.chapters.push(mk(1, 'The Arrival'), mk(2, 'The Stranger'), mk(3, 'The Door')); const p2 = Object.assign(Model.newPart(v1), { number: 2, title: 'The Discovery' }); p2.chapters.push(mk(4, ''), mk(5, ''));
@@ -1648,12 +1649,12 @@ const UI = {
       const menuBtn = ibtn('more', 'Story actions', { style: { position: 'absolute', top: '6px', right: '6px', background: 'rgba(255,255,255,.85)' }, onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
       grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
-        h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill ' + s.status }, (((Kind.of(s) === 'story' ? STORY_STATUSES : PUB_STATUSES).find(x => x[0] === s.status) || [0, s.status])[1])), ' ', h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
+        h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
           h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${s.volumes.length} volume${s.volumes.length === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
     });
   },
   copyrightInfo(anchor, cur) {
-    Pop.open(anchor, h('div', { style: { width: 'min(380px, 88vw)', padding: '4px' }, class: 'cr-list' }, h('div', { class: 'menu-h' }, 'Copyright options'),
+    Pop.open(anchor, h('div', { style: { width: 'min(380px, 88vw)', padding: '4px' }, class: 'cr-list' }, h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } }, h('div', { class: 'menu-h' }, 'Copyright options'), ibtn('close', 'Close', { style: { width: '28px', height: '28px' }, onclick: () => Pop.close() })),
       COPYRIGHTS.map(([k, l, d]) => h('div', { class: 'cr-i' + (k === cur ? ' on' : '') }, h('b', null, l), h('div', { class: 'small muted' }, d)))), { role: 'dialog', maxH: 760 });
   },
   buildKindBar() { const bar = $('#kindBar'); bar.replaceChildren(...Object.keys(KINDS).map(k => h('button', { class: 'chip kind', type: 'button', role: 'tab', 'aria-selected': String(k === this.kind), 'aria-pressed': String(k === this.kind), onclick: () => this.setKind(k) }, KINDS[k].plural))); },
@@ -1726,7 +1727,7 @@ const UI = {
   editChapter(c) { this.entityDialog({ kind: 'chapter', entity: c, isNew: false, ctx: { attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); if (c.id === Ed.chapterId) { $('#chTitle').value = c.title; } } } }); },
   async entityDialog({ kind, entity, isNew, ctx }) {
     const wk = kind === 'story' ? Kind.of(entity) : Kind.of(App.story), plain = kind === 'story' ? wk !== 'story' : !Kind.storyLike(App.story), KN = KINDS[wk];
-    const spec = (kind === 'part' && plain) ? null : IMAGE_SPECS[kind + '_cover'], names = { story: KN.one.toLowerCase(), volume: 'volume', part: plain ? 'section' : 'part', chapter: (ctx && ctx.label) || (plain ? KN.unit : 'chapter') };
+    const spec = kind === 'part' ? null : IMAGE_SPECS[kind + '_cover'], names = { story: KN.one.toLowerCase(), volume: 'volume', part: plain ? 'section' : 'part', chapter: (ctx && ctx.label) || (plain ? KN.unit : 'chapter') };
     const curRec = spec && entity.coverImageId ? await Images.record(entity.coverImageId) : null;
     const els = {}, body = h('div'); let cover = null, tags = null;
     if (spec) cover = CoverField({ spec, current: curRec, onDeleteSaved: () => deleteCover({ entity, persist: ctx.persist }) });
@@ -1735,22 +1736,22 @@ const UI = {
       const statusOpts = plain ? PUB_STATUSES : STORY_STATUSES, curStatus = statusOpts.some(x => x[0] === entity.status) ? entity.status : 'draft';
       const visHint = h('div', { class: 'hint' }, VIS_HINT[Kind.visibility(entity)]);
       const crHint = h('div', { class: 'hint' }, (copyrightOf(entity.copyright) || [0, 0, 'Choose how others may use your work.'])[2]);
-      els.cr = selectEl([['', 'Select a copyright\u2026'], ...COPYRIGHTS.map(c => [c[0], c[1]])], entity.copyright || ''); els.cr.id = 'crSel';
-      els.cr.addEventListener('change', () => { crHint.textContent = (copyrightOf(els.cr.value) || [0, 0, 'Choose how others may use your work.'])[2]; });
+      els.cr = selectEl([['', 'Select a copyright\u2026'], ...COPYRIGHTS.map(c => [c[0], c[1]])], entity.copyright || ''); els.cr.id = 'crSel'; els.cr.required = true; els.cr.setAttribute('aria-required', 'true');
+      els.cr.addEventListener('change', () => { els.cr.classList.remove('bad'); els.cr.removeAttribute('aria-invalid'); crHint.textContent = (copyrightOf(els.cr.value) || [0, 0, 'Choose how others may use your work.'])[2]; });
       els.vis = selectEl(VISIBILITY, Kind.visibility(entity)); els.vis.addEventListener('change', () => { visHint.textContent = VIS_HINT[els.vis.value]; });
       els.imp = selectEl([['on', 'Allow impressions'], ['off', 'Turn off impressions']], Kind.impressions(entity) ? 'on' : 'off');
       body.append(field(null, cover.el), field('Title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'The title of your ' + KN.one.toLowerCase(), maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, placeholder: 'What is this about?', maxLength: 2000 })),
         isNew && KN.structures ? field('Structure', els.structure = selectEl(KN.structures, KN.structures[0][0]), wk === 'journal' ? 'A journal can be one piece of writing or many entries.' : 'Sections are optional. Choose Simple if you only want one continuous article.') : '',
-        plain ? field('Status', els.status = selectEl(statusOpts, curStatus)) : h('div', { class: 'row2' }, field('Category', els.cat = selectEl(CATEGORIES.map(c => [c, c]), entity.category || 'Other')), field('Status', els.status = selectEl(statusOpts, curStatus))),
+        plain ? '' : field('Category', els.cat = selectEl(CATEGORIES.map(c => [c, c]), entity.category || 'Other')),
         field('Tags', (tags = tagsInput(entity.tags || [])).el, 'Press Enter to add each tag'),
-        h('div', { class: 'field' }, h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, h('label', { for: 'crSel' }, 'Copyright'), h('button', { class: 'ib', type: 'button', style: { width: '28px', height: '28px' }, title: 'What do these mean?', 'aria-label': 'What do the copyright options mean?', onclick: e => this.copyrightInfo(e.currentTarget, els.cr.value) }, icon('info'))), els.cr, crHint),
-        h('div', { class: 'row2' }, field('Visibility', els.vis, null), field('Impressions', els.imp, null)), visHint);
+        h('div', { class: 'field' }, h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, h('label', { for: 'crSel' }, 'Copyright ', h('span', { style: { color: 'var(--danger)' }, title: 'Required' }, '*'), h('span', { class: 'small faint', style: { fontWeight: 400, marginLeft: '4px' } }, 'Required')), h('button', { class: 'ib', type: 'button', style: { width: '28px', height: '28px' }, title: 'What do these mean?', 'aria-label': 'What do the copyright options mean?', onclick: e => this.copyrightInfo(e.currentTarget, els.cr.value) }, icon('info'))), els.cr, crHint),
+        h('div', { class: 'row2', style: { alignItems: 'start' } }, h('div', { class: 'field' }, h('label', null, 'Visibility'), els.vis, visHint), field('Impressions', els.imp, null)));
     } else if (kind === 'volume') {
       body.append(field(null, cover.el), h('div', { class: 'row2' }, field('Volume number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', els.status = selectEl(PUB_STATUSES, entity.status))), field('Volume title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Awakening', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
     } else if (kind === 'part' && plain) {
       body.append(field('Section title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. Background', maxLength: 140 })), field('Description (optional)', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
     } else if (kind === 'part') {
-      body.append(h('div', { class: 'row2' }, field('Part number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Part title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Beginning', maxLength: 140 }))), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })), h('div', { class: 'lb', style: { fontWeight: 600, fontSize: '13.5px', marginBottom: '6px' } }, 'Cover (optional)'), cover.el);
+      body.append(h('div', { class: 'row2' }, field('Part number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Part title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Beginning', maxLength: 140 }))), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
     } else if (plain) {
       body.append(field(names.chapter.charAt(0).toUpperCase() + names.chapter.slice(1) + ' title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'Optional', maxLength: 140 })), h('span', { class: 'pill ' + entity.status }, entity.status === 'published' ? 'Published' : 'Draft'));
     } else {
@@ -1767,7 +1768,7 @@ const UI = {
       if (els.vis) { vals.visibility = els.vis.value; vals.allowImpressions = els.imp.value === 'on'; }
       if (els.status) vals.status = els.status.value; if (els.cat) vals.category = els.cat.value; if (tags) vals.tags = [...tags.value];
       if (kind === 'story' && !vals.title) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Your ' + KN.one.toLowerCase() + ' needs a title.')); els.title.focus(); return; }
-      if (kind === 'story' && !vals.copyright) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Choose a copyright before saving.')); els.cr.focus(); return; }
+      if (kind === 'story' && !vals.copyright) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Choose a copyright before saving.')); els.cr.classList.add('bad'); els.cr.setAttribute('aria-invalid', 'true'); els.cr.scrollIntoView({ block: 'center' }); els.cr.focus(); return; }
       saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.replaceChildren(h('span', { class: 'spin' }), ' Saving…'); m.setDismissable(false);
       const snap = JSON.stringify(entity);
       try {
