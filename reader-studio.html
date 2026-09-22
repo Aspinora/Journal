@@ -534,25 +534,6 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
   .cta__where b{font-size:18px}
 }
 
-/* ---- part covers: 2:3 thumbnail sits in the part heading row, chapters stay full width ---- */
-.part--cov{margin-top:46px}
-.part--cov .part__head{align-items:center;justify-content:flex-start;gap:20px;padding-top:0;padding-bottom:18px}
-.part__cover{flex:0 0 84px;width:84px}
-.part__cover .cover--port{border-radius:2px 3px 3px 2px;box-shadow:0 1px 0 rgba(0,0,0,.06),0 12px 20px -12px rgba(50,30,5,.55),0 0 0 1px rgba(0,0,0,.1)}
-html[data-theme="dark"] .part__cover .cover--port{box-shadow:0 0 0 1px rgba(255,255,255,.08),0 12px 20px -10px rgba(0,0,0,.8)}
-.part__cover .cover--ph .ph{inset:5px;padding:4px;gap:0}
-.part__cover .ph__no{font-size:26px}
-.part__cover .ph__t{display:none}
-.part--cov .part__ttl{flex:1;min-width:0;flex-direction:column;align-items:flex-start;gap:6px}
-.part--cov .part__title{font-size:28px}
-.part__meta{margin-top:2px;font:400 12.5px var(--font-ui);color:var(--ink-3)}
-@media (max-width:699px){
-  .part--cov{margin-top:38px}
-  .part__cover{flex-basis:60px;width:60px}
-  .part--cov .part__head{gap:16px;padding-bottom:14px}
-  .part--cov .part__title{font-size:24px}
-  .part__cover .ph__no{font-size:20px}
-}
 
 /* ---- comment icon: sticks to the right edge of the paragraph on phones & tablets ---- */
 @media (max-width:999px){
@@ -569,6 +550,14 @@ html[data-theme="dark"] .part__cover .cover--port{box-shadow:0 0 0 1px rgba(255,
 .bm__go.st .cover--land{box-shadow:0 0 0 1px rgba(0,0,0,.12)}
 .st__on{margin-top:6px;font:600 10.5px var(--font-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink)}
 .st__txt .bm__w{margin-top:4px;text-transform:none;letter-spacing:0;font:400 12.5px var(--font-ui);color:var(--ink-2)}
+/* ---- scroll lock: freezes the reading page while the comment panel covers it (overlay/sheet modes) ---- */
+html.scroll-locked,html.scroll-locked body{overflow:hidden}
+html.scroll-locked body{width:100%}
+/* ---- chapter row: stacked "Completed" + date, right-aligned ---- */
+.ch__done{display:flex;flex-direction:column;align-items:flex-end;gap:1px;line-height:1.3}
+.ch__done b{font:500 12.5px var(--font-ui);color:var(--ink-2)}
+.ch__done i{font-style:normal;font:400 11px var(--font-ui);color:var(--ink-3)}
+@media (max-width:520px){.ch__done b{font-size:12px}.ch__done i{font-size:10.5px}}
 
 </style>
 <script>
@@ -750,39 +739,6 @@ ${T.svg}
 <rect x="370" y="270" width="60" height="1.6" opacity=".6"/></g>
 <g fill="#F5EAD0" text-anchor="middle" font-family="${UIF}"><text x="400" y="1146" font-size="14" letter-spacing="6" opacity=".88">THE LAST LIGHT OF MERIDIAN</text><text x="400" y="1170" font-size="12" letter-spacing="7" opacity=".66">ILSE VARROW</text></g>
 ${frame(800,1200)}
-<rect width="800" height="1200" fill="url(#vg${u})"/><rect width="800" height="1200" filter="url(#g${u})" opacity=".5"/></svg>`;
-};
-
-
-/* ---------- Part cover 2:3 (demo artwork; a real part cover is just an uploaded 2:3 image) ---------- */
-ART.part=(u,c)=>{
-  const PAL=[
-    {sky:['#7D90A3','#D3CBB9','#F2DCB4'],g:['#5F7371','#3A4D52'],sun:'#FFF0C8',t:'#1D2A3A',st:0},
-    {sky:['#C98A5A','#E9B47A','#F6D6A2'],g:['#6B4A3A','#3D2A25'],sun:'#FFF3D0',t:'#2A1B14',st:0},
-    {sky:['#2F4655','#587582','#9DB3B0'],g:['#22343D','#131F26'],sun:'#E8E3CF',t:'#EEF1EA',st:1},
-    {sky:['#1A2530','#34474F','#6F858A'],g:['#14202A','#0A1218'],sun:'#C9D6D4',t:'#E6ECEA',st:1},
-    {sky:['#2A1C3F','#8A3A4C','#E98A4A'],g:['#1A1024','#0C0716'],sun:'#FFE2A0',t:'#FBEBC8',st:1},
-    {sky:['#F0B46A','#F8D79A','#FFF0CF'],g:['#8A6A5A','#4B3A3A'],sun:'#FFFAE6',t:'#3A2416',st:0}
-  ][(c.v||0)%6];
-  const words=String(c.title||'').split(' ');let l1=c.title||'',l2='';
-  if((c.title||'').length>11&&words.length>1){let best=1,bd=1e9;for(let i=1;i<words.length;i++){const d=Math.abs(words.slice(0,i).join(' ').length-words.slice(i).join(' ').length);if(d<bd){bd=d;best=i}}l1=words.slice(0,best).join(' ');l2=words.slice(best).join(' ')}
-  return `<svg viewBox="0 0 800 1200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"><defs>
-<linearGradient id="sk${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${PAL.sky[0]}"/><stop offset=".55" stop-color="${PAL.sky[1]}"/><stop offset="1" stop-color="${PAL.sky[2]}"/></linearGradient>
-<radialGradient id="sn${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${PAL.sun}" stop-opacity=".75"/><stop offset="1" stop-color="${PAL.sun}" stop-opacity="0"/></radialGradient>
-${grainDefs(u)}${vignette(u)}</defs>
-<rect width="800" height="800" fill="url(#sk${u})"/>
-${PAL.st?stars(c.v+3,50,0,800,0,520):''}
-<circle cx="400" cy="700" r="300" fill="url(#sn${u})"/>${c.motif==='clock'?clockFace(400,690,96,PAL.g[1],PAL.sun):`<circle cx="400" cy="700" r="84" fill="${PAL.sun}"/>`}
-${c.motif==='clock'?skyline(41+(c.v||0),PAL.g[0],PAL.g[1]):`<path d="M0 742C120 704 240 718 340 734C460 754 560 712 680 718C740 721 780 732 800 740V820H0Z" fill="${PAL.g[0]}"/>`}
-${c.motif==='clock'?'':`<path d="M0 806C140 772 280 792 420 806C560 820 690 792 800 802V1200H0Z" fill="${PAL.g[1]}"/>`}
-<rect y="900" width="800" height="300" fill="${PAL.g[1]}"/>
-<g fill="${PAL.t}" font-family="${SERIF}" text-anchor="middle">
-<text x="400" y="150" font-size="20" letter-spacing="10" font-weight="500" font-family="${UIF}">${esc(c.label||'')}</text>
-<text x="400" y="${l2?248:262}" font-size="74" font-weight="600">${esc(l1)}</text>
-${l2?`<text x="400" y="330" font-size="74" font-weight="600">${esc(l2)}</text>`:''}
-<rect x="370" y="${l2?372:312}" width="60" height="1.6" opacity=".6"/></g>
-<g fill="#F5EAD0" text-anchor="middle" font-family="${UIF}"><text x="400" y="1122" font-size="14" letter-spacing="6" opacity=".85">THE LAST LIGHT OF MERIDIAN</text></g>
-${frame(800,1200,PAL.st?'#F5EAD0':'#FFF6E0')}
 <rect width="800" height="1200" fill="url(#vg${u})"/><rect width="800" height="1200" filter="url(#g${u})" opacity=".5"/></svg>`;
 };
 
@@ -1006,9 +962,7 @@ const B13=[
 ];
 
 /* ---------- Images table (coverImageId → image) ---------- */
-const IMG={img_story:{art:'story'},img_v1:{art:'vol1'},img_v2:{art:'vol2'},img_v3:{art:'vol3'},
-  img_pt1:{art:'part',v:0,label:'PART I',title:'Before the Storm'},img_pt2:{art:'part',v:1,label:'PART II',title:'The Road West'},
-  img_pt5:{art:'part',v:4,label:'PART I',title:'The Keeper’s Tower'},img_pt6:{art:'part',v:5,label:'PART II',title:'Dawn'}};
+const IMG={img_story:{art:'story'},img_v1:{art:'vol1'},img_v2:{art:'vol2'},img_v3:{art:'vol3'}};
 const PROFILES={u_ilse:{id:'u_ilse',name:'Ilse Varrow'}};
 
 /* ---------- Work: volumes → (direct chapters | parts → chapters) ---------- */
@@ -1022,12 +976,12 @@ function mkCh(title,n,draft){
 }
 const DEF=[
 {title:'The Beginning',desc:`A letter arrives in a city that has forgotten the sea. Wren Alder leaves the life she has drawn for herself to answer a grandfather she has not seen in eleven years — and a light she has never quite stopped counting.`,
- parts:[{img:'img_pt1',title:'Before the Storm',ch:[['The Letter',1],['Across the River',2],['The Night Train',3]]},{img:'img_pt2',title:'The Road West',ch:[['A Stranger’s Umbrella',4],['The Salt Road',5],['First Sight of the Sea',6]]}]},
+ parts:[{title:'Before the Storm',ch:[['The Letter',1],['Across the River',2],['The Night Train',3]]},{title:'The Road West',ch:[['A Stranger’s Umbrella',4],['The Salt Road',5],['First Sight of the Sea',6]]}]},
 {title:'The Long Dark',desc:`Meridian keeps its lights low and its secrets lower. As the autumn storms close in, Wren learns why the great lamp has begun to stumble — and who has been counting on it to fail.`,
  parts:[{title:'The Harbour Town',ch:[['Meridian in Rain',7],['The Keeper’s Cottage',8],['What the Logbooks Kept',9]]},{title:'Salt and Iron',ch:[['The Council Meets',10],['The Wreck of the Calloway',11],['The Lamp Fails',12]]}]},
 {title:'The Last Light',desc:`One night remains before the lamp is put out for good. What Wren finds in the tower will decide whether Meridian is remembered for its light, or for the dark it chose.`,
  direct:[['The Last Evening',13]],
- parts:[{img:'img_pt5',title:'The Keeper’s Tower',ch:[['Two Hundred and Eleven Steps',14],['What Tobias Knew',15]]},{img:'img_pt6',title:'Dawn',ch:[['The Storm Turns',16],['Lamp and Lens',17],['The Morning Tide',18],['Epilogue',19,true]]}]}
+ parts:[{title:'The Keeper’s Tower',ch:[['Two Hundred and Eleven Steps',14],['What Tobias Knew',15]]},{title:'Dawn',ch:[['The Storm Turns',16],['Lamp and Lens',17],['The Morning Tide',18],['Epilogue',19,true]]}]}
 ];
 const WORK={
   id:'story_meridian',kind:'story',structure:null,visibility:'public',allowImpressions:true,ownerId:'u_ilse',
@@ -1036,7 +990,7 @@ const WORK={
   category:'Adventure',tags:['lighthouse','sea','family','mystery'],status:'ongoing',coverImageId:'img_story',
   volumes:DEF.map((d,i)=>({id:'vol'+(i+1),number:i+1,title:d.title,description:d.desc,status:'published',coverImageId:'img_v'+(i+1),
     chapters:(d.direct||[]).map(([t,n])=>mkCh(t,n)),
-    parts:d.parts.map((p,j)=>({id:`part${i+1}_${j+1}`,number:j+1,title:p.title,description:'',coverImageId:p.img||null,chapters:p.ch.map(([t,n,dr])=>mkCh(t,n,dr))}))}))
+    parts:d.parts.map((p,j)=>({id:`part${i+1}_${j+1}`,number:j+1,title:p.title,description:'',chapters:p.ch.map(([t,n,dr])=>mkCh(t,n,dr))}))}))
 };
 
 /* ---------- Demo people & seeded comments (reader-side data, separate from the work) ---------- */
@@ -1088,12 +1042,6 @@ Object.assign(IMG,{
   img2_v1:{art:'clockVol',v:0,label:'VOLUME I',title:'The Stopped Hour'},
   img2_v2:{art:'clockVol',v:1,label:'VOLUME II',title:'The Long Minute'},
   img2_v3:{art:'clockVol',v:2,label:'VOLUME III',title:'The Turning'},
-  img2_p1:{art:'part',motif:'clock',v:0,label:'PART I',title:'The Shop on Halcyon Row'},
-  img2_p2:{art:'part',motif:'clock',v:1,label:'PART II',title:'The Apprentice'},
-  img2_p3:{art:'part',motif:'clock',v:2,label:'PART I',title:'Verrin Below'},
-  img2_p4:{art:'part',motif:'clock',v:3,label:'PART II',title:'The Guild of Hours'},
-  img2_p5:{art:'part',motif:'clock',v:4,label:'PART I',title:'The Great Clock'},
-  img2_p6:{art:'part',motif:'clock',v:5,label:'PART II',title:'Midnight, Again'}
 });
 PROFILES.u_cassian={id:'u_cassian',name:'Cassian Vale'};
 
@@ -1173,11 +1121,11 @@ const B2=[
 const DEF2=[
 {title:'The Stopped Hour',desc:`The great clock of Verrin stops at 4:17, and the man who kept the Row’s true time is missing. An apprentice with one forbidden case on a high shelf discovers that a city’s hours are not free.`,img:'img2_v1',
  direct:[['4:17',1]],
- parts:[{img:'img2_p1',title:'The Shop on Halcyon Row',ch:[['The Shop on Halcyon Row',2],['What the Case Held',3]]},{img:'img2_p2',title:'The Apprentice',ch:[['A Visitor from the Guild',4],['The Spare Minute',5]]}]},
+ parts:[{title:'The Shop on Halcyon Row',ch:[['The Shop on Halcyon Row',2],['What the Case Held',3]]},{title:'The Apprentice',ch:[['A Visitor from the Guild',4],['The Spare Minute',5]]}]},
 {title:'The Long Minute',desc:`Beneath the shop, a second city of brass and oil keeps the seconds turning. The Guild of Hours comes calling with a ledger, an offer, and a debt that belongs to everyone.`,img:'img2_v2',
- parts:[{img:'img2_p3',title:'Verrin Below',ch:[['The Stair Beneath the Shop',6],['The City of Gears',7]]},{img:'img2_p4',title:'The Guild of Hours',ch:[['Masters and Rations',8],['An Offer at Dusk',9]]}]},
+ parts:[{title:'Verrin Below',ch:[['The Stair Beneath the Shop',6],['The City of Gears',7]]},{title:'The Guild of Hours',ch:[['Masters and Rations',8],['An Offer at Dusk',9]]}]},
 {title:'The Turning',desc:`Ninety-nine steps, one borrowed minute, and a choice between the thing Isolde has always wanted and everything she believes. Midnight comes to Verrin, twice.`,img:'img2_v3',
- parts:[{img:'img2_p5',title:'The Great Clock',ch:[['Ninety-Nine Steps',10],['The Face of Old Patience',11]]},{img:'img2_p6',title:'Midnight, Again',ch:[['The Hour Returns',12],['What Isolde Kept',13]]}]}
+ parts:[{title:'The Great Clock',ch:[['Ninety-Nine Steps',10],['The Face of Old Patience',11]]},{title:'Midnight, Again',ch:[['The Hour Returns',12],['What Isolde Kept',13]]}]}
 ];
 function mkCh2(title,n){
   const id='hc'+pad2(n),blocks=n===2?B2:TX2[n].map(t=>['p',md(t)]);
@@ -1192,7 +1140,7 @@ const WORK2={
   category:'Fantasy',tags:['clocks','mystery','apprentice','city'],status:'ongoing',coverImageId:'img2_story',
   volumes:DEF2.map((d,i)=>({id:'hv'+(i+1),number:i+1,title:d.title,description:d.desc,status:'published',coverImageId:d.img.replace('img2_','img2_'),
     chapters:(d.direct||[]).map(([t,n])=>mkCh2(t,n)),
-    parts:d.parts.map((p,j)=>({id:`hp${i+1}_${j+1}`,number:j+1,title:p.title,description:'',coverImageId:p.img,chapters:p.ch.map(([t,n])=>mkCh2(t,n))}))}))
+    parts:d.parts.map((p,j)=>({id:`hp${i+1}_${j+1}`,number:j+1,title:p.title,description:'',chapters:p.ch.map(([t,n])=>mkCh2(t,n))}))}))
 };
 function seedComments2(now){
   const H=3600e3,C=(id,chapterId,paragraphId,parent,user,body,likes,ago)=>({id,chapterId,paragraphId,parent,user,body,likes,ts:now-ago*H});
@@ -1325,7 +1273,7 @@ function loadWork(work){
     const mk=(c,part)=>({id:c.id,number:c.number,title:(c.title||'').trim(),wordCount:c.wordCount||0,mins:Math.max(1,Math.ceil((c.wordCount||0)/230)),vol,part});
     (v.chapters||[]).filter(isPub).forEach(c=>vol.direct.push(mk(c,null)));
     (v.parts||[]).forEach(p=>{
-      const part={id:p.id,number:p.number,title:(p.title||'').trim(),cover:cover(p.coverImageId),chapters:[]};
+      const part={id:p.id,number:p.number,title:(p.title||'').trim(),chapters:[]};
       (p.chapters||[]).filter(isPub).forEach(c=>part.chapters.push(mk(c,part)));
       if(part.chapters.length)vol.parts.push(part);
     });
@@ -1343,7 +1291,9 @@ const chName=c=>c.title||('Chapter '+c.number);
 const NOW=Date.now();
 function seedData(){
   const progress={};
-  FLAT.forEach(c=>{if(c.number<=12)progress[c.id]={pct:1,done:true,pid:null,ts:NOW-(13-c.number)*20*3600e3}});
+  const DAY=24*3600e3;
+  const spread=[0,0,1,1,2,5,9,14,21,30,45,60]; // days ago — gives a realistic Today/Yesterday/date mix in the demo
+  FLAT.forEach((c,i)=>{if(c.number<=12)progress[c.id]={pct:1,done:true,pid:null,ts:NOW-spread[i]*DAY-i*3600e3}});
   progress.ch13={pct:.66,done:false,pid:'paragraph_017',ts:NOW-2*3600e3};
   return{progress,position:{chapterId:'ch13',paragraphId:'paragraph_017',ts:NOW-2*3600e3},
     bookmarks:[
@@ -1377,6 +1327,16 @@ function continueTarget(){
   return{kind:'continue',chapter:ch};
 }
 const fmtMins=m=>m<60?m+' min':Math.floor(m/60)+' h'+(m%60?' '+(m%60)+' min':'');
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ordinal=n=>{const v=n%100;return n+(['th','st','nd','rd'][(v-20)%10]||['th','st','nd','rd'][v]||'th')};
+function sameDay(a,b){return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate()}
+function completedOn(ts){
+  const d=new Date(ts),now=new Date();
+  if(sameDay(d,now))return'Today';
+  const y=new Date(now);y.setDate(y.getDate()-1);
+  if(sameDay(d,y))return'Yesterday';
+  return`${ordinal(d.getDate())} ${MONTHS[d.getMonth()]}, ${d.getFullYear()}`;
+}
 function ago(ts){
   const s=Math.max(0,(Date.now()-ts)/1000);if(s<60)return'just now';
   const m=s/60;if(m<60)return Math.floor(m)+'m ago';
@@ -1534,27 +1494,24 @@ function statusIcon(st,pct){
 function chRow(c,cur){
   const st=chStatus(c.id),pct=Math.round(chPct(c.id)*100),bm=data.bookmarks.some(b=>b.chapterId===c.id);
   const isCur=cur&&cur.id===c.id;
-  const label=st==='done'?'Completed':st==='current'?'In progress':c.mins+' min';
-  const sr=st==='done'?'Completed. ':st==='current'?`In progress, ${pct} percent. `:'Not started. ';
+  const doneOn=st==='done'?completedOn(data.progress[c.id].ts):null;
+  const meta=st==='done'?`<span class="ch__done"><b>Completed</b><i>${esc(doneOn)}</i></span>`:st==='current'?`<span>In progress</span>`:`<span>${c.mins} min</span>`;
+  const sr=st==='done'?`Completed ${doneOn}. `:st==='current'?`In progress, ${pct} percent. `:'Not started. ';
   return`<a class="ch ch--${st}${isCur?' is-current':''}" href="#/read/${c.id}"${isCur?' aria-current="true"':''} data-ch="${c.id}">
     <span class="ch__st">${statusIcon(st,pct)}</span>
     <span class="ch__main">${c.title?`<span class="ch__no">Chapter ${c.number}</span>`:''}<span class="ch__title"><span class="sr-only">${sr}</span>${esc(chName(c))}</span>${st==='current'?`<span class="ch__bar" aria-hidden="true"><i style="width:${pct}%"></i></span>`:''}</span>
-    <span class="ch__meta">${bm?`<span title="Bookmarked">${ic('bookmark')}<span class="sr-only">Bookmarked</span></span>`:''}<span>${label}</span></span></a>`;
+    <span class="ch__meta">${bm?`<span title="Bookmarked">${ic('bookmark')}<span class="sr-only">Bookmarked</span></span>`:''}${meta}</span></a>`;
 }
-function partHTML(p,cur,withCovers){
+function partHTML(p,cur){
   const mins=p.chapters.reduce((n,c)=>n+c.mins,0),meta=`${p.chapters.length} ${p.chapters.length===1?'chapter':'chapters'} · ${fmtMins(mins)}`;
   const ttl=`<span class="part__no">${partLabel(p)}</span>${p.title?`<h3 class="part__title">${esc(p.title)}</h3>`:''}`;
   const rows=p.chapters.map(c=>chRow(c,cur)).join('');
-  if(!withCovers)return`<div class="part"><div class="part__head"><div class="part__ttl">${ttl}</div><span class="part__count">${meta}</span></div>${rows}</div>`;
-  /* Volume uses part covers: every part gets the same 2:3 slot (a quiet placeholder when one is missing), so headings stay aligned. */
-  const ph=`<span class="ph__no">${roman(p.number)}</span>`;
-  return`<div class="part part--cov"><div class="part__head"><div class="part__cover">${coverHTML(p.cover,'cover--port',partLabel(p)+' cover'+(p.title?': '+p.title:''),ph)}</div><div class="part__ttl">${ttl}<span class="part__meta">${meta}</span></div></div>${rows}</div>`;
+  return`<div class="part"><div class="part__head"><div class="part__ttl">${ttl}</div><span class="part__count">${meta}</span></div>${rows}</div>`;
 }
 function volumeHTML(v,cur){
   const chs=v.chapters,done=chs.filter(c=>chStatus(c.id)==='done').length;
   const vp=chs.reduce((n,c)=>n+chPct(c.id),0)/chs.length,mins=chs.reduce((n,c)=>n+c.mins,0);
   const ph=`<span class="ph__no">${roman(v.number)}</span><span class="ph__t">${esc(v.title||volLabel(v))}</span>`;
-  const partCovers=v.parts.some(p=>p.cover);   // only reserve a cover slot when this volume actually has part covers
   return`<section class="vol" aria-labelledby="${v.id}-t">
     <div class="vol__cover">${coverHTML(v.cover,'cover--port',`${volLabel(v)} cover${v.title?': '+v.title:''}`,ph)}</div>
     <div class="vol__head"><p class="vol__no">${volLabel(v)}</p>${v.title?`<h2 class="vol__title" id="${v.id}-t">${esc(v.title)}</h2>`:`<h2 class="sr-only" id="${v.id}-t">${volLabel(v)}</h2>`}
@@ -1562,7 +1519,7 @@ function volumeHTML(v,cur){
       <div class="vol__meta">${v.parts.length?`<span>${v.parts.length} ${v.parts.length===1?'part':'parts'}</span>`:''}<span>${chs.length} ${chs.length===1?'chapter':'chapters'}</span><span>${fmtMins(mins)}</span>
         <span class="vol__prog"><span class="bar" aria-hidden="true"><i style="width:${Math.round(vp*100)}%"></i></span>${done} of ${chs.length} read</span>
         <button class="vol__toggle" data-action="toggle-vol" aria-expanded="true" aria-controls="${v.id}-c">${ic('chev')}<span>Chapters</span></button></div></div>
-    <div class="vol__contents" id="${v.id}-c">${v.direct.length?`<div class="part part--plain">${v.direct.map(c=>chRow(c,cur)).join('')}</div>`:''}${v.parts.map(p=>partHTML(p,cur,partCovers)).join('')}</div></section>`;
+    <div class="vol__contents" id="${v.id}-c">${v.direct.length?`<div class="part part--plain">${v.direct.map(c=>chRow(c,cur)).join('')}</div>`:''}${v.parts.map(p=>partHTML(p,cur)).join('')}</div></section>`;
 }
 function heroHTML(cur,tgt){
   const sp=storyProgress(),pct=Math.round(sp.pct*100),nParts=STORY.volumes.reduce((n,v)=>n+v.parts.length,0);
@@ -1932,6 +1889,21 @@ function syncCount(pid){
   });
 }
 function scrollWithin(box,el){box.scrollTop+=el.getBoundingClientRect().top-box.getBoundingClientRect().top-8}
+let SCROLL_LOCK=null;
+function lockScroll(){
+  if(SCROLL_LOCK)return;
+  const y=window.scrollY||document.documentElement.scrollTop||0;
+  SCROLL_LOCK={y};
+  document.body.style.position='fixed';document.body.style.top=(-y)+'px';document.body.style.left='0';document.body.style.right='0';
+  root.classList.add('scroll-locked');
+}
+function unlockScroll(){
+  if(!SCROLL_LOCK)return;
+  const y=SCROLL_LOCK.y;SCROLL_LOCK=null;
+  document.body.style.position='';document.body.style.top='';document.body.style.left='';document.body.style.right='';
+  root.classList.remove('scroll-locked');
+  window.scrollTo(0,y);
+}
 function openCP(pid,trigger){
   if(!R||!commentsOn())return;
   if(cpOpen()&&CP.pid===pid){closeCP();return}
@@ -1945,16 +1917,15 @@ function openCP(pid,trigger){
   renderCP();
   const p=$('#cpanel');p.classList.add('open');p.setAttribute('aria-hidden','false');
   $('#cscrim').classList.add('open');$('#reader').classList.add('has-panel');
-  setTimeout(()=>{
-    if(panelMode()==='sheet'){const r=blk.getBoundingClientRect();if(r.bottom>innerHeight*.3||r.top<headerH())window.scrollBy({top:r.top-headerH()-14})}
-    const h=$('#cpH');h&&h.focus({preventScroll:true});
-  },70);
+  if(panelMode()!=='dock')lockScroll();   // panel covers the reading page here, so the page underneath must not move at all
+  setTimeout(()=>{const h=$('#cpH');h&&h.focus({preventScroll:true})},70);
 }
 function closeCP(restore){
   const p=$('#cpanel');if(!p)return;
   const was=p.classList.contains('open');
   p.classList.remove('open');p.setAttribute('aria-hidden','true');
   const sc=$('#cscrim'),rd=$('#reader');sc&&sc.classList.remove('open');rd&&rd.classList.remove('has-panel');
+  unlockScroll();
   $$('.blk.is-active').forEach(e=>e.classList.remove('is-active'));
   $$('.cbtn[aria-expanded="true"]').forEach(b=>b.setAttribute('aria-expanded','false'));
   closeMenu();
@@ -2103,6 +2074,7 @@ document.addEventListener('keydown',e=>{
     bs[(i+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length].focus();
   }
 });
+addEventListener('resize',()=>{if(!cpOpen())return;if(panelMode()==='dock')unlockScroll();else if(!SCROLL_LOCK)lockScroll()});
 let ticking=false;
 addEventListener('scroll',()=>{if(!R||ticking)return;ticking=true;requestAnimationFrame(()=>{ticking=false;updateScroll()})},{passive:true});
 ['wheel','touchstart','keydown','mousedown'].forEach(t=>addEventListener(t,()=>{if(R)R.touched=true},{passive:true}));
