@@ -3137,7 +3137,13 @@ function fromSupabaseJournalRow(row){
     // in-place edit of an already-published Work) from "never
     // published" (a draft) — see slugify()/generateUniqueSlug() below.
     slug: row.slug || null,
-    status: row.status || null
+    status: row.status || null,
+    // Same reason as slug above: without this, publishJournal() has no
+    // way to know the Work already had a real publish date, so it was
+    // unconditionally stamping "now" on every save — silently bumping
+    // an edited Work back to the top of every published_at-ordered
+    // feed/portfolio as if it were brand new.
+    published_at: row.published_at || null
   };
 }
 
@@ -3561,8 +3567,15 @@ async function publishJournal(payload){
   // out from under a shared link; only a Work with no slug yet (a
   // first-ever publish) gets a freshly generated, uniqueness-checked one.
   const slug = payload.slug || await generateUniqueSlug(payload.title, state.currentUser.id, state.currentDraftId);
+  // Same principle as the slug reuse above: only a genuine first-ever
+  // publish (payload.status isn't already 'published', or it is but the
+  // fetched row somehow had no date) gets today's date. Re-saving an
+  // already-published Work keeps its original published_at.
+  const publishedAt = (payload.status === 'published' && payload.published_at)
+    ? payload.published_at
+    : new Date().toISOString();
   const row = Object.assign(
-    { author_id: state.currentUser.id, status:'published', published_at:new Date().toISOString(), slug: slug },
+    { author_id: state.currentUser.id, status:'published', published_at: publishedAt, slug: slug },
     toSupabaseJournalRow(payload)
   );
   let result;
