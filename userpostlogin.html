@@ -2664,6 +2664,22 @@ async function restoreSession(){
   try{
     await new Promise(function(resolve){
       let settled = false;
+      // The one place the "is this person signed in?" question gets answered.
+      // Called at most once: by the first INITIAL_SESSION / SIGNED_IN / SIGNED_OUT
+      // event, or by the fallback below when no event arrives in time.
+      function settleWith(session){
+        if (settled) return;
+        settled = true;
+        if (session && session.user){
+          loadProfile(session.user).then(function(user){
+            state.currentUser = user;
+            if (needsUsername(user)) openUsernameOnboarding();
+            return hydrateUserActivity(user.id);
+          }).catch(function(e){ console.warn('Could not load profile:', e); }).then(resolve);
+        } else {
+          resolve();
+        }
+      }
       supabaseClient.auth.onAuthStateChange(function(event, session){
         if (event === 'SIGNED_OUT'){
           if (settled) window.location.href = '/index.html';
@@ -2677,21 +2693,25 @@ async function restoreSession(){
         }
         if (settled) return;
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT'){
-          settled = true;
-          if (session && session.user){
-            loadProfile(session.user).then(function(user){
-              state.currentUser = user;
-              if (needsUsername(user)) openUsernameOnboarding();
-              return hydrateUserActivity(user.id);
-            }).catch(function(e){ console.warn('Could not load profile:', e); }).then(resolve);
-          } else {
-            resolve();
-          }
+          settleWith(session);
         }
       });
-      // Safety net: if Supabase never fires an initial event for some
-      // reason, don't hang the page forever waiting for it.
-      setTimeout(function(){ if (!settled){ settled = true; resolve(); } }, 4000);
+      // No auth event after 4 s does NOT mean "signed out": a person who is signed in
+      // but has an expired access token makes Supabase refresh it over the network first,
+      // which on a slow connection can take longer than that (a genuinely signed-out
+      // visitor gets INITIAL_SESSION straight away, with no network). The old code gave
+      // up here and sent everyone to index.html, losing where they were going. Ask the
+      // client directly instead — it answers once its own start-up check has finished —
+      // and give up only if even that takes another 11 s or fails.
+      setTimeout(function(){
+        if (settled) return;
+        let answered = false;
+        const giveUp = setTimeout(function(){ if (!answered){ answered = true; settleWith(null); } }, 11000);
+        function answer(session){ if (answered) return; answered = true; clearTimeout(giveUp); settleWith(session); }
+        try{
+          supabaseClient.auth.getSession().then(function(r){ answer(r && r.data ? r.data.session : null); }, function(){ answer(null); });
+        }catch(e){ answer(null); }
+      }, 4000);
     });
   }catch(e){ console.warn('Could not restore session:', e); }
 }
@@ -5330,6 +5350,27 @@ document.addEventListener('click', function(e){
 /* ------------------------------------------------------------------
    17. APP INIT
    ------------------------------------------------------------------ */
+/* A Google sign-in started on index.html always returns here bare
+   (/userpostlogin.html), because that is the only redirect address Supabase is
+   set up for. index.html parks the address the person was on in sessionStorage
+   before leaving; this puts them back there. It never overrides an address that
+   already says where to go, ignores anything stale (older than 10 minutes) and
+   only accepts the exact shapes index.html writes. */
+const POST_LOGIN_DEST_KEY = 'aspinora_post_login_dest';
+function consumePostLoginDestination(){
+  let raw = '';
+  try{ raw = sessionStorage.getItem(POST_LOGIN_DEST_KEY) || ''; sessionStorage.removeItem(POST_LOGIN_DEST_KEY); }catch(e){}
+  if (!raw) return;
+  let parsed = null;
+  try{ parsed = JSON.parse(raw); }catch(e){ return; }
+  if (!parsed || typeof parsed.dest !== 'string' || !parsed.t || Date.now() - parsed.t > 10 * 60 * 1000) return;
+  if (!/\/userpostlogin\.html$/i.test(window.location.pathname)) return;
+  const here = new URLSearchParams(window.location.search);
+  if (['read', 'category', 'nav', 'path'].some(function(k){ return here.has(k); })) return;
+  if (!/^\/userpostlogin\.html\?[A-Za-z0-9%_.~=&-]+$/.test(parsed.dest)) return;
+  try{ history.replaceState(null, '', parsed.dest); }catch(e){}
+}
+
 async function init(){
   // If anything below throws (a bad route, a render error...), the page must still finish loading:
   // hide the loader, mark the feed ready and listen for back/forward. Otherwise the visitor is left
@@ -5361,6 +5402,7 @@ async function init(){
       return;
     }
     syncAuthUI();
+    consumePostLoginDestination();
 
     // Work out where the URL says we should be (clean path, or one of the
     // ?read= / ?category= / ?nav= / ?path= entry points other pages use)
