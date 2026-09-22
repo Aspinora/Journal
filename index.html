@@ -1407,6 +1407,12 @@ const IS_MEMBER_PAGE = false;
 // doesn't survive navigating away to Google/Facebook/etc. and back).
 // See signInWithOAuth() and restoreSession()'s SIGNED_IN handler.
 const OAUTH_INTENT_KEY = 'aspinora_oauth_intent';
+/* Where a Google sign-in should land. OAuth always returns to
+   userpostlogin.html (the only redirect address Supabase is configured
+   for), so the address the person was on is parked here for the round trip
+   and userpostlogin.html moves them on to it. Per-tab, and only honoured
+   for a few minutes so an abandoned attempt can't redirect a later login. */
+const POST_LOGIN_DEST_KEY = 'aspinora_post_login_dest';
 
 /* ------------------------------------------------------------------
    3. CATEGORIES
@@ -1984,6 +1990,11 @@ function needsUsername(user){
 async function signInWithOAuth(provider, intent){
   if (!AUTH_LIVE){ showToast('Social sign-in needs a live Supabase connection.'); return; }
   try{ sessionStorage.setItem(OAUTH_INTENT_KEY, intent === 'signup' ? 'signup' : 'login'); }catch(e){}
+  try{
+    const dest = memberDestinationUrl();
+    if (dest !== '/userpostlogin.html') sessionStorage.setItem(POST_LOGIN_DEST_KEY, JSON.stringify({ dest: dest, t: Date.now() }));
+    else sessionStorage.removeItem(POST_LOGIN_DEST_KEY);
+  }catch(e){}
   const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: provider,
     options: { redirectTo: window.location.origin + '/userpostlogin.html' }
@@ -2357,7 +2368,7 @@ async function restoreSession(){
           // This used to be an unconditional redirect to the bare app URL,
           // which threw the destination away and, when it raced init()'s
           // own redirect, could beat it.
-          if (initPastSessionRestore) sendMemberToApp();
+          if (initPastSessionRestore && !modalLoginInProgress) sendMemberToApp();
         }).catch(function(e){ console.warn('Could not load profile:', e); finishOnce(); });
       });
       setTimeout(finishOnce, 8000);
@@ -4024,11 +4035,17 @@ let memberRedirectStarted = false;
 function sendMemberToApp(){
   if (memberRedirectStarted) return;
   memberRedirectStarted = true;
+  try{ sessionStorage.removeItem(POST_LOGIN_DEST_KEY); }catch(e){}
   window.location.replace(memberDestinationUrl());
 }
 /* True once init() has finished waiting on restoreSession(); see the end of
    the sign-in handler in restoreSession(). */
 let initPastSessionRestore = false;
+/* True from the moment the Log In / Sign Up form is submitted until it
+   fails. While it is true, completeLoginSuccess() owns where the person
+   goes next, so the sign-in event handler in restoreSession() must not
+   start a second, competing redirect. */
+let modalLoginInProgress = false;
 function wireNav(){
   qsa('[data-nav]').forEach(function(btn){
     btn.addEventListener('click', function(){
@@ -4092,7 +4109,9 @@ async function completeLoginSuccess(form, result){
     state.pendingAuthAction = null;
     action();
   } else {
-    window.location.href = '/userpostlogin.html';
+    // Same destination-aware, single guarded redirect init() uses, so someone who logs in
+    // while reading a Work / browsing a section lands back on it instead of the app Home.
+    sendMemberToApp();
   }
 }
 
@@ -4312,10 +4331,12 @@ function initAuthModal(){
       rememberTermsAccepted();
     }
     btn.disabled = true;
+    modalLoginInProgress = true;
     try{
       const result = mode === 'signup' ? await signUp(username, identifier, password) : await signIn(identifier, password);
       if (!result.needsVerification) setLastAuthMethod('email');
       if (result.needsVerification){
+        modalLoginInProgress = false;
         closeModal('auth-modal-scrim');
         showToast('Check ' + result.email + ' for a confirmation link to finish signing up.');
         this.reset();
@@ -4323,6 +4344,7 @@ function initAuthModal(){
       }
       await completeLoginSuccess(this, result);
     }catch(err){
+      modalLoginInProgress = false;
       showToast(err.message || 'Something went wrong — please try again.');
     }finally{
       btn.disabled = false;
@@ -4349,7 +4371,7 @@ function initAuthModal(){
         state.pendingAuthAction = null;
         action();
       } else if (!IS_MEMBER_PAGE){
-        window.location.href = '/userpostlogin.html';
+        sendMemberToApp();
       } else {
         await routeFromPath(true);
       }
@@ -4455,6 +4477,7 @@ document.addEventListener('click', function(e){
    17. APP INIT
    ------------------------------------------------------------------ */
 async function init(){
+  try{ sessionStorage.removeItem(POST_LOGIN_DEST_KEY); }catch(e){}
   qs('#demo-badge').hidden = !DEMO_MODE;
   loadDemoDB();
   wireNav();
