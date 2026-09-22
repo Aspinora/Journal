@@ -5556,12 +5556,24 @@ async function loadJournalByUsernameAndSlug(username, slug, replace, token) {
       return;
     }
 
-    const { data: profile } = await supabaseClient
+    const { data: profile, error: profileErr } = await supabaseClient
       .from('profiles')
       .select('id')
       .eq('username', username)
       .single();
     if (stale()) return;
+
+    // .single() reports "zero rows" as error code PGRST116 — that's a genuine
+    // not-found (bad username) and gets the honest "Work not found" message.
+    // Any other error (timeout, RLS hiccup, connection drop) is NOT the same
+    // thing as a dead link, so it gets its own message instead of wrongly
+    // telling the visitor the Work doesn't exist.
+    if (profileErr && profileErr.code !== 'PGRST116') {
+      console.error('Failed to load profile for Work route:', profileErr);
+      showToast("Couldn't load that — check your connection and try again.");
+      navigateTo('home', { replace: true });
+      return;
+    }
 
     // A link that leads nowhere REPLACES its own history entry with Home
     // (instead of pushing Home on top of it): otherwise Back returned to the
@@ -5579,7 +5591,13 @@ async function loadJournalByUsernameAndSlug(username, slug, replace, token) {
     const { data: journal, error } = await journalQuery.single();
     if (stale()) return;
 
-    if (error || !journal) {
+    if (error && error.code !== 'PGRST116') {
+      console.error('Failed to load Work:', error);
+      showToast("Couldn't load that — check your connection and try again.");
+      navigateTo('home', { replace: true });
+      return;
+    }
+    if (!journal) {
       showToast('Work not found');
       navigateTo('home', { replace: true });
       return;
