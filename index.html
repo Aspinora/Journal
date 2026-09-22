@@ -2730,12 +2730,19 @@ async function fetchJournal(idOrSlug){
     JOURNAL_CACHE[j.id] = j;
     return j;
   }
-  const { data, error } = await supabaseClient.from('journals')
+  let query = supabaseClient.from('journals')
     .select(JOURNAL_CARD_FIELDS)
     .or('id.eq.' + idOrSlug + ',slug.eq.' + idOrSlug)
-    .eq('status', 'published')
-    .neq('visibility', 'private')
-    .single();
+    .eq('status', 'published');
+  // Same owner exception as userpostlogin.html's fetchJournal (see the
+  // longer comment there) — kept in sync so a signed-in owner viewing
+  // their own private Work behaves the same on either file.
+  if (!state.currentUser){
+    query = query.neq('visibility', 'private');
+  } else {
+    query = query.or('visibility.neq.private,author_id.eq.' + state.currentUser.id);
+  }
+  const { data, error } = await query.single();
   if (error) throw error;
   const j = normalizeJournalRow(data);
   JOURNAL_CACHE[j.id] = j;
