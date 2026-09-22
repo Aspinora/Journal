@@ -3459,6 +3459,8 @@ async function persistDraft(draftPayload, showSavingState){
       d = Object.assign({ id:'d'+(nextDraftId++), author_id:state.currentUser.id, status:'draft' }, draftPayload, { updated_at:new Date().toISOString() });
       MOCK_DRAFTS.push(d);
       state.currentDraftId = d.id;
+      // Same URL fix as the live branch below — see its comment.
+      setPath('/write/' + d.id, true);
     } else {
       Object.assign(d, draftPayload, { updated_at:new Date().toISOString() });
     }
@@ -3475,6 +3477,16 @@ async function persistDraft(draftPayload, showSavingState){
     else result = await supabaseClient.from('journals').insert(row).select().single();
     if (result.error) throw result.error;
     state.currentDraftId = result.data.id;
+    // The URL stayed at plain /write for a brand-new draft even after
+    // this first save gave it a real id — so a refresh (or a tab
+    // restored later) re-ran routeFromParts('write') with no draftId,
+    // opened a blank write view, and silently orphaned the just-saved
+    // content (still a real row in the DB, just no longer reachable
+    // from where the person was — they'd only find it again via My
+    // Drafts). Bring the address bar in line with state.currentDraftId
+    // the same way navigateTo('write', ...) already does, so a refresh
+    // right after the first autosave keeps editing the same draft.
+    if (isNewRow) setPath('/write/' + result.data.id, true);
     setSaveStatus('saved');
     return result.data;
   }catch(err){
