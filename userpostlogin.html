@@ -3643,7 +3643,22 @@ function navigateTo(view, params){
   if (view === 'read') renderReadView(params.journalId, replace, params.preloadedJournal);
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
-  if (view === 'home' || view === 'explore') renderHomeStatic();
+  if (view === 'home' || view === 'explore'){
+    // Re-entering Home (e.g. the Back button from a Work, or popstate to an
+    // already-loaded section) used to always re-run renderLatestFeed(),
+    // which re-fetched whatever page was last loaded even though nothing
+    // needed to change on screen — a wasted request and a brief spinner
+    // flash every single time. Skip the fetch when the grid already has
+    // this exact section's cards on screen and no search is active; every
+    // caller that wants a genuine reload already resets latestPage to 1
+    // and calls renderHomeStatic()/renderLatestFeed() itself, so this only
+    // ever short-circuits a true no-op re-entry.
+    const grid = homeGridEl();
+    const alreadyShowingThisSection = grid && grid.querySelector('.j-card') &&
+      state.homeGridFilter === state.activeFilter && !state.searchQuery;
+    if (alreadyShowingThisSection) renderNotifBadge();
+    else renderHomeStatic();
+  }
   if (view === 'explore'){
     setTimeout(function(){ const el = qs('#explore-section'); if (el) el.scrollIntoView({ behavior:'smooth' }); }, 60);
   }
@@ -3793,6 +3808,10 @@ async function renderLatestFeed(){
     if (isFirstPage){
       grid.innerHTML = freshRows.length ? freshRows.map(journalCardHTML).join('') :
         '<div class="empty-state" style="grid-column:1/-1;"><p>No Works match that search yet.</p></div>';
+      // Remembers which section this grid's content is actually showing, so
+      // navigateTo() can tell a genuine re-entry (same section, already
+      // loaded) from a real filter change further down.
+      state.homeGridFilter = state.activeFilter;
     } else if (freshRows.length){
       // Append, never replace — each infinite-scroll page adds onto
       // the grid instead of wiping out everything loaded so far
