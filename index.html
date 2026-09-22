@@ -2966,14 +2966,19 @@ async function toggleJournalLike(journalId){
   else { state.likedJournalIds.add(journalId); if (j) j.likes++; }
   if (DEMO_MODE){ persistDemoDB(); return; }
   try{
+    // Supabase resolves a failed write ({error}) rather than throwing —
+    // an unchecked error here would silently leave the optimistic like
+    // showing with nothing actually saved server-side.
+    let error;
     if (already){
-      await supabaseClient.from('journal_likes').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id);
+      ({ error } = await supabaseClient.from('journal_likes').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id));
     } else {
-      await supabaseClient.from('journal_likes').insert({ journal_id: journalId, user_id: state.currentUser.id });
+      ({ error } = await supabaseClient.from('journal_likes').insert({ journal_id: journalId, user_id: state.currentUser.id }));
       // 👉 SUPABASE: creating the "someone appreciated your journal"
       // notification is best done with a database trigger on insert,
       // not from this frontend code.
     }
+    if (error) throw error;
   }catch(err){
     // roll back optimistic update on failure
     if (already){ state.likedJournalIds.add(journalId); if (j) j.likes++; } else { state.likedJournalIds.delete(journalId); if (j) j.likes--; }
@@ -2986,8 +2991,10 @@ async function toggleBookmark(journalId){
   if (already) state.bookmarkedIds.delete(journalId); else state.bookmarkedIds.add(journalId);
   if (DEMO_MODE){ persistDemoDB(); return; }
   try{
-    if (already) await supabaseClient.from('bookmarks').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id);
-    else await supabaseClient.from('bookmarks').insert({ journal_id: journalId, user_id: state.currentUser.id });
+    let error;
+    if (already) ({ error } = await supabaseClient.from('bookmarks').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id));
+    else ({ error } = await supabaseClient.from('bookmarks').insert({ journal_id: journalId, user_id: state.currentUser.id }));
+    if (error) throw error;
   }catch(err){
     if (already) state.bookmarkedIds.add(journalId); else state.bookmarkedIds.delete(journalId);
     showToast("Couldn't update that — please try again.");
@@ -3021,9 +3028,15 @@ async function toggleCommentLike(journalId, commentId){
   else { state.likedCommentIds.add(key); if (c) c.likes++; }
   if (DEMO_MODE) return;
   try{
-    if (already) await supabaseClient.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', state.currentUser.id);
-    else await supabaseClient.from('comment_likes').insert({ comment_id: commentId, user_id: state.currentUser.id });
+    let error;
+    if (already) ({ error } = await supabaseClient.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', state.currentUser.id));
+    else ({ error } = await supabaseClient.from('comment_likes').insert({ comment_id: commentId, user_id: state.currentUser.id }));
+    if (error) throw error;
   }catch(err){
+    // roll back optimistic update on failure (this function previously
+    // never checked for an error, so a failed write left a like showing
+    // that was never actually saved, and never rolled back either)
+    if (already){ state.likedCommentIds.add(key); if (c) c.likes++; } else { state.likedCommentIds.delete(key); if (c) c.likes--; }
     showToast("Couldn't update that — please try again.");
   }
 }
