@@ -614,6 +614,12 @@ const state = {
   searchResults: [],
   searchToken: 0,        // guards against a slower, superseded search response overwriting a newer one
   activeConvId: null,
+  // Bumped on every openConversation() call; loadLatestMessages()/
+  // loadOlderMessages() check their own snapshot of this against the
+  // live value after their fetch resolves, so a slower response for a
+  // conversation the user has since switched away from can't overwrite
+  // the currently-open one's message list.
+  activeConvToken: 0,
   activeConvMeta: null,  // { status, is_initiator } for the open conversation
   activeOther: null,    // profile of the other participant in active conv
   messagesById: new Map(),   // id -> message row (active conversation only)
@@ -993,6 +999,11 @@ function handleIncomingMessageGlobal(msg){
    ============================================================ */
 async function openConversation(conversationId, otherUserId){
   state.activeConvId = conversationId;
+  // New token for this open: loadLatestMessages()/loadOlderMessages()
+  // below (and any still-in-flight call from a conversation the user is
+  // now leaving) check this against the live value to know whether
+  // they're still the active one.
+  state.activeConvToken++;
   state.messagesById = new Map();
   state.reactionsByMsg = new Map();
   state.oldestLoadedAt = null;
@@ -1062,23 +1073,27 @@ window.addEventListener('popstate', ()=>{
    DATA: messages (paginated)
    ============================================================ */
 async function loadLatestMessages(){
+  const myToken = state.activeConvToken;
   const { data, error } = await sb.from('messages')
     .select('id, conversation_id, sender_id, message_type, body, sticker_key, reply_to_id, created_at, deleted_at')
     .eq('conversation_id', state.activeConvId)
     .order('created_at', { ascending: false })
     .limit(PAGE_SIZE);
+  if(myToken !== state.activeConvToken) return; // a newer conversation is open now — don't merge this into its message map
   if(error){ console.error(error); toast('Could not load messages'); return; }
   const rows = (data||[]).slice().reverse();
   rows.forEach(r => state.messagesById.set(r.id, r));
   if(rows.length) state.oldestLoadedAt = rows[0].created_at;
   state.hasMoreOlder = rows.length === PAGE_SIZE;
   await loadReactionsFor(rows.map(r=>r.id));
+  if(myToken !== state.activeConvToken) return; // superseded while loading reactions too
   renderMessages();
   scrollToBottom();
 }
 
 async function loadOlderMessages(){
   if(state.loadingOlder || !state.hasMoreOlder || !state.oldestLoadedAt) return;
+  const myToken = state.activeConvToken;
   state.loadingOlder = true;
   const box = $('messages');
   const prevHeight = box.scrollHeight;
@@ -1089,12 +1104,14 @@ async function loadOlderMessages(){
     .order('created_at', { ascending: false })
     .limit(PAGE_SIZE);
   state.loadingOlder = false;
+  if(myToken !== state.activeConvToken) return; // the conversation was switched while this was loading
   if(error){ console.error(error); return; }
   const rows = (data||[]).slice().reverse();
   rows.forEach(r => state.messagesById.set(r.id, r));
   if(rows.length) state.oldestLoadedAt = rows[0].created_at;
   state.hasMoreOlder = rows.length === PAGE_SIZE;
   await loadReactionsFor(rows.map(r=>r.id));
+  if(myToken !== state.activeConvToken) return;
   renderMessages();
   box.scrollTop = box.scrollHeight - prevHeight;
 }
@@ -1560,6 +1577,10 @@ function closeActiveConversation(){
   if(state.msgsChannel){ sb.removeChannel(state.msgsChannel); state.msgsChannel = null; }
   if(state.typingChannel){ sb.removeChannel(state.typingChannel); state.typingChannel = null; }
   state.activeConvId = null;
+  // Same guard as openConversation()'s bump — a message/older-page load
+  // still in flight when the panel is closed must not write into (or
+  // scroll) a chat view that's no longer showing.
+  state.activeConvToken++;
   state.activeConvMeta = null;
   state.activeOther = null;
   state.messagesById = new Map();
