@@ -219,14 +219,19 @@ body.is-reading .write-header{ background:var(--page-tint-bg, var(--cream)); }
 }
 .nav-user-trigger:hover{ border-color:var(--orange); }
 .nav-user-trigger .avatar{ width:30px; height:30px; font-size:.72rem; }
-.nav-user-name{ max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block; vertical-align:middle; }
+/* The display name used to sit permanently next to the avatar at every
+   desktop width (up to 100px reserved for it, always) — one of the
+   things crowding .pl-nav-right and squeezing the search bar. Now
+   hidden everywhere by default; it only appears inside the dropdown
+   after a click, same as mobile already did. */
+.nav-user-name{ display:none; }
 .nav-dropdown{
   position:absolute; top:calc(100% + 10px); right:0; width:230px; background:var(--paper);
   border:1px solid var(--line); border-radius:var(--radius-sm); box-shadow:var(--shadow-mid);
   padding:8px; display:none; flex-direction:column; gap:2px;
 }
 .nav-dropdown.open{ display:flex; }
-.nav-dropdown-name{ display:none; padding:8px 12px 10px; font-family:var(--font-display); font-weight:700; font-size:.98rem; color:var(--ink); border-bottom:1px solid var(--line); margin-bottom:4px; }
+.nav-dropdown-name{ display:block; padding:8px 12px 10px; font-family:var(--font-display); font-weight:700; font-size:.98rem; color:var(--ink); border-bottom:1px solid var(--line); margin-bottom:4px; }
 .nav-dropdown button{
   background:none; border:none; text-align:left; padding:10px 12px; border-radius:8px; font-size:.88rem;
   font-weight:600; color:var(--ink); display:flex; align-items:center; gap:10px;
@@ -925,12 +930,10 @@ body.is-reading .comment-form textarea{
     content:''; position:absolute; left:22%; right:22%; bottom:0;
     height:3px; border-radius:3px; background:var(--orange-deep);
   }
-  .nav-user-name{ display:none; }
   .nav-user-trigger{ padding:2px; border:none; background:none; }
   /* Match the avatar to the same 27px visual size as the Wall and
      Messages icons so all four header controls line up exactly. */
   .nav-user-trigger .avatar{ width:27px; height:27px; font-size:.64rem; }
-  .nav-dropdown-name{ display:block; }
   .brand-logo-img{ height:28px; width:116px; }
 
   /* CTA bar moves below the header on mobile (see #pl-cta-bar rules
@@ -953,12 +956,16 @@ body.is-reading .comment-form textarea{
 @media (min-width:761px) and (max-width:1180px){
   .pl-center-nav{ gap:clamp(2px,1vw,10px); }
   .pl-nav-item{ padding:8px 8px; }
-  .pl-search-bar-inline{ width:clamp(90px,9vw,160px); }
-  .nav-user-name{ max-width:80px; }
+  /* Floor raised 90px->150px: this used to be the main reason the
+     search bar looked "broken small" at common laptop-window widths —
+     removing the always-on display name above freed enough room in
+     .pl-nav-right to afford a wider floor here without re-starving
+     the center nav (verified: no overflow from 761px up). */
+  .pl-search-bar-inline{ width:clamp(150px,16vw,220px); }
 }
 @media (min-width:761px) and (max-width:980px){
-  .pl-search-bar-inline{ width:clamp(70px,7vw,120px); }
-  .nav-user-name{ max-width:56px; }
+  /* Same reasoning, tightest tier: floor raised 70px->130px. */
+  .pl-search-bar-inline{ width:clamp(130px,13vw,170px); }
 }
 
 /* ============================================================
@@ -4152,6 +4159,11 @@ function replyItemHTML(journalId, r){
 }
 
 async function renderComments(j){
+  // Captured now, checked again after the await below — if a newer Work
+  // navigation supersedes this call while fetchRootComments() is still in
+  // flight (renderReadView() bumps readRequestToken on every navigation),
+  // this stale response must not overwrite a newer Work's comment list.
+  const myToken = state.readRequestToken;
   const wrap = qs('#comment-form-wrap');
   if (!j.allow_comments){
     wrap.innerHTML = '<p class="guest-cta">The author has turned off Impressions for this Work.</p>';
@@ -4181,6 +4193,7 @@ async function renderComments(j){
   }
 
   const roots = await fetchRootComments(j.id);
+  if (myToken !== state.readRequestToken) return; // superseded — a newer Work is on screen now
   const list = qs('#comments-list');
   if (!roots.length){
     list.innerHTML = '<p class="empty-state" style="padding:30px 0;">No one has responded yet — be the first to say something.</p>';
