@@ -214,11 +214,14 @@ body.is-reading .write-header{ background:var(--page-tint-bg, var(--cream)); }
 .nav-guest-actions{ display:flex; gap:10px; }
 .nav-user{ position:relative; }
 .nav-user-trigger{
-  display:flex; align-items:center; gap:8px; background:var(--paper); border:1.5px solid var(--line);
-  padding:6px 12px 6px 6px; border-radius:999px; font-weight:600; font-size:.86rem;
+  display:flex; align-items:center; gap:8px; background:none; border:none;
+  padding:0; border-radius:50%; font-weight:600; font-size:.86rem;
 }
-.nav-user-trigger:hover{ border-color:var(--orange); }
-.nav-user-trigger .avatar{ width:30px; height:30px; font-size:.72rem; }
+.nav-user-trigger:hover{ opacity:.8; }
+/* Desktop avatar matches the 25px size every other header icon (Wall,
+   Messages, section-nav icons) renders at — see .pl-nav-item svg /
+   .pl-wall-icon-img below — instead of its old larger, bordered-pill size. */
+.nav-user-trigger .avatar{ width:25px; height:25px; font-size:.6rem; }
 /* The display name used to sit permanently next to the avatar at every
    desktop width (up to 100px reserved for it, always) — one of the
    things crowding .pl-nav-right and squeezing the search bar. Now
@@ -822,14 +825,25 @@ body.is-reading .comment-form textarea{
 /* ============================================================
    POST-LOGIN HEADER, CENTER NAV, SEARCH PANEL, CTA BAR
    ============================================================ */
-.pl-nav-inner{ display:grid; grid-template-columns:auto minmax(360px,1fr) auto; align-items:center; gap:14px; padding:10px 0; }
-.pl-brand{ background:none; border:none; padding:0; margin-left:10px; }
+/* Desktop header row: a single flex row (not a 3-track grid) so every
+   gap between adjacent items — brand, each section pill, the spacer,
+   Wall, search bar, Messages, avatar — is driven by the one
+   --hdr-item-gap value and is therefore always identical, instead of
+   the old grid's 14px column-gap vs. the center-nav's own 4px vs. the
+   nav-right cluster's own 6px. .pl-nav-spacer is an empty flex:1 item
+   that absorbs the leftover width (so nav-right still sits pinned to
+   the right edge) without needing an elastic track that the visible
+   items don't actually fill — the gaps on both of its sides stay
+   exactly --hdr-item-gap regardless of how wide it stretches. */
+.pl-nav-inner{ display:flex; align-items:center; gap:var(--hdr-item-gap,14px); padding:10px 0; --hdr-item-gap:14px; }
+.pl-nav-spacer{ flex:1 1 40px; min-width:0; }
+.pl-brand{ background:none; border:none; padding:0; margin-left:10px; flex-shrink:0; }
 .pl-wordmark{ display:flex; flex-direction:column; line-height:1; }
 .brand-logo-img{ height:34px; width:140px; display:block; }
 .pl-word{ font-family:var(--font-display); font-weight:700; font-size:1.32rem; color:var(--ink); }
 .pl-j{ color:var(--orange); }
 .pl-wordmark .t2{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); margin-top:3px; }
-.pl-center-nav{ display:flex; align-items:center; justify-content:space-between; gap:4px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+.pl-center-nav{ display:flex; align-items:center; gap:var(--hdr-item-gap,14px); flex:0 1 auto; min-width:0; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
 .pl-center-nav::-webkit-scrollbar{ display:none; }
 .pl-nav-item{
   display:flex; flex-direction:column; align-items:center; gap:5px;
@@ -846,7 +860,7 @@ body.is-reading .comment-form textarea{
   content:''; position:absolute; left:26%; right:26%; bottom:-2px;
   height:3px; border-radius:3px; background:var(--orange-deep);
 }
-.pl-nav-right{ display:flex; align-items:center; gap:6px; justify-self:end; margin-right:10px; min-width:0; }
+.pl-nav-right{ display:flex; align-items:center; gap:var(--hdr-item-gap,14px); flex-shrink:0; margin-right:10px; min-width:0; }
 .pl-nav-right .pl-nav-item, .pl-nav-right #nav-user{ flex-shrink:0; }
 .pl-search-wrap{ position:relative; display:flex; align-items:center; flex:0 1 auto; min-width:0; }
 .pl-icon-btn{
@@ -906,6 +920,7 @@ body.is-reading .comment-form textarea{
     padding:8px 0 4px;
   }
   .pl-brand{ grid-column:1; grid-row:1; margin-left:6px; }
+  .pl-nav-spacer{ display:none; }
   /* Row 1: logo, then a single flex row (search bar growing to fill
      the remaining space, followed by three equal-sized icon buttons:
      The Wall, Messages, avatar) — reordered via `order` below so the
@@ -954,7 +969,7 @@ body.is-reading .comment-form textarea{
    Shed weight from the edges first (icon-only center nav, narrower
    search bar) so every section stays reachable at any desktop width. */
 @media (min-width:761px) and (max-width:1180px){
-  .pl-center-nav{ gap:clamp(2px,1vw,10px); }
+  .pl-nav-inner{ --hdr-item-gap: clamp(2px,1vw,10px); }
   .pl-nav-item{ padding:8px 8px; }
   /* Floor raised 90px->150px: this used to be the main reason the
      search bar looked "broken small" at common laptop-window widths —
@@ -1015,6 +1030,7 @@ body.is-reading .comment-form textarea{
     </button>
 
     <nav class="pl-center-nav" id="pl-center-nav" aria-label="Sections"></nav>
+    <div class="pl-nav-spacer" aria-hidden="true"></div>
 
     <div class="nav-right pl-nav-right">
       <button type="button" class="pl-nav-item pl-wall-btn" id="pl-wall-btn" data-nav-wall="1" aria-label="The Wall">
@@ -1040,11 +1056,11 @@ body.is-reading .comment-form textarea{
         </button>
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
           <div class="nav-dropdown-name" id="nav-dropdown-name"></div>
-          <button type="button" id="nav-my-portfolio-btn" role="menuitem">🪪 Portfolio</button>
-          <button type="button" data-nav="published" role="menuitem">📚 My Works</button>
-          <button type="button" data-nav="notifications" role="menuitem">🔔 Notification<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
-          <button type="button" data-nav="drafts" role="menuitem">📝 My Drafts</button>
-          <button type="button" data-nav="saved" role="menuitem">🔖 Archive</button>
+          <button type="button" id="nav-my-portfolio-btn" role="menuitem">Portfolio</button>
+          <button type="button" data-nav="published" role="menuitem">My Works</button>
+          <button type="button" data-nav="notifications" role="menuitem">Notification<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
+          <button type="button" data-nav="drafts" role="menuitem">My Drafts</button>
+          <button type="button" data-nav="saved" role="menuitem">Archive</button>
           <hr>
           <button type="button" class="danger" id="sign-out-btn" role="menuitem">Sign Out</button>
         </div>
