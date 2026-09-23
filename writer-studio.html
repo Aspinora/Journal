@@ -101,6 +101,9 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .card:hover{border-color:var(--accent-line)}
 .card .cv{aspect-ratio:3/2;background:linear-gradient(135deg,#27414A,#1D6B73 60%,#5A9BA1);display:flex;align-items:flex-end;padding:12px;color:#fff;font:600 20px/1.2 "Source Serif 4",Georgia,serif;position:relative}
 .card .cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.card__more{position:absolute;top:6px;right:6px;background:rgba(10,14,18,.55);color:#fff;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.card__more:hover{background:rgba(10,14,18,.78)}
+.card__more[aria-expanded="true"]{background:rgba(10,14,18,.78)}
 .card .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
 .card .bd b{font-weight:600}
 .card.new{border-style:dashed;align-items:center;justify-content:center;min-height:220px;color:var(--accent-2);gap:8px;background:transparent}
@@ -1725,7 +1728,7 @@ const UI = {
     grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New ' + K.one.toLowerCase()), h('span', { class: 'small muted' }, 'Cover, title, tags and visibility')));
     stories.forEach(s => {
       const url = s.coverImageId && Images.urls.get(s.coverImageId), chapters = Model.all(s).length;
-      const menuBtn = ibtn('more', 'Story actions', { style: { position: 'absolute', top: '6px', right: '6px', background: 'rgba(255,255,255,.85)' }, onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
+      const menuBtn = ibtn('more', 'Story actions', { class: 'ib card__more', onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
       grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
         h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
