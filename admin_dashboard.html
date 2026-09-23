@@ -9,50 +9,54 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --cream:        #FBF5EA;
-  --cream-deep:   #F4EBDA;
-  --paper:        #FFFDF8;
-  --ink:          #2B241C;
-  --ink-soft:     #5B5347;
-  --ink-faint:    #948B7C;
+  /* Dark administration console palette. Warm-neutral charcoal, not pure
+     black/grey — keeps a trace of the brand without reading as consumer/social. */
+  --cream:        #17140F;   /* page background (kept var name for minimal diff) */
+  --cream-deep:   #1D1912;   /* hover / deep surface */
+  --paper:        #211D16;   /* card / panel surface */
+  --paper-raised: #2A251C;   /* raised surface (topbar, drawers) */
+  --ink:          #F1EBDF;   /* primary text */
+  --ink-soft:     #B4AB99;   /* secondary text */
+  --ink-faint:    #7C7360;   /* tertiary / label text */
 
-  --orange:       #F1631B;
-  --orange-deep:  #D3510F;
-  --orange-soft:  #FCEADC;
-  --sky:          #7FB8D9;
-  --sky-soft:     #E4F1F7;
-  --lavender:     #A79BD1;
-  --lavender-soft:#EDE9F7;
-  --mint:         #7FC8A9;
-  --mint-soft:    #E4F4EC;
-  --gold:         #F0B429;
-  --red:          #D64545;
-  --red-soft:     #FBE4E4;
+  --orange:       #F1751B;   /* primary accent — Journals brand */
+  --orange-deep:  #FF8F40;
+  --orange-soft:  rgba(241,117,27,.16);
+  --sky:          #7FB8D9;   /* neutral information */
+  --sky-soft:     rgba(127,184,217,.14);
+  --lavender:     #B0A2E0;   /* neutral information (secondary) */
+  --lavender-soft:rgba(176,162,224,.14);
+  --mint:         #5FC08F;   /* success / restored / resolved */
+  --mint-soft:    rgba(95,192,143,.14);
+  --gold:         #E8B93F;   /* warning / pending */
+  --gold-soft:    rgba(232,185,63,.14);
+  --red:          #E4615F;   /* destructive only */
+  --red-soft:     rgba(228,97,95,.14);
 
-  --line:         rgba(43,36,28,0.10);
-  --line-strong:  rgba(43,36,28,0.18);
-  --shadow-soft:  0 4px 24px rgba(43,36,28,0.06);
-  --shadow-mid:   0 12px 40px rgba(43,36,28,0.10);
-  --shadow-deep:  0 24px 60px rgba(43,36,28,0.16);
+  --line:         rgba(241,235,223,0.08);
+  --line-strong:  rgba(241,235,223,0.16);
+  --shadow-soft:  0 4px 20px rgba(0,0,0,.28);
+  --shadow-mid:   0 12px 34px rgba(0,0,0,.36);
+  --shadow-deep:  0 24px 60px rgba(0,0,0,.5);
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body:    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono:    'Space Mono', 'SFMono-Regular', monospace;
 
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 22px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --ease: cubic-bezier(.22,.9,.32,1);
-  --sidebar-w: 248px;
+  --sidebar-w: 250px;
 }
 *,*::before,*::after{ box-sizing:border-box; }
 [hidden]{ display:none !important; }
 html,body{ margin:0; padding:0; height:100%; }
 body{
   background:
-    radial-gradient(1100px 650px at 108% -8%, var(--orange-soft) 0%, transparent 58%),
-    radial-gradient(950px 620px at -8% 106%, var(--lavender-soft) 0%, transparent 55%),
-    linear-gradient(180deg, var(--cream) 0%, var(--cream-deep) 100%);
+    radial-gradient(1200px 700px at 106% -10%, rgba(241,117,27,.06) 0%, transparent 58%),
+    radial-gradient(1000px 640px at -10% 108%, rgba(176,162,224,.05) 0%, transparent 55%),
+    linear-gradient(180deg, var(--cream) 0%, #120F0A 100%);
   background-attachment:fixed, fixed, fixed;
   color:var(--ink);
   font-family:var(--font-body);
@@ -66,15 +70,15 @@ a{ color:inherit; }
 
 /* ---------- preview / role switcher strip ---------- */
 .preview-strip{
-  background:var(--ink); color:var(--cream); font-size:12.5px; font-weight:600;
+  background:#0E0C08; color:var(--gold); font-size:12.5px; font-weight:600;
   padding:7px 18px; display:flex; align-items:center; justify-content:center; gap:14px;
-  letter-spacing:.02em; position:sticky; top:0; z-index:60;
+  letter-spacing:.02em; position:sticky; top:0; z-index:60; border-bottom:1px solid rgba(232,185,63,.25); flex-wrap:wrap;
 }
 .preview-strip .dot{ width:7px;height:7px;border-radius:50%;background:var(--gold); }
-.role-toggle{ display:inline-flex; background:rgba(255,255,255,.1); border-radius:999px; padding:3px; gap:2px; }
+.role-toggle{ display:inline-flex; background:rgba(255,255,255,.06); border-radius:999px; padding:3px; gap:2px; flex-wrap:wrap; }
 .role-toggle button{
-  border:none; background:transparent; color:var(--cream); font-size:12px; font-weight:700;
-  padding:5px 14px; border-radius:999px; opacity:.65; transition:all .18s var(--ease);
+  border:none; background:transparent; color:var(--ink-soft); font-size:11.5px; font-weight:700;
+  padding:5px 12px; border-radius:999px; opacity:.75; transition:all .18s var(--ease); white-space:nowrap;
 }
 .role-toggle button.active{ background:var(--orange); opacity:1; color:#fff; }
 
@@ -101,7 +105,7 @@ a{ color:inherit; }
 .sb-link .ic{ width:18px; text-align:center; font-size:15px; }
 .sb-link:hover{ background:var(--cream-deep); color:var(--ink); }
 .sb-link.active{ background:var(--orange-soft); color:var(--orange-deep); }
-.sb-link .cnt{ margin-left:auto; background:var(--ink); color:#fff; font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:999px; }
+.sb-link .cnt{ margin-left:auto; background:var(--orange); color:#17140F; font-size:10.5px; font-weight:700; padding:1px 7px; border-radius:999px; }
 .sb-link.active .cnt{ background:var(--orange-deep); }
 .sb-lock{ margin-left:auto; opacity:.4; font-size:11px; }
 
@@ -115,7 +119,7 @@ a{ color:inherit; }
 /* ---------- main ---------- */
 .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .topbar{
-  position:sticky; top:34px; z-index:30; background:rgba(251,245,234,.88); backdrop-filter:blur(10px) saturate(1.4);
+  position:sticky; top:34px; z-index:30; background:rgba(23,20,15,.85); backdrop-filter:blur(10px) saturate(1.4);
   border-bottom:1px solid var(--line); padding:14px 26px; display:flex; align-items:center; gap:16px;
 }
 .mobile-menu-btn{ display:none; border:1px solid var(--line-strong); background:var(--paper); border-radius:10px; width:36px; height:36px; align-items:center; justify-content:center; font-size:16px; }
@@ -170,13 +174,13 @@ a{ color:inherit; }
 /* ---------- badges / pills ---------- */
 .badge{ display:inline-flex; align-items:center; gap:4px; font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
 .badge.orange{ background:var(--orange-soft); color:var(--orange-deep); }
-.badge.sky{ background:var(--sky-soft); color:#2A6E93; }
-.badge.mint{ background:var(--mint-soft); color:#2E7A57; }
-.badge.lav{ background:var(--lavender-soft); color:#6C5FA3; }
-.badge.gold{ background:#FCF1D6; color:#93720E; }
-.badge.red{ background:var(--red-soft); color:#A5312F; }
+.badge.sky{ background:var(--sky-soft); color:var(--sky); }
+.badge.mint{ background:var(--mint-soft); color:var(--mint); }
+.badge.lav{ background:var(--lavender-soft); color:var(--lavender); }
+.badge.gold{ background:var(--gold-soft); color:var(--gold); }
+.badge.red{ background:var(--red-soft); color:var(--red); }
 .badge.grey{ background:var(--cream-deep); color:var(--ink-soft); }
-.badge.ink{ background:var(--ink); color:#fff; }
+.badge.ink{ background:var(--ink); color:var(--cream); }
 
 /* ---------- filters ---------- */
 .filter-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
@@ -191,7 +195,7 @@ a{ color:inherit; }
 .btn.ghost{ background:transparent; border:1px solid var(--line-strong); color:var(--ink); }
 .btn.ghost:hover{ background:var(--cream-deep); }
 .btn.danger{ background:var(--red); color:#fff; }
-.btn.danger:hover{ background:#B93737; }
+.btn.danger:hover{ background:#C9524F; }
 .btn.soft{ background:var(--cream-deep); color:var(--ink); }
 .btn.sm{ padding:6px 13px; font-size:12px; }
 .btn:disabled{ opacity:.45; cursor:not-allowed; }
@@ -232,26 +236,26 @@ a{ color:inherit; }
 .timeline .tl-item::before{ content:""; position:absolute; left:-21px; top:3px; width:9px; height:9px; border-radius:50%; background:var(--orange); }
 .timeline .tl-time{ font-size:11px; color:var(--ink-faint); font-weight:700; }
 .timeline .tl-body{ font-size:13px; margin-top:2px; }
-.note-item{ background:#FFF9E9; border:1px dashed var(--gold); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:8px; font-size:12.5px; }
-.note-item .who{ font-weight:700; font-size:11px; color:#93720E; text-transform:uppercase; letter-spacing:.03em; margin-bottom:2px; }
+.note-item{ background:var(--gold-soft); border:1px dashed var(--gold); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:8px; font-size:12.5px; }
+.note-item .who{ font-weight:700; font-size:11px; color:var(--gold); text-transform:uppercase; letter-spacing:.03em; margin-bottom:2px; }
 .notif-preview{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-md); padding:14px 16px; max-width:380px; box-shadow:var(--shadow-soft); }
 .notif-preview .from{ font-size:11px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.03em; margin-bottom:6px; }
 .notif-preview .msg{ font-size:13px; margin-bottom:8px; }
 .notif-preview .meta{ font-size:11px; color:var(--ink-faint); }
 .immutable-note{ display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-faint); font-weight:700; background:var(--cream-deep); padding:8px 12px; border-radius:999px; margin-bottom:14px; }
-.bulk-bar{ position:sticky; top:0; background:var(--ink); color:#fff; border-radius:var(--radius-md); padding:10px 16px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.bulk-bar{ position:sticky; top:0; background:var(--orange-deep); color:#fff; border-radius:var(--radius-md); padding:10px 16px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
 .bulk-bar b{ font-family:var(--font-body); }
-.expiring{ color:#A5312F; font-weight:700; }
+.expiring{ color:var(--red); font-weight:700; }
 
 /* ---------- avatar ---------- */
-.mini-av{ width:28px;height:28px;border-radius:50%; background:var(--sky-soft); color:#2A6E93; display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex:none; }
+.mini-av{ width:28px;height:28px;border-radius:50%; background:var(--sky-soft); color:var(--sky); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex:none; }
 .name-cell{ display:flex; align-items:center; gap:8px; }
 
 /* ---------- toast ---------- */
 .toast-stack{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); z-index:500; display:flex; flex-direction:column; gap:10px; align-items:center; }
-.toast{ background:var(--ink); color:var(--cream); padding:11px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:var(--shadow-deep); display:flex; align-items:center; gap:10px; animation:toast-in .25s var(--ease); }
-.toast.success{ background:#2E7A57; }
-.toast.error{ background:var(--red); }
+.toast{ background:var(--paper-raised); color:var(--ink); border:1px solid var(--line-strong); padding:11px 18px; border-radius:999px; font-size:13px; font-weight:600; box-shadow:var(--shadow-deep); display:flex; align-items:center; gap:10px; animation:toast-in .25s var(--ease); }
+.toast.success{ background:#1C6B47; color:#fff; border-color:transparent; }
+.toast.error{ background:var(--red); color:#fff; border-color:transparent; }
 @keyframes toast-in{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 
 /* ---------- responsive ---------- */
@@ -274,10 +278,7 @@ a{ color:inherit; }
 
 <div class="preview-strip">
   <span class="dot"></span> MOCK PREVIEW — no backend connected, nothing here is saved permanently
-  <div class="role-toggle" id="role-toggle">
-    <button data-role="admin">Admin view</button>
-    <button data-role="moderator">Moderator view</button>
-  </div>
+  <div class="role-toggle" id="role-toggle"></div>
 </div>
 
 <div class="dash-shell">
@@ -347,13 +348,104 @@ const USERS = [
 ];
 function userById(id){ return USERS.find(u=>u.id===id); }
 
+/* ============================================================
+   ROLE / PERMISSION MODEL  (spec sections 1, 3, 4)
+
+   *** SECURITY NOTE — READ BEFORE WIRING TO SUPABASE ***
+   Everything in this block is a CLIENT-SIDE PREVIEW ONLY. The role
+   toggle in the top strip lets you preview what each role sees; it
+   is not — and must never become — the authorization boundary.
+   Per spec section 2, when this connects to Supabase:
+     - role + permissions must be read from a server-trusted table
+       (e.g. user_roles / role_permissions), never from client state
+       or user-editable profile metadata.
+     - every mutating action below (restrictUser, removeContent,
+       handleModAction, etc.) must be re-checked and actually
+       enforced by RLS policies and/or a privileged RPC/Edge
+       Function — the checks here only hide/disable UI.
+     - self-promotion, role changes, and any action targeting an
+       Admin account must be rejected server-side even if a client
+       is modified to skip the checks below.
+   ============================================================ */
+
+const ROLES = [
+  {id:'admin',              label:'Admin',               short:'Admin',       level:100},
+  {id:'senior_moderator',   label:'Senior Moderator',    short:'Sr. Mod',     level:60},
+  {id:'moderator',          label:'Moderator',           short:'Moderator',   level:40},
+  {id:'support_staff',      label:'Support / Grievance Staff', short:'Support', level:30},
+  {id:'copyright_reviewer', label:'Copyright Reviewer',  short:'Copyright',   level:30},
+];
+function roleMeta(id){ return ROLES.find(r=>r.id===id) || ROLES[2]; }
+
+// Full permission catalog (spec section 4). Admin implicitly has all of
+// these regardless of what's listed for 'admin' below.
+const PERMISSIONS = [
+  'reports.view','reports.resolve','reports.dismiss','reports.escalate',
+  'content.view','content.remove','content.restore','content.lock','content.review',
+  'users.view','users.restrict','users.suspend','users.reinstate',
+  'cases.view','cases.assign','cases.resolve','cases.reopen',
+  'appeals.view','appeals.review','appeals.resolve',
+  'copyright.view','copyright.review','copyright.remove','copyright.resolve',
+  'grievances.view','grievances.assign','grievances.resolve',
+  'notifications.send','notifications.broadcast',
+  'moderators.view','moderators.assign','moderators.restrict','moderators.suspend','moderators.reinstate',
+  'policies.view','policies.edit',
+  'analytics.view',
+  'audit.view','audit.admin_view',
+];
+
+// Default permission grants per role. Admin gets every permission
+// automatically (see can()) and is not enumerated here.
+const ROLE_PERMISSIONS = {
+  senior_moderator: [
+    'reports.view','reports.resolve','reports.dismiss','reports.escalate',
+    'content.view','content.remove','content.restore','content.lock','content.review',
+    'users.view','users.restrict','users.suspend',
+    'cases.view','cases.assign','cases.resolve','cases.reopen',
+    'appeals.view','appeals.review','appeals.resolve',
+    'moderators.view',
+    'analytics.view','audit.view',
+  ],
+  moderator: [
+    'reports.view','reports.resolve','reports.dismiss',
+    'content.view','content.remove','content.restore','content.review',
+    'users.view','users.restrict',
+    'cases.view','cases.assign',
+    'appeals.view','appeals.review',
+    'audit.view',
+  ],
+  support_staff: [
+    'grievances.view','grievances.assign','grievances.resolve',
+    'users.view','cases.view','audit.view',
+  ],
+  copyright_reviewer: [
+    'copyright.view','copyright.review','copyright.remove','copyright.resolve',
+    'content.view','cases.view','audit.view',
+  ],
+};
+
 const MODERATORS = [
   {id:'m0', username:'priya.admin', displayName:'Priya Nair', role:'admin', status:'active', dateAppointed:'2025-06-01'},
-  {id:'m1', username:'sam.mod', displayName:'Sam D\u2019Souza', role:'moderator', status:'active', dateAppointed:'2025-08-12'},
-  {id:'m2', username:'fatima.mod', displayName:'Fatima Rizvi', role:'moderator', status:'active', dateAppointed:'2025-10-05'},
-  {id:'m3', username:'oliver.mod', displayName:'Oliver Fernandes', role:'moderator', status:'suspended', dateAppointed:'2025-11-19'},
+  {id:'m1', username:'sam.mod', displayName:'Sam D\u2019Souza', role:'senior_moderator', status:'active', dateAppointed:'2025-08-12', permissions: ROLE_PERMISSIONS.senior_moderator.slice()},
+  {id:'m2', username:'fatima.mod', displayName:'Fatima Rizvi', role:'moderator', status:'active', dateAppointed:'2025-10-05', permissions: ROLE_PERMISSIONS.moderator.slice()},
+  {id:'m3', username:'oliver.mod', displayName:'Oliver Fernandes', role:'moderator', status:'suspended', dateAppointed:'2025-11-19', permissions: ROLE_PERMISSIONS.moderator.slice()},
+  {id:'m4', username:'grace.support', displayName:'Grace Thomas', role:'support_staff', status:'active', dateAppointed:'2026-01-15', permissions: ROLE_PERMISSIONS.support_staff.slice()},
+  {id:'m5', username:'idris.rights', displayName:'Idris Khan', role:'copyright_reviewer', status:'active', dateAppointed:'2026-02-20', permissions: ROLE_PERMISSIONS.copyright_reviewer.slice().concat(['audit.view'])},
 ];
 function modById(id){ return MODERATORS.find(m=>m.id===id); }
+
+// can(permission) — the ONLY function views/nav should call to decide
+// what to show. Admin always passes. Everyone else is checked against
+// their own moderator record's resolved permissions (role defaults +
+// any per-person overrides an Admin has granted).
+function can(perm){
+  const me = currentModerator();
+  if(me.role === 'admin') return true;
+  return (me.permissions || []).includes(perm);
+}
+// A handful of actions are Admin-only no matter what, per spec 1.2 —
+// they are never grantable permissions, so they get their own guard.
+function isAdmin(){ return currentModerator().role === 'admin'; }
 
 const CONTENT = [
   {id:'c1', caseId:nextCaseId(), type:'Journals', title:'Losing my father, one year on', author:'u3', status:'active', reports:2, pubDate:'2026-08-01', preview:'It has been a year since I sat by his bedside and pretended I wasn\u2019t already grieving...'},
@@ -420,8 +512,8 @@ addNote(RESTRICTIONS[0].caseId, 'Fatima Rizvi', 'User has an active appeal, hold
    STATE
    ============================================================ */
 const state = {
-  role: 'admin', // 'admin' | 'moderator'
-  currentModeratorId: 'm0', // used for "assigned to me" filter + audit attribution
+  role: 'admin', // preview role — one of ROLES[].id
+  currentModeratorId: 'm0', // the mock "me" for the selected preview role
   view: 'overview',
   reportFilter: 'All',
   reportSort: 'newest',
@@ -434,20 +526,67 @@ const state = {
 
 function currentModerator(){ return modById(state.currentModeratorId) || MODERATORS[0]; }
 
+// Which mock staff record represents "me" when previewing each role.
+const ROLE_PREVIEW_MOD = {admin:'m0', senior_moderator:'m1', moderator:'m2', support_staff:'m4', copyright_reviewer:'m5'};
+
 /* ============================================================
-   NAV CONFIG
+   NAV CONFIG — grouped to match the full Phase 5 information
+   architecture (spec section 3). Sections not yet implemented in
+   this pass render a "coming in a later phase" placeholder rather
+   than fake data, but are gated by the same permission model they
+   will use once built, so the shell doesn't need reshaping later.
+
+   perm: a PERMISSIONS id — item hidden unless can(perm) is true.
+   perm: null — visible to any signed-in staff role (e.g. Overview).
+   adminOnly: true — visible only to role 'admin', shown locked to
+     everyone else so staff understand the tier exists (matches the
+     original dashboard's UX for Settings/Moderators).
    ============================================================ */
-const NAV = [
-  {id:'overview', label:'Overview', icon:'\u25A6', roles:['admin','moderator']},
-  {id:'reports', label:'Reports', icon:'\u2691', roles:['admin','moderator'], count:()=>REPORTS.filter(r=>r.status==='New').length},
-  {id:'users', label:'Users', icon:'\u25CB', roles:['admin','moderator']},
-  {id:'content', label:'Content', icon:'\u25A4', roles:['admin','moderator']},
-  {id:'restrictions', label:'Restrictions', icon:'\u26D4', roles:['admin','moderator']},
-  {id:'appeals', label:'Appeals', icon:'\u21BA', roles:['admin','moderator'], count:()=>APPEALS.filter(a=>a.status==='Pending').length},
-  {id:'log', label:'Moderation Log', icon:'\u2637', roles:['admin','moderator']},
-  {id:'moderators', label:'Moderators', icon:'\u263A', roles:['admin']},
-  {id:'settings', label:'Settings', icon:'\u2699', roles:['admin']},
+const NAV_GROUPS = [
+  {label:'Operations', items:[
+    {id:'overview', label:'Overview', icon:'\u25A6', perm:null},
+    {id:'reports', label:'Reports', icon:'\u2691', perm:'reports.view', count:()=>REPORTS.filter(r=>r.status==='New').length},
+    {id:'cases', label:'Cases', icon:'\uD83D\uDDC3\uFE0F', perm:'cases.view'},
+  ]},
+  {label:'Enforcement', items:[
+    {id:'content', label:'Content', icon:'\u25A4', perm:'content.view'},
+    {id:'users', label:'Users', icon:'\u25CB', perm:'users.view'},
+    {id:'restrictions', label:'Restrictions', icon:'\u26D4', perm:'users.view'},
+    {id:'appeals', label:'Appeals', icon:'\u21BA', perm:'appeals.view', count:()=>APPEALS.filter(a=>a.status==='Pending').length},
+  ]},
+  {label:'Legal & Rights', items:[
+    {id:'copyright', label:'Copyright & Takedowns', icon:'\u00A9', perm:'copyright.view'},
+    {id:'privacy', label:'Privacy Requests', icon:'\uD83D\uDD12', perm:'copyright.view'},
+  ]},
+  {label:'Grievances', items:[
+    {id:'grievances', label:'Grievance Queue', icon:'\uD83D\uDCE9', perm:'grievances.view'},
+  ]},
+  {label:'Communications', items:[
+    {id:'notifications', label:'Notifications', icon:'\uD83D\uDD14', perm:'notifications.send'},
+    {id:'templates', label:'Templates', icon:'\u2709\uFE0F', perm:'notifications.send'},
+    {id:'announcements', label:'Announcements', icon:'\uD83D\uDCE3', perm:'notifications.broadcast'},
+  ]},
+  {label:'Trust & Safety', items:[
+    {id:'risk-signals', label:'Risk Signals', icon:'\u26A0\uFE0F', perm:'analytics.view'},
+    {id:'repeat-offenders', label:'Repeat Offenders', icon:'\uD83D\uDD01', perm:'analytics.view'},
+  ]},
+  {label:'Staff', items:[
+    {id:'moderators', label:'Moderators', icon:'\u263A', perm:'moderators.view'},
+    {id:'assignments', label:'Assignments', icon:'\uD83D\uDCCB', perm:'cases.assign'},
+    {id:'permissions', label:'Permissions', icon:'\uD83D\uDD11', adminOnly:true},
+  ]},
+  {label:'Audit', items:[
+    {id:'log', label:'Moderation Log', icon:'\u2637', perm:'audit.view'},
+    {id:'system-audit', label:'System Audit Log', icon:'\uD83D\uDCD1', adminOnly:true},
+  ]},
+  {label:'Admin', items:[
+    {id:'policies', label:'Policies', icon:'\uD83D\uDCDC', adminOnly:true},
+    {id:'settings', label:'Settings', icon:'\u2699', adminOnly:true},
+  ]},
 ];
+// Flat list, kept for code that just needs "does this nav id exist".
+const NAV = NAV_GROUPS.flatMap(g=>g.items);
+function navVisible(item){ return item.adminOnly ? isAdmin() : (item.perm===null || can(item.perm)); }
 
 /* ============================================================
    TOAST
@@ -531,27 +670,35 @@ function restoreContent(content, reason){
 }
 
 /* ============================================================
-   RENDER: SIDEBAR
+   RENDER: SIDEBAR + ROLE TOGGLE
    ============================================================ */
+function renderRoleToggle(){
+  const box = $('#role-toggle');
+  if(!box) return;
+  box.innerHTML = ROLES.map(r=>`<button data-role="${r.id}" class="${state.role===r.id?'active':''}">${esc(r.short)}</button>`).join('');
+}
+
 function renderSidebar(){
   const nav = $('#sb-nav');
-  nav.innerHTML = NAV.filter(n=>n.roles.includes(state.role)).map(n=>{
-    const active = state.view===n.id ? 'active' : '';
-    const cnt = n.count ? n.count() : 0;
-    return `<button class="sb-link ${active}" data-nav="${n.id}"><span class="ic">${n.icon}</span>${n.label}${cnt?`<span class="cnt">${cnt}</span>`:''}</button>`;
-  }).join('') + (state.role==='moderator' ? `
-    <div class="sb-section-label">Admin only</div>
-    <button class="sb-link" disabled style="opacity:.4; cursor:not-allowed;"><span class="ic">\u263A</span>Moderators<span class="sb-lock">\uD83D\uDD12</span></button>
-    <button class="sb-link" disabled style="opacity:.4; cursor:not-allowed;"><span class="ic">\u2699</span>Settings<span class="sb-lock">\uD83D\uDD12</span></button>
-  ` : '');
+  nav.innerHTML = NAV_GROUPS.map(group=>{
+    const visible = group.items.filter(navVisible);
+    const locked = group.items.filter(n=> !navVisible(n) && n.adminOnly); // show admin-tier items locked, for orientation
+    if(!visible.length && !locked.length) return '';
+    const rows = visible.map(n=>{
+      const active = state.view===n.id ? 'active' : '';
+      const cnt = n.count ? n.count() : 0;
+      return `<button class="sb-link ${active}" data-nav="${n.id}"><span class="ic">${n.icon}</span>${esc(n.label)}${cnt?`<span class="cnt">${cnt}</span>`:''}</button>`;
+    }).join('') + locked.map(n=>`<button class="sb-link" disabled style="opacity:.4; cursor:not-allowed;"><span class="ic">${n.icon}</span>${esc(n.label)}<span class="sb-lock">\uD83D\uDD12</span></button>`).join('');
+    return `<div class="sb-section-label">${esc(group.label)}</div>${rows}`;
+  }).join('');
 
   const me = currentModerator();
   $('#sb-profile').innerHTML = `
     <div class="av">${esc(me.displayName.split(' ').map(s=>s[0]).join(''))}</div>
-    <div class="meta"><b>${esc(me.displayName)}</b><span>${state.role==='admin'?'Administrator':'Moderator'}</span></div>
+    <div class="meta"><b>${esc(me.displayName)}</b><span>${esc(roleMeta(state.role).label)}</span></div>
   `;
-  $('#topbar-role-badge').textContent = state.role.toUpperCase();
-  $$('.role-toggle button').forEach(b=> b.classList.toggle('active', b.dataset.role===state.role));
+  $('#topbar-role-badge').textContent = roleMeta(state.role).short.toUpperCase();
+  renderRoleToggle();
 }
 
 /* ============================================================
@@ -655,6 +802,10 @@ function statusBadge(s){
     restricted:'gold', suspended:'red'};
   const label = typeof s==='string' ? s.replace(/_/g,' ') : s;
   return `<span class="badge ${map[s]||'grey'}">${esc(label)}</span>`;
+}
+function roleBadge(m){
+  const colors = {admin:'ink', senior_moderator:'orange', moderator:'sky', support_staff:'mint', copyright_reviewer:'lav'};
+  return `<span class="badge ${colors[m.role]||'grey'}">${esc(roleMeta(m.role).short)}</span>`;
 }
 
 /* ============================================================
@@ -1108,7 +1259,7 @@ function renderLog(){
         const m = modById(l.moderatorId), u = l.targetUserId?userById(l.targetUserId):null;
         return `<tr data-open-case="${l.caseId}">
           <td class="caseid">${l.caseId}</td>
-          <td>${esc(m.displayName)} ${m.role==='admin'?'<span class="badge ink" style="padding:1px 6px;">ADMIN</span>':'<span class="badge grey" style="padding:1px 6px;">MOD</span>'}</td>
+          <td>${esc(m.displayName)} ${roleBadge(m)}</td>
           <td>${esc(l.action)}</td>
           <td>${u?'@'+esc(u.username):'\u2014'}</td>
           <td class="muted">${esc(l.reason||'')}</td>
@@ -1134,21 +1285,21 @@ function renderCaseTimeline(caseId){
    ============================================================ */
 function renderModerators(){
   const root = $('#view-root');
-  if(state.role!=='admin'){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
+  if(!can('moderators.view')){ root.innerHTML = emptyState('No access', 'You don\u2019t have access to this section.'); return; }
   root.innerHTML = `
-    <div class="panel-head" style="margin-bottom:10px;"><div></div><button class="btn primary sm" id="add-mod-btn">+ Add moderator</button></div>
+    <div class="panel-head" style="margin-bottom:10px;"><div></div>${isAdmin()?`<button class="btn primary sm" id="add-mod-btn">+ Add moderator</button>`:''}</div>
     <div class="panel" style="padding:8px 12px;">
       ${MODERATORS.length ? `<table class="dtable"><thead><tr><th>Moderator</th><th>Role</th><th>Status</th><th>Appointed</th><th>Cases handled</th><th>Actions</th></tr></thead><tbody>
       ${MODERATORS.map(m=>{
         const cases = AUDIT_LOG.filter(l=>l.moderatorId===m.id).length;
         return `<tr data-open-mod="${m.id}">
           <td class="name-cell"><span class="mini-av">${esc(m.displayName[0])}</span><span><b>${esc(m.displayName)}</b><br><span class="muted">@${esc(m.username)}</span></span></td>
-          <td>${m.role==='admin'?'<span class="badge ink">Admin</span>':'<span class="badge grey">Moderator</span>'}</td>
+          <td>${roleBadge(m)}</td>
           <td>${statusBadge(m.status)}</td>
           <td class="muted">${fmtDate(m.dateAppointed)}</td>
           <td>${cases}</td>
           <td onclick="event.stopPropagation()">
-            ${m.id!=='m0' ? (m.status==='active' ? `<button class="btn ghost sm" data-mod-act="suspend" data-mod-id="${m.id}">Suspend</button> <button class="btn ghost sm" data-mod-act="remove" data-mod-id="${m.id}">Remove</button>` : `<button class="btn ghost sm" data-mod-act="reinstate" data-mod-id="${m.id}">Reinstate</button>`) : '<span class="muted">You</span>'}
+            ${m.id!=='m0' && isAdmin() ? (m.status==='active' ? `<button class="btn ghost sm" data-mod-act="suspend" data-mod-id="${m.id}">Suspend</button> <button class="btn ghost sm" data-mod-act="remove" data-mod-id="${m.id}">Remove</button>` : `<button class="btn ghost sm" data-mod-act="reinstate" data-mod-id="${m.id}">Reinstate</button>`) : (m.id==='m0' ? '<span class="muted">Admin</span>' : '<span class="muted">View only</span>')}
           </td>
         </tr>`;
       }).join('')}</tbody></table>` : emptyState('No moderators yet', 'Add a moderator to get started.')}
@@ -1158,9 +1309,13 @@ function renderModerators(){
     openModal(`
       <h3>Add a moderator</h3>
       <p class="sub">Search for an existing user to promote (mock search).</p>
-      <select class="search-mini" style="width:100%;" id="new-mod-select">
+      <select class="search-mini" style="width:100%; margin-bottom:8px;" id="new-mod-select">
         ${USERS.filter(u=>!MODERATORS.find(m=>m.username===u.username)).map(u=>`<option value="${u.id}">@${esc(u.username)} \u2014 ${esc(u.displayName)}</option>`).join('')}
       </select>
+      <select class="search-mini" style="width:100%;" id="new-mod-role">
+        ${ROLES.filter(r=>r.id!=='admin').map(r=>`<option value="${r.id}">${esc(r.label)}</option>`).join('')}
+      </select>
+      <p class="sub" style="margin-top:8px;">Admin can only be granted through the Supabase console once this is wired up, never from this dashboard.</p>
       <div class="modal-actions">
         <button class="btn ghost sm" data-action="close-modal">Cancel</button>
         <button class="btn primary sm" id="confirm-add-mod">Add as moderator</button>
@@ -1168,9 +1323,10 @@ function renderModerators(){
     `);
     $('#confirm-add-mod').onclick = ()=>{
       const uid = $('#new-mod-select').value;
+      const role = $('#new-mod-role').value;
       const u = userById(uid);
       if(u){
-        MODERATORS.push({id:'m'+(MODERATORS.length+1), username:u.username, displayName:u.displayName, role:'moderator', status:'active', dateAppointed:new Date().toISOString()});
+        MODERATORS.push({id:'m'+(MODERATORS.length+1), username:u.username, displayName:u.displayName, role, status:'active', dateAppointed:new Date().toISOString(), permissions:(ROLE_PERMISSIONS[role]||[]).slice()});
         toast('Moderator added.','success');
       }
       closeModal();
@@ -1180,6 +1336,7 @@ function renderModerators(){
 }
 function handleModAction(modId, act){
   const m = modById(modId);
+  if(m.role==='admin'){ toast('Admin accounts can\u2019t be modified from this dashboard.','error'); return; }
   confirmAction({
     title: `${act[0].toUpperCase()+act.slice(1)} ${m.displayName}?`, requireReason:false,
     destructive: act!=='reinstate', confirmLabel: act[0].toUpperCase()+act.slice(1),
@@ -1201,7 +1358,7 @@ function renderModeratorActivity(modId){
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
       <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc(m.displayName[0])}</span>
-      <div><h2 style="font-size:18px;">${esc(m.displayName)}</h2><span class="muted">${m.role==='admin'?'Administrator':'Moderator'} \u00b7 ${statusBadge(m.status)}</span></div>
+      <div><h2 style="font-size:18px;">${esc(m.displayName)}</h2><span class="muted">${esc(roleMeta(m.role).label)} \u00b7 ${statusBadge(m.status)}</span></div>
     </div>
     <div class="kv">
       <b>Appointed</b><span>${fmtDate(m.dateAppointed)}</span>
@@ -1220,7 +1377,7 @@ function renderModeratorActivity(modId){
    ============================================================ */
 function renderSettings(){
   const root = $('#view-root');
-  if(state.role!=='admin'){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
+  if(!can('moderators.view')){ root.innerHTML = emptyState('No access', 'You don\u2019t have access to this section.'); return; }
   const sections = [
     ['Community Guidelines','Edit the public guidelines shown to users and referenced in notifications.'],
     ['Moderation Rules','Define automated flags and escalation thresholds.'],
@@ -1264,12 +1421,57 @@ function renderGlobalSearchResults(q){
 /* ============================================================
    VIEW DISPATCH
    ============================================================ */
-const VIEW_TITLES = {overview:'Overview', reports:'Reports', users:'Users', content:'Content', restrictions:'Restrictions', appeals:'Appeals', log:'Moderation Log', moderators:'Moderators', settings:'Settings'};
-const VIEW_RENDERERS = {overview:renderOverview, reports:renderReports, users:renderUsers, content:renderContent, restrictions:renderRestrictions, appeals:renderAppeals, log:renderLog, moderators:renderModerators, settings:renderSettings};
+const VIEW_TITLES = {
+  overview:'Overview', reports:'Reports', cases:'Cases', users:'Users', content:'Content',
+  restrictions:'Restrictions', appeals:'Appeals', copyright:'Copyright & Takedowns',
+  privacy:'Privacy Requests', grievances:'Grievance Queue', notifications:'Notifications',
+  templates:'Templates', announcements:'Announcements', 'risk-signals':'Risk Signals',
+  'repeat-offenders':'Repeat Offenders', moderators:'Moderators', assignments:'Assignments',
+  permissions:'Permissions', log:'Moderation Log', 'system-audit':'System Audit Log',
+  policies:'Policies', settings:'Settings',
+};
+
+// Sections defined in the Phase 5 IA that aren't built yet in this pass.
+// Each notes what backend model/spec section it needs so a future pass
+// can pick it up without re-deriving the plan.
+const STUB_INFO = {
+  cases:            {note:'Needs the central Case record tying reports, content, appeals and copyright items together (spec §5–6) before this can replace the per-queue views below.'},
+  copyright:        {note:'Needs a copyright_claims table and reviewer workflow (spec, Legal & Rights). Copyright Reviewers will land here first once wired up.'},
+  privacy:          {note:'Needs a privacy_requests table and its own retention/response-time rules.'},
+  grievances:       {note:'Needs a grievances table distinct from Reports, routed to Support/Grievance Staff.'},
+  notifications:    {note:'Needs an outbound notification log and template system tied to Supabase.'},
+  templates:        {note:'Reusable response/notice templates — depends on the Notifications data model above.'},
+  announcements:    {note:'Platform-wide broadcast messages — Admin/Senior Mod only once permissioned.'},
+  'risk-signals':   {note:'Needs aggregated signal data (report velocity, repeat flags) — depends on analytics groundwork.'},
+  'repeat-offenders':{note:'Needs a rollup view over Users + Restrictions + Reports history.'},
+  assignments:      {note:'Cross-queue "who has what" view — depends on the Case model above.'},
+  permissions:      {note:'Per-moderator permission editing UI for Admins. The data model already exists (see each moderator\u2019s `permissions` array) — this view just needs building.'},
+  'system-audit':   {note:'Admin-only, unfiltered audit trail (spec §27) — distinct from the Moderation Log every role can see.'},
+  policies:         {note:'Editable policy/reference text shown to moderators during review.'},
+};
+
+function renderComingSoon(view){
+  const root = $('#view-root');
+  const info = STUB_INFO[view] || {};
+  root.innerHTML = `<div class="panel">${emptyState('Coming in a later phase', info.note || 'This section isn\u2019t built yet.')}</div>`;
+}
+
+const VIEW_RENDERERS = {
+  overview:renderOverview, reports:renderReports, users:renderUsers, content:renderContent,
+  restrictions:renderRestrictions, appeals:renderAppeals, log:renderLog,
+  moderators:renderModerators, settings:renderSettings,
+  cases:()=>renderComingSoon('cases'), copyright:()=>renderComingSoon('copyright'),
+  privacy:()=>renderComingSoon('privacy'), grievances:()=>renderComingSoon('grievances'),
+  notifications:()=>renderComingSoon('notifications'), templates:()=>renderComingSoon('templates'),
+  announcements:()=>renderComingSoon('announcements'), 'risk-signals':()=>renderComingSoon('risk-signals'),
+  'repeat-offenders':()=>renderComingSoon('repeat-offenders'), assignments:()=>renderComingSoon('assignments'),
+  permissions:()=>renderComingSoon('permissions'), 'system-audit':()=>renderComingSoon('system-audit'),
+  policies:()=>renderComingSoon('policies'),
+};
 
 function goto(view){
-  if((view==='moderators'||view==='settings') && state.role!=='moderator'){ /* admin-only, allowed */ }
-  if((view==='moderators'||view==='settings') && state.role==='moderator'){ toast('Admins only.','error'); return; }
+  const item = NAV.find(n=>n.id===view);
+  if(item && !navVisible(item)){ toast('You don\u2019t have access to that section.','error'); return; }
   state.view = view;
   state.bulkSelection.clear();
   $('#view-title').textContent = VIEW_TITLES[view] || view;
@@ -1288,8 +1490,10 @@ document.addEventListener('click', (e)=>{
   const roleBtn = e.target.closest('#role-toggle button');
   if(roleBtn){
     state.role = roleBtn.dataset.role;
-    if((state.view==='moderators'||state.view==='settings') && state.role==='moderator'){ state.view='overview'; }
-    toast(`Switched to ${state.role==='admin'?'Admin':'Moderator'} preview.`);
+    state.currentModeratorId = ROLE_PREVIEW_MOD[state.role] || 'm0';
+    const item = NAV.find(n=>n.id===state.view);
+    if(item && !navVisible(item)) state.view = 'overview';
+    toast(`Switched to ${roleMeta(state.role).label} preview.`);
     goto(state.view);
     return;
   }
@@ -1374,7 +1578,7 @@ document.addEventListener('click', (e)=>{
     else if(kind==='content'){ goto('content'); renderContentDetail(id); }
     else if(kind==='report'){ goto('reports'); renderReportDetail(id); }
     else if(kind==='case'){ goto('log'); renderCaseTimeline(id); }
-    else if(kind==='mod'){ goto('moderators'); if(state.role==='admin') renderModeratorActivity(id); }
+    else if(kind==='mod'){ goto('moderators'); if(can('moderators.view')) renderModeratorActivity(id); }
     return;
   }
 
