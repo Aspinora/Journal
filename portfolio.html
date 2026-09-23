@@ -2084,7 +2084,17 @@ async function initPortfolio(){
   state.currentUser = await loadCurrentUser();
   wireHeader();
   document.addEventListener('click', function(e){
-    if (e.target.closest('#mobile-back-btn')) window.location.href = 'https://journal.aspinora.in';
+    if (e.target.closest('#mobile-back-btn')){
+      // Go back in-app history when we have it (e.g. arrived here via a
+      // link from userpostlogin/thewall) so Back returns to exactly where
+      // the visitor came from, rather than always landing on a fixed URL.
+      // Falls back to the logged-in/guest home when there's no history to
+      // return to (e.g. portfolio was opened directly, via a shared link,
+      // search, or a new tab) instead of the previous hard-coded
+      // https://journal.aspinora.in.
+      if (window.history.length > 1) window.history.back();
+      else window.location.href = state.currentUser ? 'userpostlogin.html' : 'index.html';
+    }
   });
 
   const params = new URLSearchParams(window.location.search);
