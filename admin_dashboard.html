@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
+  color-scheme: dark;
   /* Dark administration console palette. Warm-neutral charcoal, not pure
      black/grey — keeps a trace of the brand without reading as consumer/social. */
   --cream:        #17140F;   /* page background (kept var name for minimal diff) */
@@ -160,15 +161,18 @@ a{ color:inherit; }
 .panel-head h3{ font-size:16px; }
 
 .two-col{ display:grid; grid-template-columns:1.6fr 1fr; gap:18px; }
+.two-col.even{ grid-template-columns:1fr 1fr; }
 
 /* ---------- tables ---------- */
 .dtable{ width:100%; border-collapse:collapse; font-size:13px; }
+.table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.panel:has(> table.dtable), .panel:has(> .dtable){ overflow-x:auto; -webkit-overflow-scrolling:touch; }
 .dtable th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:800; padding:8px 10px; border-bottom:1px solid var(--line-strong); white-space:nowrap; }
 .dtable td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:middle; }
 .dtable tbody tr{ cursor:pointer; transition:background .12s var(--ease); }
 .dtable tbody tr:hover{ background:var(--cream-deep); }
-.dtable .caseid{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft); }
-.dtable .muted{ color:var(--ink-faint); font-size:12px; }
+.caseid{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-soft); }
+.muted{ color:var(--ink-faint); font-size:12px; }
 .checkbox-cell{ width:30px; }
 
 /* ---------- badges / pills ---------- */
@@ -185,12 +189,18 @@ a{ color:inherit; }
 /* ---------- filters ---------- */
 .filter-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
 .chip{ border:1px solid var(--line-strong); background:var(--paper); padding:6px 13px; border-radius:999px; font-size:12.5px; font-weight:700; color:var(--ink-soft); transition:all .15s var(--ease); }
-.chip.active{ background:var(--ink); border-color:var(--ink); color:#fff; }
-.search-mini{ border:1px solid var(--line-strong); background:var(--paper); border-radius:999px; padding:6px 14px; font-size:12.5px; min-width:200px; margin-left:auto; }
+.chip.active{ background:var(--ink); border-color:var(--ink); color:var(--cream); }
+.search-mini{ border:1px solid var(--line-strong); background:var(--paper); color:var(--ink); border-radius:999px; padding:6px 14px; font-size:12.5px; min-width:200px; margin-left:auto; font-family:inherit; }
+.search-mini::placeholder{ color:var(--ink-faint); }
+.field-label{ display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-faint); margin-bottom:5px; }
+.duration-row{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+.radio-pill{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line-strong); border-radius:999px; padding:6px 13px; font-size:12.5px; font-weight:600; cursor:pointer; }
+.radio-pill input{ accent-color:var(--orange); }
+input[type="checkbox"], input[type="radio"]{ accent-color:var(--orange); }
 
 /* ---------- buttons ---------- */
 .btn{ display:inline-flex; align-items:center; gap:6px; border:none; border-radius:999px; padding:9px 18px; font-weight:700; font-size:13px; transition:all .15s var(--ease); }
-.btn.primary{ background:var(--orange); color:#fff; box-shadow:0 6px 18px rgba(241,99,27,.28); }
+.btn.primary{ background:var(--orange); color:#fff; box-shadow:0 6px 18px rgba(241,117,27,.28); }
 .btn.primary:hover{ background:var(--orange-deep); }
 .btn.ghost{ background:transparent; border:1px solid var(--line-strong); color:var(--ink); }
 .btn.ghost:hover{ background:var(--cream-deep); }
@@ -223,7 +233,8 @@ a{ color:inherit; }
 .modal-box{ width:min(440px,94vw); background:var(--paper); border-radius:var(--radius-lg); box-shadow:var(--shadow-deep); padding:22px; }
 .modal-box h3{ font-size:17px; margin-bottom:6px; }
 .modal-box p.sub{ font-size:12.5px; color:var(--ink-soft); margin:0 0 14px; }
-.modal-box textarea{ width:100%; min-height:80px; border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:10px; font-family:inherit; font-size:13px; resize:vertical; }
+textarea{ width:100%; min-height:80px; border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:10px; font-family:inherit; font-size:13px; resize:vertical; background:var(--paper); color:var(--ink); }
+textarea::placeholder{ color:var(--ink-faint); }
 .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
 
 /* ---------- misc detail ---------- */
@@ -243,7 +254,11 @@ a{ color:inherit; }
 .notif-preview .msg{ font-size:13px; margin-bottom:8px; }
 .notif-preview .meta{ font-size:11px; color:var(--ink-faint); }
 .immutable-note{ display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--ink-faint); font-weight:700; background:var(--cream-deep); padding:8px 12px; border-radius:999px; margin-bottom:14px; }
-.bulk-bar{ position:sticky; top:0; background:var(--orange-deep); color:#fff; border-radius:var(--radius-md); padding:10px 16px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+.linked-item{ display:flex; flex-direction:column; gap:2px; padding:9px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); margin-bottom:6px; cursor:pointer; transition:background .12s var(--ease); }
+.linked-item:hover{ background:var(--cream-deep); }
+.linked-item b{ font-size:12.5px; }
+.linked-item .muted{ font-size:12px; }
+.bulk-bar{ position:sticky; top:0; background:var(--orange); color:#fff; border-radius:var(--radius-md); padding:10px 16px; display:flex; align-items:center; gap:12px; margin-bottom:14px; }
 .bulk-bar b{ font-family:var(--font-body); }
 .expiring{ color:var(--red); font-weight:700; }
 
@@ -265,12 +280,26 @@ a{ color:inherit; }
   .mobile-menu-btn{ display:inline-flex; }
   .stat-grid{ grid-template-columns:repeat(2,1fr); }
   .two-col{ grid-template-columns:1fr; }
+  .two-col.even{ grid-template-columns:1fr; }
   .gsearch{ max-width:220px; }
 }
 @media (max-width:620px){
   .stat-grid{ grid-template-columns:1fr; }
   .topbar h1{ font-size:16px; }
   .view-root{ padding:16px; }
+  .topbar{ flex-wrap:wrap; height:auto; padding:10px 16px; gap:10px; }
+  .gsearch{ max-width:none; width:100%; order:3; }
+  .drawer{ width:100vw; padding:18px 16px 60px; }
+  .modal-box{ padding:18px 16px; }
+  .filter-row{ gap:6px; }
+  .search-mini{ margin-left:0; width:100%; }
+  .panel-head{ flex-wrap:wrap; gap:8px; }
+  /* touch targets: keep every tappable control at least 40px tall on
+     small screens, per the mobile bug-pass requirement. */
+  .btn, .btn.sm, .chip, .iconbtn, .radio-pill{ min-height:40px; }
+  .sb-link{ min-height:44px; }
+  .dtable td, .dtable th{ padding:10px 8px; }
+  .dtable{ font-size:12.5px; }
 }
 </style>
 </head>
@@ -369,16 +398,16 @@ function userById(id){ return USERS.find(u=>u.id===id); }
    ============================================================ */
 
 const ROLES = [
-  {id:'admin',              label:'Admin',               short:'Admin',       level:100},
-  {id:'senior_moderator',   label:'Senior Moderator',    short:'Sr. Mod',     level:60},
-  {id:'moderator',          label:'Moderator',           short:'Moderator',   level:40},
-  {id:'support_staff',      label:'Support / Grievance Staff', short:'Support', level:30},
-  {id:'copyright_reviewer', label:'Copyright Reviewer',  short:'Copyright',   level:30},
+  {id:'admin',     label:'Admin',     short:'Admin',     level:100},
+  {id:'moderator', label:'Moderator', short:'Moderator', level:40},
 ];
-function roleMeta(id){ return ROLES.find(r=>r.id===id) || ROLES[2]; }
+function roleMeta(id){ return ROLES.find(r=>r.id===id) || ROLES[1]; }
 
-// Full permission catalog (spec section 4). Admin implicitly has all of
-// these regardless of what's listed for 'admin' below.
+// Full permission catalog. Admin implicitly has every one of these
+// regardless of individual grants (see can()). Moderators get the full
+// set by default too — Admin can then revoke individual permissions per
+// moderator from Staff → Permissions, which is what makes the catalog
+// worth keeping even though there's only one non-admin role.
 const PERMISSIONS = [
   'reports.view','reports.resolve','reports.dismiss','reports.escalate',
   'content.view','content.remove','content.restore','content.lock','content.review',
@@ -386,65 +415,52 @@ const PERMISSIONS = [
   'cases.view','cases.assign','cases.resolve','cases.reopen',
   'appeals.view','appeals.review','appeals.resolve',
   'copyright.view','copyright.review','copyright.remove','copyright.resolve',
+  'privacy.view','privacy.resolve',
   'grievances.view','grievances.assign','grievances.resolve',
   'notifications.send','notifications.broadcast',
-  'moderators.view','moderators.assign','moderators.restrict','moderators.suspend','moderators.reinstate',
-  'policies.view','policies.edit',
+  'moderators.view',
   'analytics.view',
-  'audit.view','audit.admin_view',
+  'audit.view',
+];
+const PERMISSION_GROUPS = [
+  {label:'Reports', perms:['reports.view','reports.resolve','reports.dismiss','reports.escalate']},
+  {label:'Content', perms:['content.view','content.remove','content.restore','content.lock','content.review']},
+  {label:'Users & Restrictions', perms:['users.view','users.restrict','users.suspend','users.reinstate']},
+  {label:'Cases & Appeals', perms:['cases.view','cases.assign','cases.resolve','cases.reopen','appeals.view','appeals.review','appeals.resolve']},
+  {label:'Legal & Rights', perms:['copyright.view','copyright.review','copyright.remove','copyright.resolve','privacy.view','privacy.resolve']},
+  {label:'Grievances', perms:['grievances.view','grievances.assign','grievances.resolve']},
+  {label:'Communications', perms:['notifications.send','notifications.broadcast']},
+  {label:'Staff & Audit', perms:['moderators.view','analytics.view','audit.view']},
 ];
 
-// Default permission grants per role. Admin gets every permission
-// automatically (see can()) and is not enumerated here.
-const ROLE_PERMISSIONS = {
-  senior_moderator: [
-    'reports.view','reports.resolve','reports.dismiss','reports.escalate',
-    'content.view','content.remove','content.restore','content.lock','content.review',
-    'users.view','users.restrict','users.suspend',
-    'cases.view','cases.assign','cases.resolve','cases.reopen',
-    'appeals.view','appeals.review','appeals.resolve',
-    'moderators.view',
-    'analytics.view','audit.view',
-  ],
-  moderator: [
-    'reports.view','reports.resolve','reports.dismiss',
-    'content.view','content.remove','content.restore','content.review',
-    'users.view','users.restrict',
-    'cases.view','cases.assign',
-    'appeals.view','appeals.review',
-    'audit.view',
-  ],
-  support_staff: [
-    'grievances.view','grievances.assign','grievances.resolve',
-    'users.view','cases.view','audit.view',
-  ],
-  copyright_reviewer: [
-    'copyright.view','copyright.review','copyright.remove','copyright.resolve',
-    'content.view','cases.view','audit.view',
-  ],
-};
+// Default permission grants for the Moderator role — every non-admin
+// permission. Individual moderators can have some of these revoked by
+// an Admin (see the Permissions screen); that's stored per-person below.
+const ROLE_PERMISSIONS = { moderator: PERMISSIONS.slice() };
 
 const MODERATORS = [
   {id:'m0', username:'priya.admin', displayName:'Priya Nair', role:'admin', status:'active', dateAppointed:'2025-06-01'},
-  {id:'m1', username:'sam.mod', displayName:'Sam D\u2019Souza', role:'senior_moderator', status:'active', dateAppointed:'2025-08-12', permissions: ROLE_PERMISSIONS.senior_moderator.slice()},
+  {id:'m1', username:'sam.mod', displayName:'Sam D\u2019Souza', role:'moderator', status:'active', dateAppointed:'2025-08-12', permissions: ROLE_PERMISSIONS.moderator.slice()},
   {id:'m2', username:'fatima.mod', displayName:'Fatima Rizvi', role:'moderator', status:'active', dateAppointed:'2025-10-05', permissions: ROLE_PERMISSIONS.moderator.slice()},
   {id:'m3', username:'oliver.mod', displayName:'Oliver Fernandes', role:'moderator', status:'suspended', dateAppointed:'2025-11-19', permissions: ROLE_PERMISSIONS.moderator.slice()},
-  {id:'m4', username:'grace.support', displayName:'Grace Thomas', role:'support_staff', status:'active', dateAppointed:'2026-01-15', permissions: ROLE_PERMISSIONS.support_staff.slice()},
-  {id:'m5', username:'idris.rights', displayName:'Idris Khan', role:'copyright_reviewer', status:'active', dateAppointed:'2026-02-20', permissions: ROLE_PERMISSIONS.copyright_reviewer.slice().concat(['audit.view'])},
+  {id:'m4', username:'grace.thomas', displayName:'Grace Thomas', role:'moderator', status:'active', dateAppointed:'2026-01-15', permissions: ROLE_PERMISSIONS.moderator.filter(p=>!p.startsWith('copyright.'))},
+  {id:'m5', username:'idris.khan', displayName:'Idris Khan', role:'moderator', status:'active', dateAppointed:'2026-02-20', permissions: ROLE_PERMISSIONS.moderator.filter(p=>!p.startsWith('grievances.'))},
 ];
 function modById(id){ return MODERATORS.find(m=>m.id===id); }
 
 // can(permission) — the ONLY function views/nav should call to decide
-// what to show. Admin always passes. Everyone else is checked against
-// their own moderator record's resolved permissions (role defaults +
-// any per-person overrides an Admin has granted).
+// what to show. Admin always passes. Moderators are checked against
+// their own record's resolved permissions (defaults minus anything an
+// Admin has revoked for them individually in Staff → Permissions).
 function can(perm){
   const me = currentModerator();
   if(me.role === 'admin') return true;
   return (me.permissions || []).includes(perm);
 }
-// A handful of actions are Admin-only no matter what, per spec 1.2 —
-// they are never grantable permissions, so they get their own guard.
+// A handful of actions are Admin-only no matter what — account
+// creation/removal for staff, Settings, Policies, System Audit Log,
+// and the Permissions editor itself. These are never grantable
+// permissions, so they get their own guard instead of a PERMISSIONS entry.
 function isAdmin(){ return currentModerator().role === 'admin'; }
 
 const CONTENT = [
@@ -474,11 +490,12 @@ const REPORTS = [
 function reportById(id){ return REPORTS.find(r=>r.id===id); }
 
 const RESTRICTIONS = [
-  {id:'x1', caseId:REPORTS[2].caseId, userId:'u5', type:'Posting suspended', reason:'Repeated hate speech after a prior warning.', moderatorId:'m2', start:'2026-09-10T10:00:00', expiry:'2026-10-10T10:00:00', status:'active'},
-  {id:'x2', caseId:nextCaseId(), userId:'u3', type:'Comment restriction', reason:'Escalating arguments in comment sections.', moderatorId:'m1', start:'2026-09-01T00:00:00', expiry:'2026-09-18T00:00:00', status:'active'},
-  {id:'x3', caseId:nextCaseId(), userId:'u6', type:'Publishing throttled (1/day)', reason:'Multiple plagiarism reports pending review.', moderatorId:'m2', start:'2026-08-20T00:00:00', expiry:'2026-09-20T00:00:00', status:'active'},
-  {id:'x4', caseId:nextCaseId(), userId:'u8', type:'Wall posting suspended', reason:'Spamming identical content.', moderatorId:'m1', start:'2026-07-01T00:00:00', expiry:'2026-07-08T00:00:00', status:'expired'},
-  {id:'x5', caseId:nextCaseId(), userId:'u4', type:'Comment restriction', reason:'Issued in error — reversed same day.', moderatorId:'m0', start:'2026-06-11T00:00:00', expiry:'2026-06-18T00:00:00', status:'cancelled'},
+  {id:'x1', caseId:REPORTS[2].caseId, userId:'u5', scope:'posts', type:'Posting restricted', durationType:'temporary', days:30, reason:'Repeated hate speech after a prior warning.', moderatorId:'m2', start:'2026-09-10T10:00:00', expiry:'2026-10-10T10:00:00', status:'active'},
+  {id:'x2', caseId:nextCaseId(), userId:'u3', scope:'comments', type:'Comment restriction', durationType:'temporary', days:17, reason:'Escalating arguments in comment sections.', moderatorId:'m1', start:'2026-09-01T00:00:00', expiry:'2026-09-18T00:00:00', status:'active'},
+  {id:'x3', caseId:nextCaseId(), userId:'u6', scope:'publishing', type:'Publishing throttled', durationType:'indefinite', days:null, reason:'Multiple plagiarism reports pending review.', moderatorId:'m2', start:'2026-08-20T00:00:00', expiry:null, status:'active'},
+  {id:'x4', caseId:nextCaseId(), userId:'u8', scope:'wall', type:'Wall posting suspended', durationType:'temporary', days:7, reason:'Spamming identical content.', moderatorId:'m1', start:'2026-07-01T00:00:00', expiry:'2026-07-08T00:00:00', status:'expired'},
+  {id:'x5', caseId:nextCaseId(), userId:'u4', scope:'comments', type:'Comment restriction', durationType:'temporary', days:7, reason:'Issued in error — reversed same day.', moderatorId:'m0', start:'2026-06-11T00:00:00', expiry:'2026-06-18T00:00:00', status:'cancelled'},
+  {id:'x6', caseId:nextCaseId(), userId:'u7', scope:'account', type:'Account suspended', durationType:'permanent', days:null, reason:'Confirmed ban evasion after a prior permanent restriction.', moderatorId:'m0', start:'2026-05-14T00:00:00', expiry:null, status:'active'},
 ];
 function restrictionById(id){ return RESTRICTIONS.find(x=>x.id===id); }
 
@@ -509,6 +526,151 @@ addNote(REPORTS[2].caseId, 'Fatima Rizvi', 'Second offence from this account —
 addNote(RESTRICTIONS[0].caseId, 'Fatima Rizvi', 'User has an active appeal, hold off on further action until reviewed.');
 
 /* ============================================================
+   COPYRIGHT & TAKEDOWNS
+   ============================================================ */
+const COPYRIGHT_CLAIMS = [
+  {id:'cp1', caseId:nextCaseId(), contentId:'c2', ownerUserId:'u2', claimantName:'Meera Kulkarni', claimantEmail:'meera.k@example.com',
+    description:'This poem reproduces six lines from my 2023 published chapbook "Salt Water" without credit.', evidence:'salt_water_pg14_scan.pdf',
+    status:'Under Review', submittedAt:'2026-09-13T20:00:00', reviewedBy:'m1'},
+  {id:'cp2', caseId:nextCaseId(), contentId:'c6', ownerUserId:'u6', claimantName:'Rhea Varma', claimantEmail:'rhea.varma@example.com',
+    description:'Entire opening chapter matches my serialized story published on another platform in 2024.', evidence:'original_ch1_timestamp.png',
+    status:'New', submittedAt:'2026-09-19T08:30:00', reviewedBy:null},
+  {id:'cp3', caseId:nextCaseId(), contentId:'c8', ownerUserId:'u7', claimantName:'Dev Anand Studio (agent)', claimantEmail:'rights@devanandstudio.example',
+    description:'Shayari collection appears to be a direct translation of a copyrighted lyric set we represent.', evidence:'licensing_agreement.pdf',
+    status:'Content Removed', submittedAt:'2026-08-02T09:00:00', reviewedBy:'m2'},
+  {id:'cp4', caseId:nextCaseId(), contentId:'c4', ownerUserId:'u1', claimantName:'Anonymous reader', claimantEmail:'n/a',
+    description:'Claimed as plagiarism, but the flagged article is an original review — no matching source found.', evidence:'(none provided)',
+    status:'Rejected', submittedAt:'2026-07-20T12:00:00', reviewedBy:'m1'},
+];
+function copyrightById(id){ return COPYRIGHT_CLAIMS.find(c=>c.id===id); }
+
+/* ============================================================
+   PRIVACY REQUESTS
+   ============================================================ */
+const PRIVACY_REQUESTS = [
+  {id:'pr1', caseId:nextCaseId(), userId:'u4', type:'Data deletion', description:'Requesting full account and content deletion under platform privacy policy.',
+    status:'In Progress', submittedAt:'2026-09-15T11:00:00', dueBy:'2026-09-29T11:00:00', resolvedBy:null},
+  {id:'pr2', caseId:nextCaseId(), userId:'u2', type:'Data access', description:'Requesting a copy of all personal data held, per data access request.',
+    status:'New', submittedAt:'2026-09-20T09:00:00', dueBy:'2026-10-04T09:00:00', resolvedBy:null},
+  {id:'pr3', caseId:nextCaseId(), userId:'u8', type:'Content takedown (privacy)', description:'A comment thread reveals my real name and city; I never disclosed either publicly.',
+    status:'Fulfilled', submittedAt:'2026-08-10T14:00:00', dueBy:'2026-08-24T14:00:00', resolvedBy:'m1'},
+];
+function privacyById(id){ return PRIVACY_REQUESTS.find(p=>p.id===id); }
+
+/* ============================================================
+   GRIEVANCES (separate from Reports — complaints about moderation
+   itself, other users' conduct off-content, or platform policy)
+   ============================================================ */
+const GRIEVANCES = [
+  {id:'gr1', caseId:nextCaseId(), userId:'u5', against:'Moderator decision', targetModeratorId:'m2',
+    description:'I believe my restriction was applied unfairly compared to similar cases — requesting a second look outside the normal appeal.',
+    status:'Assigned', submittedAt:'2026-09-11T10:00:00', assignedTo:'m0'},
+  {id:'gr2', caseId:nextCaseId(), userId:'u3', against:'Another user', targetModeratorId:null,
+    description:'A user has been messaging me repeatedly off-thread after I asked them to stop; it doesn\u2019t show up as reportable content.',
+    status:'New', submittedAt:'2026-09-21T16:00:00', assignedTo:null},
+  {id:'gr3', caseId:nextCaseId(), userId:'u6', against:'Platform policy', targetModeratorId:null,
+    description:'The plagiarism review process took three weeks with no updates — requesting a clearer SLA be published.',
+    status:'Resolved', submittedAt:'2026-08-05T09:00:00', assignedTo:'m1'},
+];
+function grievanceById(id){ return GRIEVANCES.find(g=>g.id===id); }
+
+/* ============================================================
+   NOTIFICATIONS / TEMPLATES / ANNOUNCEMENTS
+   ============================================================ */
+const NOTIFICATION_TEMPLATES = [
+  {id:'t1', name:'Restriction notice', category:'Enforcement', subject:'A restriction has been applied to your account',
+    body:'Hi {{username}}, after review a {{scope}} restriction has been applied to your account for {{duration}}. Reason: {{reason}}. You can appeal this from your account settings.'},
+  {id:'t2', name:'Content removed', category:'Enforcement', subject:'One of your posts has been removed',
+    body:'Hi {{username}}, your post "{{title}}" was removed for violating our community guidelines. Reason: {{reason}}.'},
+  {id:'t3', name:'Appeal decision', category:'Appeals', subject:'Update on your appeal', body:'Hi {{username}}, your appeal for case {{caseId}} has been reviewed. Decision: {{decision}}.'},
+  {id:'t4', name:'Copyright takedown', category:'Legal & Rights', subject:'Content removed following a copyright claim',
+    body:'Hi {{username}}, your content "{{title}}" was removed following a verified copyright claim. Contact support if you believe this is in error.'},
+  {id:'t5', name:'Privacy request update', category:'Legal & Rights', subject:'Update on your privacy request', body:'Hi {{username}}, your {{type}} request (case {{caseId}}) is now {{status}}.'},
+];
+function templateById(id){ return NOTIFICATION_TEMPLATES.find(t=>t.id===id); }
+
+const NOTIFICATIONS = [
+  {id:'n1', toUserId:'u5', subject:'A restriction has been applied to your account', message:'A posting restriction has been applied for 30 days following a hate speech report.', sentAt:'2026-09-10T09:42:00', sentBy:'m2', channel:'in-app', caseId:REPORTS[2].caseId},
+  {id:'n2', toUserId:'u8', subject:'Update on your appeal', message:'Your appeal for case '+APPEALS[3].caseId+' has been approved and the restriction lifted.', sentAt:'2026-07-03T14:05:00', sentBy:'m1', channel:'in-app', caseId:APPEALS[3].caseId},
+  {id:'n3', toUserId:'u7', subject:'Content removed following a copyright claim', message:'Your shayari collection was removed after a verified copyright claim.', sentAt:'2026-08-02T09:30:00', sentBy:'m2', channel:'email', caseId:COPYRIGHT_CLAIMS[2].caseId},
+];
+function notificationById(id){ return NOTIFICATIONS.find(n=>n.id===id); }
+
+const ANNOUNCEMENTS = [
+  {id:'an1', title:'Updated community guidelines — effective Oct 1', body:'We\u2019ve clarified our policy on AI-assisted writing disclosure. Read the full update in Help Center.', audience:'All users', status:'Scheduled', publishedAt:'2026-10-01T00:00:00', publishedBy:'m0'},
+  {id:'an2', title:'New copyright review workflow for moderators', body:'Copyright claims now require evidence attachment before a takedown can be issued. See the Policies tab for details.', audience:'All moderators', status:'Published', publishedAt:'2026-09-15T09:00:00', publishedBy:'m0'},
+  {id:'an3', title:'Planned maintenance window', body:'The Wall and messaging will be briefly unavailable during scheduled maintenance.', audience:'All users', status:'Draft', publishedAt:null, publishedBy:'m0'},
+];
+function announcementById(id){ return ANNOUNCEMENTS.find(a=>a.id===id); }
+
+/* ============================================================
+   SYSTEM AUDIT LOG (Admin-only — platform/account/security events,
+   distinct from the Moderation Log every role can see)
+   ============================================================ */
+const SYSTEM_AUDIT_LOG = [
+  {id:'sa1', at:'2026-09-22T08:10:00', actorId:'m0', event:'Permission changed', detail:'Revoked copyright.* permissions for Grace Thomas.', severity:'info'},
+  {id:'sa2', at:'2026-09-20T17:45:00', actorId:'m0', event:'Permission changed', detail:'Revoked grievances.* permissions for Idris Khan.', severity:'info'},
+  {id:'sa3', at:'2026-09-18T13:05:00', actorId:'m3', event:'Failed sign-in', detail:'3 failed sign-in attempts before lockout (mock).', severity:'warning'},
+  {id:'sa4', at:'2026-09-11T19:20:00', actorId:'m0', event:'Moderator suspended', detail:'Oliver Fernandes suspended pending internal review.', severity:'warning'},
+  {id:'sa5', at:'2026-06-01T09:00:00', actorId:'m0', event:'Account created', detail:'Admin account provisioned.', severity:'info'},
+];
+
+/* ============================================================
+   POLICIES (Admin-only editing; moderators can view for reference)
+   ============================================================ */
+const POLICIES = [
+  {id:'po1', title:'Community Guidelines', category:'General', currentVersion:'v3.2', lastUpdated:'2026-09-15', updatedBy:'m0',
+    body:'Defines acceptable content across Story, Shayari, Poem and Article posts, including harassment, hate speech, and self-harm content handling.',
+    versions:[{version:'v3.2', date:'2026-09-15', summary:'Clarified AI-assisted writing disclosure requirement.'},{version:'v3.1', date:'2026-05-02', summary:'Added self-harm content escalation path.'},{version:'v3.0', date:'2026-01-10', summary:'Full rewrite for platform relaunch.'}]},
+  {id:'po2', title:'Restriction Durations', category:'Enforcement', currentVersion:'v1.4', lastUpdated:'2026-08-01', updatedBy:'m0',
+    body:'Default duration guidance for temporary restrictions by scope and severity; when indefinite vs permanent applies.',
+    versions:[{version:'v1.4', date:'2026-08-01', summary:'Added Wall-specific durations.'},{version:'v1.3', date:'2026-03-11', summary:'Introduced indefinite tier.'}]},
+  {id:'po3', title:'Copyright & Takedown Policy', category:'Legal & Rights', currentVersion:'v2.0', lastUpdated:'2026-09-01', updatedBy:'m0',
+    body:'Evidence requirements, claimant verification, and the counter-notice process for copyright claims.',
+    versions:[{version:'v2.0', date:'2026-09-01', summary:'Now requires evidence attachment before removal.'},{version:'v1.0', date:'2026-02-14', summary:'Initial policy.'}]},
+  {id:'po4', title:'Grievance Handling', category:'Grievances', currentVersion:'v1.1', lastUpdated:'2026-07-20', updatedBy:'m0',
+    body:'How grievances against moderator decisions, other users, or platform policy are routed and resolved.',
+    versions:[{version:'v1.1', date:'2026-07-20', summary:'Added routing for policy-related grievances.'},{version:'v1.0', date:'2026-04-01', summary:'Initial policy.'}]},
+];
+function policyById(id){ return POLICIES.find(p=>p.id===id); }
+
+/* ============================================================
+   CASES — computed live from Reports, Restrictions, Appeals,
+   Copyright claims, Privacy requests and Grievances that share a
+   caseId, so this view can never drift out of sync with the
+   underlying queues. Nothing here is stored separately.
+   ============================================================ */
+function getCaseSummaries(){
+  const ids = new Set([
+    ...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId),
+    ...COPYRIGHT_CLAIMS.map(c=>c.caseId), ...PRIVACY_REQUESTS.map(p=>p.caseId), ...GRIEVANCES.map(g=>g.caseId),
+  ]);
+  return [...ids].map(caseId=>{
+    const report = REPORTS.find(r=>r.caseId===caseId);
+    const restriction = RESTRICTIONS.find(x=>x.caseId===caseId);
+    const appeal = APPEALS.find(a=>a.caseId===caseId);
+    const copyright = COPYRIGHT_CLAIMS.find(c=>c.caseId===caseId);
+    const privacy = PRIVACY_REQUESTS.find(p=>p.caseId===caseId);
+    const grievance = GRIEVANCES.find(g=>g.caseId===caseId);
+    const types = [];
+    if(report) types.push('Report');
+    if(restriction) types.push('Restriction');
+    if(appeal) types.push('Appeal');
+    if(copyright) types.push('Copyright');
+    if(privacy) types.push('Privacy');
+    if(grievance) types.push('Grievance');
+    let status = 'Resolved';
+    if((report&&report.status==='New') || (copyright&&copyright.status==='New') || (privacy&&privacy.status==='New') || (grievance&&grievance.status==='New')) status='Open';
+    else if((report&&report.status==='Under Review') || (appeal&&(appeal.status==='Pending'||appeal.status==='Under Review')) || (restriction&&restriction.status==='active') || (copyright&&copyright.status==='Under Review') || (privacy&&privacy.status==='In Progress') || (grievance&&grievance.status==='Assigned')) status='In Progress';
+    const assignedTo = (report&&report.assignedTo) || (grievance&&grievance.assignedTo) || (restriction&&restriction.moderatorId) || (copyright&&copyright.reviewedBy) || (privacy&&privacy.resolvedBy) || null;
+    const priority = (report&&report.priority) || (copyright?'High':null) || 'Normal';
+    const openedAt = (report&&report.createdAt) || (copyright&&copyright.submittedAt) || (privacy&&privacy.submittedAt) || (grievance&&grievance.submittedAt) || (restriction&&restriction.start);
+    const title = (report&&report.reason) || (copyright&&'Copyright claim') || (privacy&&privacy.type) || (grievance&&('Grievance: '+grievance.against)) || (restriction&&restriction.type) || 'Case';
+    return {caseId, types, status, assignedTo, priority, openedAt, title, report, restriction, appeal, copyright, privacy, grievance};
+  }).sort((a,b)=> new Date(b.openedAt||0) - new Date(a.openedAt||0));
+}
+
+/* ============================================================
    STATE
    ============================================================ */
 const state = {
@@ -527,14 +689,12 @@ const state = {
 function currentModerator(){ return modById(state.currentModeratorId) || MODERATORS[0]; }
 
 // Which mock staff record represents "me" when previewing each role.
-const ROLE_PREVIEW_MOD = {admin:'m0', senior_moderator:'m1', moderator:'m2', support_staff:'m4', copyright_reviewer:'m5'};
+const ROLE_PREVIEW_MOD = {admin:'m0', moderator:'m2'};
 
 /* ============================================================
    NAV CONFIG — grouped to match the full Phase 5 information
-   architecture (spec section 3). Sections not yet implemented in
-   this pass render a "coming in a later phase" placeholder rather
-   than fake data, but are gated by the same permission model they
-   will use once built, so the shell doesn't need reshaping later.
+   architecture. Every section below is fully built against mock
+   data (no backend yet — see the security note above MODERATORS).
 
    perm: a PERMISSIONS id — item hidden unless can(perm) is true.
    perm: null — visible to any signed-in staff role (e.g. Overview).
@@ -650,14 +810,86 @@ function setReportStatus(report, status, reason, extra){
   logAction({caseId:report.caseId, action:extra&&extra.actionLabel||status, targetUserId:report.reportedUser, targetContentId:report.contentId, reason, duration:extra&&extra.duration, expiry:extra&&extra.expiry, result:extra&&extra.result||status});
 }
 
-function restrictUser(userId, caseId, type, reason, days){
+// Restriction scopes a restriction can apply to, and the three duration
+// modes the spec calls for. Used by the restriction modal, the
+// Restrictions table, and restrictUser() below.
+const RESTRICTION_SCOPES = [
+  {id:'comments',   label:'Comments',      verb:'Comment restriction'},
+  {id:'posts',      label:'Posts',         verb:'Posting restricted'},
+  {id:'publishing', label:'Publishing',    verb:'Publishing throttled'},
+  {id:'wall',       label:'Wall',          verb:'Wall posting suspended'},
+  {id:'messaging',  label:'Messaging',     verb:'Messaging disabled'},
+  {id:'account',    label:'Full account',  verb:'Account suspended'},
+];
+const DURATION_TYPES = [
+  {id:'temporary',  label:'Temporary'},
+  {id:'indefinite', label:'Indefinite'},
+  {id:'permanent',  label:'Permanent'},
+];
+function scopeMeta(id){ return RESTRICTION_SCOPES.find(s=>s.id===id) || RESTRICTION_SCOPES[1]; }
+function durationLabel(x){
+  if(x.durationType==='temporary') return `${x.days||'\u2014'} days`;
+  if(x.durationType==='indefinite') return 'Indefinite';
+  if(x.durationType==='permanent') return 'Permanent';
+  return '\u2014';
+}
+
+function restrictUser({userId, caseId, scope, durationType, days, reason}){
   const start = new Date();
-  const expiry = new Date(start.getTime()+days*86400000);
-  const r = {id:'x'+(RESTRICTIONS.length+1), caseId, userId, type, reason, moderatorId:state.currentModeratorId, start:start.toISOString(), expiry:expiry.toISOString(), status:'active'};
+  const expiry = durationType==='temporary' ? new Date(start.getTime()+(days||1)*86400000) : null;
+  const sc = scopeMeta(scope);
+  const r = {id:'x'+(RESTRICTIONS.length+1)+Math.random().toString(36).slice(2,5), caseId, userId, scope, type:sc.verb, durationType, days:durationType==='temporary'?days:null,
+    reason, moderatorId:state.currentModeratorId, start:start.toISOString(), expiry: expiry?expiry.toISOString():null, status:'active'};
   RESTRICTIONS.unshift(r);
-  const u = userById(userId); if(u) u.status='restricted';
-  logAction({caseId, action:'User restricted', targetUserId:userId, targetContentId:null, reason, duration:days+' days', expiry:expiry.toISOString(), result:type});
+  const u = userById(userId); if(u) u.status = scope==='account' ? 'suspended' : 'restricted';
+  logAction({caseId, action:'User restricted', targetUserId:userId, targetContentId:null, reason,
+    duration: durationType==='temporary' ? days+' days' : DURATION_TYPES.find(d=>d.id===durationType).label,
+    expiry: expiry?expiry.toISOString():null, result:sc.verb});
   return r;
+}
+
+// The one place a restriction gets created anywhere in the dashboard —
+// from a report, a user profile, or the Restrictions page's own
+// "Issue restriction" button. Always asks for scope + duration + reason
+// instead of a fixed hardcoded duration.
+function openRestrictionModal({userId, caseId, defaultScope='posts', onDone}){
+  const u = userById(userId);
+  openModal(`
+    <h3>Restrict @${esc(u.username)}?</h3>
+    <p class="sub">Choose what\u2019s restricted, for how long, and why. The user is notified without your identity being shown.</p>
+    <label class="field-label">Restriction scope</label>
+    <select class="search-mini" style="width:100%; margin-bottom:10px;" id="restrict-scope">
+      ${RESTRICTION_SCOPES.map(s=>`<option value="${s.id}" ${s.id===defaultScope?'selected':''}>${esc(s.label)}</option>`).join('')}
+    </select>
+    <label class="field-label">Duration</label>
+    <div class="duration-row" id="duration-row">
+      ${DURATION_TYPES.map((d,i)=>`<label class="radio-pill"><input type="radio" name="duration-type" value="${d.id}" ${i===0?'checked':''}>${esc(d.label)}</label>`).join('')}
+    </div>
+    <input type="number" min="1" value="14" id="restrict-days" class="search-mini" style="width:100%; margin-bottom:10px;" placeholder="Number of days">
+    <textarea id="reason-input" placeholder="Reason for this action (required, visible in the moderation log)…"></textarea>
+    <div id="reason-err" style="color:var(--red); font-size:11.5px; margin-top:4px; display:none;">A reason is required before you can confirm.</div>
+    <div class="modal-actions">
+      <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+      <button class="btn danger sm" id="modal-confirm-btn">Apply restriction</button>
+    </div>
+  `);
+  const daysInput = $('#restrict-days');
+  const syncDaysVisibility = ()=>{
+    const dt = document.querySelector('input[name="duration-type"]:checked').value;
+    daysInput.style.display = dt==='temporary' ? '' : 'none';
+  };
+  syncDaysVisibility();
+  $$('input[name="duration-type"]').forEach(r=> r.addEventListener('change', syncDaysVisibility));
+  $('#modal-confirm-btn').onclick = ()=>{
+    const reason = $('#reason-input').value.trim();
+    if(!reason){ $('#reason-err').style.display='block'; return; }
+    const scope = $('#restrict-scope').value;
+    const durationType = document.querySelector('input[name="duration-type"]:checked').value;
+    const days = parseInt(daysInput.value,10) || 1;
+    closeModal();
+    const r = restrictUser({userId, caseId: caseId||nextCaseId(), scope, durationType, days, reason});
+    onDone && onDone(r);
+  };
 }
 
 function removeContent(content, reason){
@@ -720,7 +952,7 @@ function renderOverview(){
   const pending = REPORTS.filter(r=>r.status==='New'||r.status==='Under Review').length;
   const highPriority = REPORTS.filter(r=>(r.priority==='High'||r.priority==='Urgent') && r.status!=='Dismissed' && r.status!=='Action Taken').length;
   const activeRestr = RESTRICTIONS.filter(x=>x.status==='active').length;
-  const expiringSoon = RESTRICTIONS.filter(x=>x.status==='active' && (new Date(x.expiry)-Date.now()) < 3*86400000).length;
+  const expiringSoon = RESTRICTIONS.filter(x=>x.status==='active' && x.expiry && (new Date(x.expiry)-Date.now()) < 3*86400000).length;
   const pendingAppeals = APPEALS.filter(a=>a.status==='Pending'||a.status==='Under Review').length;
   const removedContent = CONTENT.filter(c=>c.status==='removed').length;
   const recentActions = AUDIT_LOG.slice(0,6);
@@ -799,13 +1031,15 @@ function statusBadge(s){
     active:'mint', removed:'red', under_review:'sky',
     Pending:'orange', 'In Review':'sky', Approved:'mint', Rejected:'red',
     Active:'mint', Expired:'grey', Cancelled:'grey',
-    restricted:'gold', suspended:'red'};
+    restricted:'gold', suspended:'red',
+    Open:'orange', 'In Progress':'sky', Resolved:'mint', Assigned:'sky',
+    Fulfilled:'mint', Denied:'red', 'Content Removed':'red', Upheld:'mint',
+    Draft:'grey', Scheduled:'gold', Published:'mint'};
   const label = typeof s==='string' ? s.replace(/_/g,' ') : s;
   return `<span class="badge ${map[s]||'grey'}">${esc(label)}</span>`;
 }
 function roleBadge(m){
-  const colors = {admin:'ink', senior_moderator:'orange', moderator:'sky', support_staff:'mint', copyright_reviewer:'lav'};
-  return `<span class="badge ${colors[m.role]||'grey'}">${esc(roleMeta(m.role).short)}</span>`;
+  return `<span class="badge ${m.role==='admin'?'ink':'sky'}">${esc(roleMeta(m.role).short)}</span>`;
 }
 
 /* ============================================================
@@ -971,11 +1205,22 @@ function notifPreview(reason, caseId){
 function handleReportAction(reportId, act){
   const r = reportById(reportId);
   const c = contentById(r.contentId);
+  if(act==='restrict' || act==='suspend'){
+    openRestrictionModal({
+      userId:r.reportedUser, caseId:r.caseId, defaultScope: act==='suspend'?'account':'posts',
+      onDone:(r2)=>{
+        setReportStatus(r,'Action Taken', r2.reason, {actionLabel: act==='suspend'?'User suspended':'User restricted', result: r2.type});
+        toast(act==='suspend'?'User suspended.':'User restriction created.','success');
+        renderReportDetail(reportId);
+        if(state.view==='reports') renderReports();
+        renderSidebar();
+      }
+    });
+    return;
+  }
   const actions = {
     dismiss:{title:'Dismiss this report?', confirmLabel:'Dismiss report', destructive:false},
     remove:{title:'Remove this content?', body:'The content will be marked removed and the author notified.', confirmLabel:'Remove content', destructive:true},
-    restrict:{title:'Restrict this user?', body:'Choose a duration and provide a reason. The user will be notified without your identity being shown.', confirmLabel:'Apply restriction', destructive:true},
-    suspend:{title:'Suspend this user?', body:'This is a significant action — the user will lose posting access.', confirmLabel:'Suspend user', destructive:true},
     restore:{title:'Restore this content?', confirmLabel:'Restore content', destructive:false},
   };
   const cfg = actions[act];
@@ -985,8 +1230,6 @@ function handleReportAction(reportId, act){
       if(act==='dismiss'){ setReportStatus(r,'Dismissed',reason,{actionLabel:'Report dismissed', result:'No action, report closed'}); toast('Report dismissed.','success'); }
       if(act==='remove'){ removeContent(c, reason); setReportStatus(r,'Action Taken',reason,{actionLabel:'Content removed', result:'Content removed'}); toast('Content marked for removal.','success'); }
       if(act==='restore'){ restoreContent(c, reason); toast('Content restored.','success'); }
-      if(act==='restrict'){ restrictUser(r.reportedUser, r.caseId, 'Posting restricted', reason, 14); setReportStatus(r,'Action Taken',reason,{actionLabel:'User restricted', result:'Posting restricted 14 days'}); toast('User restriction created.','success'); }
-      if(act==='suspend'){ const u=userById(r.reportedUser); u.status='suspended'; restrictUser(r.reportedUser, r.caseId, 'Account suspended', reason, 30); setReportStatus(r,'Action Taken',reason,{actionLabel:'User suspended', result:'Account suspended 30 days'}); toast('User suspended.','success'); }
       renderReportDetail(reportId);
       if(state.view==='reports') renderReports();
       renderSidebar();
@@ -1053,24 +1296,27 @@ function renderUserDetail(userId){
       return `<div class="tl-item"><div class="tl-time">${fmtDate(l.at)} \u00b7 ${esc(l.caseId)}</div>
       <div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br>
       <span class="muted">${esc(l.reason||'')}</span>
-      ${restr?`<br><span class="muted">Duration: ${esc(restr.type)} \u00b7 expires ${fmtDate(restr.expiry)} \u00b7 ${statusBadge(restr.status)}</span>`:''}</div></div>`;
+      ${restr?`<br><span class="muted">Duration: ${esc(restr.type)} (${esc(durationLabel(restr))}) \u00b7 ${restr.expiry?'expires '+fmtDate(restr.expiry):'no fixed expiry'} \u00b7 ${statusBadge(restr.status)}</span>`:''}</div></div>`;
     }).join('')}</div>` : emptyState('No moderation history', 'This user has no prior moderation actions on record.')}
   `);
 }
 
 function handleUserAction(userId, act){
   const u = userById(userId);
-  const cfgs = {
-    restrict:{title:`Restrict @${u.username}?`, confirmLabel:'Apply restriction', destructive:true},
-    suspend:{title:`Suspend @${u.username}?`, confirmLabel:'Suspend account', destructive:true},
-    restore:{title:`Restore @${u.username}?`, confirmLabel:'Restore account', destructive:false},
-  };
-  const cfg = cfgs[act];
-  confirmAction({title:cfg.title, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive, requireReason:act!=='restore', onConfirm:(reason)=>{
+  if(act==='restrict' || act==='suspend'){
+    openRestrictionModal({
+      userId, caseId:nextCaseId(), defaultScope: act==='suspend'?'account':'posts',
+      onDone:()=>{
+        toast(act==='suspend'?'User suspended.':'User restriction created.','success');
+        renderUserDetail(userId);
+        if(state.view==='users') renderUsers();
+      }
+    });
+    return;
+  }
+  confirmAction({title:`Restore @${u.username}?`, confirmLabel:'Restore account', destructive:false, requireReason:false, onConfirm:(reason)=>{
     const caseId = nextCaseId();
-    if(act==='restrict'){ restrictUser(userId, caseId, 'Posting restricted', reason, 14); toast('User restriction created.','success'); }
-    if(act==='suspend'){ u.status='suspended'; restrictUser(userId, caseId, 'Account suspended', reason, 30); toast('User suspended.','success'); }
-    if(act==='restore'){ u.status='active'; RESTRICTIONS.filter(x=>x.userId===userId&&x.status==='active').forEach(x=>x.status='cancelled'); logAction({caseId, action:'User reinstated', targetUserId:userId, targetContentId:null, reason:reason||'Reinstated by moderator.', result:'Account restored'}); toast('User restored.','success'); }
+    u.status='active'; RESTRICTIONS.filter(x=>x.userId===userId&&x.status==='active').forEach(x=>x.status='cancelled'); logAction({caseId, action:'User reinstated', targetUserId:userId, targetContentId:null, reason:reason||'Reinstated by moderator.', result:'Account restored'}); toast('User restored.','success');
     renderUserDetail(userId);
     if(state.view==='users') renderUsers();
   }});
@@ -1156,26 +1402,101 @@ function handleContentAction(contentId, act){
 /* ============================================================
    RENDER: RESTRICTIONS
    ============================================================ */
+const RESTRICTION_FILTERS = ['All','Active','Expired','Cancelled'];
+function filteredRestrictions(){
+  let list = [...RESTRICTIONS];
+  if(state.restrictionFilter && state.restrictionFilter!=='All') list = list.filter(x=>x.status===state.restrictionFilter.toLowerCase());
+  if(state.restrictionSearch){
+    const q = state.restrictionSearch.toLowerCase();
+    list = list.filter(x=>{
+      const u = userById(x.userId);
+      return (u&&u.username.toLowerCase().includes(q)) || x.caseId.toLowerCase().includes(q) || x.type.toLowerCase().includes(q);
+    });
+  }
+  return list.sort((a,b)=>new Date(b.start)-new Date(a.start));
+}
 function renderRestrictions(){
+  if(state.restrictionFilter===undefined) state.restrictionFilter='All';
+  if(state.restrictionSearch===undefined) state.restrictionSearch='';
   const root = $('#view-root');
-  const list = [...RESTRICTIONS].sort((a,b)=>new Date(b.start)-new Date(a.start));
-  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Type</th><th>Reason</th><th>Moderator</th><th>Start</th><th>Expiry</th><th>Status</th></tr></thead><tbody>
+  const list = filteredRestrictions();
+  root.innerHTML = `
+    <div class="filter-row">
+      ${RESTRICTION_FILTERS.map(f=>`<button class="chip ${state.restrictionFilter===f?'active':''}" data-restriction-filter="${f}">${f}</button>`).join('')}
+      <input class="search-mini" id="restriction-search" placeholder="Search user, case, type\u2026" value="${esc(state.restrictionSearch)}">
+      ${can('users.restrict')?`<button class="btn primary sm" id="issue-restriction-btn">+ Issue restriction</button>`:''}
+    </div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Scope</th><th>Type</th><th>Duration</th><th>Moderator</th><th>Start</th><th>Expiry</th><th>Status</th></tr></thead><tbody>
     ${list.map(x=>{
       const u = userById(x.userId), m = modById(x.moderatorId);
-      const expiring = x.status==='active' && (new Date(x.expiry)-Date.now()) < 3*86400000;
-      return `<tr>
+      const expiring = x.status==='active' && x.expiry && (new Date(x.expiry)-Date.now()) < 3*86400000;
+      return `<tr data-open-restriction="${x.id}">
         <td class="caseid">${x.caseId}</td>
-        <td>@${esc(u.username)}</td>
+        <td>${u?'@'+esc(u.username):'\u2014'}</td>
+        <td><span class="badge grey">${esc(scopeMeta(x.scope||'posts').label)}</span></td>
         <td>${esc(x.type)}</td>
-        <td class="muted">${esc(x.reason)}</td>
+        <td class="muted">${esc(durationLabel(x))}</td>
         <td class="muted">${esc(m.displayName)}</td>
         <td class="muted">${fmtDate(x.start)}</td>
-        <td class="${expiring?'expiring':''}">${fmtDate(x.expiry)}${expiring?' \u26A0 expiring soon':''}</td>
+        <td class="${expiring?'expiring':''}">${x.expiry?fmtDate(x.expiry):'\u2014'}${expiring?' \u26A0':''}</td>
         <td>${statusBadge(x.status)}</td>
       </tr>`;
-    }).join('')}</tbody></table>` : emptyState('No restrictions', 'Active and past user restrictions will show up here.')}
-  </div>`;
+    }).join('')}</tbody></table>` : (state.restrictionFilter!=='All'||state.restrictionSearch ? emptyState('No matching restrictions', 'Try a different filter or search term.') : emptyState('No restrictions', 'Active and past user restrictions will show up here.'))}
+  </div></div>`;
+  $('#restriction-search').oninput = e=>{ state.restrictionSearch = e.target.value; renderRestrictions(); };
+  const issueBtn = $('#issue-restriction-btn');
+  if(issueBtn) issueBtn.onclick = ()=>{
+    openModal(`
+      <h3>Issue a restriction</h3>
+      <p class="sub">Pick the user first, then choose scope and duration.</p>
+      <select class="search-mini" style="width:100%; margin-bottom:10px;" id="issue-user-select">
+        ${USERS.map(u=>`<option value="${u.id}">@${esc(u.username)} \u2014 ${esc(u.displayName)}</option>`).join('')}
+      </select>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+        <button class="btn primary sm" id="issue-user-next">Continue</button>
+      </div>
+    `);
+    $('#issue-user-next').onclick = ()=>{
+      const uid = $('#issue-user-select').value;
+      closeModal();
+      openRestrictionModal({userId:uid, caseId:nextCaseId(), onDone:()=>{ toast('Restriction issued.','success'); renderRestrictions(); }});
+    };
+  };
+}
+function renderRestrictionDetail(id){
+  const x = RESTRICTIONS.find(r=>r.id===id);
+  if(!x) return;
+  const u = userById(x.userId), m = modById(x.moderatorId);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Restriction ${esc(x.caseId)}</h2>
+    <div class="kv">
+      <b>User</b><span>${u?'@'+esc(u.username):'\u2014'}</span>
+      <b>Scope</b><span>${esc(scopeMeta(x.scope||'posts').label)}</span>
+      <b>Type</b><span>${esc(x.type)}</span>
+      <b>Duration</b><span>${esc(durationLabel(x))}</span>
+      <b>Reason</b><span>${esc(x.reason)}</span>
+      <b>Issued by</b><span>${esc(m.displayName)}</span>
+      <b>Start</b><span>${fmtDate(x.start)}</span>
+      <b>Expiry</b><span>${x.expiry?fmtDate(x.expiry):'\u2014'}</span>
+      <b>Status</b><span>${statusBadge(x.status)}</span>
+    </div>
+    ${x.status==='active' && can('users.restrict') ? `<hr class="divider"><button class="btn ghost sm" id="lift-restriction-btn">Lift restriction early</button>` : ''}
+  `);
+  const lift = $('#lift-restriction-btn');
+  if(lift) lift.onclick = ()=> confirmAction({
+    title:'Lift this restriction?', confirmLabel:'Lift restriction', destructive:false,
+    onConfirm:(reason)=>{
+      x.status='cancelled';
+      const usr = userById(x.userId); if(usr && !RESTRICTIONS.some(r=>r.userId===x.userId && r.status==='active' && r.id!==x.id)) usr.status='active';
+      logAction({caseId:x.caseId, action:'Restriction lifted', targetUserId:x.userId, targetContentId:null, reason, result:'Restriction lifted early'});
+      toast('Restriction lifted.','success');
+      renderRestrictionDetail(id);
+      if(state.view==='restrictions') renderRestrictions();
+    }
+  });
 }
 
 /* ============================================================
@@ -1308,12 +1629,9 @@ function renderModerators(){
   $('#add-mod-btn').onclick = ()=>{
     openModal(`
       <h3>Add a moderator</h3>
-      <p class="sub">Search for an existing user to promote (mock search).</p>
-      <select class="search-mini" style="width:100%; margin-bottom:8px;" id="new-mod-select">
+      <p class="sub">Search for an existing user to promote (mock search). New moderators get full default permissions — adjust them afterwards in Staff \u2192 Permissions.</p>
+      <select class="search-mini" style="width:100%;" id="new-mod-select">
         ${USERS.filter(u=>!MODERATORS.find(m=>m.username===u.username)).map(u=>`<option value="${u.id}">@${esc(u.username)} \u2014 ${esc(u.displayName)}</option>`).join('')}
-      </select>
-      <select class="search-mini" style="width:100%;" id="new-mod-role">
-        ${ROLES.filter(r=>r.id!=='admin').map(r=>`<option value="${r.id}">${esc(r.label)}</option>`).join('')}
       </select>
       <p class="sub" style="margin-top:8px;">Admin can only be granted through the Supabase console once this is wired up, never from this dashboard.</p>
       <div class="modal-actions">
@@ -1323,10 +1641,9 @@ function renderModerators(){
     `);
     $('#confirm-add-mod').onclick = ()=>{
       const uid = $('#new-mod-select').value;
-      const role = $('#new-mod-role').value;
       const u = userById(uid);
       if(u){
-        MODERATORS.push({id:'m'+(MODERATORS.length+1), username:u.username, displayName:u.displayName, role, status:'active', dateAppointed:new Date().toISOString(), permissions:(ROLE_PERMISSIONS[role]||[]).slice()});
+        MODERATORS.push({id:'m'+(MODERATORS.length+1), username:u.username, displayName:u.displayName, role:'moderator', status:'active', dateAppointed:new Date().toISOString(), permissions: ROLE_PERMISSIONS.moderator.slice()});
         toast('Moderator added.','success');
       }
       closeModal();
@@ -1375,20 +1692,72 @@ function renderModeratorActivity(modId){
 /* ============================================================
    RENDER: SETTINGS (admin only)
    ============================================================ */
+const SETTINGS_STATE = {
+  guidelinesVersion: 'v3.2',
+  autoFlagThreshold: 3,
+  reportCategories: ['Hate speech','Harassment','Self-harm concern','Copyright / plagiarism','Spam','Other'],
+  defaultRestrictionDays: 14,
+  notifyOnAction: true,
+  notifyOnAppealUpdate: true,
+  platformLockdown: false,
+  requireEvidenceForCopyright: true,
+};
 function renderSettings(){
   const root = $('#view-root');
-  if(!can('moderators.view')){ root.innerHTML = emptyState('No access', 'You don\u2019t have access to this section.'); return; }
-  const sections = [
-    ['Community Guidelines','Edit the public guidelines shown to users and referenced in notifications.'],
-    ['Moderation Rules','Define automated flags and escalation thresholds.'],
-    ['Report Categories','Manage the list of reasons available when a reader reports content.'],
-    ['Restriction Durations','Set default durations for warnings, restrictions, and suspensions.'],
-    ['Notification Settings','Configure how and when affected users are notified.'],
-    ['Platform Safety Settings','General safety and trust configuration for the platform.'],
-  ];
-  root.innerHTML = `<div class="two-col" style="grid-template-columns:1fr 1fr;">
-    ${sections.map(([t,d])=>`<div class="panel"><h3 style="font-size:15px; margin-bottom:6px;">${t}</h3><p class="muted" style="font-size:12.5px; margin-bottom:12px;">${d}</p><button class="btn ghost sm" disabled style="opacity:.5;">Placeholder — not yet connected</button></div>`).join('')}
+  if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
+  const s = SETTINGS_STATE;
+  root.innerHTML = `<div class="two-col even">
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Community Guidelines</h3>
+      <p class="muted" style="font-size:12.5px; margin-bottom:12px;">Current published version: <b>${esc(s.guidelinesVersion)}</b>. Full editing lives in Policies.</p>
+      <button class="btn ghost sm" data-nav="policies">Go to Policies</button>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Moderation Rules</h3>
+      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Auto-flag content after this many reports:</p>
+      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-threshold" value="${s.autoFlagThreshold}">
+      <div style="margin-top:10px;"><button class="btn primary sm" id="set-threshold-save">Save</button></div>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Report Categories</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${s.reportCategories.map((c,i)=>`<span class="badge grey" style="display:inline-flex; align-items:center; gap:5px;">${esc(c)} <span data-remove-category="${i}" style="cursor:pointer;">\u2715</span></span>`).join('')}</div>
+      <div style="display:flex; gap:8px;"><input class="search-mini" style="flex:1;" id="new-category-input" placeholder="Add a category…"><button class="btn soft sm" id="add-category-btn">Add</button></div>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Restriction Durations</h3>
+      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Default temporary restriction length (days):</p>
+      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-duration" value="${s.defaultRestrictionDays}">
+      <div style="margin-top:10px;"><button class="btn primary sm" id="set-duration-save">Save</button></div>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Notification Settings</h3>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:8px;"><input type="checkbox" id="notify-action" ${s.notifyOnAction?'checked':''}> Notify users when action is taken on their content</label>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box;"><input type="checkbox" id="notify-appeal" ${s.notifyOnAppealUpdate?'checked':''}> Notify users on appeal status changes</label>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Platform Safety Settings</h3>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:8px;"><input type="checkbox" id="require-evidence" ${s.requireEvidenceForCopyright?'checked':''}> Require evidence before a copyright takedown</label>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; border-color:var(--red);"><input type="checkbox" id="platform-lockdown" ${s.platformLockdown?'checked':''}> Emergency lockdown (blocks all new posts platform-wide)</label>
+    </div>
   </div>`;
+  $('#set-threshold-save').onclick = ()=>{ s.autoFlagThreshold = parseInt($('#set-threshold').value,10)||s.autoFlagThreshold; toast('Moderation rule saved.','success'); };
+  $('#set-duration-save').onclick = ()=>{ s.defaultRestrictionDays = parseInt($('#set-duration').value,10)||s.defaultRestrictionDays; toast('Default duration saved.','success'); };
+  $('#add-category-btn').onclick = ()=>{
+    const v = $('#new-category-input').value.trim();
+    if(!v) return;
+    s.reportCategories.push(v);
+    toast('Category added.','success');
+    renderSettings();
+  };
+  $$('[data-remove-category]').forEach(el=> el.onclick = ()=>{ s.reportCategories.splice(parseInt(el.dataset.removeCategory,10),1); renderSettings(); });
+  $('#notify-action').onchange = e=>{ s.notifyOnAction = e.target.checked; toast('Notification setting saved.','success'); };
+  $('#notify-appeal').onchange = e=>{ s.notifyOnAppealUpdate = e.target.checked; toast('Notification setting saved.','success'); };
+  $('#require-evidence').onchange = e=>{ s.requireEvidenceForCopyright = e.target.checked; toast('Safety setting saved.','success'); };
+  $('#platform-lockdown').onchange = e=>{
+    s.platformLockdown = e.target.checked;
+    toast(e.target.checked ? 'Platform lockdown enabled (mock).' : 'Platform lockdown disabled.', e.target.checked?'error':'success');
+    SYSTEM_AUDIT_LOG.unshift({id:'sa'+(SYSTEM_AUDIT_LOG.length+1), at:new Date().toISOString(), actorId:state.currentModeratorId, event:'Platform lockdown '+(e.target.checked?'enabled':'disabled'), detail:'Toggled from Settings.', severity: e.target.checked?'warning':'info'});
+  };
 }
 
 /* ============================================================
@@ -1400,7 +1769,7 @@ function runGlobalSearch(q){
   const users = USERS.filter(u=>u.username.toLowerCase().includes(q)||u.displayName.toLowerCase().includes(q)).slice(0,4);
   const content = CONTENT.filter(c=>c.title.toLowerCase().includes(q)).slice(0,4);
   const reports = REPORTS.filter(r=>r.caseId.toLowerCase().includes(q)).slice(0,4);
-  const cases = [...new Set([...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId)])].filter(c=>c.toLowerCase().includes(q)).slice(0,4);
+  const cases = [...new Set([...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId), ...COPYRIGHT_CLAIMS.map(c=>c.caseId), ...PRIVACY_REQUESTS.map(p=>p.caseId), ...GRIEVANCES.map(g=>g.caseId)])].filter(c=>c.toLowerCase().includes(q)).slice(0,4);
   const mods = MODERATORS.filter(m=>m.username.toLowerCase().includes(q)||m.displayName.toLowerCase().includes(q)).slice(0,4);
   return {users, content, reports, cases, mods};
 }
@@ -1419,6 +1788,764 @@ function renderGlobalSearchResults(q){
 }
 
 /* ============================================================
+   RENDER: CASES (central case list + workspace)
+   ============================================================ */
+const CASE_FILTERS = ['All','Open','In Progress','Resolved'];
+function renderCases(){
+  if(state.caseFilter===undefined) state.caseFilter='All';
+  if(state.caseSearch===undefined) state.caseSearch='';
+  const root = $('#view-root');
+  let list = getCaseSummaries();
+  if(state.caseFilter!=='All') list = list.filter(c=>c.status===state.caseFilter);
+  if(state.caseSearch){
+    const q = state.caseSearch.toLowerCase();
+    list = list.filter(c=> c.caseId.toLowerCase().includes(q) || (c.title||'').toLowerCase().includes(q));
+  }
+  root.innerHTML = `
+    <div class="filter-row">
+      ${CASE_FILTERS.map(f=>`<button class="chip ${state.caseFilter===f?'active':''}" data-case-filter="${f}">${esc(f)}</button>`).join('')}
+      <input class="search-mini" id="case-search" placeholder="Search case ID or title…" value="${esc(state.caseSearch)}">
+    </div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Type(s)</th><th>Title</th><th>Priority</th><th>Assignee</th><th>Status</th><th>Opened</th></tr></thead><tbody>
+    ${list.map(c=>{
+      const m = c.assignedTo ? modById(c.assignedTo) : null;
+      return `<tr data-open-case-full="${esc(c.caseId)}">
+        <td class="caseid">${esc(c.caseId)}</td>
+        <td>${c.types.map(t=>`<span class="badge grey" style="margin-right:2px;">${esc(t)}</span>`).join('')}</td>
+        <td>${esc(c.title)}</td>
+        <td>${priorityBadge(c.priority)}</td>
+        <td class="muted">${m?esc(m.displayName):'Unassigned'}</td>
+        <td>${statusBadge(c.status)}</td>
+        <td class="muted">${c.openedAt?fmtDate(c.openedAt):'\u2014'}</td>
+      </tr>`;
+    }).join('')}</tbody></table>` : (state.caseFilter!=='All'||state.caseSearch ? emptyState('No matching cases','Try a different filter or search term.') : emptyState('No cases', 'Cases are assembled automatically from reports, restrictions, appeals and legal requests that share a case ID.'))}
+    </div></div>
+  `;
+  $('#case-search').oninput = e=>{ state.caseSearch = e.target.value; renderCases(); };
+}
+function renderCaseWorkspace(caseId){
+  const all = getCaseSummaries();
+  const c = all.find(x=>x.caseId===caseId);
+  if(!c){ toast('That case no longer exists.','error'); return; }
+  const notes = INTERNAL_NOTES[caseId] || [];
+  const entries = AUDIT_LOG.filter(l=>l.caseId===caseId).sort((a,b)=>new Date(a.at)-new Date(b.at));
+  const linkRows = [];
+  if(c.report) linkRows.push(['Report', c.report.reason, 'data-open-report', c.report.id]);
+  if(c.restriction) linkRows.push(['Restriction', c.restriction.type, 'data-open-restriction', c.restriction.id]);
+  if(c.appeal) linkRows.push(['Appeal', c.appeal.originalAction, 'data-open-appeal', c.appeal.id]);
+  if(c.copyright) linkRows.push(['Copyright claim', c.copyright.description, 'data-open-copyright', c.copyright.id]);
+  if(c.privacy) linkRows.push(['Privacy request', c.privacy.type, 'data-open-privacy', c.privacy.id]);
+  if(c.grievance) linkRows.push(['Grievance', c.grievance.against, 'data-open-grievance', c.grievance.id]);
+
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:19px;">Case ${esc(c.caseId)}</h2>
+    <div class="kv">
+      <b>Types</b><span>${c.types.map(t=>`<span class="badge grey" style="margin-right:2px;">${esc(t)}</span>`).join('')}</span>
+      <b>Title</b><span>${esc(c.title)}</span>
+      <b>Priority</b><span>${priorityBadge(c.priority)}</span>
+      <b>Status</b><span>${statusBadge(c.status)}</span>
+      <b>Opened</b><span>${c.openedAt?fmtDate(c.openedAt):'\u2014'}</span>
+    </div>
+    ${can('cases.assign') ? `<div style="margin:12px 0;">
+      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Assigned moderator</b>
+      <select class="search-mini" style="width:100%;" id="case-assign-select">
+        <option value="">Unassigned</option>
+        ${MODERATORS.filter(m=>m.status==='active').map(m=>`<option value="${m.id}" ${c.assignedTo===m.id?'selected':''}>${esc(m.displayName)}</option>`).join('')}
+      </select>
+    </div>` : ''}
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Linked items</h4>
+    ${linkRows.length ? linkRows.map(([label,desc,attr,id])=>`
+      <div class="linked-item" ${attr}="${esc(id)}"><b>${esc(label)}</b><span class="muted">${esc(desc||'')}</span></div>
+    `).join('') : '<p class="muted" style="font-size:12px;">No linked items.</p>'}
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Case timeline</h4>
+    ${entries.length ? `<div class="timeline">${entries.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br><span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : '<p class="muted" style="font-size:12px;">No log entries for this case yet.</p>'}
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Internal notes <span class="muted" style="font-weight:500;">(staff only)</span></h4>
+    ${notes.map(n=>`<div class="note-item"><div class="who">${esc(n.author)} \u00b7 ${timeAgo(n.at)}</div>${esc(n.text)}</div>`).join('') || '<p class="muted" style="font-size:12px;">No internal notes yet.</p>'}
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input class="search-mini" style="flex:1;" id="case-note-input" placeholder="Add an internal note…">
+      <button class="btn soft sm" id="case-add-note-btn">Add</button>
+    </div>
+  `);
+  const assignSel = $('#case-assign-select');
+  if(assignSel) assignSel.onchange = ()=>{
+    const modId = assignSel.value || null;
+    if(c.report) c.report.assignedTo = modId;
+    if(c.grievance) c.grievance.assignedTo = modId;
+    logAction({caseId, action:'Case reassigned', targetUserId:null, targetContentId:null, reason:modId?`Reassigned to ${modById(modId).displayName}`:'Unassigned', result:'Assignment updated'});
+    toast('Assignment updated.','success');
+    renderCaseWorkspace(caseId);
+  };
+  $('#case-add-note-btn').onclick = ()=>{
+    const v = $('#case-note-input').value.trim();
+    if(!v) return;
+    addNote(caseId, currentModerator().displayName, v);
+    toast('Internal note added.','success');
+    renderCaseWorkspace(caseId);
+  };
+}
+
+/* ============================================================
+   RENDER: COPYRIGHT & TAKEDOWNS
+   ============================================================ */
+const COPYRIGHT_FILTERS = ['All','New','Under Review','Upheld','Rejected','Content Removed'];
+function renderCopyright(){
+  if(state.copyrightFilter===undefined) state.copyrightFilter='All';
+  const root = $('#view-root');
+  let list = [...COPYRIGHT_CLAIMS];
+  if(state.copyrightFilter!=='All') list = list.filter(c=>c.status===state.copyrightFilter);
+  list.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+  root.innerHTML = `
+    <div class="filter-row">
+      ${COPYRIGHT_FILTERS.map(f=>`<button class="chip ${state.copyrightFilter===f?'active':''}" data-copyright-filter="${f}">${esc(f)}</button>`).join('')}
+    </div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Claimant</th><th>Content owner</th><th>Evidence</th><th>Status</th><th>Submitted</th></tr></thead><tbody>
+    ${list.map(c=>{
+      const owner = userById(c.ownerUserId);
+      return `<tr data-open-copyright="${c.id}">
+        <td class="caseid">${c.caseId}</td>
+        <td>${esc(c.claimantName)}</td>
+        <td>${owner?'@'+esc(owner.username):'\u2014'}</td>
+        <td class="muted">${esc(c.evidence)}</td>
+        <td>${statusBadge(c.status)}</td>
+        <td class="muted">${fmtDate(c.submittedAt)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>` : emptyState('No copyright claims', 'Copyright and takedown complaints will show up here.')}
+    </div></div>
+  `;
+}
+function renderCopyrightDetail(id){
+  const c = copyrightById(id);
+  if(!c){ toast('That claim no longer exists.','error'); return; }
+  const owner = userById(c.ownerUserId);
+  const content = contentById(c.contentId);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Copyright claim ${esc(c.caseId)}</h2>
+    <div class="kv">
+      <b>Claimant</b><span>${esc(c.claimantName)} \u2014 ${esc(c.claimantEmail)}</span>
+      <b>Content</b><span>${content?esc(content.title):'(content removed)'}</span>
+      <b>Content owner</b><span>${owner?'@'+esc(owner.username):'\u2014'}</span>
+      <b>Evidence</b><span>${esc(c.evidence)}</span>
+      <b>Reviewer</b><span>${c.reviewedBy?esc(modById(c.reviewedBy).displayName):'Unreviewed'}</span>
+      <b>Submitted</b><span>${fmtDate(c.submittedAt)}</span>
+      <b>Status</b><span>${statusBadge(c.status)}</span>
+    </div>
+    <div class="content-preview-box">${esc(c.description)}</div>
+    ${(c.status==='New'||c.status==='Under Review') && can('copyright.review') ? `<hr class="divider"><div style="display:flex; flex-wrap:wrap; gap:8px;">
+      ${c.status==='New'?`<button class="btn ghost sm" data-copyright-act="review" data-copyright-id="${c.id}">Mark under review</button>`:''}
+      <button class="btn danger sm" data-copyright-act="uphold" data-copyright-id="${c.id}">Uphold \u2014 remove content</button>
+      <button class="btn ghost sm" data-copyright-act="reject" data-copyright-id="${c.id}">Reject claim</button>
+    </div>` : ''}
+  `);
+}
+function handleCopyrightAction(id, act){
+  const c = copyrightById(id);
+  const content = contentById(c.contentId);
+  const cfgs = {
+    review:{title:'Mark this claim as under review?', destructive:false, confirmLabel:'Mark under review'},
+    uphold:{title:'Uphold claim and remove content?', body:'The content will be removed and the author notified.', destructive:true, confirmLabel:'Uphold & remove'},
+    reject:{title:'Reject this copyright claim?', destructive:false, confirmLabel:'Reject claim'},
+  };
+  const cfg = cfgs[act];
+  confirmAction({title:cfg.title, body:cfg.body, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive, onConfirm:(reason)=>{
+    if(act==='review'){ c.status='Under Review'; c.reviewedBy=state.currentModeratorId; }
+    if(act==='uphold'){ c.status='Content Removed'; c.reviewedBy=state.currentModeratorId; if(content){ if(!content.caseId) content.caseId = c.caseId; removeContent(content, reason); } }
+    if(act==='reject'){ c.status='Rejected'; c.reviewedBy=state.currentModeratorId; }
+    logAction({caseId:c.caseId, action:'Copyright claim '+c.status.toLowerCase(), targetUserId:c.ownerUserId, targetContentId:c.contentId, reason, result:c.status});
+    toast('Copyright claim updated.','success');
+    renderCopyrightDetail(id);
+    if(state.view==='copyright') renderCopyright();
+  }});
+}
+
+/* ============================================================
+   RENDER: PRIVACY REQUESTS
+   ============================================================ */
+const PRIVACY_FILTERS = ['All','New','In Progress','Fulfilled','Denied'];
+function renderPrivacy(){
+  if(state.privacyFilter===undefined) state.privacyFilter='All';
+  const root = $('#view-root');
+  let list = [...PRIVACY_REQUESTS];
+  if(state.privacyFilter!=='All') list = list.filter(p=>p.status===state.privacyFilter);
+  list.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+  root.innerHTML = `
+    <div class="filter-row">
+      ${PRIVACY_FILTERS.map(f=>`<button class="chip ${state.privacyFilter===f?'active':''}" data-privacy-filter="${f}">${esc(f)}</button>`).join('')}
+    </div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Type</th><th>Status</th><th>Submitted</th><th>Due by</th></tr></thead><tbody>
+    ${list.map(p=>{
+      const u = userById(p.userId);
+      const overdue = p.status!=='Fulfilled' && p.status!=='Denied' && new Date(p.dueBy) < new Date();
+      return `<tr data-open-privacy="${p.id}">
+        <td class="caseid">${p.caseId}</td>
+        <td>${u?'@'+esc(u.username):'\u2014'}</td>
+        <td>${esc(p.type)}</td>
+        <td>${statusBadge(p.status)}</td>
+        <td class="muted">${fmtDate(p.submittedAt)}</td>
+        <td class="${overdue?'expiring':'muted'}">${fmtDate(p.dueBy)}${overdue?' \u26A0 overdue':''}</td>
+      </tr>`;
+    }).join('')}</tbody></table>` : emptyState('No privacy requests', 'Data access, deletion and privacy takedown requests will show up here.')}
+    </div></div>
+  `;
+}
+function renderPrivacyDetail(id){
+  const p = privacyById(id);
+  if(!p){ toast('That request no longer exists.','error'); return; }
+  const u = userById(p.userId);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Privacy request ${esc(p.caseId)}</h2>
+    <div class="kv">
+      <b>User</b><span>${u?'@'+esc(u.username):'\u2014'}</span>
+      <b>Type</b><span>${esc(p.type)}</span>
+      <b>Submitted</b><span>${fmtDate(p.submittedAt)}</span>
+      <b>Due by</b><span>${fmtDate(p.dueBy)}</span>
+      <b>Resolved by</b><span>${p.resolvedBy?esc(modById(p.resolvedBy).displayName):'\u2014'}</span>
+      <b>Status</b><span>${statusBadge(p.status)}</span>
+    </div>
+    <div class="content-preview-box">${esc(p.description)}</div>
+    ${(p.status==='New'||p.status==='In Progress') && can('privacy.resolve') ? `<hr class="divider"><div style="display:flex; flex-wrap:wrap; gap:8px;">
+      ${p.status==='New'?`<button class="btn ghost sm" data-privacy-act="progress" data-privacy-id="${p.id}">Mark in progress</button>`:''}
+      <button class="btn primary sm" data-privacy-act="fulfill" data-privacy-id="${p.id}">Mark fulfilled</button>
+      <button class="btn danger sm" data-privacy-act="deny" data-privacy-id="${p.id}">Deny request</button>
+    </div>` : ''}
+  `);
+}
+function handlePrivacyAction(id, act){
+  const p = privacyById(id);
+  const cfgs = {
+    progress:{title:'Mark this request in progress?', destructive:false, confirmLabel:'Mark in progress'},
+    fulfill:{title:'Mark this request fulfilled?', destructive:false, confirmLabel:'Mark fulfilled'},
+    deny:{title:'Deny this privacy request?', destructive:true, confirmLabel:'Deny request'},
+  };
+  const cfg = cfgs[act];
+  confirmAction({title:cfg.title, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive, onConfirm:(reason)=>{
+    if(act==='progress') p.status='In Progress';
+    if(act==='fulfill'){ p.status='Fulfilled'; p.resolvedBy=state.currentModeratorId; }
+    if(act==='deny'){ p.status='Denied'; p.resolvedBy=state.currentModeratorId; }
+    logAction({caseId:p.caseId, action:'Privacy request '+p.status.toLowerCase(), targetUserId:p.userId, targetContentId:null, reason, result:p.status});
+    toast('Privacy request updated.','success');
+    renderPrivacyDetail(id);
+    if(state.view==='privacy') renderPrivacy();
+  }});
+}
+
+/* ============================================================
+   RENDER: GRIEVANCES
+   ============================================================ */
+const GRIEVANCE_FILTERS = ['All','New','Assigned','Resolved'];
+function renderGrievances(){
+  if(state.grievanceFilter===undefined) state.grievanceFilter='All';
+  const root = $('#view-root');
+  let list = [...GRIEVANCES];
+  if(state.grievanceFilter!=='All') list = list.filter(g=>g.status===state.grievanceFilter);
+  list.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+  root.innerHTML = `
+    <div class="filter-row">
+      ${GRIEVANCE_FILTERS.map(f=>`<button class="chip ${state.grievanceFilter===f?'active':''}" data-grievance-filter="${f}">${esc(f)}</button>`).join('')}
+    </div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Filed by</th><th>Against</th><th>Assigned to</th><th>Status</th><th>Submitted</th></tr></thead><tbody>
+    ${list.map(g=>{
+      const u = userById(g.userId), m = g.assignedTo?modById(g.assignedTo):null;
+      return `<tr data-open-grievance="${g.id}">
+        <td class="caseid">${g.caseId}</td>
+        <td>${u?'@'+esc(u.username):'\u2014'}</td>
+        <td>${esc(g.against)}</td>
+        <td class="muted">${m?esc(m.displayName):'Unassigned'}</td>
+        <td>${statusBadge(g.status)}</td>
+        <td class="muted">${fmtDate(g.submittedAt)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>` : emptyState('No grievances', 'Complaints about moderation decisions, other users, or platform policy will show up here — kept separate from ordinary content reports.')}
+    </div></div>
+  `;
+}
+function renderGrievanceDetail(id){
+  const g = grievanceById(id);
+  if(!g){ toast('That grievance no longer exists.','error'); return; }
+  const u = userById(g.userId);
+  const against = g.targetModeratorId ? modById(g.targetModeratorId) : null;
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Grievance ${esc(g.caseId)}</h2>
+    <div class="kv">
+      <b>Filed by</b><span>${u?'@'+esc(u.username):'\u2014'}</span>
+      <b>Against</b><span>${esc(g.against)}${against?' \u2014 '+esc(against.displayName):''}</span>
+      <b>Submitted</b><span>${fmtDate(g.submittedAt)}</span>
+      <b>Status</b><span>${statusBadge(g.status)}</span>
+    </div>
+    <div class="content-preview-box">${esc(g.description)}</div>
+    ${can('grievances.assign') ? `<div style="margin:12px 0;">
+      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Assigned to</b>
+      <select class="search-mini" style="width:100%;" id="grievance-assign-select">
+        <option value="">Unassigned</option>
+        ${MODERATORS.filter(m=>m.status==='active').map(m=>`<option value="${m.id}" ${g.assignedTo===m.id?'selected':''}>${esc(m.displayName)}</option>`).join('')}
+      </select>
+    </div>` : ''}
+    ${g.status!=='Resolved' && can('grievances.resolve') ? `<hr class="divider"><button class="btn primary sm" data-grievance-act="resolve" data-grievance-id="${g.id}">Mark resolved</button>` : ''}
+  `);
+  const sel = $('#grievance-assign-select');
+  if(sel) sel.onchange = ()=>{
+    g.assignedTo = sel.value || null;
+    if(g.status==='New' && g.assignedTo) g.status='Assigned';
+    logAction({caseId:g.caseId, action:'Grievance reassigned', targetUserId:g.userId, targetContentId:null, reason:g.assignedTo?`Assigned to ${modById(g.assignedTo).displayName}`:'Unassigned', result:'Assignment updated'});
+    toast('Assignment updated.','success');
+    renderGrievanceDetail(id);
+    if(state.view==='grievances') renderGrievances();
+  };
+}
+function handleGrievanceAction(id, act){
+  const g = grievanceById(id);
+  if(act==='resolve'){
+    confirmAction({title:'Mark this grievance resolved?', confirmLabel:'Mark resolved', destructive:false, onConfirm:(reason)=>{
+      g.status='Resolved';
+      logAction({caseId:g.caseId, action:'Grievance resolved', targetUserId:g.userId, targetContentId:null, reason, result:'Resolved'});
+      toast('Grievance resolved.','success');
+      renderGrievanceDetail(id);
+      if(state.view==='grievances') renderGrievances();
+    }});
+  }
+}
+
+/* ============================================================
+   RENDER: NOTIFICATIONS (compose / preview / history)
+   ============================================================ */
+function renderNotifications(){
+  const root = $('#view-root');
+  const history = [...NOTIFICATIONS].sort((a,b)=>new Date(b.sentAt)-new Date(a.sentAt));
+  root.innerHTML = `
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head"><h3>Send a notification</h3></div>
+        <label class="field-label">Recipient</label>
+        <select class="search-mini" style="width:100%; margin-bottom:10px;" id="notif-to">
+          ${USERS.map(u=>`<option value="${u.id}">@${esc(u.username)} \u2014 ${esc(u.displayName)}</option>`).join('')}
+        </select>
+        <label class="field-label">Start from a template (optional)</label>
+        <select class="search-mini" style="width:100%; margin-bottom:10px;" id="notif-template">
+          <option value="">Blank message</option>
+          ${NOTIFICATION_TEMPLATES.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}
+        </select>
+        <label class="field-label">Subject</label>
+        <input class="search-mini" style="width:100%; margin-bottom:10px;" id="notif-subject" placeholder="Subject">
+        <label class="field-label">Message</label>
+        <textarea id="notif-message" placeholder="Message to the user…"></textarea>
+        <div style="margin-top:12px;">
+          <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Preview</b>
+          <div id="notif-preview-box">${notifPreviewCustom('Recipient','Subject','Your message will appear here.')}</div>
+        </div>
+        <div style="margin-top:14px;"><button class="btn primary sm" id="notif-send-btn">Send notification</button></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Notification history</h3></div>
+        ${history.length ? `<div class="timeline">${history.map(n=>{
+          const u = userById(n.toUserId);
+          return `<div class="tl-item"><div class="tl-time">${fmtDate(n.sentAt)}</div><div class="tl-body"><b>${esc(n.subject)}</b> \u2192 ${u?'@'+esc(u.username):'\u2014'}<br><span class="muted">${esc(n.message)}</span></div></div>`;
+        }).join('')}</div>` : emptyState('No notifications sent', 'Notifications you send to users will be logged here.')}
+      </div>
+    </div>
+  `;
+  const tplSel = $('#notif-template');
+  const subjectInput = $('#notif-subject');
+  const msgInput = $('#notif-message');
+  const toSel = $('#notif-to');
+  const syncPreview = ()=>{
+    const u = userById(toSel.value);
+    $('#notif-preview-box').innerHTML = notifPreviewCustom(u?('@'+u.username):'Recipient', subjectInput.value||'Subject', msgInput.value||'Your message will appear here.');
+  };
+  tplSel.onchange = ()=>{
+    const t = templateById(tplSel.value);
+    subjectInput.value = t ? t.subject : '';
+    msgInput.value = t ? t.body : '';
+    syncPreview();
+  };
+  [subjectInput, msgInput, toSel].forEach(el=> el.addEventListener('input', syncPreview));
+  toSel.addEventListener('change', syncPreview);
+  $('#notif-send-btn').onclick = ()=>{
+    const subject = subjectInput.value.trim(), message = msgInput.value.trim();
+    if(!subject || !message){ toast('Subject and message are required.','error'); return; }
+    NOTIFICATIONS.unshift({id:'n'+(NOTIFICATIONS.length+1), toUserId:toSel.value, subject, message, sentAt:new Date().toISOString(), sentBy:state.currentModeratorId, channel:'in-app', caseId:null});
+    toast('Notification sent.','success');
+    renderNotifications();
+  };
+}
+function notifPreviewCustom(from, subject, message){
+  return `<div class="notif-preview">
+    <div class="from">To: ${esc(from)}</div>
+    <div class="msg"><b>${esc(subject)}</b><br>${esc(message)}</div>
+    <div class="meta">Preview \u2014 not yet sent</div>
+  </div>`;
+}
+
+/* ============================================================
+   RENDER: NOTIFICATION TEMPLATES
+   ============================================================ */
+function renderTemplates(){
+  const root = $('#view-root');
+  root.innerHTML = `
+    <div class="panel-head" style="margin-bottom:10px;"><div></div><button class="btn primary sm" id="new-template-btn">+ New template</button></div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${NOTIFICATION_TEMPLATES.length ? `<table class="dtable"><thead><tr><th>Name</th><th>Category</th><th>Subject</th></tr></thead><tbody>
+    ${NOTIFICATION_TEMPLATES.map(t=>`<tr data-open-template="${t.id}"><td><b>${esc(t.name)}</b></td><td class="muted">${esc(t.category)}</td><td class="muted">${esc(t.subject)}</td></tr>`).join('')}
+    </tbody></table>` : emptyState('No templates yet', 'Reusable notification templates will show up here.')}
+    </div></div>
+  `;
+  $('#new-template-btn').onclick = ()=>{
+    openModal(`
+      <h3>New template</h3>
+      <label class="field-label">Name</label>
+      <input class="search-mini" style="width:100%; margin-bottom:8px;" id="tpl-name" placeholder="Template name">
+      <label class="field-label">Category</label>
+      <input class="search-mini" style="width:100%; margin-bottom:8px;" id="tpl-category" placeholder="e.g. Enforcement">
+      <label class="field-label">Subject</label>
+      <input class="search-mini" style="width:100%; margin-bottom:8px;" id="tpl-subject" placeholder="Subject line">
+      <label class="field-label">Body</label>
+      <textarea id="tpl-body" placeholder="Use {{username}}, {{reason}}, {{caseId}}\u2026"></textarea>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+        <button class="btn primary sm" id="tpl-save-btn">Save template</button>
+      </div>
+    `);
+    $('#tpl-save-btn').onclick = ()=>{
+      const name = $('#tpl-name').value.trim();
+      const body = $('#tpl-body').value.trim();
+      if(!name || !body){ toast('Name and body are required.','error'); return; }
+      NOTIFICATION_TEMPLATES.push({id:'t'+(NOTIFICATION_TEMPLATES.length+1), name, category:$('#tpl-category').value.trim()||'General', subject:$('#tpl-subject').value.trim(), body});
+      toast('Template saved.','success');
+      closeModal();
+      renderTemplates();
+    };
+  };
+}
+function renderTemplateDetail(id){
+  const t = templateById(id);
+  if(!t) return;
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">${esc(t.name)}</h2>
+    <span class="badge grey" style="margin-bottom:10px; display:inline-block;">${esc(t.category)}</span>
+    <label class="field-label">Subject</label>
+    <input class="search-mini" style="width:100%; margin-bottom:8px;" id="tpl-edit-subject" value="${esc(t.subject)}">
+    <label class="field-label">Body</label>
+    <textarea id="tpl-edit-body" style="min-height:140px;">${esc(t.body)}</textarea>
+    <div style="display:flex; gap:8px; margin-top:12px;">
+      <button class="btn primary sm" id="tpl-save-edit-btn">Save changes</button>
+      <button class="btn ghost sm" data-nav="notifications">Use in Notifications</button>
+    </div>
+  `);
+  $('#tpl-save-edit-btn').onclick = ()=>{
+    t.subject = $('#tpl-edit-subject').value.trim();
+    t.body = $('#tpl-edit-body').value.trim();
+    toast('Template updated.','success');
+    closeDrawer();
+    if(state.view==='templates') renderTemplates();
+  };
+}
+
+/* ============================================================
+   RENDER: ANNOUNCEMENTS
+   ============================================================ */
+function renderAnnouncements(){
+  const root = $('#view-root');
+  const list = [...ANNOUNCEMENTS].sort((a,b)=> new Date(b.publishedAt||0) - new Date(a.publishedAt||0));
+  root.innerHTML = `
+    <div class="panel-head" style="margin-bottom:10px;"><div></div>${can('notifications.broadcast')?`<button class="btn primary sm" id="new-announcement-btn">+ New announcement</button>`:''}</div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>Title</th><th>Audience</th><th>Status</th><th>Published</th></tr></thead><tbody>
+    ${list.map(a=>`<tr data-open-announcement="${a.id}"><td><b>${esc(a.title)}</b></td><td class="muted">${esc(a.audience)}</td><td>${statusBadge(a.status)}</td><td class="muted">${a.publishedAt?fmtDate(a.publishedAt):'\u2014'}</td></tr>`).join('')}
+    </tbody></table>` : emptyState('No announcements', 'Platform-wide announcements will show up here.')}
+    </div></div>
+  `;
+  const btn = $('#new-announcement-btn');
+  if(btn) btn.onclick = ()=>{
+    openModal(`
+      <h3>New announcement</h3>
+      <label class="field-label">Title</label>
+      <input class="search-mini" style="width:100%; margin-bottom:8px;" id="an-title" placeholder="Announcement title">
+      <label class="field-label">Audience</label>
+      <select class="search-mini" style="width:100%; margin-bottom:8px;" id="an-audience">
+        <option>All users</option><option>All moderators</option>
+      </select>
+      <label class="field-label">Body</label>
+      <textarea id="an-body" placeholder="Announcement text\u2026"></textarea>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+        <button class="btn primary sm" id="an-save-btn">Save as draft</button>
+      </div>
+    `);
+    $('#an-save-btn').onclick = ()=>{
+      const title = $('#an-title').value.trim(), body = $('#an-body').value.trim();
+      if(!title || !body){ toast('Title and body are required.','error'); return; }
+      ANNOUNCEMENTS.unshift({id:'an'+(ANNOUNCEMENTS.length+1), title, body, audience:$('#an-audience').value, status:'Draft', publishedAt:null, publishedBy:state.currentModeratorId});
+      toast('Announcement saved as draft.','success');
+      closeModal();
+      renderAnnouncements();
+    };
+  };
+}
+function renderAnnouncementDetail(id){
+  const a = announcementById(id);
+  if(!a) return;
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">${esc(a.title)}</h2>
+    <div class="kv">
+      <b>Audience</b><span>${esc(a.audience)}</span>
+      <b>Status</b><span>${statusBadge(a.status)}</span>
+      <b>Published</b><span>${a.publishedAt?fmtDate(a.publishedAt):'Not yet published'}</span>
+    </div>
+    <div class="content-preview-box">${esc(a.body)}</div>
+    ${a.status==='Draft' && can('notifications.broadcast') ? `<hr class="divider"><button class="btn primary sm" data-announcement-act="publish" data-announcement-id="${a.id}">Publish now</button>` : ''}
+    ${a.status==='Published' && can('notifications.broadcast') ? `<hr class="divider"><button class="btn ghost sm" data-announcement-act="unpublish" data-announcement-id="${a.id}">Unpublish</button>` : ''}
+  `);
+}
+function handleAnnouncementAction(id, act){
+  const a = announcementById(id);
+  confirmAction({title: act==='publish'?'Publish this announcement now?':'Unpublish this announcement?', confirmLabel: act==='publish'?'Publish':'Unpublish', destructive:act==='unpublish', requireReason:false, onConfirm:()=>{
+    if(act==='publish'){ a.status='Published'; a.publishedAt=new Date().toISOString(); }
+    if(act==='unpublish'){ a.status='Draft'; }
+    toast('Announcement updated.','success');
+    renderAnnouncementDetail(id);
+    if(state.view==='announcements') renderAnnouncements();
+  }});
+}
+
+/* ============================================================
+   RENDER: RISK SIGNALS  (computed from live data)
+   ============================================================ */
+function renderRiskSignals(){
+  const root = $('#view-root');
+  const now = Date.now();
+  const last7 = REPORTS.filter(r=> now-new Date(r.createdAt) < 7*86400000).length;
+  const prev7 = REPORTS.filter(r=>{ const d=now-new Date(r.createdAt); return d>=7*86400000 && d<14*86400000; }).length;
+  const trend = prev7===0 ? (last7>0?'up':'flat') : (last7>prev7?'up':last7<prev7?'down':'flat');
+  const activeRestrictionUsers = new Set(RESTRICTIONS.filter(x=>x.status==='active').map(x=>x.userId)).size;
+  const reasonCounts = {};
+  REPORTS.forEach(r=> reasonCounts[r.reason]=(reasonCounts[r.reason]||0)+1);
+  const topReason = Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1])[0];
+  const flagged = USERS.map(u=>{
+    const restrCount = RESTRICTIONS.filter(x=>x.userId===u.id).length;
+    const reportCount = REPORTS.filter(r=>r.reportedUser===u.id).length;
+    return {u, score: restrCount*2 + reportCount};
+  }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,6);
+
+  root.innerHTML = `
+    <div class="stat-grid">
+      ${statCard('Reports, last 7 days', last7, trend==='up'?'trending up vs prior week':trend==='down'?'trending down vs prior week':'flat vs prior week', 'var(--orange)')}
+      ${statCard('Users with active restrictions', activeRestrictionUsers, 'currently limited in some way', 'var(--gold)')}
+      ${statCard('Top report reason', topReason?topReason[1]:0, topReason?topReason[0]:'\u2014', 'var(--red)')}
+      ${statCard('Flagged users', flagged.length, 'elevated risk score', 'var(--lavender)')}
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Highest risk-score users</h3></div>
+      ${flagged.length ? `<table class="dtable"><thead><tr><th>User</th><th>Restrictions</th><th>Reports against</th><th>Risk score</th></tr></thead><tbody>
+      ${flagged.map(f=>`<tr data-open-user="${f.u.id}">
+        <td>@${esc(f.u.username)}</td>
+        <td class="muted">${RESTRICTIONS.filter(x=>x.userId===f.u.id).length}</td>
+        <td class="muted">${REPORTS.filter(r=>r.reportedUser===f.u.id).length}</td>
+        <td><span class="badge ${f.score>=5?'red':f.score>=3?'gold':'sky'}">${f.score}</span></td>
+      </tr>`).join('')}</tbody></table>` : emptyState('No elevated-risk users', 'Users with repeated reports or restrictions will surface here.')}
+    </div>
+  `;
+}
+
+/* ============================================================
+   RENDER: REPEAT OFFENDERS  (computed from live data)
+   ============================================================ */
+function renderRepeatOffenders(){
+  const root = $('#view-root');
+  const list = USERS.map(u=>{
+    const restrictions = RESTRICTIONS.filter(x=>x.userId===u.id);
+    const reports = REPORTS.filter(r=>r.reportedUser===u.id);
+    return {u, restrictions, reports};
+  }).filter(x=>x.restrictions.length>=2 || x.reports.length>=2)
+    .sort((a,b)=> (b.restrictions.length+b.reports.length) - (a.restrictions.length+a.reports.length));
+
+  root.innerHTML = `
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>User</th><th>Status</th><th>Total restrictions</th><th>Active now</th><th>Total reports</th><th>Last incident</th></tr></thead><tbody>
+    ${list.map(x=>{
+      const lastAt = [...x.restrictions.map(r=>r.start), ...x.reports.map(r=>r.createdAt)].sort().reverse()[0];
+      return `<tr data-open-user="${x.u.id}">
+        <td>@${esc(x.u.username)}</td>
+        <td>${statusBadge(x.u.status)}</td>
+        <td class="muted">${x.restrictions.length}</td>
+        <td class="muted">${x.restrictions.filter(r=>r.status==='active').length}</td>
+        <td class="muted">${x.reports.length}</td>
+        <td class="muted">${lastAt?fmtDate(lastAt):'\u2014'}</td>
+      </tr>`;
+    }).join('')}</tbody></table>` : emptyState('No repeat offenders', 'Users with two or more restrictions or reports will show up here.')}
+    </div></div>
+  `;
+}
+
+/* ============================================================
+   RENDER: ASSIGNMENTS (moderator workload)
+   ============================================================ */
+function renderAssignments(){
+  const root = $('#view-root');
+  const activeMods = MODERATORS.filter(m=>m.role==='moderator' && m.status==='active');
+  const unassignedReports = REPORTS.filter(r=>!r.assignedTo && (r.status==='New'||r.status==='Under Review')).length;
+  const unassignedGrievances = GRIEVANCES.filter(g=>!g.assignedTo && g.status!=='Resolved').length;
+  root.innerHTML = `
+    <div class="stat-grid">
+      ${statCard('Unassigned reports', unassignedReports, 'waiting for a moderator', 'var(--orange)')}
+      ${statCard('Unassigned grievances', unassignedGrievances, 'waiting for a moderator', 'var(--gold)')}
+      ${statCard('Active moderators', activeMods.length, 'available for assignment', 'var(--mint)')}
+      ${statCard('Open cases', getCaseSummaries().filter(c=>c.status!=='Resolved').length, 'across all queues', 'var(--lavender)')}
+    </div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    <table class="dtable"><thead><tr><th>Moderator</th><th>Open reports</th><th>Open grievances</th><th>Active restrictions issued</th><th>Total workload</th></tr></thead><tbody>
+    ${activeMods.map(m=>{
+      const rep = REPORTS.filter(r=>r.assignedTo===m.id && (r.status==='New'||r.status==='Under Review')).length;
+      const gr = GRIEVANCES.filter(g=>g.assignedTo===m.id && g.status!=='Resolved').length;
+      const restr = RESTRICTIONS.filter(x=>x.moderatorId===m.id && x.status==='active').length;
+      return `<tr data-open-mod="${m.id}">
+        <td class="name-cell"><span class="mini-av">${esc(m.displayName[0])}</span><b>${esc(m.displayName)}</b></td>
+        <td class="muted">${rep}</td>
+        <td class="muted">${gr}</td>
+        <td class="muted">${restr}</td>
+        <td><span class="badge ${(rep+gr)>=3?'gold':'sky'}">${rep+gr}</span></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>
+    </div></div>
+  `;
+}
+
+/* ============================================================
+   RENDER: PERMISSIONS (Admin only — granular per-moderator editing)
+   ============================================================ */
+function renderPermissions(){
+  const root = $('#view-root');
+  if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'Only Admins can view or edit moderator permissions.'); return; }
+  const mods = MODERATORS.filter(m=>m.role==='moderator');
+  root.innerHTML = `
+    <p class="sub" style="margin-bottom:14px;">Every moderator gets the full permission set by default. Revoke individual permissions per person here \u2014 nothing here is enforced server-side yet (see the security note at the top of this file once Supabase is wired up).</p>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    <table class="dtable"><thead><tr><th>Moderator</th><th>Status</th><th>Permissions granted</th><th></th></tr></thead><tbody>
+    ${mods.map(m=>`<tr>
+      <td class="name-cell"><span class="mini-av">${esc(m.displayName[0])}</span><b>${esc(m.displayName)}</b></td>
+      <td>${statusBadge(m.status)}</td>
+      <td class="muted">${(m.permissions||[]).length} of ${PERMISSIONS.length}</td>
+      <td><button class="btn ghost sm" data-edit-perms="${m.id}">Edit permissions</button></td>
+    </tr>`).join('')}
+    </tbody></table>
+    </div></div>
+  `;
+}
+function renderPermissionsEditor(modId){
+  const m = modById(modId);
+  if(!m) return;
+  const perms = new Set(m.permissions||[]);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Permissions \u2014 ${esc(m.displayName)}</h2>
+    <p class="sub" style="margin-bottom:12px;">Uncheck anything this moderator shouldn\u2019t have access to.</p>
+    ${PERMISSION_GROUPS.map(g=>`
+      <div style="margin-bottom:14px;">
+        <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">${esc(g.label)}</b>
+        ${g.perms.map(p=>`<label class="radio-pill" style="display:flex; margin-bottom:6px; width:100%; box-sizing:border-box;"><input type="checkbox" class="perm-check" value="${p}" ${perms.has(p)?'checked':''}> ${esc(p)}</label>`).join('')}
+      </div>
+    `).join('')}
+    <div class="modal-actions" style="justify-content:flex-start;">
+      <button class="btn primary sm" id="save-perms-btn">Save permissions</button>
+    </div>
+  `);
+  $('#save-perms-btn').onclick = ()=>{
+    const checked = $$('.perm-check').filter(c=>c.checked).map(c=>c.value);
+    m.permissions = checked;
+    SYSTEM_AUDIT_LOG.unshift({id:'sa'+(SYSTEM_AUDIT_LOG.length+1), at:new Date().toISOString(), actorId:state.currentModeratorId, event:'Permission changed', detail:`Updated permissions for ${m.displayName} (${checked.length} of ${PERMISSIONS.length} granted).`, severity:'info'});
+    toast('Permissions updated.','success');
+    closeDrawer();
+    if(state.view==='permissions') renderPermissions();
+  };
+}
+
+/* ============================================================
+   RENDER: SYSTEM AUDIT LOG (Admin only)
+   ============================================================ */
+function renderSystemAudit(){
+  const root = $('#view-root');
+  if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'The System Audit Log is only visible to Admins.'); return; }
+  const list = [...SYSTEM_AUDIT_LOG].sort((a,b)=>new Date(b.at)-new Date(a.at));
+  root.innerHTML = `
+    <div class="immutable-note">\uD83D\uDD12 Admin-only, unfiltered platform activity \u2014 separate from the Moderation Log every role can see.</div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    ${list.length ? `<table class="dtable"><thead><tr><th>When</th><th>Actor</th><th>Event</th><th>Detail</th><th>Severity</th></tr></thead><tbody>
+    ${list.map(s=>{
+      const a = modById(s.actorId);
+      return `<tr><td class="muted">${fmtDate(s.at)}</td><td>${a?esc(a.displayName):'System'}</td><td><b>${esc(s.event)}</b></td><td class="muted">${esc(s.detail)}</td><td><span class="badge ${s.severity==='warning'?'gold':'sky'}">${esc(s.severity)}</span></td></tr>`;
+    }).join('')}</tbody></table>` : emptyState('No system events', 'Platform and security-level events will show up here.')}
+    </div></div>
+  `;
+}
+
+/* ============================================================
+   RENDER: POLICIES
+   ============================================================ */
+function renderPolicies(){
+  const root = $('#view-root');
+  root.innerHTML = `
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
+    <table class="dtable"><thead><tr><th>Policy</th><th>Category</th><th>Current version</th><th>Last updated</th></tr></thead><tbody>
+    ${POLICIES.map(p=>`<tr data-open-policy="${p.id}"><td><b>${esc(p.title)}</b></td><td class="muted">${esc(p.category)}</td><td><span class="badge grey">${esc(p.currentVersion)}</span></td><td class="muted">${esc(p.lastUpdated)}</td></tr>`).join('')}
+    </tbody></table>
+    </div></div>
+  `;
+}
+function renderPolicyDetail(id){
+  const p = policyById(id);
+  if(!p) return;
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">${esc(p.title)}</h2>
+    <div class="kv">
+      <b>Category</b><span>${esc(p.category)}</span>
+      <b>Current version</b><span>${esc(p.currentVersion)}</span>
+      <b>Last updated</b><span>${esc(p.lastUpdated)} by ${esc(modById(p.updatedBy).displayName)}</span>
+    </div>
+    <div class="content-preview-box">${esc(p.body)}</div>
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Version history</h4>
+    <div class="timeline">${p.versions.map(v=>`<div class="tl-item"><div class="tl-time">${esc(v.date)}</div><div class="tl-body"><b>${esc(v.version)}</b><br><span class="muted">${esc(v.summary)}</span></div></div>`).join('')}</div>
+    ${isAdmin() ? `<hr class="divider"><button class="btn primary sm" id="new-policy-version-btn">Publish new version</button>` : ''}
+  `);
+  const btn = $('#new-policy-version-btn');
+  if(btn) btn.onclick = ()=>{
+    openModal(`
+      <h3>Publish a new version of "${esc(p.title)}"</h3>
+      <label class="field-label">Version label</label>
+      <input class="search-mini" style="width:100%; margin-bottom:8px;" id="pv-version" placeholder="e.g. v3.3">
+      <label class="field-label">Summary of changes</label>
+      <textarea id="pv-summary" placeholder="What changed in this version\u2026"></textarea>
+      <div class="modal-actions">
+        <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+        <button class="btn primary sm" id="pv-save-btn">Publish</button>
+      </div>
+    `);
+    $('#pv-save-btn').onclick = ()=>{
+      const version = $('#pv-version').value.trim(), summary = $('#pv-summary').value.trim();
+      if(!version || !summary){ toast('Version and summary are required.','error'); return; }
+      const date = new Date().toISOString().slice(0,10);
+      p.versions.unshift({version, date, summary});
+      p.currentVersion = version; p.lastUpdated = date; p.updatedBy = state.currentModeratorId;
+      toast('New policy version published.','success');
+      closeModal();
+      renderPolicyDetail(id);
+      if(state.view==='policies') renderPolicies();
+    };
+  };
+}
+
+/* ============================================================
    VIEW DISPATCH
    ============================================================ */
 const VIEW_TITLES = {
@@ -1431,42 +2558,14 @@ const VIEW_TITLES = {
   policies:'Policies', settings:'Settings',
 };
 
-// Sections defined in the Phase 5 IA that aren't built yet in this pass.
-// Each notes what backend model/spec section it needs so a future pass
-// can pick it up without re-deriving the plan.
-const STUB_INFO = {
-  cases:            {note:'Needs the central Case record tying reports, content, appeals and copyright items together (spec §5–6) before this can replace the per-queue views below.'},
-  copyright:        {note:'Needs a copyright_claims table and reviewer workflow (spec, Legal & Rights). Copyright Reviewers will land here first once wired up.'},
-  privacy:          {note:'Needs a privacy_requests table and its own retention/response-time rules.'},
-  grievances:       {note:'Needs a grievances table distinct from Reports, routed to Support/Grievance Staff.'},
-  notifications:    {note:'Needs an outbound notification log and template system tied to Supabase.'},
-  templates:        {note:'Reusable response/notice templates — depends on the Notifications data model above.'},
-  announcements:    {note:'Platform-wide broadcast messages — Admin/Senior Mod only once permissioned.'},
-  'risk-signals':   {note:'Needs aggregated signal data (report velocity, repeat flags) — depends on analytics groundwork.'},
-  'repeat-offenders':{note:'Needs a rollup view over Users + Restrictions + Reports history.'},
-  assignments:      {note:'Cross-queue "who has what" view — depends on the Case model above.'},
-  permissions:      {note:'Per-moderator permission editing UI for Admins. The data model already exists (see each moderator\u2019s `permissions` array) — this view just needs building.'},
-  'system-audit':   {note:'Admin-only, unfiltered audit trail (spec §27) — distinct from the Moderation Log every role can see.'},
-  policies:         {note:'Editable policy/reference text shown to moderators during review.'},
-};
-
-function renderComingSoon(view){
-  const root = $('#view-root');
-  const info = STUB_INFO[view] || {};
-  root.innerHTML = `<div class="panel">${emptyState('Coming in a later phase', info.note || 'This section isn\u2019t built yet.')}</div>`;
-}
-
 const VIEW_RENDERERS = {
   overview:renderOverview, reports:renderReports, users:renderUsers, content:renderContent,
   restrictions:renderRestrictions, appeals:renderAppeals, log:renderLog,
   moderators:renderModerators, settings:renderSettings,
-  cases:()=>renderComingSoon('cases'), copyright:()=>renderComingSoon('copyright'),
-  privacy:()=>renderComingSoon('privacy'), grievances:()=>renderComingSoon('grievances'),
-  notifications:()=>renderComingSoon('notifications'), templates:()=>renderComingSoon('templates'),
-  announcements:()=>renderComingSoon('announcements'), 'risk-signals':()=>renderComingSoon('risk-signals'),
-  'repeat-offenders':()=>renderComingSoon('repeat-offenders'), assignments:()=>renderComingSoon('assignments'),
-  permissions:()=>renderComingSoon('permissions'), 'system-audit':()=>renderComingSoon('system-audit'),
-  policies:()=>renderComingSoon('policies'),
+  cases:renderCases, copyright:renderCopyright, privacy:renderPrivacy, grievances:renderGrievances,
+  notifications:renderNotifications, templates:renderTemplates, announcements:renderAnnouncements,
+  'risk-signals':renderRiskSignals, 'repeat-offenders':renderRepeatOffenders, assignments:renderAssignments,
+  permissions:renderPermissions, 'system-audit':renderSystemAudit, policies:renderPolicies,
 };
 
 function goto(view){
@@ -1515,11 +2614,50 @@ document.addEventListener('click', (e)=>{
   if(openCase){ renderCaseTimeline(openCase.dataset.openCase); return; }
   const openMod = e.target.closest('[data-open-mod]');
   if(openMod){ renderModeratorActivity(openMod.dataset.openMod); return; }
+  const openRestriction = e.target.closest('[data-open-restriction]');
+  if(openRestriction){ renderRestrictionDetail(openRestriction.dataset.openRestriction); return; }
+  const openCaseFull = e.target.closest('[data-open-case-full]');
+  if(openCaseFull){ renderCaseWorkspace(openCaseFull.dataset.openCaseFull); return; }
+  const openCopyright = e.target.closest('[data-open-copyright]');
+  if(openCopyright){ renderCopyrightDetail(openCopyright.dataset.openCopyright); return; }
+  const openPrivacy = e.target.closest('[data-open-privacy]');
+  if(openPrivacy){ renderPrivacyDetail(openPrivacy.dataset.openPrivacy); return; }
+  const openGrievance = e.target.closest('[data-open-grievance]');
+  if(openGrievance){ renderGrievanceDetail(openGrievance.dataset.openGrievance); return; }
+  const openTemplate = e.target.closest('[data-open-template]');
+  if(openTemplate){ renderTemplateDetail(openTemplate.dataset.openTemplate); return; }
+  const openAnnouncement = e.target.closest('[data-open-announcement]');
+  if(openAnnouncement){ renderAnnouncementDetail(openAnnouncement.dataset.openAnnouncement); return; }
+  const openPolicy = e.target.closest('[data-open-policy]');
+  if(openPolicy){ renderPolicyDetail(openPolicy.dataset.openPolicy); return; }
+  const editPerms = e.target.closest('[data-edit-perms]');
+  if(editPerms){ renderPermissionsEditor(editPerms.dataset.editPerms); return; }
 
+  const restrictionFilter = e.target.closest('[data-restriction-filter]');
+  if(restrictionFilter){ state.restrictionFilter = restrictionFilter.dataset.restrictionFilter; renderRestrictions(); return; }
+  const caseFilter = e.target.closest('[data-case-filter]');
+  if(caseFilter){ state.caseFilter = caseFilter.dataset.caseFilter; renderCases(); return; }
+  const copyrightFilter = e.target.closest('[data-copyright-filter]');
+  if(copyrightFilter){ state.copyrightFilter = copyrightFilter.dataset.copyrightFilter; renderCopyright(); return; }
+  const privacyFilter = e.target.closest('[data-privacy-filter]');
+  if(privacyFilter){ state.privacyFilter = privacyFilter.dataset.privacyFilter; renderPrivacy(); return; }
+  const grievanceFilter = e.target.closest('[data-grievance-filter]');
+  if(grievanceFilter){ state.grievanceFilter = grievanceFilter.dataset.grievanceFilter; renderGrievances(); return; }
   const reportFilter = e.target.closest('[data-report-filter]');
   if(reportFilter){ state.reportFilter = reportFilter.dataset.reportFilter; renderReports(); return; }
   const contentFilter = e.target.closest('[data-content-filter]');
   if(contentFilter){ state.contentFilter = contentFilter.dataset.contentFilter; renderContent(); return; }
+
+  const linkedItem = e.target.closest('.linked-item');
+  if(linkedItem){
+    if(linkedItem.hasAttribute('data-open-report')) renderReportDetail(linkedItem.getAttribute('data-open-report'));
+    else if(linkedItem.hasAttribute('data-open-restriction')) renderRestrictionDetail(linkedItem.getAttribute('data-open-restriction'));
+    else if(linkedItem.hasAttribute('data-open-appeal')) renderAppealDetail(linkedItem.getAttribute('data-open-appeal'));
+    else if(linkedItem.hasAttribute('data-open-copyright')) renderCopyrightDetail(linkedItem.getAttribute('data-open-copyright'));
+    else if(linkedItem.hasAttribute('data-open-privacy')) renderPrivacyDetail(linkedItem.getAttribute('data-open-privacy'));
+    else if(linkedItem.hasAttribute('data-open-grievance')) renderGrievanceDetail(linkedItem.getAttribute('data-open-grievance'));
+    return;
+  }
 
   const setPriority = e.target.closest('[data-set-priority]');
   if(setPriority){
@@ -1540,6 +2678,14 @@ document.addEventListener('click', (e)=>{
   if(appealAct){ handleAppealAction(appealAct.dataset.appealId, appealAct.dataset.appealAct); return; }
   const modAct = e.target.closest('[data-mod-act]');
   if(modAct){ handleModAction(modAct.dataset.modId, modAct.dataset.modAct); return; }
+  const copyrightAct = e.target.closest('[data-copyright-act]');
+  if(copyrightAct){ handleCopyrightAction(copyrightAct.dataset.copyrightId, copyrightAct.dataset.copyrightAct); return; }
+  const privacyAct = e.target.closest('[data-privacy-act]');
+  if(privacyAct){ handlePrivacyAction(privacyAct.dataset.privacyId, privacyAct.dataset.privacyAct); return; }
+  const grievanceAct = e.target.closest('[data-grievance-act]');
+  if(grievanceAct){ handleGrievanceAction(grievanceAct.dataset.grievanceId, grievanceAct.dataset.grievanceAct); return; }
+  const announcementAct = e.target.closest('[data-announcement-act]');
+  if(announcementAct){ handleAnnouncementAction(announcementAct.dataset.announcementId, announcementAct.dataset.announcementAct); return; }
 
   const bulkAction = e.target.closest('[data-bulk-action]');
   if(bulkAction){
@@ -1577,7 +2723,7 @@ document.addEventListener('click', (e)=>{
     if(kind==='user'){ goto('users'); renderUserDetail(id); }
     else if(kind==='content'){ goto('content'); renderContentDetail(id); }
     else if(kind==='report'){ goto('reports'); renderReportDetail(id); }
-    else if(kind==='case'){ goto('log'); renderCaseTimeline(id); }
+    else if(kind==='case'){ if(can('cases.view')){ goto('cases'); renderCaseWorkspace(id); } else { goto('log'); renderCaseTimeline(id); } }
     else if(kind==='mod'){ goto('moderators'); if(can('moderators.view')) renderModeratorActivity(id); }
     return;
   }
