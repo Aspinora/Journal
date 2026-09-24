@@ -1634,9 +1634,9 @@ function authorAvatarUrl(authorId){
   if (state.currentUser && state.currentUser.id === authorId) return state.currentUser.avatar_url || '';
   return '';
 }
-/* Renders the fetched provider photo (Google avatar, persisted to
-   Supabase Storage — see persistProviderProfileData()) when one is
-   on file; otherwise falls back to the lettered avatar. */
+/* Renders the person's uploaded avatar (Portfolio > Edit Profile,
+   stored in the profile-media Storage bucket) when one is on file;
+   otherwise falls back to the lettered avatar. */
 function avatarHTML(userId, name, sizeClass){
   const avatarUrl = authorAvatarUrl(userId);
   if (avatarUrl){
@@ -2001,134 +2001,20 @@ async function signInWithOAuth(provider, intent){
   });
   if (error) showToast(error.message || ('Could not start ' + provider + ' sign-in.'));
 }
-/* First-time sign-in only: pulls the avatar photo and email the
-   provider gave us and saves them onto the profiles row — downloading
-   and re-uploading the photo to the already-created "avatars"
-   Supabase Storage bucket rather than linking the provider's URL
-   directly, since those URLs are often temporary/expire. Best-effort:
-   any failure here just means the person keeps their lettered avatar,
-   nothing else blocks on it. Also runs (harmlessly) for email/password
-   accounts, where there's just no avatar to fetch. */
-const AVATAR_MAX_BYTES = 20 * 1024; // hard budget: stored avatars must be under 20KB
-const AVATAR_MAX_DIMENSION = 512; // starting cap — only shrunk further if still over budget
-/* Resizes + compresses a fetched avatar image down to AVATAR_MAX_BYTES
-   entirely client-side (canvas), before it ever reaches Supabase
-   Storage. Two things this deliberately protects:
-     - No distortion: width/height are always scaled by the SAME
-       factor (never stretched to a fixed square), so the photo's
-       proportions are preserved exactly. Cropping to a circle/square
-       for display is left to CSS (avatarHTML already uses
-       object-fit:cover) rather than baked into the stored file.
-     - Quality is spent as a last resort, not a first one: since
-       avatars render small in the UI, shrinking the pixel dimensions
-       first is visually lossless at display size and buys most of the
-       size reduction. Only once dimensions hit a reasonable floor does
-       this start trading JPEG quality for size, and even then it
-       starts at 0.92 (very high) and steps down gradually rather than
-       jumping straight to something visibly lossy.
-   Best-effort: if canvas/createImageBitmap isn't available, or every
-   attempt still can't hit budget, it returns the smallest/highest-
-   quality result it managed rather than failing the whole upload. */
-async function compressAvatarBlob(blob){
-  const bitmap = await createImageBitmap(blob).catch(function(){ return null; });
-  if (!bitmap) return blob; // unsupported in this browser — upload the original rather than fail
-  let width = bitmap.width;
-  let height = bitmap.height;
-  const initialScale = Math.min(1, AVATAR_MAX_DIMENSION / Math.max(width, height));
-  width = Math.max(1, Math.round(width * initialScale));
-  height = Math.max(1, Math.round(height * initialScale));
-
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-
-  let quality = 0.92;
-  let best = null;
-  for (let attempt = 0; attempt < 14; attempt++){
-    canvas.width = width;
-    canvas.height = height;
-    ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(bitmap, 0, 0, width, height);
-    const candidate = await new Promise(function(resolve){ canvas.toBlob(resolve, 'image/jpeg', quality); });
-    if (!candidate) break;
-    if (!best || candidate.size < best.size) best = candidate;
-    if (candidate.size <= AVATAR_MAX_BYTES) return candidate;
-    if (quality > 0.55){
-      quality -= 0.08; // spend quality headroom first…
-    } else {
-      // …then, once quality is already fairly low, shrink dimensions
-      // instead of degrading quality further — same aspect ratio,
-      // so still no distortion — and reset quality back up for the
-      // smaller size.
-      width = Math.max(24, Math.round(width * 0.85));
-      height = Math.max(24, Math.round(height * 0.85));
-      quality = 0.85;
-    }
-  }
-  return best || blob;
-}
-async function persistProviderProfileData(authUser, userId){
-  if (!AUTH_LIVE || !authUser) return {};
-  const meta = authUser.user_metadata || {};
-  const avatarSourceUrl = meta.avatar_url || meta.picture || '';
-  const email = authUser.email || '';
-  const updates = {};
-  if (email) updates.email = email;
-  if (avatarSourceUrl){
-    try{
-      const res = await fetch(avatarSourceUrl);
-      if (!res.ok) throw new Error('Provider image request failed: HTTP ' + res.status);
-      const rawBlob = await res.blob();
-      const compressed = await compressAvatarBlob(rawBlob);
-      // Fixed filename + fixed content-type now that every avatar is
-      // normalised to compressed JPEG here, regardless of what format
-      // the provider originally served.
-      const path = userId + '/avatar.jpg';
-      const { error: uploadError } = await supabaseClient.storage.from('avatars')
-        .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' });
-      if (uploadError) throw uploadError;
-      const { data: pub } = supabaseClient.storage.from('avatars').getPublicUrl(path);
-      if (!pub || !pub.publicUrl) throw new Error('getPublicUrl() returned no URL — is the "avatars" bucket set Public?');
-      // Cache-bust: the storage path is the same on every re-sync
-      // (upsert overwrites it), so without a changing query string
-      // browsers/CDN would keep showing a stale cached copy after the
-      // photo actually changed.
-      updates.avatar_url = pub.publicUrl + '?v=' + Date.now();
-    }catch(e){
-      // The single most common cause landing here is the provider's
-      // image host not sending CORS headers permissive enough for
-      // fetch() to read the bytes — this varies by provider/URL and
-      // isn't something fixable from this side. Rather than end up
-      // with no avatar update at all, fall back to linking the
-      // provider's URL directly: no compression and not re-hosted in
-      // our own Storage bucket, but a real, working "new avatar" still
-      // shows up. (A Storage upload/RLS problem would also land here —
-      // check the console message to tell which one happened.)
-      console.warn('Could not fetch/compress/store provider avatar — falling back to a direct link:', e);
-      updates.avatar_url = avatarSourceUrl;
-    }
-  }
-  if (Object.keys(updates).length){
-    try{
-      // Same silent-failure trap as completeUsernameOnboarding's
-      // update — .select() + a row check turns a quietly-blocked RLS
-      // update into a visible warning instead of a no-op.
-      const { data, error } = await supabaseClient.from('profiles').update(updates).eq('id', userId).select('id');
-      if (error) throw error;
-      if (!data || !data.length){
-        console.warn('Provider profile data not saved — check the profiles UPDATE RLS policy.');
-        delete updates.avatar_url; // wasn't actually saved — don't tell callers it was
-        delete updates.email;
-      }
-    }catch(e){
-      console.warn('Could not save provider profile data:', e);
-      delete updates.avatar_url;
-      delete updates.email;
-    }
-  }
-  return updates;
-}
+/* Removed 2026-09-24 (Phase 4 audit, item L1): this used to be
+   persistProviderProfileData() + compressAvatarBlob(), run after
+   every OAuth sign-in to copy the provider's avatar photo into
+   Supabase Storage. It was dead code — it uploaded to a Storage
+   bucket named "avatars", which was never actually created (the
+   real bucket is "profile-media"), and it also tried to save an
+   `email` column that doesn't exist on `profiles`. Both writes
+   failed on every single run; the only effect was a wasted
+   fetch+compress+two-failed-network-calls that delayed the
+   post-login redirect for every returning social-sign-in user.
+   Provider avatars are simply never auto-synced now — a person's
+   avatar is whatever they upload themselves via Portfolio > Edit
+   Profile (which correctly targets profile-media), or the lettered
+   placeholder until they do. */
 const USERNAME_HINT_DEFAULT = '3–20 characters: lowercase letters, numbers or underscores.';
 function resetUsernameHint(hintId){
   const hint = qs('#' + (hintId || 'onboard-username-hint'));
@@ -2202,8 +2088,7 @@ function wireUsernameLiveCheck(inputId, hintId){
     }, 400);
   });
 }
-/* Validates + uniqueness-checks the chosen username, saves it (plus
-   whatever avatar/email persistProviderProfileData can find), and
+/* Validates + uniqueness-checks the chosen username, saves it, and
    updates local state — the one path that clears needsUsername(). */
 async function completeUsernameOnboarding(username){
   username = (username || '').trim().toLowerCase();
@@ -2241,8 +2126,6 @@ async function completeUsernameOnboarding(username){
     if (!data || !data.length){
       throw new Error('Your username couldn\'t be saved — check the profiles table\'s INSERT/UPDATE RLS policies for auth.uid() = id.');
     }
-    const providerUpdates = await persistProviderProfileData(state.pendingAuthUser, state.currentUser.id);
-    if (providerUpdates && providerUpdates.avatar_url) state.currentUser.avatar_url = providerUpdates.avatar_url;
   }
   state.currentUser.username = username;
   state.currentUser.display_name = username;
@@ -2346,16 +2229,6 @@ async function restoreSession(){
             finishOnce();
             return;
           }
-          // Returning social-login user: keep their avatar in sync
-          // automatically (in case it changed at Google since last
-          // time), not just the very first sign-in.
-          // AWAITED, not fire-and-forget: this page sends the person on to
-          // userpostlogin.html right after this (see sendMemberToApp()) — a
-          // fire-and-forget upload would routinely get cut off mid-flight by
-          // that navigation, which is exactly why the avatar sync from a
-          // login started here wasn't reliably completing before.
-          const updates = await persistProviderProfileData(session.user, user.id);
-          if (updates && updates.avatar_url) state.currentUser.avatar_url = updates.avatar_url;
           AUTHOR_CACHE[user.id] = { id: user.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: state.currentUser.avatar_url || '' };
           syncAuthUI();
           await hydrateUserActivity(user.id);
@@ -4742,12 +4615,12 @@ else init();
           modal — RLS policies here should treat a null username as
           "not yet a public profile" rather than assuming it's always
           set.
-        - `avatar_url` and `email` columns hold what
-          persistProviderProfileData() (see section 8) saves after a
-          social sign-in. Keep `email` out of the public SELECT policy
-          — it's for the account owner only (id = auth.uid()); never
-          expose real emails through a public policy on this table (or
-          any other) — that's what the function below is for instead.
+        - `avatar_url` is set by the person themselves via Portfolio >
+          Edit Profile (uploads to the `profile-media` Storage bucket
+          — see section 8); OAuth sign-in does not auto-populate it.
+          There is no `email` column on this table — never add one
+          reachable by a public SELECT policy; real emails belong in
+          Supabase's own `auth.users`, not here.
 
      7. Username login (email is never exposed to the client)
         Login accepts either an email or a username. A bare username
@@ -4804,11 +4677,11 @@ else init();
           reports success with no error — the modal appears to work
           but nothing is saved, and the person gets asked for a
           username again on every refresh. completeUsernameOnboarding()
-          and persistProviderProfileData() both now chain .select()
-          on their writes specifically to catch this (a bare
-          .update()/.upsert() can't tell "0 rows, RLS blocked it" apart
-          from "1 row, saved fine" — .select() can), so a broken policy
-          now surfaces as a visible error instead of a silent no-op.
+          chains .select() on its write specifically to catch this (a
+          bare .update()/.upsert() can't tell "0 rows, RLS blocked it"
+          apart from "1 row, saved fine" — .select() can), so a broken
+          policy now surfaces as a visible error instead of a silent
+          no-op.
         - Testing tip: deleting a row from `profiles` does NOT delete
           the actual Supabase Auth user or sign them out — auth.users
           (and the browser's session) is entirely separate from the
@@ -4832,27 +4705,16 @@ else init();
           linking" of accounts sharing a verified email) — check that
           setting if duplicate accounts by email across providers is a
           concern.
-        - Storage: create a public bucket named `avatars` (Storage >
-          New bucket, "Public bucket" on). Add policies so any
-          authenticated user can INSERT/UPDATE only within their own
-          folder — `(storage.foldername(name))[1] = auth.uid()::text`
-          — since persistProviderProfileData() uploads to
-          `avatars/<user id>/avatar.jpg`. Public SELECT on the bucket
-          is what lets avatarHTML() render the photo via getPublicUrl()
-          without needing a signed URL.
-        - Avatars are resized/compressed client-side (canvas, in
-          compressAvatarBlob()) to under AVATAR_MAX_BYTES (20KB) before
-          upload — dimensions are always scaled by the same factor
-          (never stretched, so no distortion) and JPEG quality is only
-          traded down after size alone can't hit budget. This runs
-          automatically both right after username onboarding and on
-          every subsequent social sign-in (see restoreSession()'s
-          SIGNED_IN handler), so a changed provider photo re-syncs
-          without the person doing anything.
-        - persistProviderProfileData() is best-effort: if the provider
-          gave no photo, or the fetch/upload fails, the person just
-          keeps the lettered avatar — nothing else in the app depends
-          on it succeeding.
+        - Avatars: OAuth sign-in does NOT auto-sync a provider photo —
+          that was removed (Phase 4 audit item L1) after it turned out
+          to upload to a Storage bucket that was never created and try
+          to save a non-existent `email` column, failing silently on
+          every run. The only way a real avatar gets set is the person
+          uploading one themselves via Portfolio > Edit Profile, into
+          the `profile-media` bucket (see that page's own setup notes
+          for its resize/compression and Storage policy details).
+          Until they do, avatarHTML() falls back to the lettered
+          avatar.
 
      PASSWORD RESET (Forgot password?)
         - The Log In tab's Forgot password? link calls
