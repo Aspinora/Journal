@@ -3022,24 +3022,24 @@ async function fetchJournal(idOrSlug){
     JOURNAL_CACHE[j.id] = j;
     return j;
   }
-  let query = supabaseClient.from('journals')
-    .select(JOURNAL_CARD_FIELDS)
-    .or('id.eq.' + idOrSlug + ',slug.eq.' + idOrSlug)
-    .eq('status', 'published');
-  // Same isOwner exception loadJournalByUsernameAndSlug already makes at
-  // the query level, and the DEMO_MODE branch above already makes in JS:
-  // a private Work is excluded for everyone except its own author. This
-  // was previously unconditional here, so every way of opening your own
-  // private Work EXCEPT the one direct-link route (which reuses an
-  // already-fetched, already-checked copy via preloadedJournal — see the
-  // comment on that in renderReadView) threw and bounced you to Home.
-  if (!state.currentUser){
-    query = query.neq('visibility', 'private');
-  } else {
-    query = query.or('visibility.neq.private,author_id.eq.' + state.currentUser.id);
-  }
-  const { data, error } = await query.single();
+  // Routed through a SECURITY DEFINER RPC (get_journal_for_read) instead
+  // of a direct table select. Phase 4 audit DB-5(ii): the general public
+  // RLS policy on journals used to allow visibility IN
+  // ('public','unlisted') to anyone with NO id/slug filter required, so
+  // an unlisted Work — meant to be reachable only by direct link, never
+  // listed anywhere — was actually enumerable via a plain unfiltered
+  // REST query. That policy now only allows 'public'; this RPC does the
+  // same status/visibility/owner check server-side (SECURITY DEFINER,
+  // so it can still see an unlisted or the caller's own private row)
+  // but only ever returns the ONE row matching the exact id/slug asked
+  // for — so a direct link still works, but nothing can be listed.
+  // Throws a PGRST116-coded error on no-match, same as the .single()
+  // call this replaced, so callers that already branch on that code
+  // (or just catch generically, like this function's own caller) don't
+  // need to change.
+  const { data, error } = await supabaseClient.rpc('get_journal_for_read', { p_id_or_slug: idOrSlug });
   if (error) throw error;
+  if (!data) throw Object.assign(new Error('Work not found'), { code: 'PGRST116' });
   const j = normalizeJournalRow(data);
   JOURNAL_CACHE[j.id] = j;
   return j;
@@ -5634,42 +5634,22 @@ async function loadJournalByUsernameAndSlug(username, slug, replace, token) {
       return;
     }
 
-    const { data: profile, error: profileErr } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('username', username)
-      .single();
+    // One SECURITY DEFINER RPC (get_journal_by_username_slug) replaces
+    // the old profile-then-journal two-step lookup — see fetchJournal's
+    // comment for why this had to move off a direct table select (Phase
+    // 4 audit DB-5(ii)). "No such username", "no such slug for that
+    // author", and "private and not the owner" all correctly collapse
+    // to the same null result the old two-step lookup already produced
+    // for all three cases — this isn't a narrower check, just one round
+    // trip doing what used to take two.
+    const { data: journal, error } = await supabaseClient.rpc('get_journal_by_username_slug', { p_username: username, p_slug: slug });
     if (stale()) return;
 
-    // .single() reports "zero rows" as error code PGRST116 — that's a genuine
-    // not-found (bad username) and gets the honest "Work not found" message.
-    // Any other error (timeout, RLS hiccup, connection drop) is NOT the same
-    // thing as a dead link, so it gets its own message instead of wrongly
-    // telling the visitor the Work doesn't exist.
-    if (profileErr && profileErr.code !== 'PGRST116') {
-      console.error('Failed to load profile for Work route:', profileErr);
-      showToast("Couldn't load that — check your connection and try again.");
-      navigateTo('home', { replace: true });
-      return;
-    }
-
-    // A link that leads nowhere REPLACES its own history entry with Home
-    // (instead of pushing Home on top of it): otherwise Back returned to the
-    // dead link, which failed again and pushed Home again — a back-button trap.
-    if (!profile) {
-      showToast('Work not found');
-      navigateTo('home', { replace: true });
-      return;
-    }
-
-    const isOwner = !!(state.currentUser && state.currentUser.id === profile.id);
-    let journalQuery = supabaseClient.from('journals').select(JOURNAL_CARD_FIELDS)
-      .eq('author_id', profile.id).eq('slug', slug).eq('status', 'published');
-    if (!isOwner) journalQuery = journalQuery.neq('visibility', 'private');
-    const { data: journal, error } = await journalQuery.single();
-    if (stale()) return;
-
-    if (error && error.code !== 'PGRST116') {
+    // Both failure branches below REPLACE their own history entry with
+    // Home (instead of pushing Home on top of it): otherwise Back
+    // returned to the dead link, which failed again and pushed Home
+    // again — a back-button trap.
+    if (error) {
       console.error('Failed to load Work:', error);
       showToast("Couldn't load that — check your connection and try again.");
       navigateTo('home', { replace: true });
