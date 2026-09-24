@@ -1066,15 +1066,16 @@ const Kind = {
   hasTree(s) { return !this.single(s); }, lineMode(s) { return !!this.cfg(s).line; },
   labels(s) { const k = this.of(s); return this.storyLike(s) ? { chapter: 'Chapter', part: 'Part', inPart: 'Chapter' } : k === 'article' ? { chapter: 'Content', part: 'Section', inPart: 'Subsection' } : k === 'journal' ? { chapter: 'Entry', part: null, inPart: 'Entry' } : { chapter: 'Chapter', part: 'Part', inPart: 'Chapter' }; },
   visibility: s => (s && s.visibility) || 'public', impressions: s => !(s && s.allowImpressions === false),
+  isStory: s => Kind.of(s) === 'story',
 };
 const Model = {
   newStory: () => ({ kind: 'story', structure: null, visibility: 'public', allowImpressions: true, copyright: null, id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: 'Fantasy', tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
   newVolume: s => ({ id: uid(), number: (s.volumes.reduce((m, v) => Math.max(m, v.number), 0)) + 1, title: '', description: '', status: 'draft', coverImageId: null, chapters: [], parts: [] }),
-  newPart: v => ({ id: uid(), number: (v.parts.reduce((m, p) => Math.max(m, p.number), 0)) + 1, title: '', description: '', coverImageId: null, chapters: [] }),
+  newPart: v => ({ id: uid(), number: (v.parts.reduce((m, p) => Math.max(m, p.number), 0)) + 1, title: '', description: '', coverImageId: null, status: 'draft', publishedAt: null, chapters: [] }),
   newChapter(s) { const n = this.all(s).reduce((m, x) => Math.max(m, x.chapter.number), 0) + 1; return { id: uid(), number: n, title: '', status: 'draft', wordCount: 0, updatedAt: Date.now(), publishedAt: null }; },
-  all(s) { const out = []; s.volumes.forEach(v => { v.chapters.forEach(c => out.push({ chapter: c, volume: v, part: null })); v.parts.forEach(p => p.chapters.forEach(c => out.push({ chapter: c, volume: v, part: p }))); }); return out; },
-  find(s, id) { for (const v of s.volumes) { let i = v.chapters.findIndex(c => c.id === id); if (i >= 0) return { chapter: v.chapters[i], list: v.chapters, index: i, volume: v, part: null }; for (const p of v.parts) { i = p.chapters.findIndex(c => c.id === id); if (i >= 0) return { chapter: p.chapters[i], list: p.chapters, index: i, volume: v, part: p }; } } return null; },
-  findPart(s, id) { for (const v of s.volumes) { const i = v.parts.findIndex(p => p.id === id); if (i >= 0) return { part: v.parts[i], volume: v, index: i }; } return null; },
+  all(s) { const out = []; s.volumes.forEach(v => { if (v.deletedAt) return; v.chapters.forEach(c => { if (!c.deletedAt) out.push({ chapter: c, volume: v, part: null }); }); v.parts.forEach(p => { if (p.deletedAt) return; p.chapters.forEach(c => { if (!c.deletedAt) out.push({ chapter: c, volume: v, part: p }); }); }); }); return out; },
+  find(s, id) { for (const v of s.volumes) { if (v.deletedAt) continue; let i = v.chapters.findIndex(c => c.id === id && !c.deletedAt); if (i >= 0) return { chapter: v.chapters[i], list: v.chapters, index: i, volume: v, part: null }; for (const p of v.parts) { if (p.deletedAt) continue; i = p.chapters.findIndex(c => c.id === id && !c.deletedAt); if (i >= 0) return { chapter: p.chapters[i], list: p.chapters, index: i, volume: v, part: p }; } } return null; },
+  findPart(s, id) { for (const v of s.volumes) { if (v.deletedAt) continue; const i = v.parts.findIndex(p => p.id === id && !p.deletedAt); if (i >= 0) return { part: v.parts[i], volume: v, index: i }; } return null; },
   vLabel: v => 'Volume ' + roman(v.number) + (v.title ? ' — ' + v.title : ''),
   pLabel: p => Kind.storyLike(Model.cur) ? 'Part ' + roman(p.number) + (p.title ? ' \u2014 ' + p.title : '') : (p.title || 'Untitled section'),
   cur: null, /* the work currently open, so labels can follow its writing type */
@@ -1455,6 +1456,7 @@ const Notes = {
    ===================================================================== */
 const App = {
   story: null, rec: null,
+  locked(obj) { return Kind.isStory(this.story) && !!obj && obj.status === 'published'; },
   async listStories() { return (await Store.all('stories')).sort((a, b) => b.updatedAt - a.updatedAt); },
   storyPersistSoon: debounce(() => App.persistStory().catch(() => {}), 2500),
   async persistStory() { if (!App.story) return; simCheck('save'); App.story.updatedAt = Date.now(); await Store.put('stories', App.story); },
@@ -1468,7 +1470,7 @@ const App = {
   },
   async openStory(id) {
     const s = await Store.get('stories', id); if (!s) return toast('That story could not be found.', 'err');
-    await Save.flush(); App.story = s; Model.cur = s; if (Kind.storyLike(s) && Kind.of(s) !== 'story') s.volumes.forEach(v => { delete v.implicit; }); await Notes.load(id); UI.collapsed = new Set(lsGet('sw_collapsed_' + id, []));
+    await Save.flush(); App.story = s; Model.cur = s; if (Kind.storyLike(s) && Kind.of(s) !== 'story') s.volumes.forEach(v => { delete v.implicit; }); if (Kind.isStory(s) && !s.volumes.some(v => v.implicit)) { const v0 = Model.newVolume(s); v0.implicit = true; v0.number = 0; s.volumes.unshift(v0); } await Notes.load(id); UI.collapsed = new Set(lsGet('sw_collapsed_' + id, []));
     await UI.warmCovers(); UI.showStudio();
     const first = Model.find(s, s.lastChapterId) ? s.lastChapterId : (Model.all(s)[0] || {}).chapter && Model.all(s)[0].chapter.id;
     if (first) await this.openChapter(first, { silentPane: true }); else { Ed.unload(); UI.showEmpty(); }
@@ -1495,7 +1497,8 @@ const App = {
     } catch {}
   },
   async saveDraft() {
-    if (!Ed.chapterId) return; const ok = await Save.flush(); await this.persistStory().catch(() => {});
+    if (!Ed.chapterId) return; const fc = Model.find(App.story, Ed.chapterId); if (fc && this.locked(fc.chapter)) return;
+    const ok = await Save.flush(); await this.persistStory().catch(() => {});
     if (ok) { toast('Draft saved'); this.gcChapterImages(Ed.chapterId); } else toast('Couldn’t save right now. Your text is safe and will retry.', 'err');
   },
   /* ---- publishing */
@@ -1526,6 +1529,34 @@ const App = {
     const rec = await Store.get('chapters', Ed.chapterId); rec.published = null; await Store.put('chapters', rec); App.rec = rec;
     const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; await this.persistStory(); UI.renderTree(); Panel.refresh();
   },
+  async publishContainer(kind, obj) {
+    const chapters = (kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters).filter(c => !c.deletedAt);
+    const drafts = chapters.filter(c => c.status !== 'published'), name = kind === 'volume' ? Model.vLabel(obj) : Model.pLabel(obj);
+    const body = drafts.length ? `“${name}” has ${drafts.length} unpublished chapter${drafts.length === 1 ? '' : 's'}. They will be published along with the ${kind}. Once published, the ${kind} can’t be edited or published again — only viewed and deleted.` : `“${name}” will be marked published. Once published, the ${kind} can’t be edited or published again — only viewed and deleted.`;
+    if (!await confirmDialog({ title: `Publish this ${kind}?`, body, confirm: `Publish ${kind}` })) return;
+    for (const c of drafts) {
+      const rec = (await Store.get('chapters', c.id)) || { id: c.id, storyId: this.story.id, html: '', published: null };
+      rec.published = { html: rec.html, at: Date.now(), title: c.title }; await Store.put('chapters', rec); if (this.rec && this.rec.id === c.id) this.rec = rec;
+      c.status = 'published'; c.publishedAt = rec.published.at;
+    }
+    obj.status = 'published'; obj.publishedAt = Date.now();
+    await this.persistStory(); UI.renderTree(); UI.syncCrumb(); Panel.refresh(); toast('Published');
+  },
+  async softDeleteChapter(f) {
+    const words = f.chapter.wordCount || 0;
+    if (!await confirmDialog({ title: 'Delete this published chapter?', body: `“${Model.cLabel(f.chapter)}” (${words.toLocaleString()} words) will be removed from view. It will not be permanently erased.`, confirm: 'Delete chapter', danger: true })) return;
+    const id = f.chapter.id, wasOpen = Ed.chapterId === id;
+    await this.mutate(() => { f.chapter.deletedAt = Date.now(); });
+    if (wasOpen) { Ed.unload(); Ed.chapterId = null; const n = Model.all(App.story)[0]; if (n) await this.openChapter(n.chapter.id, { silentPane: true }); else UI.showEmpty(); if (UI.portrait) UI.setPane('contents'); }
+  },
+  async softDeleteContainer(kind, obj) {
+    const chapters = (kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters).filter(c => !c.deletedAt);
+    const words = chapters.reduce((n, c) => n + (c.wordCount || 0), 0), name = kind === 'volume' ? Model.vLabel(obj) : Model.pLabel(obj), cur = Ed.chapterId;
+    if (!await confirmDialog({ title: `Delete this ${kind}?`, body: `“${name}” (${chapters.length} chapter${chapters.length === 1 ? '' : 's'}, ${words.toLocaleString()} words) will be removed from view. It will not be permanently erased.`, confirm: `Delete ${kind}`, danger: true })) return;
+    const ids = chapters.map(c => c.id);
+    await this.mutate(() => { obj.deletedAt = Date.now(); chapters.forEach(c => { c.deletedAt = obj.deletedAt; }); });
+    if (ids.includes(cur)) { Ed.unload(); Ed.chapterId = null; const n = Model.all(App.story)[0]; if (n) await this.openChapter(n.chapter.id, { silentPane: true }); else UI.showEmpty(); if (UI.portrait) UI.setPane('contents'); }
+  },
   /* ---- structure */
   async mutate(fn) { const snap = JSON.stringify(App.story); try { fn(); await this.persistStory(); UI.renderTree(); UI.syncCrumb(); } catch (e) { App.story = JSON.parse(snap); toast('Change not saved: ' + e.message, 'err'); UI.renderTree(); } },
   move(list, i, d) { const j = i + d; if (j < 0 || j >= list.length) return; return this.mutate(() => { const [x] = list.splice(i, 1); list.splice(j, 0, x); }); },
@@ -1541,6 +1572,7 @@ const App = {
     if (!ok) toast('Some files will be permanently removed shortly (retrying automatically).');
   },
   async deleteChapter(f) {
+    if (App.locked(f.chapter)) return this.softDeleteChapter(f);
     const words = f.chapter.wordCount || 0;
     if (!await confirmDialog({ title: 'Delete this chapter?', body: `“${Model.cLabel(f.chapter)}” (${words.toLocaleString()} words) and its notes will be permanently deleted. This can’t be undone.`, confirm: 'Delete chapter', danger: true })) return;
     const id = f.chapter.id, wasOpen = Ed.chapterId === id;
@@ -1550,6 +1582,7 @@ const App = {
     if (wasOpen) { Ed.unload(); Ed.chapterId = null; const n = Model.all(App.story)[0]; if (n) await this.openChapter(n.chapter.id, { silentPane: true }); else UI.showEmpty(); if (UI.portrait) UI.setPane('contents'); }
   },
   async deleteContainer(kind, obj, parentList, index) {
+    if (App.locked(obj)) return this.softDeleteContainer(kind, obj);
     const chapters = kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters, words = chapters.reduce((n, c) => n + (c.wordCount || 0), 0);
     const name = kind === 'volume' ? Model.vLabel(obj) : Model.pLabel(obj);
     if (!await confirmDialog({ title: `Delete this ${kind}?`, body: `“${name}” contains ${chapters.length} chapter${chapters.length === 1 ? '' : 's'} (${words.toLocaleString()} words). Everything inside it, including notes and covers, will be permanently deleted. This can’t be undone.`, confirm: `Delete ${kind}`, danger: true })) return;
@@ -1710,12 +1743,15 @@ const UI = {
   showStudio() { this.applyKind(); $('#viewLibrary').classList.remove('on'); $('#viewStudio').classList.add('on'); this.renderTree(); this.setPane(this.portrait ? 'contents' : 'write'); this.syncCrumb(); Panel.refresh(); $('#emptyState').hidden = true; $('#writeArea').hidden = false; $('#preview').hidden = true; },
   showChapter(f) {
     $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; this.applyKind(); const st = App.story, kd = Kind.of(st); $('#chTitle').value = Kind.single(st) ? st.title : f.chapter.title; $('#chTitle').placeholder = ({ story: 'Chapter ' + f.chapter.number + ' title', journal: 'Entry title', article: 'Title', poetry: 'Title of the poem', shayari: 'Title (optional)', thought: 'Title' })[Kind.storyLike(st) ? 'story' : kd];
+    const locked = App.locked(f.chapter); document.body.classList.toggle('locked-chapter', locked);
+    if (Ed.el) Ed.el.contentEditable = locked ? 'false' : 'true'; $('#chTitle').disabled = locked;
+    $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = locked; const dock = $('#dock'); if (dock) dock.hidden = locked;
     this.syncCrumb(); this.renderTree(); this.syncToolbar(); if (this.mode === 'preview') this.renderPreview();
   },
   showEmpty() {
-    $('#writeArea').hidden = true; $('#preview').hidden = true; const e = $('#emptyState'); e.hidden = false; const s = App.story; const hasVol = s.volumes.length;
+    $('#writeArea').hidden = true; $('#preview').hidden = true; const e = $('#emptyState'); e.hidden = false; const s = App.story; const hasVol = s.volumes.length; const v0 = s.volumes.find(v => v.implicit) || s.volumes[0];
     e.replaceChildren(h('h2', { style: { fontFamily: 'var(--doc-font)' } }, hasVol ? 'Add your first ' + Kind.labels(s).chapter.toLowerCase() : 'Start with a volume'), h('p', null, hasVol ? 'Chapters are where the writing happens. Each one saves on its own.' : 'Every story lives in a volume. Parts are optional, so a short work can go straight from volume to chapters.'),
-      h('button', { class: 'btn primary', type: 'button', onclick: () => hasVol ? this.addChapter(s.volumes[0], null) : this.addVolume() }, hasVol ? 'New ' + Kind.labels(s).chapter.toLowerCase() : 'New volume'));
+      h('button', { class: 'btn primary', type: 'button', onclick: () => hasVol ? this.addChapter(v0, null) : this.addVolume() }, hasVol ? 'New ' + Kind.labels(s).chapter.toLowerCase() : 'New volume'));
     this.syncCrumb(); this.renderTree();
   },
   async warmCovers() { const s = App.story; const ids = [s.coverImageId, ...s.volumes.flatMap(Model.coverIds)].filter(Boolean); await Promise.all(ids.map(i => Images.url(i))); },
@@ -1727,12 +1763,12 @@ const UI = {
     grid.replaceChildren();
     grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New ' + K.one.toLowerCase()), h('span', { class: 'small muted' }, 'Cover, title, tags and visibility')));
     stories.forEach(s => {
-      const url = s.coverImageId && Images.urls.get(s.coverImageId), chapters = Model.all(s).length;
+      const url = s.coverImageId && Images.urls.get(s.coverImageId), chapters = Model.all(s).length, realVols = s.volumes.filter(v => !v.implicit).length;
       const menuBtn = ibtn('more', 'Story actions', { class: 'ib card__more', onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
       grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
         h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
-          h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${s.volumes.length} volume${s.volumes.length === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
+          h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${realVols} volume${realVols === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
     });
   },
   copyrightInfo(anchor, cur) {
@@ -1761,35 +1797,39 @@ const UI = {
     host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words')),
       ibtn('more', 'Story actions', { onclick: e => showMenu(e.currentTarget, [{ label: Kind.of(s) === 'story' ? 'Story settings…' : Kind.cfg(s).one + ' details…', icon: 'edit', onClick: () => this.editStory() }, Kind.storyLike(s) ? { label: 'Renumber everything…', icon: 'lines', onClick: () => App.renumber() } : null, '-', { label: Kind.of(s) === 'story' ? 'Back to all stories' : 'Back to all writing', icon: 'book', onClick: () => this.showLibrary() }], { align: 'end' }) })));
     const chRow = (c, list, i, v, p) => this.row({ kind: 'chapter', id: c.id, label: Model.cLabel(c), sub: c.wordCount ? (c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : String(c.wordCount)) : '', status: c.status, active: c.id === Ed.chapterId, onOpen: () => App.openChapter(c.id), menu: () => [
-      { label: 'Rename…', icon: 'edit', onClick: () => this.renameChapter(c) }, { label: 'Edit details…', icon: 'file', onClick: () => this.editChapter(c) }, '-',
+      App.locked(c) ? null : { label: 'Rename…', icon: 'edit', onClick: () => this.renameChapter(c) }, App.locked(c) ? null : { label: 'Edit details…', icon: 'file', onClick: () => this.editChapter(c) }, App.locked(c) ? null : '-',
       { label: 'Move up', icon: 'up', disabled: i === 0, onClick: () => App.move(list, i, -1) }, { label: 'Move down', icon: 'down', disabled: i === list.length - 1, onClick: () => App.move(list, i, 1) }, Kind.of(s) === 'journal' ? null : { label: 'Move to…', icon: 'move', onClick: () => this.moveDialog('chapter', c) }, '-',
       { label: 'Delete ' + (Kind.storyLike(s) ? 'chapter' : Kind.cfg(s).unit) + '…', icon: 'trash', danger: true, onClick: () => App.deleteChapter(Model.find(s, c.id)) }] });
     const addRow = (parts) => h('div', { class: 't-add' }, ...parts); const L = Kind.labels(s), isStory = Kind.storyLike(s);
     s.volumes.forEach((v, vi) => {
-      const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && Images.urls.get(v.coverImageId);
-      if (!v.implicit) host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, menu: () => [
-        { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) }, '-',
+      if (v.deletedAt) return;
+      const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && Images.urls.get(v.coverImageId), vLocked = App.locked(v);
+      if (!v.implicit) host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, status: Kind.isStory(s) ? v.status : null, menu: () => [
+        vLocked ? null : { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) },
+        (!vLocked && Kind.isStory(s)) ? { label: 'Publish volume…', icon: 'check', onClick: () => App.publishContainer('volume', v) } : null, '-',
         { label: 'Move up', icon: 'up', disabled: vi === 0, onClick: () => App.move(s.volumes, vi, -1) }, { label: 'Move down', icon: 'down', disabled: vi === s.volumes.length - 1, onClick: () => App.move(s.volumes, vi, 1) }, '-',
         { label: 'Delete volume…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('volume', v, s.volumes, vi) }] }));
       if (!open) return; const kids = h('div', { class: v.implicit ? '' : 't-kids' });
-      v.chapters.forEach((c, i) => kids.append(chRow(c, v.chapters, i, v, null)));
+      v.chapters.forEach((c, i) => { if (!c.deletedAt) kids.append(chRow(c, v.chapters, i, v, null)); });
       v.parts.forEach((p, pi) => {
-        const po = !this.collapsed.has(p.id);
-        kids.append(this.row({ kind: 'part', id: p.id, label: Model.pLabel(p), open: po, collapsible: true, menu: () => [
-          { label: 'Edit ' + (L.part || 'part').toLowerCase() + '…', icon: 'edit', onClick: () => this.editPart(p, v) }, { label: 'Add ' + L.inPart.toLowerCase(), icon: 'file', onClick: () => this.addChapter(v, p) }, '-',
+        if (p.deletedAt) return;
+        const po = !this.collapsed.has(p.id), pLocked = App.locked(p);
+        kids.append(this.row({ kind: 'part', id: p.id, label: Model.pLabel(p), open: po, collapsible: true, status: Kind.isStory(s) ? p.status : null, menu: () => [
+          pLocked ? null : { label: 'Edit ' + (L.part || 'part').toLowerCase() + '…', icon: 'edit', onClick: () => this.editPart(p, v) }, { label: 'Add ' + L.inPart.toLowerCase(), icon: 'file', onClick: () => this.addChapter(v, p) },
+          (!pLocked && Kind.isStory(s)) ? { label: 'Publish ' + (L.part || 'part').toLowerCase() + '…', icon: 'check', onClick: () => App.publishContainer('part', p) } : null, '-',
           { label: 'Move up', icon: 'up', disabled: pi === 0, onClick: () => App.move(v.parts, pi, -1) }, { label: 'Move down', icon: 'down', disabled: pi === v.parts.length - 1, onClick: () => App.move(v.parts, pi, 1) }, isStory ? { label: 'Move to another volume…', icon: 'move', onClick: () => this.moveDialog('part', p) } : null, '-',
           { label: 'Delete ' + (L.part || 'part').toLowerCase() + '…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('part', p, v.parts, pi) }] }));
-        if (po) { const pk = h('div', { class: 't-kids' }); p.chapters.forEach((c, i) => pk.append(chRow(c, p.chapters, i, v, p))); pk.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, p) }, icon('plus'), L.inPart)])); kids.append(pk); }
+        if (po) { const pk = h('div', { class: 't-kids' }); p.chapters.forEach((c, i) => { if (!c.deletedAt) pk.append(chRow(c, p.chapters, i, v, p)); }); pk.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, p) }, icon('plus'), L.inPart)])); kids.append(pk); }
       });
       kids.append(addRow([h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addChapter(v, null) }, icon('plus'), L.chapter), L.part ? h('button', { class: 'btn sm ghost', type: 'button', onclick: () => this.addPart(v) }, icon('plus'), L.part) : null])); host.append(kids);
     });
     if (isStory) host.append(addRow([h('button', { class: 'btn sm', type: 'button', onclick: () => this.addVolume() }, icon('plus'), 'Volume')])); host.scrollTop = st;
   },
-  async renameChapter(c) { const v = await promptDialog({ title: 'Rename chapter', label: 'Chapter title', value: c.title, confirm: 'Rename' }); if (v === null) return; await App.mutate(() => { c.title = v; }); if (c.id === Ed.chapterId) { $('#chTitle').value = v; } },
+  async renameChapter(c) { if (App.locked(c)) return; const v = await promptDialog({ title: 'Rename chapter', label: 'Chapter title', value: c.title, confirm: 'Rename' }); if (v === null) return; await App.mutate(() => { c.title = v; }); if (c.id === Ed.chapterId) { $('#chTitle').value = v; } },
   moveDialog(kind, obj) {
     const s = App.story; let opts;
     if (kind === 'chapter') opts = s.volumes.flatMap(v => [['v:' + v.id, (v.implicit ? 'Top level' : Model.vLabel(v) + ' (chapters directly in volume)')], ...v.parts.map(p => ['p:' + p.id, (v.implicit ? '' : Model.vLabel(v) + ' › ') + Model.pLabel(p)])]);
-    else opts = s.volumes.map(v => ['v:' + v.id, Model.vLabel(v)]);
+    else opts = s.volumes.map(v => ['v:' + v.id, v.implicit ? 'Top level' : Model.vLabel(v)]);
     const sel = selectEl(opts, opts[0][0]);
     const m = openModal({ title: kind === 'chapter' ? 'Move chapter' : 'Move part', body: field('Move to', sel), footer: [h('button', { class: 'btn', onclick: () => m.close() }, 'Cancel'), h('button', { class: 'btn primary', onclick: async () => {
       const [t, id] = sel.value.split(':'); m.close();
@@ -1802,11 +1842,11 @@ const UI = {
   /* ---- entity creation / editing */
   editStory() { const s = App.story; this.entityDialog({ kind: 'story', entity: s, isNew: false, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
   addVolume() { const s = App.story, v = Model.newVolume(s); this.entityDialog({ kind: 'volume', entity: v, isNew: true, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach: () => s.volumes.push(v), detach: () => { s.volumes = s.volumes.filter(x => x !== v); }, persist: () => App.persistStory(), after: () => { this.renderTree(); if (!Ed.chapterId) this.showEmpty(); } } }); },
-  editVolume(v) { const s = App.story; this.entityDialog({ kind: 'volume', entity: v, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
+  editVolume(v) { if (App.locked(v)) return; const s = App.story; this.entityDialog({ kind: 'volume', entity: v, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
   addPart(v) { const s = App.story, p = Model.newPart(v); this.entityDialog({ kind: 'part', entity: p, isNew: true, ctx: { label: (Kind.labels(s).part || 'section').toLowerCase(), owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach: () => v.parts.push(p), detach: () => { v.parts = v.parts.filter(x => x !== p); }, persist: () => App.persistStory(), after: () => this.renderTree() } }); },
-  editPart(p, v) { const s = App.story; this.entityDialog({ kind: 'part', entity: p, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
+  editPart(p, v) { if (App.locked(p)) return; const s = App.story; this.entityDialog({ kind: 'part', entity: p, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
   addChapter(v, p) { const s = App.story, c = Model.newChapter(s), list = p ? p.chapters : v.chapters; this.entityDialog({ kind: 'chapter', entity: c, isNew: true, ctx: { label: (p ? Kind.labels(s).inPart : Kind.labels(s).chapter).toLowerCase(), attach: () => list.push(c), detach: () => { const i = list.indexOf(c); if (i >= 0) list.splice(i, 1); }, persist: () => App.persistStory(), after: async () => { this.collapsed.delete(v.id); if (p) this.collapsed.delete(p.id); this.renderTree(); await App.openChapter(c.id); setTimeout(() => { if (matchMedia('(pointer:fine)').matches) $('#chTitle').focus(); }, 60); } } }); },
-  editChapter(c) { this.entityDialog({ kind: 'chapter', entity: c, isNew: false, ctx: { attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); if (c.id === Ed.chapterId) { $('#chTitle').value = c.title; } } } }); },
+  editChapter(c) { if (App.locked(c)) return; this.entityDialog({ kind: 'chapter', entity: c, isNew: false, ctx: { attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); if (c.id === Ed.chapterId) { $('#chTitle').value = c.title; } } } }); },
   async entityDialog({ kind, entity, isNew, ctx }) {
     const wk = kind === 'story' ? Kind.of(entity) : Kind.of(App.story), plain = kind === 'story' ? wk !== 'story' : !Kind.storyLike(App.story), KN = KINDS[wk];
     const spec = kind === 'part' ? null : IMAGE_SPECS[kind + '_cover'], names = { story: KN.one.toLowerCase(), volume: 'volume', part: plain ? 'section' : 'part', chapter: (ctx && ctx.label) || (plain ? KN.unit : 'chapter') };
@@ -1829,7 +1869,7 @@ const UI = {
         h('div', { class: 'field' }, h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, h('label', { for: 'crSel' }, 'Copyright ', h('span', { style: { color: 'var(--danger)' }, title: 'Required' }, '*'), h('span', { class: 'small faint', style: { fontWeight: 400, marginLeft: '4px' } }, 'Required')), h('button', { class: 'ib', type: 'button', style: { width: '28px', height: '28px' }, title: 'What do these mean?', 'aria-label': 'What do the copyright options mean?', onclick: e => this.copyrightInfo(e.currentTarget, els.cr.value) }, icon('info'))), els.cr, crHint),
         h('div', { class: 'row2', style: { alignItems: 'start' } }, h('div', { class: 'field' }, h('label', null, 'Visibility'), els.vis, visHint), field('Impressions', els.imp, null)));
     } else if (kind === 'volume') {
-      body.append(field(null, cover.el), h('div', { class: 'row2' }, field('Volume number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', els.status = selectEl(PUB_STATUSES, entity.status))), field('Volume title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Awakening', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
+      body.append(field(null, cover.el), field('Volume number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Volume title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. The Awakening', maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
     } else if (kind === 'part' && plain) {
       body.append(field('Section title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'e.g. Background', maxLength: 140 })), field('Description (optional)', els.desc = h('textarea', { class: 'inp', value: entity.description, maxLength: 2000 })));
     } else if (kind === 'part') {
@@ -1855,6 +1895,7 @@ const UI = {
       const snap = JSON.stringify(entity);
       try {
         Object.assign(entity, vals); if (isNew) ctx.attach();
+        if (kind === 'story' && isNew && Kind.isStory(entity) && !entity.volumes.length) { const v0 = Model.newVolume(entity); v0.implicit = true; entity.volumes = [v0]; }
         if (kind === 'story' && plain) {
           if (isNew) { entity.structure = els.structure ? els.structure.value : null; if (!Kind.storyLike(entity)) { const v0 = Model.newVolume(entity); v0.implicit = true; entity.volumes = [v0]; const c0 = Model.newChapter(entity); c0.title = Kind.single(entity) ? entity.title : ''; v0.chapters.push(c0); entity.lastChapterId = c0.id; } }
           else if (Kind.single(entity)) entity.volumes.forEach(v => v.chapters.forEach(c => { c.title = entity.title; }));
@@ -1872,6 +1913,7 @@ const UI = {
   /* ---- publish */
   async publishDialog() {
     if (!Ed.chapterId) return; if (this.mode === 'preview') this.setMode('write');
+    const fchk = Model.find(App.story, Ed.chapterId); if (fchk && App.locked(fchk.chapter)) return;
     const okSave = await Save.flush(); if (!okSave) { toast('Save failed, so publishing is paused. Your text is safe; try again in a moment.', 'err'); return; }
     const items = App.validate(), fails = items.filter(i => i.level === 'fail').length, warns = items.filter(i => i.level === 'warn').length, f = Model.find(App.story, Ed.chapterId);
     const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
@@ -2015,7 +2057,8 @@ const Panel = {
     const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
     const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
     const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Copyright', (copyrightOf(App.story.copyright) || [0, 'Not chosen'])[1]], ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
-    return h('div', { style: { padding: '6px 6px 16px' } }, kv, h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
+    return h('div', { style: { padding: '6px 6px 16px' } }, kv, App.locked(f.chapter) ? h('div', { style: { marginTop: '16px' } }, h('div', { class: 'banner ok', style: { marginBottom: '10px' } }, icon('check'), 'Published — this ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + ' is locked and can’t be edited or republished. You can still delete it.'), h('button', { class: 'btn', type: 'button', onclick: () => App.deleteChapter(f) }, 'Delete ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + '…')) :
+      h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
       pub ? h('button', { class: 'btn', type: 'button', onclick: async () => { if (await confirmDialog({ title: 'Unpublish this chapter?', body: 'Readers will no longer see it. Your draft is kept.', confirm: 'Unpublish' })) { await App.unpublishChapter(); toast('Unpublished'); } } }, 'Unpublish') : null));
   },
   renderNotes() {
