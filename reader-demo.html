@@ -1,293 +1,585 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="classic">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Reading — Aspinora</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,340;0,9..144,480;0,9..144,600;1,9..144,420;1,9..144,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>Journals — Reader</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
-  --paper:#FBF4E4; --ink:#2A2118; --ink-soft:#5B4E3B; --ink-faint:#96876C;
-  --rule:#D9C9A3; --oxblood:#8C3A2E; --gilt:#A9863F; --stamp-ink:#5B4E3B;
-  --grain-blend:multiply; --grain-op:.16;
+  --serif-lit:'Source Serif 4',Georgia,serif;
+  --serif-mod:'Lora',Georgia,serif;
+  --sans:'Inter',-apple-system,sans-serif;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --paper:#1E1811; --ink:#EBE0C8; --ink-soft:#C3B396; --ink-faint:#7D6F58;
-    --rule:#3B3223; --oxblood:#C4655A; --gilt:#C8A363; --stamp-ink:#C3B396;
-    --grain-blend:screen; --grain-op:.05;
-  }
-}
-:root[data-theme="dark"]{
-  --paper:#1E1811; --ink:#EBE0C8; --ink-soft:#C3B396; --ink-faint:#7D6F58;
-  --rule:#3B3223; --oxblood:#C4655A; --gilt:#C8A363; --stamp-ink:#C3B396;
-  --grain-blend:screen; --grain-op:.05;
-}
-*{box-sizing:border-box;}
-html,body{height:100%;}
-body{ margin:0; font-family:'Fraunces',Georgia,serif; color:var(--ink); overflow:hidden; }
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--env);font-family:var(--sans);overflow:hidden}
 
-.chrome{ position:fixed; top:calc(16px + env(safe-area-inset-top,0px)); left:0; right:0;
-  display:flex; align-items:center; justify-content:space-between; padding:0 22px; z-index:80; pointer-events:none; }
-.back-link{ pointer-events:auto; font-family:'Space Mono',monospace; font-size:12.5px; letter-spacing:.03em;
-  color:var(--ink-soft); background:var(--paper); border:none; cursor:pointer; display:flex; align-items:center; gap:7px;
-  padding:8px 12px; border-radius:20px; box-shadow:0 2px 10px rgba(0,0,0,.12); }
-.back-link:hover{ color:var(--oxblood); }
-.back-link svg{ width:14px; height:14px; }
-.theme-switch{ pointer-events:auto; width:46px; height:25px; border-radius:20px; position:relative;
-  background:var(--ink-faint); border:1px solid var(--rule); cursor:pointer; padding:0; }
-.theme-switch::after{ content:'☀'; font-size:12px; line-height:19px; text-align:center; position:absolute; top:2px; left:2px;
-  width:19px; height:19px; border-radius:50%; background:var(--paper); color:var(--gilt);
-  transition:transform .3s cubic-bezier(.6,.2,.2,1); box-shadow:0 1px 3px rgba(0,0,0,.3); }
-[data-theme="dark"] .theme-switch::after{ content:'☾'; transform:translateX(21px); }
+/* ---------- THEMES ---------- */
+:root[data-theme="classic"]{--env:#e9e3d3;--env2:#ded5bf;--paper:#f7f3ea;--paper2:#f1ead9;--ink:#2b2620;--soft:#6b6252;--border:rgba(43,38,32,.12);--shadow:rgba(43,38,32,.28);--accent:#8a5a3b;--fold-hi:rgba(255,255,255,.55);--fold-lo:rgba(0,0,0,.28);}
+:root[data-theme="ivory"]{--env:#f0ece2;--env2:#e6e0d1;--paper:#fbf8f2;--paper2:#f5efe2;--ink:#2e2a24;--soft:#786f5f;--border:rgba(46,42,36,.10);--shadow:rgba(46,42,36,.22);--accent:#9c6b3f;--fold-hi:rgba(255,255,255,.6);--fold-lo:rgba(0,0,0,.22);}
+:root[data-theme="oldschool"]{--env:#cdb98c;--env2:#bfa877;--paper:#e9dcc0;--paper2:#e0cfab;--ink:#3a2c18;--soft:#6e5a3c;--border:rgba(58,44,24,.18);--shadow:rgba(35,25,10,.4);--accent:#7a4a24;--fold-hi:rgba(255,247,220,.5);--fold-lo:rgba(20,12,2,.4);}
+:root[data-theme="dark"]{--env:#171310;--env2:#0f0c0a;--paper:#2a231b;--paper2:#241e17;--ink:#ece3d2;--soft:#b7ab93;--border:rgba(236,227,210,.10);--shadow:rgba(0,0,0,.6);--accent:#d9a45c;--fold-hi:rgba(255,235,200,.12);--fold-lo:rgba(0,0,0,.55);}
+:root[data-theme="midnight"]{--env:#090b0f;--env2:#05060a;--paper:#161a21;--paper2:#12151b;--ink:#e6e9ee;--soft:#97a1ad;--border:rgba(230,233,238,.08);--shadow:rgba(0,0,0,.7);--accent:#7fb0ff;--fold-hi:rgba(180,210,255,.10);--fold-lo:rgba(0,0,0,.6);}
+:root[data-theme="minimal"]{--env:#f2f2f0;--env2:#e9e9e6;--paper:#ffffff;--paper2:#fafafa;--ink:#171717;--soft:#6b6b6b;--border:rgba(0,0,0,.08);--shadow:rgba(0,0,0,.15);--accent:#171717;--fold-hi:rgba(255,255,255,.7);--fold-lo:rgba(0,0,0,.14);}
 
-.book{ position:fixed; inset:0; perspective:2800px; }
-.leaf{ position:absolute; inset:0; background:var(--paper); backface-visibility:hidden; display:flex; }
-.leaf-back{ z-index:1; }
-.leaf-front{ z-index:5; transform-origin:right center; }
+body{background:radial-gradient(ellipse at 50% -10%, var(--env2), var(--env));color:var(--ink);transition:background .35s ease,color .35s ease}
 
-.texture{ position:absolute; inset:0; pointer-events:none; z-index:1;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.32 0 0 0 0 0.25 0 0 0 0 0.15 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:220px 220px; mix-blend-mode:var(--grain-blend); opacity:var(--grain-op); }
-.vignette{ position:absolute; inset:0; pointer-events:none; z-index:1;
-  background:radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(30,20,10,.10) 100%); }
-.curl-shade{ position:absolute; inset:0; z-index:6; pointer-events:none; opacity:0;
-  background:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.22) 46%, rgba(255,250,235,.5) 58%, transparent 82%); }
+/* ---------- SHELL ---------- */
+.app-shell{position:relative;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{position:relative;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px 10px;font-family:var(--sans)}
+.iconbtn{display:inline-flex;align-items:center;gap:7px;background:transparent;border:none;color:var(--soft);font-size:13px;font-family:var(--sans);letter-spacing:.02em;cursor:pointer;padding:8px 10px;border-radius:8px;transition:color .2s,background .2s}
+.iconbtn:hover{color:var(--ink);background:var(--border)}
+.iconbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.progressline{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 2px);height:2px;background:var(--border)}
+.progressfill{height:100%;background:var(--accent);width:0%;transition:width .35s ease}
 
-.margin{ position:relative; z-index:9; flex:1 1 0; min-width:52px; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; color:var(--ink-faint); font-size:22px; user-select:none; transition:color .2s ease, background .2s ease; }
-.margin:hover{ color:var(--oxblood); background:rgba(140,58,46,.05); }
-.margin:active{ transform:scale(.97); }
+.theme-pop{position:absolute;top:100%;right:18px;margin-top:6px;background:var(--paper);border:1px solid var(--border);border-radius:12px;padding:10px;display:none;gap:8px;box-shadow:0 10px 30px var(--shadow);z-index:50}
+.theme-pop.open{display:flex}
+.swatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;position:relative}
+.swatch[data-t="classic"]{background:#f7f3ea}
+.swatch[data-t="ivory"]{background:#fbf8f2}
+.swatch[data-t="oldschool"]{background:#e9dcc0}
+.swatch[data-t="dark"]{background:#2a231b}
+.swatch[data-t="midnight"]{background:#161a21}
+.swatch[data-t="minimal"]{background:#ffffff}
+.swatch.active{border-color:var(--accent)}
 
-.column{ position:relative; z-index:2; flex:0 1 700px; width:100%; height:100%; overflow-y:auto;
-  padding:76px 46px 60px; scrollbar-width:thin; }
-.column::-webkit-scrollbar{ width:6px; }
-.column::-webkit-scrollbar-thumb{ background:var(--rule); border-radius:10px; }
+/* ---------- STAGE ---------- */
+.stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 0 18px}
+.book-wrap{position:relative;width:min(680px,94vw);height:100%;max-height:calc(100% - 4px);perspective:1800px}
+.navzone{position:absolute;top:0;bottom:0;width:16%;z-index:15;cursor:pointer;background:transparent}
+.navzone.left{left:-16%}
+.navzone.right{right:-16%}
+@media (max-width:820px){.navzone{display:none}}
 
-.ribbon{ position:absolute; top:0; right:clamp(18px,7vw,64px); width:26px; height:64px; z-index:7; cursor:pointer;
-  background:var(--oxblood); clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);
-  box-shadow:0 3px 8px rgba(0,0,0,.25); transform:translateY(-14px); transition:transform .25s ease; display:none; }
-.ribbon.on{ display:block; transform:translateY(0); }
+.page{position:absolute;inset:0;background:var(--paper);border-radius:3px;box-shadow:0 2px 4px var(--shadow),0 24px 60px -20px var(--shadow),inset 0 0 0 1px var(--border);overflow:hidden;will-change:transform,clip-path}
+.page.behind{z-index:5;filter:brightness(.94)}
+.page.front{z-index:10}
+.page::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.012) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.5}
+.page-scroll{position:relative;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.page-scroll:focus{outline:none}
 
-.kind{ font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.14em; color:var(--oxblood); text-transform:uppercase; }
-.title{ font-size:clamp(1.9rem,4.5vw,2.6rem); font-weight:600; line-height:1.15; margin:12px 0 6px; letter-spacing:-.01em; }
-.subtitle{ font-style:italic; color:var(--ink-soft); font-size:1.05rem; margin:0 0 26px; line-height:1.55; }
-.byline{ display:flex; align-items:center; gap:14px; padding:20px 0; margin-bottom:30px; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); }
-.avatar{ width:42px; height:42px; border-radius:50%; flex-shrink:0; object-fit:cover;
-  filter:grayscale(1) sepia(.5) contrast(1.05) brightness(.98); border:1px solid var(--rule); }
-.byline-text .name{ font-weight:600; font-size:1.02rem; font-style:italic; }
-.byline-text .meta{ font-family:'Space Mono',monospace; font-size:10.5px; color:var(--ink-faint); margin-top:3px; letter-spacing:.02em; }
-.orn{ color:var(--gilt); margin:0 7px; }
+.cover{position:relative;width:100%;aspect-ratio:3/2;overflow:hidden}
+.cover img,.cover .grad{width:100%;height:100%;object-fit:cover;display:block}
+.cover .grad{display:flex;align-items:flex-end;padding:18px;font-family:var(--serif-lit);font-style:italic;color:rgba(255,255,255,.92);font-size:15px}
+.cover .type-chip{position:absolute;top:14px;left:14px;font-family:var(--sans);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.32);backdrop-filter:blur(2px);padding:5px 10px;border-radius:20px}
 
-.body-text{ font-size:1.1rem; line-height:1.95; text-align:justify; hyphens:auto; color:var(--ink); max-width:64ch; }
-.body-text p{ margin:0 0 1.4em; }
-.body-text p:first-of-type::first-letter{ font-family:'Fraunces',serif; font-weight:600; font-size:3.8em; float:left; line-height:.8;
-  padding:.04em .1em 0 0; color:var(--oxblood); }
+.meta{padding:22px 26px 0}
+h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,32px);line-height:1.18;margin:2px 0 6px;color:var(--ink)}
+.subtitle{font-family:var(--serif-mod);font-style:italic;color:var(--soft);font-size:15px;line-height:1.5;margin:0 0 16px}
+.byline{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.avatar{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--serif-mod);font-size:13px}
+.byline-text{font-size:12.5px;line-height:1.4}
+.byline-text b{font-weight:600;color:var(--ink)}
+.byline-text span{color:var(--soft)}
+.byline-dot{opacity:.5;margin:0 4px}
 
-.tags{ margin-top:32px; font-family:'Space Mono',monospace; font-size:11px; color:var(--ink-faint); }
-.tags span{ color:var(--ink-soft); margin-right:10px; }
+.article{padding:0 26px;font-family:var(--serif-mod);font-size:17.5px;line-height:1.85;color:var(--ink)}
+.article p{margin:0 0 1.15em}
+.article p:first-of-type::first-letter{font-family:var(--serif-lit);font-size:2.9em;float:left;line-height:.85;padding:.04em .07em 0 0;color:var(--accent)}
+.article.poetry{font-style:italic;font-family:var(--serif-lit)}
+.article.poetry p{margin:0 0 .9em;white-space:pre-line}
+.article.short{display:flex;align-items:center;min-height:38vh;font-size:20px;text-align:center;justify-content:center;font-style:italic}
 
-.engage{ display:flex; gap:16px; align-items:center; margin:38px 0 8px; }
-.stamp{ border:1.5px solid var(--stamp-ink); color:var(--stamp-ink); background:none; border-radius:50%;
-  width:60px; height:60px; font-family:'Space Mono',monospace; font-size:9.5px; letter-spacing:.02em;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer;
-  transform:rotate(-3deg); opacity:.82; transition:transform .18s ease, opacity .18s ease, background .18s ease, color .18s ease; }
-.stamp b{ font-size:15px; font-family:'Fraunces',serif; font-weight:600; }
-.stamp:hover{ opacity:1; transform:rotate(-3deg) scale(1.05); }
-.stamp.active{ background:var(--oxblood); border-color:var(--oxblood); color:var(--paper); transform:rotate(-3deg) scale(.94); }
-.stamp:nth-of-type(2){ transform:rotate(2deg); } .stamp:nth-of-type(2):hover{ transform:rotate(2deg) scale(1.05); }
+.tags{display:flex;flex-wrap:wrap;gap:8px;padding:6px 26px 4px}
+.tag{font-family:var(--sans);font-size:11.5px;color:var(--soft);border:1px solid var(--border);padding:4px 11px;border-radius:20px}
 
-.catalog{ margin-top:40px; max-width:64ch; }
-.catalog-h{ font-family:'Space Mono',monospace; font-size:10.5px; letter-spacing:.12em; color:var(--ink-faint); text-transform:uppercase; margin-bottom:14px; }
-.card{ border:1px dashed var(--rule); padding:14px 16px; margin-bottom:12px; border-radius:2px; }
-.card .who{ font-style:italic; font-weight:600; font-size:.92rem; }
-.card .when{ font-family:'Space Mono',monospace; font-size:9.5px; color:var(--ink-faint); float:right; }
-.card p{ margin:8px 0 0; font-size:.94rem; line-height:1.6; color:var(--ink-soft); }
+.actionbar{display:flex;align-items:center;gap:4px;padding:16px 20px;margin:14px 26px 6px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.act{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--soft);font-family:var(--sans);font-size:12.5px;cursor:pointer;padding:8px 10px;border-radius:8px;transition:color .18s}
+.act:hover{color:var(--ink)}
+.act svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.6;transition:transform .18s ease}
+.act.liked{color:#c0563f}
+.act.liked svg{fill:#c0563f;stroke:#c0563f;transform:scale(1.12)}
+.act.saved{color:var(--accent)}
+.act.saved svg{fill:var(--accent);stroke:var(--accent)}
+.actionbar .spacer{flex:1}
+.ribbon{position:absolute;top:0;right:22px;width:20px;height:0;background:var(--accent);clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);transition:height .25s cubic-bezier(.2,.9,.3,1.2);z-index:20}
+.page.saved .ribbon{height:46px}
 
-.folio{ position:fixed; bottom:calc(14px + env(safe-area-inset-bottom,0px)); left:0; right:0; text-align:center;
-  font-family:'Space Mono',monospace; font-size:11px; color:var(--ink-faint); letter-spacing:.04em; z-index:80; pointer-events:none; }
+.comments{padding:6px 26px 40px;font-family:var(--sans)}
+.comments h3{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);font-weight:600;margin:10px 0 14px}
+.newcomment{display:flex;gap:10px;margin-bottom:18px}
+.newcomment textarea{flex:1;resize:none;border:1px solid var(--border);background:var(--paper2);color:var(--ink);border-radius:10px;padding:9px 11px;font-family:var(--sans);font-size:13px;min-height:38px;line-height:1.4}
+.newcomment button{align-self:flex-end;border:none;background:var(--accent);color:var(--paper);font-size:12px;font-weight:600;padding:9px 14px;border-radius:8px;cursor:pointer}
+.comment{display:flex;gap:10px;margin-bottom:16px}
+.comment .avatar{width:28px;height:28px;font-size:11px}
+.c-body{flex:1;min-width:0}
+.c-head{font-size:12.5px}
+.c-head b{color:var(--ink);font-weight:600}
+.c-head .t{color:var(--soft);margin-left:6px}
+.c-text{font-size:13.5px;line-height:1.55;color:var(--ink);margin:3px 0 6px}
+.c-actions{display:flex;gap:14px;font-size:11.5px;color:var(--soft)}
+.c-actions button{background:none;border:none;color:inherit;cursor:pointer;font:inherit;padding:0}
+.c-actions button:hover{color:var(--ink)}
+.replies{margin-top:10px;padding-left:16px;border-left:1px solid var(--border)}
+.no-comments{color:var(--soft);font-size:13px;font-style:italic;padding:10px 0}
+
+/* ---------- CORNER HANDLES ---------- */
+.corner{position:absolute;bottom:16px;width:34px;height:34px;z-index:30;cursor:grab;touch-action:none;opacity:.45;transition:opacity .2s}
+.corner:hover,.corner:active{opacity:.9}
+.corner.right{right:6px}
+.corner.left{left:6px}
+.corner svg{width:100%;height:100%}
+@media(max-width:600px){.corner{width:30px;height:30px;bottom:calc(10px + env(safe-area-inset-bottom,0px))}}
+
+/* fold shadow overlay drawn on front page while dragging */
+.foldshadow{position:absolute;inset:0;pointer-events:none;z-index:12;opacity:0}
+
+.boundary-hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-family:var(--sans);font-size:11px;color:var(--soft);opacity:0;transition:opacity .3s;pointer-events:none}
+.boundary-hint.show{opacity:.8}
+
+@media(prefers-color-scheme:dark){}
+::selection{background:var(--accent);color:var(--paper)}
+.page-scroll::-webkit-scrollbar{width:6px}
+.page-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 </style>
 </head>
 <body>
+<div class="app-shell" id="app">
+  <div class="progressline"><div class="progressfill" id="progressFill"></div></div>
+  <header class="topbar">
+    <button class="iconbtn" id="backBtn" aria-label="Back to Discover">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      Discover
+    </button>
+    <div style="position:relative">
+      <button class="iconbtn" id="themeBtn" aria-haspopup="true" aria-expanded="false" aria-label="Reading theme">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 000 18z" fill="currentColor" stroke="none"/></svg>
+        Theme
+      </button>
+      <div class="theme-pop" id="themePop" role="menu">
+        <button class="swatch" data-t="classic" title="Classic Paper" aria-label="Classic Paper"></button>
+        <button class="swatch" data-t="ivory" title="Ivory" aria-label="Ivory"></button>
+        <button class="swatch" data-t="oldschool" title="Old School" aria-label="Old School"></button>
+        <button class="swatch" data-t="dark" title="Dark Paper" aria-label="Dark Paper"></button>
+        <button class="swatch" data-t="midnight" title="Midnight" aria-label="Midnight"></button>
+        <button class="swatch" data-t="minimal" title="Minimal" aria-label="Minimal"></button>
+      </div>
+    </div>
+  </header>
 
-<div class="chrome">
-  <button class="back-link" id="backBtn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-    Back to Discover
-  </button>
-  <button class="theme-switch" id="themeBtn" aria-label="Toggle dark mode"></button>
-</div>
-
-<div class="book" id="book">
-  <div class="leaf leaf-back" id="leafBack">
-    <div class="margin"></div>
-    <div class="column" id="colBack"></div>
-    <div class="margin"></div>
-    <div class="texture"></div><div class="vignette"></div>
+  <div class="stage" id="stage">
+    <div class="book-wrap" id="bookWrap">
+      <div class="navzone left" id="navLeft" aria-hidden="true"></div>
+      <div class="navzone right" id="navRight" aria-hidden="true"></div>
+      <div class="page behind" id="pageBehind"></div>
+      <div class="page front" id="pageFront"></div>
+      <div class="foldshadow" id="foldShadow"></div>
+      <div class="corner left" id="cornerLeft" aria-label="Turn to previous post" role="button" tabindex="0">
+        <svg viewBox="0 0 34 34"><path d="M34 0 L10 34 L0 34 L0 0 Z" fill="var(--soft)" opacity=".25"/></svg>
+      </div>
+      <div class="corner right" id="cornerRight" aria-label="Turn to next post" role="button" tabindex="0">
+        <svg viewBox="0 0 34 34"><path d="M0 0 L24 34 L34 34 L34 0 Z" fill="var(--soft)" opacity=".25"/></svg>
+      </div>
+      <div class="boundary-hint" id="boundaryHint">The beginning of this collection</div>
+    </div>
   </div>
-  <div class="leaf leaf-front" id="leafFront">
-    <div class="margin" id="marginPrev" title="Previous">‹</div>
-    <div class="column" id="colFront"></div>
-    <div class="margin" id="marginNext" title="Next">›</div>
-    <div class="texture"></div><div class="vignette"></div><div class="curl-shade" id="curlShade"></div>
-    <div class="ribbon" id="ribbon"></div>
-  </div>
 </div>
+<div class="sr-only" role="status" aria-live="polite" id="liveRegion"></div>
 
-<div class="folio" id="folio"></div>
-
-<div id="errBanner" style="display:none;position:fixed;top:0;left:0;right:0;background:#8C3A2E;color:#fff;font-family:monospace;font-size:12px;padding:10px 16px;z-index:9999;"></div>
 <script>
-window.onerror = function(msg){
-  var b = document.getElementById('errBanner');
-  b.style.display = 'block';
-  b.textContent = 'Script error: ' + msg;
+(function(){
+"use strict";
+
+/* ============ 1. DEMO DATA ============ */
+const POSTS = [
+ {id:1,type:"Journal",title:"Notes from a Slow Morning",subtitle:"On the quiet discipline of paying attention.",author:"Meera Kapoor",username:"meerawrites",avatar:"#8a5a3b",date:"Sep 12",read:"6 min",tags:["morning pages","noticing","slow living"],grad:"linear-gradient(135deg,#d9c2a0,#8a6a4a)",kind:"long",
+ body:["The kettle takes four minutes, and I have decided this is the correct length of a morning. Long enough to watch the light change on the wall opposite the window; short enough that I haven't yet started performing the day for anyone.","There is a specific kind of attention that only shows up before the phone is unlocked. It is thinner than concentration and slower than daydreaming — closer to the way you'd look at a stranger's garden while walking past it, curious but undemanding.","I used to think journaling was for solving things. Lately it feels more like sweeping a floor that will get dusty again tomorrow. Not less worth doing. Just not a task with an end.","By the time the kettle clicks off, I've usually written a paragraph I'll never reread and noticed one true thing about the room. Some days that's the whole harvest, and it's enough."],
+ likes:214,saved:false,liked:false,
+ comments:[
+  {id:101,user:"Aarav N.",avatar:"#5b7a6b",time:"2h",text:"This is exactly the energy I needed before opening my inbox. Saving this.",likes:12,replies:[
+    {id:1011,user:"Meera Kapoor",avatar:"#8a5a3b",time:"1h",text:"That means a lot — the inbox can wait four minutes.",likes:4}
+  ]},
+  {id:102,user:"Priya D.",avatar:"#7a4a6a",time:"5h",text:"The kettle line got me. I'm stealing the four-minute rule.",likes:6,replies:[]}
+ ]},
+ {id:2,type:"Poetry",title:"Harbor",subtitle:"",author:"Idris Osei",username:"idris.o",avatar:"#2f5d62",date:"Sep 10",read:"1 min",tags:["poetry","sea","short"],grad:"linear-gradient(135deg,#2f5d62,#0e2a2e)",kind:"poem",
+ body:["you were never the storm i named you—\njust a harbor\nthat forgot how to hold water still.\n\nI kept mistaking the leaving tide\nfor abandonment,\nwhen it was only doing\nwhat tides do."],
+ likes:588,saved:true,liked:true,
+ comments:[
+  {id:201,user:"Nia F.",avatar:"#b0824a",time:"1d",text:"'a harbor that forgot how to hold water still' — stopped me cold.",likes:34,replies:[]}
+ ]},
+ {id:3,type:"Shayari",title:"Bekhabar",subtitle:"",author:"Farhan Ali",username:"farhan.ali",avatar:"#6a3b5a",date:"Sep 9",read:"1 min",tags:["shayari","urdu-inspired"],grad:"linear-gradient(135deg,#6a3b5a,#2a1622)",kind:"short",
+ body:["teri khushbu bhi bekhabar nikli,\nmeri raahein bhi humsafar na thiin."],
+ likes:342,saved:false,liked:false,comments:[]},
+ {id:4,type:"Thought",title:"On Almost-Finished Things",subtitle:"",author:"Wren Halloway",username:"wrenh",avatar:"#4a5a8a",date:"Sep 8",read:"2 min",tags:["thought","craft"],grad:"linear-gradient(135deg,#4a5a8a,#1c2440)",kind:"short",
+ body:["I've started to trust the drafts that sit at ninety percent longer than the ones I rush to finish. Something in the waiting keeps arguing with the work, quietly, until it's actually done rather than merely abandoned in a finished-looking shape."],
+ likes:129,saved:false,liked:false,comments:[
+  {id:401,user:"Sam K.",avatar:"#3a6a5a",time:"3h",text:"\"Abandoned in a finished-looking shape\" is going straight into my notes app.",likes:9,replies:[]}
+ ]},
+ {id:5,type:"Story",title:"The Cartographer of Small Rooms",subtitle:"A short story about a woman who maps apartments no one remembers living in.",author:"Selin Aydın",username:"selin.a",avatar:"#8a4a3b",date:"Sep 5",read:"9 min",tags:["fiction","short story","memory"],grad:"linear-gradient(135deg,#8a4a3b,#3a1a12)",kind:"long",
+ body:["Rosa mapped the apartment on Calle Verde from memory, though she'd never lived there. That was the job: to draw the floor plans of rooms whose tenants had died without heirs, using nothing but the water stains, the nail holes, the worn patches in the carpet where a chair had sat for thirty years.","She started with the kitchen, always. Kitchens told the truth fastest — how many plates in the drying rack's memory, whether the stove had cooked for one or for a family that had thinned over time.","In the second bedroom of Calle Verde, she found a rectangle of unfaded paint on the wall, exactly the size of a crib. No crib in the records. No child in the city's registry. She drew it anyway, labeled it 'absence, approx. 90x50cm,' and moved to the hallway.","Her supervisor said the maps were for insurance purposes. Rosa knew better. Somebody, someday, would come looking for a room they half-remembered, and the map would be the only proof it had existed at all."],
+ likes:1042,saved:true,liked:false,comments:[
+  {id:501,user:"Dev R.",avatar:"#5a5a3a",time:"6h",text:"The 'absence, approx. 90x50cm' line is devastating in the best way.",likes:41,replies:[
+    {id:5011,user:"Lila M.",avatar:"#3a4a6a",time:"5h",text:"Right? Selin does this so well — grief through inventory.",likes:8},
+    {id:5012,user:"Selin Aydın",avatar:"#8a4a3b",time:"4h",text:"Thank you both, truly — that room took me a while to draw.",likes:19}
+  ]},
+  {id:502,user:"Omar T.",avatar:"#7a3a3a",time:"9h",text:"Need the rest of this collection immediately.",likes:15,replies:[]}
+ ]},
+ {id:6,type:"Article",title:"Why We Keep Rewriting the Same Sentence",subtitle:"A short essay on perfectionism, momentum, and letting drafts be ugly on purpose.",author:"Tobias Reyn",username:"tobiasr",avatar:"#3b6a8a",date:"Sep 2",read:"7 min",tags:["writing","essay","craft"],grad:"linear-gradient(135deg,#3b6a8a,#12243a)",kind:"long",
+ body:["Every writing workshop eventually arrives at the same confession: someone has spent forty minutes on a single opening sentence while the rest of the piece sits blank beneath it, waiting.","The instinct isn't laziness. It's a kind of misplaced faith — the idea that if the first sentence is correct, everything after it will follow with less friction. In practice, the opposite tends to happen. Polishing one sentence in isolation teaches you almost nothing about the shape of the piece it's meant to open.","Momentum is a resource, and first drafts spend it fastest when they're allowed to be provisional. The ugly draft, written quickly and revised later with the whole shape visible, nearly always beats the beautiful paragraph written in isolation.","None of this makes perfectionism irrational. It's a reasonable response to the fear of wasted effort. But writing, like most crafts, rewards a specific kind of recklessness: the willingness to be wrong at speed, so that later you have something concrete enough to fix."],
+ likes:876,saved:false,liked:false,comments:[
+  {id:601,user:"Grace L.",avatar:"#6a3a5a",time:"12h",text:"\"Reckless at speed\" is now taped above my desk.",likes:22,replies:[]}
+ ]}
+];
+
+/* ============ 2. STATE ============ */
+const S = {
+ idx: 0,
+ state: "idle", // idle | dragging | settling | cancelling | boundary
+ dir: 0,        // 1 = next, -1 = prev
+ frac: 0,       // 0..1 curl progress
+ dragStartX: 0, dragStartY: 0, lastX:0, lastT:0, vel:0,
+ pointerId: null,
+ reduced: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+ saved: new Set(JSON.parse(localStorage.getItem("journals_saved")||"[]")),
+ liked: new Set(JSON.parse(localStorage.getItem("journals_liked")||"[]")),
+ positions: JSON.parse(localStorage.getItem("journals_positions")||"{}")
+};
+POSTS.forEach(p=>{ if(S.saved.has(p.id)) p.saved=true; if(S.liked.has(p.id)) p.liked=true; });
+
+const el = {
+ pageFront: document.getElementById("pageFront"),
+ pageBehind: document.getElementById("pageBehind"),
+ foldShadow: document.getElementById("foldShadow"),
+ bookWrap: document.getElementById("bookWrap"),
+ progress: document.getElementById("progressFill"),
+ cornerL: document.getElementById("cornerLeft"),
+ cornerR: document.getElementById("cornerRight"),
+ navL: document.getElementById("navLeft"),
+ navR: document.getElementById("navRight"),
+ hint: document.getElementById("boundaryHint"),
+ live: document.getElementById("liveRegion"),
+ themeBtn: document.getElementById("themeBtn"),
+ themePop: document.getElementById("themePop"),
+ backBtn: document.getElementById("backBtn")
 };
 
-const POSTS = [
-  { kind:'Journal', title:'Salt Air, Late September', subtitle:'On the strange comfort of a town that empties out after summer.',
-    name:'Aariv Kapoor', date:'Sept 12, 2026', time:'6 min read',
-    avatar:'https://api.dicebear.com/7.x/lorelei/svg?seed=Aariv&backgroundType=solid&backgroundColor=e8d9b8',
-    tags:['travel','solitude','coast'],
-    paras:['The boardwalk stalls are shuttered by the second week of September, and the town gives itself back to the people who actually live here. I like it best this way — half the lights off, half the noise gone, the sea doing most of the talking.',
-      'There is a particular kind of quiet that only shows up once the tourists leave: the quiet of a place remembering its own rhythm. Somebody sweeps sand off their porch each morning like clockwork. A dog that is not mine follows me two blocks and then turns back, satisfied.',
-      'I keep thinking I came here to write, and instead I have mostly just been listening. Maybe that counts as the same thing.'],
-    likes:284, notes:19 },
-  { kind:'Shayari', title:'Iss Shehar Mein', subtitle:'A short couplet on cities that keep our names longer than our people do.',
-    name:'Naila Farooqui', date:'Sept 9, 2026', time:'2 min read',
-    avatar:'https://api.dicebear.com/7.x/lorelei/svg?seed=Naila&backgroundType=solid&backgroundColor=e8d9b8',
-    tags:['shayari','longing','urdu'],
-    paras:['Iss shehar mein har gali ne mera naam seekh liya,\nmagar jab tumhein pukaara, kisi ne suna hi nahi.',
-      'Roshni to har chaurahe pe thi, phir bhi\nraasta bhoolne ka ilzaam mujh par hi kyun tha?',
-      '— an old grief, dressed up in a new address.'],
-    likes:512, notes:41 },
-  { kind:'Thought', title:'The Museum of Unsent Texts', subtitle:'What we almost say, and why we keep drafting it anyway.',
-    name:'Devika Rao', date:'Sept 5, 2026', time:'4 min read',
-    avatar:'https://api.dicebear.com/7.x/lorelei/svg?seed=Devika&backgroundType=solid&backgroundColor=e8d9b8',
-    tags:['relationships','thoughts'],
-    paras:['Somewhere there ought to be an archive for every message typed and deleted before it was sent — the apology composed at 2 a.m., the confession trimmed down to nothing, the "I miss you" that got backspaced into "hope you are well."',
-      'We treat the unsent draft as failure, proof we lost our nerve. I have started to think of it differently: as a private ledger of who we almost let ourselves be, kept safe from the versions of us that would have to answer for it.',
-      'Not every feeling needs a recipient to be true.'],
-    likes:398, notes:27 },
-  { kind:'Poem', title:'Instructions for Folding a Paper Boat', subtitle:'A small poem for anyone still learning how to let a thing go gently.',
-    name:'Samuel Oduya', date:'Aug 30, 2026', time:'3 min read',
-    avatar:'https://api.dicebear.com/7.x/lorelei/svg?seed=Samuel&backgroundType=solid&backgroundColor=e8d9b8',
-    tags:['poetry','grief','water'],
-    paras:['Take the squarest piece you have —\nnot the whole grief, just a corner of it.\nCrease it hard enough to remember,\nsoft enough to still call it paper.',
-      'Fold twice toward the middle\nthe way you once folded toward safety.\nOpen it like a mouth deciding\nwhether to say the thing at all.',
-      'Set it on the water. Do not name it.\nWatch how far a small, brave shape\ncan travel before it asks you\nto follow.'],
-    likes:663, notes:58 }
-];
-const catalogNotes = [
-  ['R. Mehta', '2d ago', 'Read this twice already. The second paragraph undid me a little.'],
-  ['T. Chen', '5d ago', 'The kind of piece you bookmark and reread on a bad week.']
-];
-
-let i = 0;
-let liked = new Set();
-let marked = new Set();
-let animating = false;
-const colFront = document.getElementById('colFront');
-const colBack = document.getElementById('colBack');
-const leafFront = document.getElementById('leafFront');
-const curlShade = document.getElementById('curlShade');
-const ribbon = document.getElementById('ribbon');
-const folio = document.getElementById('folio');
-
-function postHTML(idx){
-  const p = POSTS[idx];
-  const isLiked = liked.has(idx);
-  return `
-    <div class="kind">${p.kind}</div>
-    <h1 class="title">${p.title}</h1>
-    <p class="subtitle">${p.subtitle}</p>
+/* ============ 3. RENDER ============ */
+function renderPost(post){
+ const wrap = document.createElement("div");
+ wrap.className = "page-scroll";
+ wrap.tabIndex = -1;
+ const initials = post.author.split(" ").map(w=>w[0]).slice(0,2).join("");
+ const artClass = post.kind==="poem" ? "article poetry" : post.kind==="short" ? "article short" : "article";
+ wrap.innerHTML = `
+  <div class="cover"><span class="type-chip">${post.type}</span>
+    <div class="grad" style="background:${post.grad}">${post.type}</div>
+  </div>
+  <div class="ribbon"></div>
+  <div class="meta">
+    <h1 class="title">${esc(post.title)}</h1>
+    ${post.subtitle?`<p class="subtitle">${esc(post.subtitle)}</p>`:""}
     <div class="byline">
-      <img class="avatar" src="${p.avatar}" alt="">
-      <div class="byline-text"><div class="name">${p.name}</div><div class="meta">${p.date} <span class="orn">✦</span> ${p.time}</div></div>
+      <div class="avatar" style="background:${post.avatar}">${initials}</div>
+      <div class="byline-text"><b>${esc(post.author)}</b> <span>@${post.username}</span><span class="byline-dot">·</span><span>${post.date}</span><span class="byline-dot">·</span><span>${post.read} read</span></div>
     </div>
-    <div class="body-text">${p.paras.map(t=>`<p>${t.replace(/\n/g,'<br>')}</p>`).join('')}</div>
-    <div class="tags">Filed under: ${p.tags.map(t=>`<span>§ ${t}</span>`).join('')}</div>
-    <div class="engage">
-      <button class="stamp ${isLiked?'active':''}" data-act="like" data-idx="${idx}"><b>${p.likes + (isLiked?1:0)}</b>IMPRESSION</button>
-      <button class="stamp">${p.notes}<b>&nbsp;</b>NOTES</button>
-      <button class="stamp">✉<b>&nbsp;</b>SHARE</button>
-    </div>
-    <div class="catalog"><div class="catalog-h">Marginalia — reader notes</div>
-      ${catalogNotes.map(c=>`<div class="card"><span class="when">${c[1]}</span><span class="who">${c[0]}</span><p>${c[2]}</p></div>`).join('')}
-    </div>`;
+  </div>
+  <div class="${artClass}">${post.body.map(p=>`<p>${esc(p)}</p>`).join("")}</div>
+  <div class="tags">${post.tags.map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
+  <div class="actionbar">
+    <button class="act ${post.liked?'liked':''}" data-act="like"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg><span class="cnt">${post.likes + (post.liked?1:0)}</span></button>
+    <button class="act" data-act="comment"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.5 8.5 0 01-4-1L3 20l1-5.5A8.38 8.38 0 0112.5 3 8.38 8.38 0 0121 11.5z"/></svg><span class="cnt">${post.comments.length}</span></button>
+    <button class="act ${post.saved?'saved':''}" data-act="save"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></button>
+    <span class="spacer"></span>
+    <button class="act" data-act="share"><svg viewBox="0 0 24 24"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7M16 6l-4-4-4 4M12 2v14"/></svg></button>
+  </div>
+  <div class="comments">
+    <h3>Marginalia · ${post.comments.length}</h3>
+    <div class="newcomment"><textarea rows="1" placeholder="Leave a note in the margin…" aria-label="Add a comment"></textarea><button data-act="post-comment">Post</button></div>
+    <div class="clist">${post.comments.length? post.comments.map(c=>renderComment(c)).join("") : '<div class="no-comments">No notes yet — be the first to write in the margin.</div>'}</div>
+  </div>
+ `;
+ if(post.saved) wrap.parentElement; // ribbon toggled via class on .page below
+ wireActions(wrap, post);
+ return wrap;
 }
-function bindLike(root){
-  const btn = root.querySelector('[data-act="like"]');
-  if (btn) btn.onclick = () => { const idx = +btn.dataset.idx; liked.has(idx) ? liked.delete(idx) : liked.add(idx); render(); };
+function renderComment(c){
+ const initials = c.user.split(" ").map(w=>w[0]).slice(0,2).join("");
+ return `<div class="comment">
+   <div class="avatar" style="background:${c.avatar}">${initials}</div>
+   <div class="c-body">
+     <div class="c-head"><b>${esc(c.user)}</b><span class="t">${c.time}</span></div>
+     <div class="c-text">${esc(c.text)}</div>
+     <div class="c-actions"><button>♡ ${c.likes}</button><button data-reply>Reply</button>${c.replies&&c.replies.length?`<button data-toggle>${c.replies.length} repl${c.replies.length>1?'ies':'y'}</button>`:''}</div>
+     ${c.replies&&c.replies.length?`<div class="replies" style="display:none">${c.replies.map(r=>renderComment(r)).join("")}</div>`:''}
+   </div>
+ </div>`;
 }
-function render(){
-  colFront.innerHTML = postHTML(i);
-  bindLike(colFront);
-  ribbon.classList.toggle('on', marked.has(i));
-  folio.textContent = `Page ${i+1} of ${POSTS.length} · Similar Works`;
-  colFront.scrollTop = 0;
+function esc(s){ const d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+
+function wireActions(scope, post){
+ scope.querySelector('[data-act="like"]').addEventListener("click", e=>{
+  post.liked = !post.liked;
+  if(post.liked) S.liked.add(post.id); else S.liked.delete(post.id);
+  localStorage.setItem("journals_liked", JSON.stringify([...S.liked]));
+  const btn = e.currentTarget;
+  btn.classList.toggle("liked", post.liked);
+  btn.querySelector(".cnt").textContent = post.likes + (post.liked?1:0);
+ });
+ scope.querySelector('[data-act="save"]').addEventListener("click", e=>{
+  post.saved = !post.saved;
+  if(post.saved) S.saved.add(post.id); else S.saved.delete(post.id);
+  localStorage.setItem("journals_saved", JSON.stringify([...S.saved]));
+  e.currentTarget.classList.toggle("saved", post.saved);
+  scope.closest(".page").classList.toggle("saved", post.saved);
+  announce(post.saved ? "Saved to your shelf" : "Removed from your shelf");
+ });
+ scope.querySelector('[data-act="comment"]').addEventListener("click", ()=>{
+  scope.querySelector(".comments").scrollIntoView({behavior: S.reduced?"auto":"smooth", block:"start"});
+ });
+ scope.querySelector('[data-act="share"]').addEventListener("click", async ()=>{
+  const url = location.href.split("#")[0] + "#post-" + post.id;
+  try{ await navigator.clipboard.writeText(url); announce("Link copied"); }catch(e){ announce("Copy this link: "+url); }
+ });
+ const ta = scope.querySelector(".newcomment textarea");
+ scope.querySelector('[data-act="post-comment"]').addEventListener("click", ()=>{
+  const val = ta.value.trim(); if(!val) return;
+  const c = {id:Date.now(),user:"You",avatar:"#666",time:"now",text:val,likes:0,replies:[]};
+  post.comments.unshift(c);
+  ta.value = "";
+  const list = scope.querySelector(".clist");
+  list.innerHTML = post.comments.map(renderComment).join("");
+  scope.querySelector(".comments h3").textContent = "Marginalia · " + post.comments.length;
+  wireCommentToggles(scope);
+ });
+ wireCommentToggles(scope);
+ scope.addEventListener("scroll", ()=>{
+  S.positions[post.id] = scope.scrollTop;
+  localStorage.setItem("journals_positions", JSON.stringify(S.positions));
+ }, {passive:true});
+ if(S.positions[post.id]) requestAnimationFrame(()=>{ scope.scrollTop = S.positions[post.id]; });
 }
-ribbon.onclick = () => { marked.has(i) ? marked.delete(i) : marked.add(i); ribbon.classList.toggle('on', marked.has(i)); };
+function wireCommentToggles(scope){
+ scope.querySelectorAll("[data-toggle]").forEach(btn=>{
+  btn.onclick = ()=>{
+   const rep = btn.closest(".c-body").querySelector(".replies");
+   if(rep){ const open = rep.style.display !== "none"; rep.style.display = open? "none":"block"; }
+  };
+ });
+ scope.querySelectorAll("[data-reply]").forEach(btn=>{
+  btn.onclick = ()=> announce("Reply composer would open here");
+ });
+}
+function announce(msg){ el.live.textContent = msg; }
 
-const ease = t => 1 - Math.pow(1 - t, 3);
+/* mount initial pages */
+function mountPage(container, post, cls){
+ container.className = "page " + cls + (post.saved?" saved":"");
+ container.innerHTML = "";
+ container.appendChild(renderPost(post));
+}
+mountPage(el.pageFront, POSTS[S.idx], "front");
+updateProgress();
 
-function setFrame(deg, shadeOp){
-  leafFront.style.transform = 'rotateY(' + deg + 'deg)';
-  curlShade.style.opacity = shadeOp;
+function updateProgress(){
+ el.progress.style.width = ((S.idx+1)/POSTS.length*100) + "%";
 }
 
-function animateTo(fromDeg, toDeg, duration, onDone){
-  animating = true;
-  const start = performance.now();
-  function step(now){
-    const t = Math.min(1, (now - start) / duration);
-    const e = ease(t);
-    const deg = fromDeg + (toDeg - fromDeg) * e;
-    const shadeOp = Math.sin(Math.min(1, Math.abs(deg) / 90) * Math.PI) * .8;
-    setFrame(deg, shadeOp);
-    if (t < 1) requestAnimationFrame(step);
-    else { animating = false; if (onDone) onDone(); }
-  }
-  requestAnimationFrame(step);
+/* ============ 4. PHYSICS / STATE MACHINE ============ */
+const NOTCH = 26; // px fold notch depth
+function setCurl(dir, frac){
+ // clip-path on front page revealing behind page, with a folded notch + shadow/highlight
+ const pct = frac*100;
+ let clip;
+ if(dir === 1){ // turning to next: reveal from right
+  clip = `polygon(0 0, calc(100% - ${pct}%) 0, calc(100% - ${pct}% - ${NOTCH}px) 50%, calc(100% - ${pct}%) 100%, 0 100%)`;
+ } else if(dir === -1){ // turning to prev: reveal from left
+  clip = `polygon(${pct}% 0, 100% 0, 100% 100%, ${pct}% 100%, calc(${pct}% + ${NOTCH}px) 50%)`;
+ } else { clip = "none"; }
+ el.pageFront.style.clipPath = clip;
+ const angle = frac*6*dir;
+ el.pageFront.style.transform = `perspective(1800px) rotateY(${-angle}deg)`;
+ // fold shadow/highlight overlay
+ const edgePct = dir===1 ? (100-pct) : (pct);
+ el.foldShadow.style.opacity = frac>0.002 ? 1 : 0;
+ const w = 70;
+ if(dir===1){
+  el.foldShadow.style.background = `linear-gradient(to left, ${hex(pctToLo(frac))} 0%, transparent ${w}px)`;
+  el.foldShadow.style.left = `calc(${edgePct}% - ${w}px)`; el.foldShadow.style.right = "auto"; el.foldShadow.style.width = w+"px";
+ } else if(dir===-1){
+  el.foldShadow.style.background = `linear-gradient(to right, ${hex(pctToLo(frac))} 0%, transparent ${w}px)`;
+  el.foldShadow.style.right = `calc(${100-edgePct}% - ${w}px)`; el.foldShadow.style.left="auto"; el.foldShadow.style.width = w+"px";
+ }
+}
+function pctToLo(f){ return getComputedStyle(document.documentElement).getPropertyValue('--fold-lo').trim() || "rgba(0,0,0,.3)"; }
+function hex(v){ return v; }
+function resetCurl(){
+ el.pageFront.style.clipPath = "none";
+ el.pageFront.style.transform = "none";
+ el.foldShadow.style.opacity = 0;
 }
 
-function turn(dir){
-  if (animating) return;
-  const nextIdx = dir === 'next' ? (i+1) % POSTS.length : (i-1+POSTS.length) % POSTS.length;
-  colBack.innerHTML = postHTML(nextIdx);
-  leafFront.style.transformOrigin = dir === 'next' ? 'right center' : 'left center';
-  const target = dir === 'next' ? -140 : 140;
-  animateTo(0, target, 620, function(){
-    i = nextIdx;
-    render();
-    setFrame(0, 0);
-  });
+function canGo(dir){
+ return dir===1 ? S.idx < POSTS.length-1 : S.idx > 0;
+}
+function showBoundary(dir){
+ el.hint.textContent = dir===1 ? "The end of this collection" : "The beginning of this collection";
+ el.hint.classList.add("show");
+ clearTimeout(showBoundary._t);
+ showBoundary._t = setTimeout(()=> el.hint.classList.remove("show"), 900);
 }
 
-document.getElementById('marginNext').addEventListener('click', function(){ turn('next'); });
-document.getElementById('marginPrev').addEventListener('click', function(){ turn('prev'); });
-document.getElementById('backBtn').addEventListener('click', function(){ alert('This would return to the Discover feed.'); });
+function beginDrag(dir, x, y){
+ if(S.state !== "idle") return;
+ S.state = "dragging"; S.dir = dir; S.dragStartX = x; S.dragStartY = y; S.lastX = x; S.lastT = performance.now();
+ const nextIdx = S.idx + dir;
+ if(canGo(dir)){
+  mountPage(el.pageBehind, POSTS[nextIdx], "behind");
+ }
+}
+function updateDrag(x){
+ if(S.state !== "dragging") return;
+ const width = el.bookWrap.clientWidth || 680;
+ let raw = Math.abs(x - S.dragStartX) / width;
+ const boundary = !canGo(S.dir);
+ let frac = boundary ? Math.min(raw*0.35, 0.09) : Math.min(raw, 1);
+ const now = performance.now();
+ const dt = Math.max(now - S.lastT, 1);
+ S.vel = (x - S.lastX) / dt; S.lastX = x; S.lastT = now;
+ S.frac = frac;
+ if(S.reduced){ return; } // no visual curl in reduced motion; commit on release only
+ setCurl(S.dir, frac);
+}
+function endDrag(){
+ if(S.state !== "dragging") return;
+ const boundary = !canGo(S.dir);
+ if(boundary){
+  S.state = "cancelling";
+  animateTo(0, ()=>{ resetCurl(); S.state="idle"; S.frac=0; showBoundary(S.dir); });
+  return;
+ }
+ const speedCommit = Math.abs(S.vel) > 0.9 && S.frac > 0.06;
+ const commit = S.frac > 0.38 || speedCommit;
+ if(commit){
+  S.state = "settling";
+  animateTo(1, ()=> completeTurn(S.dir));
+ } else {
+  S.state = "cancelling";
+  animateTo(0, ()=>{ resetCurl(); S.state="idle"; S.frac=0; });
+ }
+}
+function animateTo(target, done){
+ if(S.reduced){
+  if(target===1){ done(); } else { S.state="idle"; S.frac=0; done && done(); }
+  return;
+ }
+ const start = S.frac, t0 = performance.now(), dur = 260;
+ function step(now){
+  const p = Math.min((now-t0)/dur, 1);
+  const eased = 1 - Math.pow(1-p, 3);
+  S.frac = start + (target-start)*eased;
+  setCurl(S.dir, S.frac);
+  if(p < 1) requestAnimationFrame(step); else done && done();
+ }
+ requestAnimationFrame(step);
+}
+function completeTurn(dir){
+ S.idx += dir;
+ resetCurl();
+ el.pageFront.className = "page front" + (POSTS[S.idx].saved?" saved":"");
+ el.pageFront.innerHTML = "";
+ el.pageFront.appendChild(renderPost(POSTS[S.idx]));
+ el.pageBehind.innerHTML = "";
+ S.state = "idle"; S.frac = 0;
+ updateProgress();
+ announce(`${POSTS[S.idx].type} by ${POSTS[S.idx].author}`);
+}
 
-document.addEventListener('keydown', function(e){
-  if (e.key === 'ArrowRight') turn('next');
-  if (e.key === 'ArrowLeft') turn('prev');
+function goTo(dir){
+ if(S.state !== "idle") return;
+ if(!canGo(dir)){ showBoundary(dir); return; }
+ beginDrag(dir, 0, 0);
+ S.state = "settling";
+ animateTo(1, ()=> completeTurn(dir));
+}
+
+/* ---- pointer wiring: corners = drag-to-turn; navzones = click-to-turn ---- */
+function pointerDown(e, dir){
+ if(S.state !== "idle") return;
+ S.pointerId = e.pointerId;
+ e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId);
+ beginDrag(dir, e.clientX, e.clientY);
+ e.preventDefault();
+}
+function pointerMove(e){
+ if(S.state !== "dragging" || e.pointerId !== S.pointerId) return;
+ updateDrag(e.clientX);
+}
+function pointerUp(e){
+ if(S.state !== "dragging" || (S.pointerId!==null && e.pointerId !== S.pointerId)) return;
+ S.pointerId = null;
+ endDrag();
+}
+el.cornerR.addEventListener("pointerdown", e=>pointerDown(e,1));
+el.cornerL.addEventListener("pointerdown", e=>pointerDown(e,-1));
+window.addEventListener("pointermove", pointerMove, {passive:true});
+window.addEventListener("pointerup", pointerUp);
+window.addEventListener("pointercancel", pointerUp);
+[el.cornerL, el.cornerR].forEach(c=>{
+ c.addEventListener("keydown", e=>{
+  if(e.key==="Enter" || e.key===" "){ e.preventDefault(); goTo(c===el.cornerR?1:-1); }
+ });
+});
+el.navL.addEventListener("click", ()=> goTo(-1));
+el.navR.addEventListener("click", ()=> goTo(1));
+
+/* keyboard */
+window.addEventListener("keydown", e=>{
+ const tag = (document.activeElement && document.activeElement.tagName) || "";
+ if(tag==="TEXTAREA" || tag==="INPUT") return;
+ if(e.key==="ArrowRight" || e.key===" "){ e.preventDefault(); goTo(1); }
+ else if(e.key==="ArrowLeft"){ e.preventDefault(); goTo(-1); }
 });
 
-const html = document.documentElement;
-const themeBtn = document.getElementById('themeBtn');
-try { const saved = localStorage.getItem('aspinora-theme-demo'); if (saved) html.setAttribute('data-theme', saved); } catch(e) {}
-themeBtn.addEventListener('click', function(){
-  const now = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  html.setAttribute('data-theme', now);
-  try { localStorage.setItem('aspinora-theme-demo', now); } catch(e) {}
+/* wheel-at-boundary */
+let wheelLock = false;
+el.bookWrap.addEventListener("wheel", e=>{
+ const scroller = el.pageFront.querySelector(".page-scroll");
+ if(!scroller) return;
+ const atBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 4;
+ const atTop = scroller.scrollTop <= 2;
+ if(e.deltaY > 12 && atBottom && !wheelLock){ wheelLock=true; goTo(1); setTimeout(()=>wheelLock=false, 500); }
+ else if(e.deltaY < -12 && atTop && !wheelLock){ wheelLock=true; goTo(-1); setTimeout(()=>wheelLock=false, 500); }
+}, {passive:true});
+
+/* resize safety: cancel any in-progress drag cleanly */
+window.addEventListener("resize", ()=>{
+ if(S.state==="dragging"){ resetCurl(); S.state="idle"; S.frac=0; }
 });
 
-render();
+/* ============ 5. THEME ============ */
+const THEME_KEY = "journals_theme";
+function applyTheme(t){
+ document.documentElement.setAttribute("data-theme", t);
+ localStorage.setItem(THEME_KEY, t);
+ document.querySelectorAll(".swatch").forEach(s=> s.classList.toggle("active", s.dataset.t===t));
+}
+applyTheme(localStorage.getItem(THEME_KEY) || "classic");
+el.themeBtn.addEventListener("click", ()=>{
+ const open = el.themePop.classList.toggle("open");
+ el.themeBtn.setAttribute("aria-expanded", open);
+});
+document.querySelectorAll(".swatch").forEach(s=>{
+ s.addEventListener("click", ()=>{
+  if(S.state !== "idle") return; // don't switch mid-transition
+  applyTheme(s.dataset.t);
+ });
+});
+document.addEventListener("click", e=>{
+ if(!el.themePop.contains(e.target) && e.target!==el.themeBtn && !el.themeBtn.contains(e.target)){
+  el.themePop.classList.remove("open"); el.themeBtn.setAttribute("aria-expanded","false");
+ }
+});
+
+el.backBtn.addEventListener("click", ()=>{ announce("Returning to Discover"); });
+
+})();
 </script>
 </body>
 </html>
