@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <script>
@@ -2603,19 +2603,18 @@ async function fetchJournal(idOrSlug){
     JOURNAL_CACHE[j.id] = j;
     return j;
   }
-  let query = supabaseClient.from('journals')
-    .select(JOURNAL_CARD_FIELDS)
-    .or('id.eq.' + idOrSlug + ',slug.eq.' + idOrSlug)
-    .eq('status', 'published');
-  // Same owner exception as userpostlogin.html's fetchJournal (see the
-  // longer comment there) — kept in sync so a signed-in owner viewing
-  // their own private Work behaves the same on either file.
-  if (!state.currentUser){
-    query = query.neq('visibility', 'private');
-  } else {
-    query = query.or('visibility.neq.private,author_id.eq.' + state.currentUser.id);
-  }
-  const { data, error } = await query.single();
+  // Routed through a SECURITY DEFINER RPC (get_journal_for_read) instead
+  // of a direct table select — same owner exception as
+  // userpostlogin.html's fetchJournal, kept in sync. See that file's
+  // longer comment: Phase 4 audit DB-5(ii) narrowed the general public
+  // RLS policy on journals to 'public' only (unlisted Works were
+  // enumerable via a plain unfiltered query before this), so an
+  // unlisted or the caller's own private Work now has to go through
+  // this RPC instead — it does the same check server-side but only
+  // returns the one row actually asked for.
+  const { data, error } = await supabaseClient.rpc('get_journal_for_read', { p_id_or_slug: idOrSlug });
+  if (error) throw error;
+  if (!data) throw Object.assign(new Error('Work not found'), { code: 'PGRST116' });
   if (error) throw error;
   const j = normalizeJournalRow(data);
   JOURNAL_CACHE[j.id] = j;
@@ -4507,23 +4506,13 @@ async function loadJournalByUsernameAndSlug(username, slug, replace) {
       return;
     }
 
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('username', username)
-      .single();
-
-    if (!profile) {
-      showToast('Work not found');
-      navigateTo('home');
-      return;
-    }
-
-    const isOwner = !!(state.currentUser && state.currentUser.id === profile.id);
-    let journalQuery = supabaseClient.from('journals').select(JOURNAL_CARD_FIELDS)
-      .eq('author_id', profile.id).eq('slug', slug).eq('status', 'published');
-    if (!isOwner) journalQuery = journalQuery.neq('visibility', 'private');
-    const { data: journal, error } = await journalQuery.single();
+    // One SECURITY DEFINER RPC (get_journal_by_username_slug) replaces
+    // the old profile-then-journal two-step lookup (Phase 4 audit
+    // DB-5(ii) — see userpostlogin.html's fetchJournal for the longer
+    // explanation). "No such username", "no such slug for that
+    // author", and "private and not the owner" all still collapse to
+    // the same "Work not found" this always showed for all three.
+    const { data: journal, error } = await supabaseClient.rpc('get_journal_by_username_slug', { p_username: username, p_slug: slug });
 
     if (error || !journal) {
       showToast('Work not found');
