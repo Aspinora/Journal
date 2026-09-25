@@ -132,6 +132,10 @@ h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,3
 .c-actions button{background:none;border:none;color:inherit;cursor:pointer;font:inherit;padding:0}
 .c-actions button:hover{color:var(--ink)}
 .replies{margin-top:10px;padding-left:16px;border-left:1px solid var(--border)}
+.creport-menu{margin-top:8px;padding:5px;border:1px solid var(--border);border-radius:9px;background:var(--paper2);display:flex;flex-direction:column;gap:1px;max-width:240px}
+.creport-menu[hidden]{display:none}
+.creport-menu button{width:100%;text-align:left;background:none;border:none;color:var(--ink);font-size:11.5px;padding:6px 8px;border-radius:6px;cursor:pointer;font-family:var(--sans)}
+.creport-menu button:hover{background:var(--border)}
 .no-comments{color:var(--soft);font-size:13px;font-style:italic;padding:10px 0}
 
 /* ---------- MORE / REPORT MENU ---------- */
@@ -336,8 +340,6 @@ function renderPost(post){
     <div class="morewrap">
       <button class="act" data-act="more" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></button>
       <div class="moremenu" role="menu">
-        <button data-act="save">${post.saved?'Remove from shelf':'Save to shelf'}</button>
-        <div class="mm-div"></div>
         <div class="mm-label">Report</div>
         <button class="mm-copyright" data-report="copyright">Copyright / IP concern</button>
         <div class="mm-copyright-note">Routes to Journals' copyright review pathway.</div>
@@ -365,12 +367,14 @@ function renderPost(post){
 }
 function renderComment(c){
  const initials = c.user.split(" ").map(w=>w[0]).slice(0,2).join("");
+ const reasons = ["Harassment / Bullying","Hate or Discrimination","Sexual / Explicit Content","Violence / Dangerous Content","Spam / Misleading","Privacy Violation","Copyright / Intellectual Property","Other"];
  return `<div class="comment">
    <div class="avatar" style="background:${c.avatar}">${initials}</div>
    <div class="c-body">
      <div class="c-head"><b>${esc(c.user)}</b><span class="t">${c.time}</span></div>
      <div class="c-text">${esc(c.text)}</div>
-     <div class="c-actions"><button>♡ ${c.likes}</button><button data-reply>Reply</button>${c.replies&&c.replies.length?`<button data-toggle>${c.replies.length} repl${c.replies.length>1?'ies':'y'}</button>`:''}</div>
+     <div class="c-actions"><button>♡ ${c.likes}</button><button data-reply>Reply</button>${c.replies&&c.replies.length?`<button data-toggle>${c.replies.length} repl${c.replies.length>1?'ies':'y'}</button>`:''}<button data-creport-toggle aria-haspopup="true">Report</button></div>
+     <div class="creport-menu" hidden role="menu">${reasons.map(r=>`<button data-creport="${r}">${r}</button>`).join("")}</div>
      ${c.replies&&c.replies.length?`<div class="replies" style="display:none">${c.replies.map(r=>renderComment(r)).join("")}</div>`:''}
    </div>
  </div>`;
@@ -494,6 +498,23 @@ function wireActions(scope, post){
   wireCommentToggles(scope);
  });
  wireCommentToggles(scope);
+ scope.addEventListener("click", e=>{
+  const toggleBtn = e.target.closest("[data-creport-toggle]");
+  if(toggleBtn){
+   const menu = toggleBtn.closest(".c-body").querySelector(".creport-menu");
+   if(menu){
+    const willOpen = menu.hidden;
+    scope.querySelectorAll(".creport-menu").forEach(m=>{ if(m!==menu) m.hidden = true; });
+    menu.hidden = !willOpen;
+   }
+   return;
+  }
+  const reasonBtn = e.target.closest("[data-creport]");
+  if(reasonBtn){
+   announce("Comment reported: " + reasonBtn.dataset.creport + ". Our team will review it.");
+   reasonBtn.closest(".creport-menu").hidden = true;
+  }
+ });
  scope.addEventListener("scroll", ()=>{
   S.positions[post.id] = scope.scrollTop;
   localStorage.setItem("journals_positions", JSON.stringify(S.positions));
@@ -714,8 +735,18 @@ el.bookWrap.addEventListener("wheel", e=>{
  else if(e.deltaY < -12 && atTop && !wheelLock){ wheelLock=true; goTo(-1); setTimeout(()=>wheelLock=false, 500); }
 }, {passive:true});
 
-/* resize / orientation safety: cancel any in-progress gesture or animation cleanly */
+/* resize / orientation safety: cancel any in-progress gesture or animation cleanly.
+   NOTE: mobile Chrome fires window "resize" mid-touch when its URL bar collapses
+   on the very first scroll/drag sample (height-only change) — that used to abort
+   every page-turn gesture before it could complete, which is why dragging appeared
+   broken specifically on mobile Chrome. Our curl math only depends on width, so we
+   now only cancel on an actual width change (rotation/real resize), not on the
+   address-bar-driven height change. */
+let __lastVpWidth = window.innerWidth;
 window.addEventListener("resize", ()=>{
+ const w = window.innerWidth;
+ if(Math.abs(w - __lastVpWidth) < 2){ return; } // height-only change (e.g. mobile Chrome URL bar) — ignore
+ __lastVpWidth = w;
  if(S.state!=="idle"){ resetCurl(); S.state="idle"; S.frac=0; S.candidate=null; el.pageBehind.innerHTML=""; }
 });
 
