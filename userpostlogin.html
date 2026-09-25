@@ -1896,6 +1896,18 @@ function authorNameHTML(authorId){
   return '<a class="author-name-link" href="/portfolio.html?u=' + encodeURIComponent(username) + '" onclick="event.stopPropagation();">' + name + '</a>';
 }
 
+/* reader-demo.html is a completely separate file/page from this SPA
+   (never merged) — opening a Work now hands off to it via a real page
+   navigation instead of the old internal #view-read route. Prefers the
+   clean username+slug query pair (reader-demo.html resolves that via
+   the same get_journal_by_username_slug RPC loadJournalByUsernameAndSlug
+   already uses); falls back to ?id= for any caller that doesn't have
+   the slug/author handy (reader-demo.html resolves that via
+   get_journal_for_read, same RPC fetchJournal() already uses). */
+function readerUrlFor(id, slug, username){
+  if (username && slug) return 'reader-demo.html?u=' + encodeURIComponent(username) + '&s=' + encodeURIComponent(slug);
+  return 'reader-demo.html?id=' + encodeURIComponent(id);
+}
 function formatRelativeTime(iso){
   const then = new Date(iso).getTime();
   const now = Date.now();
@@ -3770,7 +3782,7 @@ function journalCardHTML(j){
       '</button>' +
     '</div>'
   );
-  return '<article class="j-card" data-open-journal="' + j.id + '">' +
+  return '<article class="j-card" data-open-journal="' + j.id + '" data-slug="' + escapeHtml(j.slug||'') + '" data-author="' + escapeHtml(authorUsername(j.author_id)||'') + '">' +
     '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + ownerActions + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
@@ -5432,12 +5444,14 @@ document.addEventListener('click', function(e){
     // Work" CTA isn't a feed card and should still open instantly,
     // same as before.
     const card = openBtn.closest('.j-card');
-    if (!card){ navigateTo('read', { journalId: openBtn.getAttribute('data-open-journal') }); return; }
+    if (!card){ window.location.href = readerUrlFor(openBtn.getAttribute('data-open-journal'), openBtn.getAttribute('data-slug'), openBtn.getAttribute('data-author')); return; }
     if (pendingCardOpens.has(card)) return; // a navigation is already queued for this card
     const journalId = openBtn.getAttribute('data-open-journal');
+    const journalSlug = openBtn.getAttribute('data-slug');
+    const journalAuthor = openBtn.getAttribute('data-author');
     const timer = setTimeout(function(){
       pendingCardOpens.delete(card);
-      navigateTo('read', { journalId: journalId });
+      window.location.href = readerUrlFor(journalId, journalSlug, journalAuthor);
     }, CARD_CLICK_ARBITRATION_MS);
     pendingCardOpens.set(card, timer);
     return;
