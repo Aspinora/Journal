@@ -50,20 +50,20 @@ body{background:radial-gradient(ellipse at 50% -10%, var(--env2), var(--env));co
 
 /* ---------- STAGE ---------- */
 .stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 0 18px}
-.book-wrap{position:relative;width:min(680px,94vw);height:100%;max-height:calc(100% - 4px);perspective:1800px}
-.navzone{position:absolute;top:0;bottom:0;width:16%;z-index:15;cursor:pointer;background:transparent}
-.navzone.left{left:-16%}
-.navzone.right{right:-16%}
-@media (max-width:820px){.navzone{display:none}}
+.book-wrap{position:relative;width:min(680px,94vw);height:100%;max-height:calc(100% - 4px);perspective:1800px;touch-action:pan-y}
 
-.page{position:absolute;inset:0;background:var(--paper);border-radius:3px;box-shadow:0 2px 4px var(--shadow),0 24px 60px -20px var(--shadow),inset 0 0 0 1px var(--border);overflow:hidden;will-change:transform,clip-path}
+.page{position:absolute;inset:0;background:var(--paper);border-radius:2px;box-shadow:0 1px 2px var(--shadow),0 26px 64px -22px var(--shadow);overflow:hidden;will-change:transform,clip-path}
 .page.behind{z-index:5;filter:brightness(.94)}
 .page.front{z-index:10}
-.page::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.012) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.5}
+.page::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.012) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;opacity:.5;z-index:1}
+.page::after{content:"";position:absolute;left:0;top:0;bottom:0;width:22px;pointer-events:none;background:linear-gradient(to right, var(--fold-lo) 0%, transparent 100%);opacity:.35;z-index:1}
 .page-scroll{position:relative;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .page-scroll:focus{outline:none}
 
 .cover{position:relative;width:100%;aspect-ratio:3/2;overflow:hidden}
+@media (orientation:landscape) and (min-width:700px){
+ .cover{max-height:30vh;width:auto;max-width:100%;margin:0 auto}
+}
 .cover img,.cover .grad{width:100%;height:100%;object-fit:cover;display:block}
 .cover .grad{display:flex;align-items:flex-end;padding:18px;font-family:var(--serif-lit);font-style:italic;color:rgba(255,255,255,.92);font-size:15px}
 .cover .type-chip{position:absolute;top:14px;left:14px;font-family:var(--sans);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.32);backdrop-filter:blur(2px);padding:5px 10px;border-radius:20px}
@@ -72,15 +72,20 @@ body{background:radial-gradient(ellipse at 50% -10%, var(--env2), var(--env));co
 h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,32px);line-height:1.18;margin:2px 0 6px;color:var(--ink)}
 .subtitle{font-family:var(--serif-mod);font-style:italic;color:var(--soft);font-size:15px;line-height:1.5;margin:0 0 16px}
 .byline{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:18px}
-.avatar{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--serif-mod);font-size:13px}
-.byline-text{font-size:12.5px;line-height:1.4}
-.byline-text b{font-weight:600;color:var(--ink)}
-.byline-text span{color:var(--soft)}
+.avatar{width:36px;height:36px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--serif-mod);font-size:13px}
+.byline-id{flex:1;min-width:0}
+.byline-name{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.byline-uname{font-size:12px;color:var(--soft);line-height:1.3}
+.byline-sub{font-size:11px;color:var(--soft);opacity:.85;margin-top:2px}
 .byline-dot{opacity:.5;margin:0 4px}
+.followbtn{flex:none;font-family:var(--sans);font-size:11.5px;font-weight:600;color:var(--accent);background:transparent;border:1px solid var(--accent);border-radius:20px;padding:6px 13px;cursor:pointer;letter-spacing:.02em;transition:background .18s,color .18s}
+.followbtn:hover{background:var(--accent);color:var(--paper)}
+.followbtn.following{color:var(--soft);border-color:var(--border);background:transparent}
+.followbtn.following:hover{background:var(--border);color:var(--ink)}
 
 .article{padding:0 26px;font-family:var(--serif-mod);font-size:17.5px;line-height:1.85;color:var(--ink)}
 .article p{margin:0 0 1.15em}
-.article p:first-of-type::first-letter{font-family:var(--serif-lit);font-size:2.9em;float:left;line-height:.85;padding:.04em .07em 0 0;color:var(--accent)}
+.article p:first-of-type::first-letter{font-family:var(--serif-lit);font-size:2.9em;float:left;line-height:.72;margin:.02em 6px 0 0;padding:0;color:var(--accent)}
 .article.poetry{font-style:italic;font-family:var(--serif-lit)}
 .article.poetry p{margin:0 0 .9em;white-space:pre-line}
 .article.short{display:flex;align-items:center;min-height:38vh;font-size:20px;text-align:center;justify-content:center;font-style:italic}
@@ -118,13 +123,16 @@ h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,3
 .replies{margin-top:10px;padding-left:16px;border-left:1px solid var(--border)}
 .no-comments{color:var(--soft);font-size:13px;font-style:italic;padding:10px 0}
 
-/* ---------- CORNER HANDLES ---------- */
-.corner{position:absolute;bottom:16px;width:34px;height:34px;z-index:30;cursor:grab;touch-action:none;opacity:.45;transition:opacity .2s}
-.corner:hover,.corner:active{opacity:.9}
-.corner.right{right:6px}
-.corner.left{left:6px}
-.corner svg{width:100%;height:100%}
-@media(max-width:600px){.corner{width:30px;height:30px;bottom:calc(10px + env(safe-area-inset-bottom,0px))}}
+/* ---------- MORE / REPORT MENU ---------- */
+.morewrap{position:relative;display:inline-block}
+.moremenu{position:absolute;bottom:calc(100% + 6px);right:0;width:250px;max-height:62vh;overflow-y:auto;background:var(--paper);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 14px 40px var(--shadow);display:none;z-index:60;font-family:var(--sans)}
+.moremenu.open{display:block}
+.moremenu button{width:100%;text-align:left;background:none;border:none;color:var(--ink);font-size:13px;padding:9px 10px;border-radius:8px;cursor:pointer;font-family:var(--sans)}
+.moremenu button:hover{background:var(--border)}
+.moremenu .mm-label{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--soft);padding:8px 10px 4px;font-weight:600}
+.moremenu .mm-div{height:1px;background:var(--border);margin:4px 2px}
+.moremenu .mm-copyright{color:var(--accent)}
+.moremenu .mm-copyright-note{font-size:11px;color:var(--soft);padding:0 10px 6px;line-height:1.4}
 
 /* fold shadow overlay drawn on front page while dragging */
 .foldshadow{position:absolute;inset:0;pointer-events:none;z-index:12;opacity:0}
@@ -166,22 +174,15 @@ h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,3
 
   <div class="stage" id="stage">
     <div class="book-wrap" id="bookWrap">
-      <div class="navzone left" id="navLeft" aria-hidden="true"></div>
-      <div class="navzone right" id="navRight" aria-hidden="true"></div>
       <div class="page behind" id="pageBehind"></div>
       <div class="page front" id="pageFront"></div>
       <div class="foldshadow" id="foldShadow"></div>
-      <div class="corner left" id="cornerLeft" aria-label="Turn to previous post" role="button" tabindex="0">
-        <svg viewBox="0 0 34 34"><path d="M34 0 L10 34 L0 34 L0 0 Z" fill="var(--soft)" opacity=".25"/></svg>
-      </div>
-      <div class="corner right" id="cornerRight" aria-label="Turn to next post" role="button" tabindex="0">
-        <svg viewBox="0 0 34 34"><path d="M0 0 L24 34 L34 34 L34 0 Z" fill="var(--soft)" opacity=".25"/></svg>
-      </div>
       <div class="boundary-hint" id="boundaryHint">The beginning of this collection</div>
     </div>
   </div>
 </div>
 <div class="sr-only" role="status" aria-live="polite" id="liveRegion"></div>
+<div class="sr-only">Turn pages by dragging from the left or right edge of the page, or with the arrow keys.</div>
 
 <script>
 (function(){
@@ -231,11 +232,12 @@ const POSTS = [
 /* ============ 2. STATE ============ */
 const S = {
  idx: 0,
- state: "idle", // idle | dragging | settling | cancelling | boundary
+ state: "idle", // idle -> dragging(peeking) -> completing|cancelling -> idle
  dir: 0,        // 1 = next, -1 = prev
- frac: 0,       // 0..1 curl progress
+ frac: 0,       // 0..1 curl / peek progress
  dragStartX: 0, dragStartY: 0, lastX:0, lastT:0, vel:0,
  pointerId: null,
+ candidate: null, // {dir,startX,startY,pointerId,committed} - pending zone gesture not yet confirmed horizontal
  reduced: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
  saved: new Set(JSON.parse(localStorage.getItem("journals_saved")||"[]")),
  liked: new Set(JSON.parse(localStorage.getItem("journals_liked")||"[]")),
@@ -249,10 +251,6 @@ const el = {
  foldShadow: document.getElementById("foldShadow"),
  bookWrap: document.getElementById("bookWrap"),
  progress: document.getElementById("progressFill"),
- cornerL: document.getElementById("cornerLeft"),
- cornerR: document.getElementById("cornerRight"),
- navL: document.getElementById("navLeft"),
- navR: document.getElementById("navRight"),
  hint: document.getElementById("boundaryHint"),
  live: document.getElementById("liveRegion"),
  themeBtn: document.getElementById("themeBtn"),
@@ -277,22 +275,46 @@ function renderPost(post){
     ${post.subtitle?`<p class="subtitle">${esc(post.subtitle)}</p>`:""}
     <div class="byline">
       <div class="avatar" style="background:${post.avatar}">${initials}</div>
-      <div class="byline-text"><b>${esc(post.author)}</b> <span>@${post.username}</span><span class="byline-dot">·</span><span>${post.date}</span><span class="byline-dot">·</span><span>${post.read} read</span></div>
+      <div class="byline-id">
+        <div class="byline-name">${esc(post.author)}</div>
+        <div class="byline-uname">@${post.username}</div>
+        <div class="byline-sub">${post.date}<span class="byline-dot">·</span>${post.read} read</div>
+      </div>
+      <button class="followbtn ${post.following?'following':''}" data-act="follow">${post.following?'Following':'Follow'}</button>
     </div>
   </div>
   <div class="${artClass}">${post.body.map(p=>`<p>${esc(p)}</p>`).join("")}</div>
   <div class="tags">${post.tags.map(t=>`<span class="tag">#${esc(t)}</span>`).join("")}</div>
   <div class="actionbar">
-    <button class="act ${post.liked?'liked':''}" data-act="like"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg><span class="cnt">${post.likes + (post.liked?1:0)}</span></button>
-    <button class="act" data-act="comment"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.5 8.5 0 01-4-1L3 20l1-5.5A8.38 8.38 0 0112.5 3 8.38 8.38 0 0121 11.5z"/></svg><span class="cnt">${post.comments.length}</span></button>
-    <button class="act ${post.saved?'saved':''}" data-act="save"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></button>
+    <button class="act ${post.liked?'liked':''}" data-act="like" aria-label="Impression" title="Impression"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg><span class="cnt">${post.likes + (post.liked?1:0)}</span></button>
+    <button class="act" data-act="comment" aria-label="Respond" title="Respond"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.5 8.5 0 01-4-1L3 20l1-5.5A8.38 8.38 0 0112.5 3 8.38 8.38 0 0121 11.5z"/></svg><span class="cnt">${post.comments.length}</span></button>
+    <button class="act ${post.saved?'saved':''}" data-act="save" aria-label="Save" title="Save"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></button>
     <span class="spacer"></span>
-    <button class="act" data-act="share"><svg viewBox="0 0 24 24"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7M16 6l-4-4-4 4M12 2v14"/></svg></button>
+    <button class="act" data-act="share" aria-label="Share" title="Share"><svg viewBox="0 0 24 24"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7M16 6l-4-4-4 4M12 2v14"/></svg></button>
+    <div class="morewrap">
+      <button class="act" data-act="more" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></button>
+      <div class="moremenu" role="menu">
+        <button data-act="save">${post.saved?'Remove from shelf':'Save to shelf'}</button>
+        <button data-act="share">Copy link</button>
+        <div class="mm-div"></div>
+        <div class="mm-label">Report</div>
+        <button class="mm-copyright" data-report="copyright">Copyright / IP concern</button>
+        <div class="mm-copyright-note">Routes to Journals' copyright review pathway.</div>
+        <button data-report="plagiarism">Plagiarism or infringement</button>
+        <button data-report="inappropriate">Inappropriate or prohibited content</button>
+        <button data-report="harassment">Harassment or abusive content</button>
+        <button data-report="spam">Spam</button>
+        <button data-report="misleading">Misleading or deceptive content</button>
+        <button data-report="privacy">Privacy concern</button>
+        <button data-report="broken">Broken or missing content</button>
+        <button data-report="other">Other</button>
+      </div>
+    </div>
   </div>
   <div class="comments">
     <h3>Marginalia · ${post.comments.length}</h3>
-    <div class="newcomment"><textarea rows="1" placeholder="Leave a note in the margin…" aria-label="Add a comment"></textarea><button data-act="post-comment">Post</button></div>
-    <div class="clist">${post.comments.length? post.comments.map(c=>renderComment(c)).join("") : '<div class="no-comments">No notes yet — be the first to write in the margin.</div>'}</div>
+    <div class="newcomment"><textarea rows="1" placeholder="Leave a response in the margin…" aria-label="Add a response"></textarea><button data-act="post-comment">Respond</button></div>
+    <div class="clist">${post.comments.length? post.comments.map(c=>renderComment(c)).join("") : '<div class="no-comments">No responses yet — be the first to write in the margin.</div>'}</div>
   </div>
  `;
  if(post.saved) wrap.parentElement; // ribbon toggled via class on .page below
@@ -322,20 +344,41 @@ function wireActions(scope, post){
   btn.classList.toggle("liked", post.liked);
   btn.querySelector(".cnt").textContent = post.likes + (post.liked?1:0);
  });
- scope.querySelector('[data-act="save"]').addEventListener("click", e=>{
+ function doSave(){
   post.saved = !post.saved;
   if(post.saved) S.saved.add(post.id); else S.saved.delete(post.id);
   localStorage.setItem("journals_saved", JSON.stringify([...S.saved]));
-  e.currentTarget.classList.toggle("saved", post.saved);
+  scope.querySelectorAll('[data-act="save"]').forEach(b=>{ b.classList.toggle("saved", post.saved); if(b.closest(".moremenu")) b.textContent = post.saved?'Remove from shelf':'Save to shelf'; });
   scope.closest(".page").classList.toggle("saved", post.saved);
   announce(post.saved ? "Saved to your shelf" : "Removed from your shelf");
- });
+ }
+ async function doShare(){
+  const url = location.href.split("#")[0] + "#post-" + post.id;
+  try{ await navigator.clipboard.writeText(url); announce("Link copied"); }catch(e){ announce("Copy this link: "+url); }
+ }
+ scope.querySelectorAll('[data-act="save"]').forEach(b=> b.addEventListener("click", ()=>{ doSave(); closeMore(scope); }));
+ scope.querySelectorAll('[data-act="share"]').forEach(b=> b.addEventListener("click", ()=>{ doShare(); closeMore(scope); }));
  scope.querySelector('[data-act="comment"]').addEventListener("click", ()=>{
   scope.querySelector(".comments").scrollIntoView({behavior: S.reduced?"auto":"smooth", block:"start"});
  });
- scope.querySelector('[data-act="share"]').addEventListener("click", async ()=>{
-  const url = location.href.split("#")[0] + "#post-" + post.id;
-  try{ await navigator.clipboard.writeText(url); announce("Link copied"); }catch(e){ announce("Copy this link: "+url); }
+ scope.querySelector('[data-act="follow"]').addEventListener("click", e=>{
+  post.following = !post.following;
+  e.currentTarget.classList.toggle("following", post.following);
+  e.currentTarget.textContent = post.following?'Following':'Follow';
+  announce(post.following?`Following ${post.author}`:`Unfollowed ${post.author}`);
+ });
+ const moreBtn = scope.querySelector('[data-act="more"]');
+ const moreMenu = scope.querySelector(".moremenu");
+ moreBtn.addEventListener("click", e=>{
+  e.stopPropagation();
+  const open = moreMenu.classList.toggle("open");
+  moreBtn.setAttribute("aria-expanded", open);
+ });
+ scope.querySelectorAll('[data-report]').forEach(b=>{
+  b.addEventListener("click", ()=>{
+   announce("Report submitted: " + b.textContent + ". Our team will review it.");
+   closeMore(scope);
+  });
  });
  const ta = scope.querySelector(".newcomment textarea");
  scope.querySelector('[data-act="post-comment"]').addEventListener("click", ()=>{
@@ -367,6 +410,15 @@ function wireCommentToggles(scope){
  });
 }
 function announce(msg){ el.live.textContent = msg; }
+function closeMore(scope){
+ const m = scope.querySelector(".moremenu"); const b = scope.querySelector('[data-act="more"]');
+ if(m){ m.classList.remove("open"); } if(b){ b.setAttribute("aria-expanded","false"); }
+}
+document.addEventListener("click", e=>{
+ if(!e.target.closest(".morewrap")){
+  document.querySelectorAll(".moremenu.open").forEach(m=>{ m.classList.remove("open"); const b=m.previousElementSibling; if(b) b.setAttribute("aria-expanded","false"); });
+ }
+});
 
 /* mount initial pages */
 function mountPage(container, post, cls){
@@ -457,7 +509,7 @@ function endDrag(){
  const speedCommit = Math.abs(S.vel) > 0.9 && S.frac > 0.06;
  const commit = S.frac > 0.38 || speedCommit;
  if(commit){
-  S.state = "settling";
+  S.state = "completing";
   animateTo(1, ()=> completeTurn(S.dir));
  } else {
   S.state = "cancelling";
@@ -495,39 +547,49 @@ function goTo(dir){
  if(S.state !== "idle") return;
  if(!canGo(dir)){ showBoundary(dir); return; }
  beginDrag(dir, 0, 0);
- S.state = "settling";
+ S.state = "completing";
  animateTo(1, ()=> completeTurn(dir));
 }
 
-/* ---- pointer wiring: corners = drag-to-turn; navzones = click-to-turn ---- */
-function pointerDown(e, dir){
- if(S.state !== "idle") return;
- S.pointerId = e.pointerId;
- e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId);
- beginDrag(dir, e.clientX, e.clientY);
- e.preventDefault();
+/* ---- gesture wiring: invisible 20% edge zones, drag-only trigger, 60% center reads/scrolls freely ---- */
+const EDGE = 0.20;
+const NO_TURN_SEL = 'button, a, textarea, input, .tag, .comment, .newcomment, .morewrap, [role="menu"]';
+function onPointerDown(e){
+ if(S.state !== "idle" || S.candidate) return;
+ if(e.pointerType === "mouse" && e.button !== 0) return;
+ if(e.target.closest(NO_TURN_SEL)) return; // never start a turn from interactive/comment content
+ const rect = el.bookWrap.getBoundingClientRect();
+ const relX = (e.clientX - rect.left) / rect.width;
+ let dir = 0;
+ if(relX <= EDGE) dir = -1; else if(relX >= 1-EDGE) dir = 1; else return; // center 60% = plain scroll
+ S.candidate = {dir, startX:e.clientX, startY:e.clientY, pointerId:e.pointerId, committed:false};
 }
-function pointerMove(e){
- if(S.state !== "dragging" || e.pointerId !== S.pointerId) return;
- updateDrag(e.clientX);
+function onPointerMove(e){
+ if(!S.candidate || e.pointerId !== S.candidate.pointerId) return;
+ const dx = e.clientX - S.candidate.startX, dy = e.clientY - S.candidate.startY;
+ if(!S.candidate.committed){
+  if(Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)*1.2){
+   S.candidate.committed = true;
+   beginDrag(S.candidate.dir, S.candidate.startX, S.candidate.startY);
+  } else if(Math.abs(dy) > 10){
+   S.candidate = null; return; // vertical intent: hand off to native scroll, no page turn
+  } else return;
+ }
+ if(S.candidate && S.candidate.committed){
+  e.preventDefault();
+  updateDrag(e.clientX);
+ }
 }
-function pointerUp(e){
- if(S.state !== "dragging" || (S.pointerId!==null && e.pointerId !== S.pointerId)) return;
- S.pointerId = null;
- endDrag();
+function onPointerUp(e){
+ if(!S.candidate || e.pointerId !== S.candidate.pointerId){ return; }
+ const wasCommitted = S.candidate.committed;
+ S.candidate = null;
+ if(wasCommitted) endDrag();
 }
-el.cornerR.addEventListener("pointerdown", e=>pointerDown(e,1));
-el.cornerL.addEventListener("pointerdown", e=>pointerDown(e,-1));
-window.addEventListener("pointermove", pointerMove, {passive:true});
-window.addEventListener("pointerup", pointerUp);
-window.addEventListener("pointercancel", pointerUp);
-[el.cornerL, el.cornerR].forEach(c=>{
- c.addEventListener("keydown", e=>{
-  if(e.key==="Enter" || e.key===" "){ e.preventDefault(); goTo(c===el.cornerR?1:-1); }
- });
-});
-el.navL.addEventListener("click", ()=> goTo(-1));
-el.navR.addEventListener("click", ()=> goTo(1));
+el.bookWrap.addEventListener("pointerdown", onPointerDown);
+window.addEventListener("pointermove", onPointerMove, {passive:false});
+window.addEventListener("pointerup", onPointerUp);
+window.addEventListener("pointercancel", onPointerUp);
 
 /* keyboard */
 window.addEventListener("keydown", e=>{
@@ -548,9 +610,9 @@ el.bookWrap.addEventListener("wheel", e=>{
  else if(e.deltaY < -12 && atTop && !wheelLock){ wheelLock=true; goTo(-1); setTimeout(()=>wheelLock=false, 500); }
 }, {passive:true});
 
-/* resize safety: cancel any in-progress drag cleanly */
+/* resize / orientation safety: cancel any in-progress gesture or animation cleanly */
 window.addEventListener("resize", ()=>{
- if(S.state==="dragging"){ resetCurl(); S.state="idle"; S.frac=0; }
+ if(S.state!=="idle"){ resetCurl(); S.state="idle"; S.frac=0; S.candidate=null; el.pageBehind.innerHTML=""; }
 });
 
 /* ============ 5. THEME ============ */
