@@ -883,24 +883,6 @@ body.is-reading .comment-form textarea{
 .pl-messaging-btn .pl-nav-icon{ position:relative; display:inline-flex; }
 .pl-messaging-badge{ position:absolute; top:-5px; right:-7px; margin-left:0; }
 
-.pl-cta-bar{
-  display:block; width:70%; margin:10px auto 0; background:linear-gradient(135deg,var(--paper) 0%,var(--orange-soft) 180%);
-  border:1px solid var(--line); border-radius:var(--radius-sm); box-shadow:var(--shadow-mid);
-  padding:12px 0; text-align:left; cursor:pointer;
-  position:sticky; z-index:190;
-  transform:translateY(0); transition:transform .22s ease, box-shadow .22s ease;
-}
-.pl-cta-bar.is-scrolled-hidden{ transform:translateY(-100%); box-shadow:none; }
-.pl-cta-inner{
-  display:flex; align-items:center; justify-content:center; gap:12px; color:var(--ink-faint); font-family:var(--font-display); font-size:1rem;
-  width:100%; margin:0;
-}
-.pl-cta-icon{ display:inline-flex; width:30px; height:30px; align-items:center; justify-content:center; border-radius:50%; border:1.5px dashed var(--line-strong); color:var(--ink-faint); flex-shrink:0; }
-.pl-cta-bar:hover .pl-cta-inner{ color:var(--ink); }
-.pl-cta-bar:hover .pl-cta-icon{ border-color:var(--orange); color:var(--orange); }
-.pl-cta-bar[hidden]{ display:none; }
-.pl-cta-section-label{ display:none; }
-
 .mh-feed{ padding-top:28px; }
 /* Clips the home content pane while it's being dragged/animated by
    the swipe-between-sections gesture below — scoped to just the home
@@ -950,13 +932,6 @@ body.is-reading .comment-form textarea{
      Messages icons so all four header controls line up exactly. */
   .nav-user-trigger .avatar{ width:27px; height:27px; font-size:.64rem; }
   .brand-logo-img{ height:28px; width:116px; }
-
-  /* CTA bar moves below the header on mobile (see #pl-cta-bar rules
-     below the header for the shared sticky/hide-on-scroll behaviour)
-     — it stays a real, tappable bar here too, just full-width and
-     with a smaller inner gap than the desktop pill. */
-  .pl-cta-bar{ width:100%; margin:0; border-left:none; border-right:none; border-radius:0; }
-  .pl-cta-inner{ font-size:.88rem; }
 }
 @media (max-width:520px){
   .pl-search-bar-inline{ padding:6px 10px; }
@@ -1057,6 +1032,7 @@ body.is-reading .comment-form textarea{
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
           <div class="nav-dropdown-name" id="nav-dropdown-name"></div>
           <button type="button" id="nav-my-portfolio-btn" role="menuitem">Portfolio</button>
+          <button type="button" id="nav-writer-studio-btn" role="menuitem">Writer Studio</button>
           <button type="button" data-nav="published" role="menuitem">My Works</button>
           <button type="button" data-nav="notifications" role="menuitem">Notification<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
           <button type="button" data-nav="drafts" role="menuitem">My Drafts</button>
@@ -1068,17 +1044,6 @@ body.is-reading .comment-form textarea{
     </div>
   </div>
 </header>
-
-<button type="button" class="pl-cta-bar" id="pl-cta-bar">
-  <div class="container pl-cta-inner">
-    <span class="pl-cta-icon">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13.5 3.5 16.5 6.5 7 16H4v-3L13.5 3.5Z" stroke-linejoin="round"/></svg>
-    </span>
-    <span id="pl-cta-text">Write something…</span>
-    <span id="pl-cta-section-label" class="pl-cta-section-label"></span>
-  </div>
-</button>
-
 
 <main id="app">
 
@@ -3714,7 +3679,6 @@ function navigateTo(view, params){
     document.body.style.removeProperty('--page-tint-nav');
   }
   if (view !== 'read' && view !== 'home' && view !== 'explore') updateDecorIcon(null);
-  qs('#pl-cta-bar').hidden = (view !== 'home' && view !== 'explore');
   /* Keeps the header's section row (including The Wall) highlighting
      the right item no matter which view the person lands on. */
   renderTopNav();
@@ -3955,15 +3919,6 @@ async function renderLatestFeed(){
 /* Member (logged-in) home shares the same categories, but presents
    them as a horizontally-scrollable icon row instead of the public
    chip row, and drives the page title instead of a static heading. */
-const CTA_TEXT = {
-  all: 'Write something…',
-  journals: 'Publish your journal…',
-  stories: 'Publish your story…',
-  poetry: 'Publish your poem…',
-  shayari: 'Publish your shayari…',
-  thoughts: 'Publish your thoughts…',
-  articles: 'Publish your article…'
-};
 const HOME_NAV_ICON = '<path d="M4 11.5 12 4l8 7.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9h5v-5h2v5h5v-9" stroke-linecap="round" stroke-linejoin="round"/>';
 
 function topNavIconHTML(c){
@@ -3986,13 +3941,6 @@ function renderTopNav(){
   // Read view sets its own watermark from the open Work's category —
   // don't let the nav's feed-filter icon stomp on that.
   if (state.currentView !== 'read') updateDecorIcon(active === 'all' ? null : active);
-
-  /* The logo/wordmark never changes with navigation — only the CTA
-     bar's text (desktop prompt, mobile section label) reflects the
-     active section. */
-  const isHome = active === 'all';
-  qs('#pl-cta-text').textContent = CTA_TEXT[active] || CTA_TEXT.all;
-  qs('#pl-cta-section-label').textContent = (active && !isHome) ? categoryBySlug(active).name : '';
 }
 
 function homeGridEl(){ return qs('#m-latest-grid'); }
@@ -4352,7 +4300,7 @@ async function renderDraftsView(){
       '<div class="draft-actions"><button type="button" class="btn btn-secondary btn-sm" data-continue-draft="' + d.id + '">Continue writing</button>' +
       '<button type="button" class="btn btn-danger btn-sm" data-delete-draft="' + d.id + '">Delete</button></div></div></div>';
   }).join('');
-  qsa('[data-continue-draft]').forEach(function(b){ b.onclick = function(){ navigateTo('write', { draftId:b.getAttribute('data-continue-draft') }); }; });
+  qsa('[data-continue-draft]').forEach(function(b){ b.onclick = function(){ goToWriterStudio('Log in to see your drafts.', b.getAttribute('data-continue-draft')); }; });
   qsa('[data-delete-draft]').forEach(function(b){
     b.onclick = async function(){
       if (!confirm('Delete this draft? This can\'t be undone.')) return;
@@ -5029,13 +4977,22 @@ async function doPublish(){
 function goToProtectedView(view, message){
   requireAuth(message, function(){ navigateTo(view); });
 }
+/* Writing/editing now all happens in Writer Studio, a separate app.
+   `id` (a journals.id, when continuing a draft or editing a published
+   Work) is passed through as ?open= so Writer Studio can look the
+   work up and load it straight into its editor. */
+function goToWriterStudio(message, id){
+  requireAuth(message, function(){
+    window.location.href = '/writer-studio.html' + (id ? ('?open=' + encodeURIComponent(id)) : '');
+  });
+}
 function wireNav(){
   qsa('[data-nav]').forEach(function(btn){
     btn.addEventListener('click', function(){
       const view = this.getAttribute('data-nav');
       qs('#nav-dropdown').classList.remove('open');
-      if (view === 'write') goToProtectedView('write', 'Log in to start writing a Work.');
-      else if (view === 'drafts') goToProtectedView('drafts', 'Log in to see your drafts.');
+      if (view === 'write') goToWriterStudio('Log in to start writing a Work.');
+      else if (view === 'drafts') goToWriterStudio('Log in to see your drafts.');
       else if (view === 'notifications') goToProtectedView('notifications', 'Log in to see your Updates.');
       else if (view === 'saved') goToProtectedView('saved', 'Log in to see your Archive.');
       else if (view === 'published') goToProtectedView('published', 'Log in to see your Works.');
@@ -5056,6 +5013,10 @@ function initUserDropdown(){
   qs('#nav-my-portfolio-btn').addEventListener('click', function(){
     if (!state.currentUser) return;
     window.location.href = '/portfolio.html?u=' + encodeURIComponent(state.currentUser.username || '');
+  });
+  qs('#nav-writer-studio-btn').addEventListener('click', function(){
+    if (!state.currentUser) return;
+    window.location.href = '/writer-studio.html';
   });
 }
 
@@ -5352,30 +5313,6 @@ function initHomeControls(){
   qs('#pl-messaging-btn').addEventListener('click', function(){
     requireAuth('Log in to view your messages.', function(){ window.location.href = '/usermessages.html'; });
   });
-
-  qs('#pl-cta-bar').addEventListener('click', function(){
-    const slug = state.activeFilter && state.activeFilter !== 'all' ? state.activeFilter : null;
-    const categoryName = slug ? categoryBySlug(slug).name : null;
-    requireAuth('Log in to start writing.', function(){ navigateTo('write', { category: categoryName }); });
-  });
-
-  /* The CTA bar sits pinned just under the sticky header — with a
-     small persistent gap so it doesn't touch the header — and slides
-     away once the person scrolls down (more reading room), coming
-     back the moment they scroll back up. */
-  const CTA_GAP = 10;
-  const ctaBar = qs('#pl-cta-bar');
-  ctaBar.style.top = (qs('.pl-navbar').offsetHeight + CTA_GAP) + 'px';
-  window.addEventListener('resize', function(){ ctaBar.style.top = (qs('.pl-navbar').offsetHeight + CTA_GAP) + 'px'; });
-  let lastScrollY = window.scrollY;
-  window.addEventListener('scroll', function(){
-    if (ctaBar.hidden){ lastScrollY = window.scrollY; return; }
-    const y = window.scrollY;
-    if (y > lastScrollY && y > 80) ctaBar.classList.add('is-scrolled-hidden');
-    else ctaBar.classList.remove('is-scrolled-hidden');
-    lastScrollY = y;
-  }, { passive:true });
-
 }
 
 /* Filter chips and category-grid clicks and journal-card clicks are
@@ -5396,7 +5333,7 @@ document.addEventListener('click', function(e){
   const editBtn = e.target.closest('[data-edit-journal]');
   if (editBtn){
     e.preventDefault(); e.stopPropagation();
-    navigateTo('write', { draftId: editBtn.getAttribute('data-edit-journal') });
+    goToWriterStudio('Log in to edit this Work.', editBtn.getAttribute('data-edit-journal'));
     return;
   }
   const deleteBtn = e.target.closest('[data-delete-journal]');
@@ -5617,7 +5554,7 @@ async function applyRoute(route, opts){
   }
   if (route.type === 'read'){ navigateTo('read', { journalId: route.journalId, replace: true }); return; }
   if (route.type === 'view'){ navigateTo(route.view, { replace: true }); return; }
-  if (route.type === 'write'){ navigateTo('write', { draftId: route.draftId, replace: true }); return; }
+  if (route.type === 'write'){ window.location.href = '/writer-studio.html' + (route.draftId ? ('?open=' + encodeURIComponent(route.draftId)) : ''); return; }
   if (route.type === 'portfolio'){ navigateTo('portfolio', { username: route.username, replace: true }); return; }
   if (route.type === 'work'){ await loadJournalByUsernameAndSlug(route.username, route.slug, true, myToken); return; }
   navigateTo('home', { replace: true });
