@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#F7F8F9">
 <title>Story Studio · Journals by Aspinora</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script>
 try{var t=JSON.parse(localStorage.getItem('sw_theme')||'null');if(t!=='light'&&t!=='sepia'&&t!=='dark')t='light';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}
 </script>
@@ -432,10 +433,10 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
    Nothing secret lives here. When connecting to production, supply these
    values from your host page / env, and use short-lived signed upload URLs.
    ===================================================================== */
+const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
 const CONFIG = {
-  ownerId: 'local-user',                 // -> Supabase auth.uid()
-  supabase: { url: null, anonKey: null },// public anon key only, never a service key
-  r2: { publicBase: null, signEndpoint: null }, // Worker / Edge Function that signs PUT + DELETE
+  ownerId: null,                          // set from the real Supabase session at boot
   autosaveMs: 1200, autosaveMaxWaitMs: 12000,
   targetBytes: 80000,   // cover images must be under 80 KB
   hardBytes: 120000,    // never accept a cover above this, even with user consent
@@ -531,10 +532,20 @@ function themeMenu(anchor) {
 }
 
 /* =====================================================================
-   3. STORAGE ABSTRACTION
-   Store   = database (IndexedDB now -> Supabase Postgres later)
-   Objects = binary object store (IndexedDB now -> Cloudflare R2 later)
-   Only these two objects touch persistence; the editor never does.
+   3. STORAGE ABSTRACTION — Supabase Postgres + Cloudflare R2
+   Store   = database. Single-entry kinds (Journal-single, Poetry,
+             Shayari, Thought, simple Article) live in the `journals`
+             table, same as everything else on Aspinora. Tree-shaped
+             kinds (Story, Journal-multiple, structured Article) live
+             in story_works/story_volumes/story_parts/story_chapters.
+             Store.put('stories', s) / .get / .all pick the right
+             table automatically from `s.kind`/`s.structure`, so every
+             other module in this file (App, Model, UI, Ed, Save)
+             keeps working completely unchanged.
+   Objects = Cloudflare R2, via the same `upload-image` Edge Function
+             userpostlogin.html already uses.
+   Only these two objects (plus Images, which sits on top of them)
+   touch persistence; the editor never does.
    ===================================================================== */
 const Sim = { offline: false, failUpload: 0, failDelete: 0, failSave: 0 };
 function simCheck(kind) {
@@ -543,73 +554,252 @@ function simCheck(kind) {
   if (kind === 'delete' && Sim.failDelete > 0) { Sim.failDelete--; throw new StudioError('r2', 'The storage service could not delete the file (simulated failure).'); }
   if (kind === 'save' && Sim.failSave > 0) { Sim.failSave--; throw new StudioError('db', 'The database did not accept the save (simulated failure).'); }
 }
-const Store = (() => {
-  const NAMES = ['stories', 'chapters', 'comments', 'notes', 'images', 'objects', 'pending'];
-  let db = null, mem = null, mode = 'idb';
-  const useMem = () => { mem = {}; NAMES.forEach(n => mem[n] = new Map()); mode = 'memory'; };
-  const open = () => new Promise(res => {
-    try {
-      const rq = indexedDB.open('aspinora_story_studio_v1', 1);
-      rq.onupgradeneeded = () => { const d = rq.result; NAMES.forEach(n => { if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: 'id' }); }); };
-      rq.onsuccess = () => { db = rq.result; res(mode); };
-      rq.onerror = rq.onblocked = () => { useMem(); res(mode); };
-    } catch (e) { useMem(); res(mode); }
-  });
-  const tx = (name, m, fn) => new Promise((res, rej) => {
-    let out; const t = db.transaction(name, m);
-    try { out = fn(t.objectStore(name)); } catch (e) { rej(e); return; }
-    t.oncomplete = () => res(out && typeof out === 'object' && 'result' in out ? out.result : out);
-    t.onerror = () => rej(t.error); t.onabort = () => rej(t.error || new Error('Transaction aborted'));
-  });
-  return {
-    open, get mode() { return mode; },
-    get: (n, k) => mem ? Promise.resolve(mem[n].get(k)) : tx(n, 'readonly', s => s.get(k)),
-    all: n => mem ? Promise.resolve([...mem[n].values()]) : tx(n, 'readonly', s => s.getAll()),
-    put: (n, o) => mem ? (mem[n].set(o.id, o), Promise.resolve(o)) : tx(n, 'readwrite', s => s.put(o)).then(() => o),
-    del: (n, k) => mem ? (mem[n].delete(k), Promise.resolve()) : tx(n, 'readwrite', s => s.delete(k)),
-    clearAll: async () => { if (mem) NAMES.forEach(n => mem[n].clear()); else for (const n of NAMES) await tx(n, 'readwrite', s => s.clear()); },
-  };
-})();
+let sb = null;
+/* Single-entry kinds route to journals.category_id — same mapping
+   userpostlogin.html's CATEGORIES array uses. category_id 2 ("Stories")
+   predates Writer Studio's tree-shaped Story kind; older rows in that
+   category are still shown (filed under Journal) so nothing vanishes. */
+const KIND_TO_CATEGORY_ID = { journal: 1, poetry: 3, shayari: 4, thought: 5, article: 6 };
+const CATEGORY_ID_TO_KIND = { 1: 'journal', 2: 'journal', 3: 'poetry', 4: 'shayari', 5: 'thought', 6: 'article' };
+const wordCount = html => (html || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
+function throwDb(error) { throw new StudioError('db', (error && error.message) || 'The database did not accept that.'); }
 
-/* R2-shaped object store. Swap this for an implementation that calls your
-   signing endpoint (CONFIG.r2.signEndpoint) and PUT/DELETEs against R2. */
+function chapterNodeFromRow(c) { return { id: c.id, number: c.number, title: c.title || '', status: c.status, wordCount: c.word_count || 0, updatedAt: Date.parse(c.updated_at), publishedAt: c.published_at ? Date.parse(c.published_at) : null }; }
+function journalToStory(row) {
+  const kind = CATEGORY_ID_TO_KIND[row.category_id] || 'journal';
+  const chapter = { id: row.id, number: 1, title: row.title || '', status: row.status, wordCount: wordCount(row.body_markdown), updatedAt: Date.parse(row.updated_at), publishedAt: row.published_at ? Date.parse(row.published_at) : null };
+  return {
+    kind, structure: kind === 'journal' ? 'single' : (kind === 'article' ? 'simple' : null),
+    visibility: row.visibility, allowImpressions: row.allow_comments !== false, copyright: null,
+    id: row.id, ownerId: row.author_id, title: row.title || '', description: row.subtitle || row.excerpt || '',
+    category: null, tags: row.tags || [], status: row.status, coverImageId: row.cover_url ? '__url:' + row.cover_url : null,
+    volumes: [{ id: 'v0-' + row.id, number: 0, title: '', description: '', status: 'draft', coverImageId: null, implicit: true, parts: [], chapters: [chapter] }],
+    createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at), lastChapterId: row.id,
+  };
+}
+async function treeToStory(row) {
+  const [{ data: vols, error: e1 }, { data: chaps, error: e3 }] = await Promise.all([
+    sb.from('story_volumes').select('*').eq('story_id', row.id).order('number'),
+    sb.from('story_chapters').select('*').eq('story_id', row.id).order('number'),
+  ]);
+  if (e1) throwDb(e1); if (e3) throwDb(e3);
+  const volIds = (vols || []).map(v => v.id);
+  const { data: parts, error: e2 } = volIds.length ? await sb.from('story_parts').select('*').in('volume_id', volIds).order('number') : { data: [] };
+  if (e2) throwDb(e2);
+  const partsByVol = {}, chapsByVol = {}, chapsByPart = {};
+  for (const p of (parts || [])) (partsByVol[p.volume_id] ||= []).push(p);
+  for (const c of (chaps || [])) (c.part_id ? (chapsByPart[c.part_id] ||= []) : (chapsByVol[c.volume_id] ||= [])).push(c);
+  const volumes = (vols || []).map(v => ({
+    id: v.id, number: v.number, title: v.title || '', description: v.description || '', status: v.status,
+    coverImageId: v.cover_url ? '__url:' + v.cover_url : null, implicit: v.is_implicit,
+    parts: (partsByVol[v.id] || []).map(p => ({ id: p.id, number: p.number, title: p.title || '', description: p.description || '', coverImageId: p.cover_url ? '__url:' + p.cover_url : null, status: p.status, publishedAt: p.published_at ? Date.parse(p.published_at) : null, chapters: (chapsByPart[p.id] || []).map(chapterNodeFromRow) })),
+    chapters: (chapsByVol[v.id] || []).map(chapterNodeFromRow),
+  }));
+  return {
+    kind: row.kind, structure: row.kind === 'journal' ? 'multiple' : (row.kind === 'article' ? 'structured' : null),
+    visibility: row.visibility, allowImpressions: row.allow_impressions, copyright: row.copyright,
+    id: row.id, ownerId: row.author_id, title: row.title || '', description: row.description || '',
+    category: row.genre, tags: row.tags || [], status: row.status, coverImageId: row.cover_url ? '__url:' + row.cover_url : null,
+    volumes, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at), lastChapterId: row.last_chapter_id,
+  };
+}
+/* Resolves a coverImageId (a story_images.id from a fresh upload, or a
+   '__url:' prefixed literal reconstructed from an existing cover_url
+   column) down to a public URL, without a round trip when avoidable. */
+async function resolveCoverUrl(id) {
+  if (!id) return null;
+  if (id.startsWith('__url:')) return id.slice(6);
+  if (Images.cache.has(id)) return Images.cache.get(id).public_url;
+  const { data, error } = await sb.from('story_images').select('*').eq('id', id).maybeSingle();
+  if (error || !data) return null;
+  Images.cache.set(id, data); return data.public_url;
+}
+/* Upserts every volume/part/chapter-stub currently in the tree, and
+   deletes any that existed before but are no longer present (an
+   explicit container removal — cascades to that container's chapters,
+   which matches what removing a Volume/Part is supposed to do). Never
+   touches a chapter's html/published_html: those columns are simply
+   left off every payload here, so ON CONFLICT DO UPDATE never
+   overwrites content, only structure (number/title/status). */
+async function persistTree(s) {
+  const volRows = s.volumes.map(v => ({ id: v.id, story_id: s.id, number: v.number, title: v.title || '', description: v.description || null, status: v.status, cover_url: v.coverImageId, is_implicit: !!v.implicit }));
+  if (volRows.length) { const { error } = await sb.from('story_volumes').upsert(volRows); if (error) throwDb(error); }
+  const { data: existingVols } = await sb.from('story_volumes').select('id').eq('story_id', s.id);
+  const keepVolIds = new Set(s.volumes.map(v => v.id));
+  const goneVolIds = (existingVols || []).map(v => v.id).filter(id => !keepVolIds.has(id));
+  if (goneVolIds.length) { const { error } = await sb.from('story_volumes').delete().in('id', goneVolIds); if (error) throwDb(error); }
+
+  const partRows = [], keepPartIds = new Set();
+  for (const v of s.volumes) for (const p of (v.parts || [])) { partRows.push({ id: p.id, volume_id: v.id, number: p.number, title: p.title || '', description: p.description || null, status: p.status, cover_url: p.coverImageId, published_at: p.publishedAt ? new Date(p.publishedAt).toISOString() : null }); keepPartIds.add(p.id); }
+  if (partRows.length) { const { error } = await sb.from('story_parts').upsert(partRows); if (error) throwDb(error); }
+  if (keepVolIds.size) {
+    const { data: existingParts } = await sb.from('story_parts').select('id').in('volume_id', [...keepVolIds]);
+    const gonePartIds = (existingParts || []).map(p => p.id).filter(id => !keepPartIds.has(id));
+    if (gonePartIds.length) { const { error } = await sb.from('story_parts').delete().in('id', gonePartIds); if (error) throwDb(error); }
+  }
+
+  const chapRows = [];
+  for (const v of s.volumes) {
+    for (const c of (v.chapters || [])) chapRows.push({ id: c.id, story_id: s.id, volume_id: v.id, part_id: null, number: c.number, title: c.title || '', status: c.status });
+    for (const p of (v.parts || [])) for (const c of (p.chapters || [])) chapRows.push({ id: c.id, story_id: s.id, volume_id: v.id, part_id: p.id, number: c.number, title: c.title || '', status: c.status });
+  }
+  if (chapRows.length) { const { error } = await sb.from('story_chapters').upsert(chapRows); if (error) throwDb(error); }
+  const keepChapIds = new Set(chapRows.map(c => c.id));
+  const { data: existingChaps } = await sb.from('story_chapters').select('id').eq('story_id', s.id);
+  const goneChapIds = (existingChaps || []).map(c => c.id).filter(id => !keepChapIds.has(id));
+  if (goneChapIds.length) { const { error } = await sb.from('story_chapters').delete().in('id', goneChapIds); if (error) throwDb(error); }
+}
+const Store = {
+  mode: 'supabase',
+  async open() {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+    const { data } = await sb.auth.getSession();
+    if (!data || !data.session) { window.location.href = '/index.html?next=' + encodeURIComponent(location.pathname + location.search); return new Promise(() => {}); }
+    CONFIG.ownerId = data.session.user.id;
+    return this.mode;
+  },
+  async get(name, id) {
+    if (name === 'stories') {
+      const { data: w } = await sb.from('story_works').select('*').eq('id', id).maybeSingle();
+      if (w) return treeToStory(w);
+      const { data: j } = await sb.from('journals').select('*').eq('id', id).maybeSingle();
+      return j ? journalToStory(j) : undefined;
+    }
+    if (name === 'chapters') {
+      if (!Kind.single(App.story)) {
+        const { data: c } = await sb.from('story_chapters').select('*').eq('id', id).maybeSingle();
+        if (!c) return undefined;
+        return { id: c.id, storyId: c.story_id, html: c.html || '', pidSeq: 0, published: c.published_html ? { html: c.published_html, at: c.published_at, title: c.title } : null };
+      }
+      const { data: j } = await sb.from('journals').select('*').eq('id', id).maybeSingle();
+      if (!j) return undefined;
+      return { id: j.id, storyId: j.id, html: j.body_markdown || '', pidSeq: 0, published: j.status === 'published' ? { html: j.body_markdown || '', at: j.published_at, title: j.title } : null };
+    }
+    if (name === 'notes') { const { data } = await sb.from('story_notes').select('*').eq('id', id).maybeSingle(); return data ? { id: data.id, storyId: data.story_id, chapterId: data.chapter_id, text: data.text, done: data.done, createdAt: Date.parse(data.created_at) } : undefined; }
+    if (name === 'images') return Images.record(id);
+    return undefined;
+  },
+  async all(name) {
+    if (name === 'stories') {
+      const [{ data: works, error: e1 }, { data: journals, error: e2 }] = await Promise.all([
+        sb.from('story_works').select('*').eq('author_id', CONFIG.ownerId).order('updated_at', { ascending: false }),
+        sb.from('journals').select('*').eq('author_id', CONFIG.ownerId).order('updated_at', { ascending: false }),
+      ]);
+      if (e1) throwDb(e1); if (e2) throwDb(e2);
+      const treeStories = await Promise.all((works || []).map(treeToStory));
+      return [...treeStories, ...(journals || []).map(journalToStory)];
+    }
+    if (name === 'notes') {
+      if (!App.story) return [];
+      const { data, error } = await sb.from('story_notes').select('*').eq('author_id', CONFIG.ownerId).eq('story_id', App.story.id).order('created_at');
+      if (error) throwDb(error);
+      return (data || []).map(n => ({ id: n.id, storyId: n.story_id, chapterId: n.chapter_id, text: n.text, done: n.done, createdAt: Date.parse(n.created_at) }));
+    }
+    if (name === 'pending') return [];
+    return [];
+  },
+  async put(name, o) {
+    simCheck('save');
+    if (name === 'stories') {
+      const singleEntry = Kind.single(o);
+      if (singleEntry) {
+        const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
+        const { error } = await sb.from('journals').upsert(row); if (error) throwDb(error);
+      } else {
+        const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), last_chapter_id: o.lastChapterId || null, updated_at: new Date().toISOString() };
+        const { error } = await sb.from('story_works').upsert(row); if (error) throwDb(error);
+        await persistTree(o);
+      }
+      return o;
+    }
+    if (name === 'chapters') {
+      if (!Kind.single(App.story)) {
+        const row = { id: o.id, story_id: App.story.id, html: o.html || '', status: o.published ? 'published' : 'draft', published_html: o.published ? o.published.html : null, published_at: o.published ? new Date(o.published.at).toISOString() : null, word_count: wordCount(o.html), char_count: (o.html || '').replace(/<[^>]+>/g, '').length, updated_at: new Date().toISOString() };
+        const { data: existing } = await sb.from('story_chapters').select('volume_id, part_id, number, title').eq('id', o.id).maybeSingle();
+        if (existing) Object.assign(row, existing);
+        const { error } = await sb.from('story_chapters').upsert(row); if (error) throwDb(error);
+        if (App.story.lastChapterId !== o.id) { App.story.lastChapterId = o.id; await sb.from('story_works').update({ last_chapter_id: o.id }).eq('id', App.story.id); }
+      } else {
+        const row = { body_markdown: o.html || '', status: o.published ? 'published' : 'draft', published_at: o.published ? new Date(o.published.at).toISOString() : null, updated_at: new Date().toISOString() };
+        const { error } = await sb.from('journals').update(row).eq('id', o.id); if (error) throwDb(error);
+      }
+      return o;
+    }
+    if (name === 'notes') {
+      const row = { id: o.id, story_id: o.storyId, chapter_id: o.chapterId, author_id: CONFIG.ownerId, text: o.text, done: !!o.done };
+      const { error } = await sb.from('story_notes').upsert(row); if (error) throwDb(error);
+      return o;
+    }
+    return o;
+  },
+  async del(name, id) {
+    if (name === 'stories') { await sb.from('story_works').delete().eq('id', id); await sb.from('journals').delete().eq('id', id); return; }
+    if (name === 'chapters') { if (!Kind.single(App.story)) await sb.from('story_chapters').delete().eq('id', id); return; }
+    if (name === 'notes') { await sb.from('story_notes').delete().eq('id', id); return; }
+    if (name === 'comments' || name === 'pending') return;
+    if (name === 'images') return Images.remove(id);
+  },
+  async clearAll() { /* not offered against a live account */ },
+};
+
+function purposeFor(type) { return 'cover'; } // story_cover / volume_cover / part_cover all upload the same way
+async function uploadToR2(blob, purpose) {
+  simCheck('upload');
+  const { data: sess } = await sb.auth.getSession();
+  const token = sess && sess.session && sess.session.access_token;
+  if (!token) throw new StudioError('network', 'Please log in again to upload images.');
+  const dataBase64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+  const res = await fetch(SUPABASE_URL + '/functions/v1/upload-image', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ dataBase64, purpose, format: 'jpeg' }) });
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok || !out.url) throw new StudioError('r2', out.error || 'Upload failed. Try again.');
+  return out.url;
+}
+async function deleteFromR2(urls) {
+  if (!urls.length) return;
+  simCheck('delete');
+  const { data: sess } = await sb.auth.getSession();
+  const token = sess && sess.session && sess.session.access_token; if (!token) return;
+  try { await fetch(SUPABASE_URL + '/functions/v1/upload-image', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_ANON_KEY }, body: JSON.stringify({ urls }) }); }
+  catch (e) { console.warn('Image cleanup request failed (non-fatal):', e); }
+}
+/* Cloudflare R2, reached only through the `upload-image` Edge Function
+   (never with credentials in this page). */
 const Objects = {
-  cache: new Map(),
-  async put(key, blob) { simCheck('upload'); await Store.put('objects', { id: key, blob, type: blob.type, size: blob.size, createdAt: Date.now() }); return { key, size: blob.size }; },
-  async del(key) { simCheck('delete'); await Store.del('objects', key); const u = this.cache.get(key); if (u) { URL.revokeObjectURL(u); this.cache.delete(key); } },
-  async url(key) { if (this.cache.has(key)) return this.cache.get(key); const r = await Store.get('objects', key); if (!r) return null; const u = URL.createObjectURL(r.blob); this.cache.set(key, u); return u; },
-  publicUrl: key => (CONFIG.r2.publicBase ? CONFIG.r2.publicBase.replace(/\/$/, '') + '/' + key : 'mock-r2://' + key),
+  async put(blob, purpose) { const url = await uploadToR2(blob, purpose); return { url }; },
+  async del(url) { await deleteFromR2([url]); },
 };
 
 const Images = {
-  urls: new Map(),
+  urls: new Map(),   // optimistic local blob-URL previews, set right after a fresh upload
+  cache: new Map(),  // story_images rows already fetched this session
   async url(id) {
-    if (!id) return null; if (this.urls.has(id)) return this.urls.get(id);
-    const r = await Store.get('images', id); if (!r) return null;
-    const u = await Objects.url(r.r2_key); if (u) this.urls.set(id, u); return u;
+    if (!id) return null;
+    if (id.startsWith('__url:')) return id.slice(6);
+    if (this.urls.has(id)) return this.urls.get(id);
+    const rec = await this.record(id); return rec ? rec.public_url : null;
   },
-  record: id => id ? Store.get('images', id) : Promise.resolve(null),
-  /* Steps 1-2 of the safety flow: upload the object first, then insert the row. */
+  async record(id) {
+    if (!id || id.startsWith('__url:')) return null;
+    if (this.cache.has(id)) return this.cache.get(id);
+    const { data } = await sb.from('story_images').select('*').eq('id', id).maybeSingle();
+    if (data) this.cache.set(id, data);
+    return data || null;
+  },
   async upload({ type, storyId, volumeId = null, partId = null, chapterId = null, blob, width, height, crop = null }) {
-    const id = uid(), key = `${CONFIG.ownerId}/${storyId}/${type}/${id}.jpg`;
-    await Objects.put(key, blob);
-    const rec = { id, owner_id: CONFIG.ownerId, story_id: storyId, volume_id: volumeId, part_id: partId, chapter_id: chapterId, image_type: type, r2_key: key, public_url: Objects.publicUrl(key), width, height, file_size: blob.size, crop, created_at: new Date().toISOString() };
-    try { await Store.put('images', rec); } catch (e) { await Objects.del(key).catch(() => Store.put('pending', { id: 'del_' + id, imageId: id, key, at: Date.now() })); throw e; }
+    const url = await uploadToR2(blob, purposeFor(type));
+    const id = uid();
+    const rec = { id, owner_id: CONFIG.ownerId, story_id: storyId, volume_id: volumeId, part_id: partId, chapter_id: chapterId, image_type: type, r2_key: url, public_url: url, width, height, file_size: blob.size, crop, created_at: new Date().toISOString() };
+    const { error } = await sb.from('story_images').insert(rec);
+    if (error) { await deleteFromR2([url]).catch(() => {}); throwDb(error); }
+    this.cache.set(id, rec);
     return rec;
   },
-  /* Permanent deletion. The DB row is kept as a tombstone until R2 confirms, so nothing is orphaned silently. */
   async remove(id) {
-    const rec = await Store.get('images', id); if (!rec) return true;
-    try { await Objects.del(rec.r2_key); await Store.del('images', id); this.urls.delete(id); return true; }
-    catch (e) { await Store.put('pending', { id: 'del_' + id, imageId: id, key: rec.r2_key, at: Date.now() }); return false; }
+    const rec = this.cache.get(id) || await this.record(id); if (!rec) return true;
+    try { await deleteFromR2([rec.public_url]); await sb.from('story_images').delete().eq('id', id); this.cache.delete(id); this.urls.delete(id); return true; }
+    catch (e) { return false; }
   },
-  async retryPending() {
-    let left = 0;
-    for (const p of await Store.all('pending')) {
-      try { await Objects.del(p.key); await Store.del('images', p.imageId); await Store.del('pending', p.id); this.urls.delete(p.imageId); } catch { left++; }
-    }
-    return left;
-  },
+  async retryPending() { return 0; },
   async removeMany(ids) { let ok = true; for (const id of ids) if (!(await this.remove(id))) ok = false; return ok; },
 };
 
@@ -1926,9 +2116,7 @@ const UI = {
   devMenu(anchor) {
     const on = b => b ? '✓ ' : '';
     showMenu(anchor, ['Storage: ' + Store.mode, { label: on(Sim.offline) + 'Simulate offline', keepOpen: false, onClick: () => { Sim.offline = !Sim.offline; toast('Offline simulation ' + (Sim.offline ? 'on' : 'off')); if (!Sim.offline) Save.retryFailed(); } },
-      { label: 'Fail next image upload', onClick: () => { Sim.failUpload = 1; toast('The next upload will fail'); } }, { label: 'Fail next R2 delete', onClick: () => { Sim.failDelete = 1; toast('The next delete will fail'); } }, { label: 'Fail next save', onClick: () => { Sim.failSave = 1; toast('The next save will fail'); } }, '-',
-      { label: 'Generate 120,000-word test story', onClick: async () => { toast('Generating…'); const s = await Seed.stress(120000); await this.renderLibrary(); toast('Created “' + s.title + '”'); } },
-      { label: 'Erase all local data…', danger: true, onClick: async () => { if (await confirmDialog({ title: 'Erase everything?', body: 'All stories, chapters and images stored in this browser will be deleted.', confirm: 'Erase', danger: true })) { Ed.unload(); Ed.chapterId = null; await Store.clearAll(); lsDel('sw_backup'); await Seed.ensure(); await this.showLibrary(); } } }], { align: 'end' });
+      { label: 'Fail next image upload', onClick: () => { Sim.failUpload = 1; toast('The next upload will fail'); } }, { label: 'Fail next R2 delete', onClick: () => { Sim.failDelete = 1; toast('The next delete will fail'); } }, { label: 'Fail next save', onClick: () => { Sim.failSave = 1; toast('The next save will fail'); } }], { align: 'end' });
   },
 };
 /* =====================================================================
@@ -2099,10 +2287,11 @@ UI.renderPreview = function () {
    ===================================================================== */
 (async function boot() {
   try {
-    await Store.open(); await Seed.ensure(); Fonts.load(); applyTheme(theme, { instant: true }); UI.init();
-    $('#viewLibrary').classList.add('on'); await UI.renderLibrary(); Images.retryPending();
-    if (Store.mode === 'memory') toast('Browser storage is unavailable here, so work will not persist after you close this page.', 'err');
-    window.__studio = { Ed, App, UI, Store, Save, Sim, Model, Sanitize, Seed, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools };
+    await Store.open(); Fonts.load(); applyTheme(theme, { instant: true }); UI.init();
+    $('#viewLibrary').classList.add('on'); await UI.renderLibrary();
+    const openId = new URLSearchParams(location.search).get('open');
+    if (openId) await App.openStory(openId);
+    window.__studio = { Ed, App, UI, Store, Save, Sim, Model, Sanitize, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools };
   } catch (e) { console.error(e); document.body.prepend(h('div', { style: { padding: '24px' } }, 'Story Studio could not start: ' + e.message)); }
 })();
 })();
