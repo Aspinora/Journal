@@ -85,6 +85,11 @@ h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,3
 .followbtn:hover{background:var(--accent);color:var(--paper)}
 .followbtn.following{color:var(--soft);border-color:var(--border);background:transparent}
 .followbtn.following:hover{background:var(--border);color:var(--ink)}
+.teaser-article{padding:0 26px;font-family:var(--serif-mod);font-size:17.5px;line-height:1.85;color:var(--ink)}
+.teaser-article p{margin:0 0 1.15em}
+.teaser-readmore{padding:6px 26px 34px;text-align:center}
+.read-whole-btn{display:inline-block;font-family:var(--sans);font-size:14px;font-weight:700;color:var(--paper);background:var(--accent);border-radius:24px;padding:12px 28px;text-decoration:none;letter-spacing:.02em;transition:opacity .18s}
+.read-whole-btn:hover{opacity:.88}
 
 .article{padding:0 26px;font-family:var(--serif-mod);font-size:17.5px;line-height:1.85;color:var(--ink)}
 .article p{margin:0 0 1.15em}
@@ -381,12 +386,12 @@ document.addEventListener("click", function(e){
 
 /* ============ 3. DATA ============ */
 async function rpcByUsernameSlug(username, slug){
-  const { data, error } = await supabaseClient.rpc('get_journal_by_username_slug', { p_username: username, p_slug: slug });
+  const { data, error } = await supabaseClient.rpc('get_work_by_username_slug', { p_username: username, p_slug: slug });
   if (error) throw error;
   return data || null;
 }
 async function rpcById(id){
-  const { data, error } = await supabaseClient.rpc('get_journal_for_read', { p_id_or_slug: id });
+  const { data, error } = await supabaseClient.rpc('get_work_for_read', { p_id_or_slug: id });
   if (error) throw error;
   return data || null;
 }
@@ -433,6 +438,27 @@ async function normalizePost(row){
   const authorName = (row.profiles && row.profiles.display_name) || 'Aspinora Member';
   const authorUsername = (row.profiles && row.profiles.username) || '';
   const authorAvatarUrl = (row.profiles && row.profiles.avatar_url) || null;
+  // A story_works row with 2+ published chapters/parts/volumes never
+  // renders its full body here — reader-demo.html shows a teaser (this
+  // is genuinely all the info a teaser needs) and a "Read whole
+  // Story/Article" button that hands off to reader-studio.html. A
+  // single-chapter story_works row falls straight through to the
+  // normal full-render path below (get_work_for_read already returned
+  // its one chapter's HTML as body_markdown in that case).
+  const isMultiChapterStory = row.kind === 'story' && (row.chapter_count || 0) > 1;
+  if (isMultiChapterStory){
+    return {
+      id: row.id, slug: row.slug, authorId: row.author_id,
+      type: cat.name, title: row.title,
+      author: authorName, username: authorUsername, avatarColorHex: avatarColor(row.author_id), avatarUrl: authorAvatarUrl,
+      date: formatDateShort(row.published_at), publishedAt: row.published_at,
+      tags: row.tags || [], coverUrl: row.cover_url || null,
+      grad: 'linear-gradient(135deg,' + cat.color + ',#20140c)',
+      teaserExcerpt: row.excerpt || '',
+      isTeaser: true,
+      readWholeLabel: row.category_id === 6 ? 'Read whole Article' : 'Read whole Story'
+    };
+  }
   const words = wordCount(row.body_markdown || '');
   const kind = cat.name === 'Poetry' ? 'poem' : (cat.name === 'Shayari' || cat.name === 'Thoughts') ? 'short' : 'long';
   const post = {
@@ -550,6 +576,32 @@ function renderPost(post){
   const wrap = document.createElement("div");
   wrap.className = "page-scroll";
   wrap.tabIndex = -1;
+  if (post.isTeaser){
+    const avatarInner = post.avatarUrl ? ('<img src="'+esc(post.avatarUrl)+'" alt="">') : initialsOf(post.author);
+    const profileHref = post.username ? ('portfolio.html?u='+encodeURIComponent(post.username)) : null;
+    const coverInner = post.coverUrl ? ('<img src="'+esc(post.coverUrl)+'" alt="">') : ('<div class="grad" style="background:'+post.grad+'"></div>');
+    const studioHref = 'reader-studio.html?u='+encodeURIComponent(post.username)+'&s='+encodeURIComponent(post.slug);
+    wrap.innerHTML =
+     '<div class="cover"><span class="type-chip">'+esc(post.type)+'</span>'+coverInner+'</div>'+
+     '<div class="ribbon"></div>'+
+     '<div class="meta">'+
+       '<h1 class="title">'+esc(post.title)+'</h1>'+
+       '<div class="meta-divider"></div>'+
+       '<div class="byline">'+
+         (profileHref?('<a class="byline-link" href="'+profileHref+'">'):'<div class="byline-link">')+
+           '<div class="avatar" style="background:'+post.avatarColorHex+'">'+avatarInner+'</div>'+
+           '<div class="byline-id">'+
+             '<div class="byline-name">'+esc(post.author)+'</div>'+
+             (post.username?('<div class="byline-uname">@'+esc(post.username)+'</div>'):'')+
+             '<div class="byline-sub">'+esc(post.date)+'</div>'+
+           '</div>'+
+         (profileHref?'</a>':'</div>')+
+       '</div>'+
+     '</div>'+
+     '<div class="article teaser-article">'+markdownToHtml(post.teaserExcerpt)+'</div>'+
+     '<div class="teaser-readmore"><a class="read-whole-btn" href="'+studioHref+'">'+esc(post.readWholeLabel)+'</a></div>';
+    return wrap;
+  }
   const artClass = post.kind==="poem" ? "article poetry" : post.kind==="short" ? "article short" : "article";
   const avatarInner = post.avatarUrl ? ('<img src="'+esc(post.avatarUrl)+'" alt="">') : initialsOf(post.author);
   const profileHref = post.username ? ('portfolio.html?u='+encodeURIComponent(post.username)) : null;
