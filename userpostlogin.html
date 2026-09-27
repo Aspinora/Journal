@@ -2845,6 +2845,26 @@ function normalizeJournalRow(row){
     featured: !!row.featured
   };
 }
+/* get_stories_articles_feed() returns the same field set as
+   JOURNAL_CARD_FIELDS but flattened (display_name/username/avatar_url
+   as plain columns, since it's a `returns table` RPC, not a nested
+   PostgREST embed) plus kind ('journal'|'story') and chapter_count.
+   Reshape into the exact row shape normalizeJournalRow() already
+   expects, then carry kind/chapter_count through untouched — nothing
+   in the click-routing path needs them today (a card never shows the
+   Story button itself; that only appears inside reader-demo.html), but
+   keeping them on the row means a future "Story" badge or similar
+   doesn't need another round-trip. */
+function normalizeMergedFeedRow(row){
+  if (!row) return null;
+  const reshaped = Object.assign({}, row, {
+    profiles: { display_name: row.display_name, username: row.username, avatar_url: row.avatar_url }
+  });
+  const out = normalizeJournalRow(reshaped);
+  out.kind = row.kind;
+  out.chapter_count = row.chapter_count;
+  return out;
+}
 
 const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, cover_thumb_url, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
@@ -2887,6 +2907,26 @@ async function fetchLatestJournals(opts){
     else if (opts.sort === 'discussed') list.sort(function(a,b){ return b.comments - a.comments; });
     else list.sort(function(a,b){ return new Date(b.published_at) - new Date(a.published_at); });
     return { rows: list.slice(0, page * pageSize), total: list.length };
+  }
+  // Stories/Articles show a merged journals+story_works feed (Option A)
+  // — everything a Story/Article-in-progress in Writer Studio produces
+  // once it has 2+ published chapters/parts/volumes lives in story_works,
+  // not journals, so those two category chips need their own RPC-backed
+  // query instead of the plain .from('journals') path below. Every other
+  // category (Journals/Poetry/Shayari/Thoughts) and Home/All are
+  // untouched — they never touch story_works.
+  if (opts.category === 'stories' || opts.category === 'articles') {
+    const from = (page - 1) * pageSize;
+    const { data, error } = await supabaseClient.rpc('get_stories_articles_feed', {
+      p_category: opts.category,
+      p_search: opts.search || null,
+      p_sort: opts.sort || 'recent',
+      p_limit: pageSize,
+      p_offset: from
+    });
+    if (error) throw error;
+    const total = (data && data.length) ? data[0].total_count : 0;
+    return { rows: (data || []).map(normalizeMergedFeedRow), total };
   }
   // 👉 SUPABASE: range-based pagination, never a single unlimited select.
   let query = supabaseClient
@@ -2961,6 +3001,17 @@ async function fetchCategoryCounts(){
     const name = categoryById(row.category_id).name;
     counts[name] = (counts[name] || 0) + 1;
   });
+  // Option A: Stories/Articles counts must also include story_works
+  // rows (published/ongoing/completed/hiatus, per the same visibility
+  // rule the merged feed RPC uses), not just plain journals rows.
+  const { data: storyRows, error: storyErr } = await supabaseClient.from('story_works')
+    .select('kind').in('status', ['published','ongoing','completed','hiatus']).eq('visibility', 'public');
+  if (!storyErr && storyRows){
+    storyRows.forEach(function(row){
+      const name = row.kind === 'article' ? 'Articles' : 'Stories';
+      counts[name] = (counts[name] || 0) + 1;
+    });
+  }
   return counts;
 }
 
