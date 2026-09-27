@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=Literata:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <style>
 /* =========================================================
    JOURNALS · READER STUDIO
@@ -126,7 +127,8 @@ html[data-theme="dark"] .lg.d{display:block}
 @media (min-width:900px){.hdr__ctx{display:flex}}
 .hdr__sp{flex:1;min-width:0}
 .hdr__tools{display:flex;align-items:center;gap:2px;margin-left:auto}
-.avatar{display:none;width:34px;height:34px;margin-left:8px;border-radius:50%;background:var(--ink);color:var(--bg-header);place-items:center;font:600 13px var(--font-ui)}
+.avatar{display:none;width:34px;height:34px;margin-left:8px;border-radius:50%;background:var(--ink);color:var(--bg-header);place-items:center;font:600 13px var(--font-ui);overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
 @media (min-width:900px){.avatar{display:grid}}
 .crumb{flex:1;min-width:0;padding:0 8px;text-align:center;font:500 12.5px/1.2 var(--font-ui);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .crumb b{font-weight:600;color:var(--ink)}
@@ -571,6 +573,20 @@ try{var p=JSON.parse(localStorage.getItem('journals.reader.prefs.v2')||'null'),t
 <div id="toastHost" role="status" aria-live="polite"></div>
 <script>
 (function(){'use strict';
+/* ============ SUPABASE ============
+   Same project/keys as index.html, userpostlogin.html, reader-demo.html.
+   This page is opened independently (own tab/navigation, not an
+   iframe), so it fetches its own session + story data. */
+const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+let supabaseClient = null;
+try{
+  if (window.supabase){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+  }
+}catch(e){ console.warn('Supabase client not initialised:', e); }
 /* ===== COVER ART (demo) — original SVG artwork, exact ratios =====
    story cover  = 1200x800  (3:2)
    volume cover =  800x1200 (2:3)
@@ -994,7 +1010,7 @@ const WORK={
 };
 
 /* ---------- Demo people & seeded comments (reader-side data, separate from the work) ---------- */
-const ME={id:'u_me',name:'Noor Hale',handle:'noorhale'};
+let ME={id:null,name:'Reader',handle:'',avatarUrl:null};
 const USERS={
   u_me:ME,
   u_elias:{id:'u_elias',name:'Elias Brandt',handle:'eliasb'},
@@ -1246,14 +1262,94 @@ function setTheme(t,opts){
 }
 
 /* =========================================================
-   DATA LAYER (mock) — swap `api` for the real backend
+   DATA LAYER — real backend (Supabase). Swapped in from the
+   original mock `api`/DEMOS: getWork() returned a hardcoded object;
+   here the real work is fetched once at boot (loadRealWork(), below)
+   and everything reads from the live tables/RPCs instead.
    ========================================================= */
+let CURRENT_WORK_ROW=null;      // raw story_works row for the open story
+let AUTHOR_CACHE_RS={};         // author_id -> {id,name,handle,avatarUrl}
 const api={
-  getWork(){return DEMOS[DEMO_I].work},
-  getImage(id){return id?IMG[id]||null:null},                 // coverImageId → {src}|{art}
-  getAuthor(id){return PROFILES[id]||null},
-  getChapter(id){return Promise.resolve(CHAPTERS[id]||null)}  // one chapter record; reader uses .published.html
+  getWork(){return CURRENT_WORK_ROW},
+  getImage(url){return url?{src:url}:null},                    // a cover is just a public R2/Storage URL now
+  getAuthor(id){return AUTHOR_CACHE_RS[id]||null},
+  async getChapter(id){
+    const { data, error } = await supabaseClient.from('story_chapters')
+      .select('id, published_html').eq('id', id).eq('status','published').maybeSingle();
+    if (error || !data) return null;
+    return { id: data.id, published: { html: data.published_html || '' } };
+  }
 };
+async function fetchAuthor(id){
+  if (AUTHOR_CACHE_RS[id]) return AUTHOR_CACHE_RS[id];
+  const { data:p } = await supabaseClient.from('profiles').select('id,display_name,username,avatar_url').eq('id', id).maybeSingle();
+  const rec = { id, name: (p && (p.display_name || p.username)) || 'Aspinora Member', handle: (p && p.username) || '', avatarUrl: (p && p.avatar_url) || null };
+  AUTHOR_CACHE_RS[id] = rec;
+  return rec;
+}
+async function loadCurrentUser(){
+  try{
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    if (!session || !session.user) return;
+    const uid = session.user.id;
+    const { data:profile } = await supabaseClient.from('profiles').select('id,display_name,username,avatar_url').eq('id', uid).maybeSingle();
+    ME = { id: uid, name: (profile && (profile.display_name || profile.username)) || 'Reader', handle: (profile && profile.username) || '', avatarUrl: (profile && profile.avatar_url) || null };
+  }catch(e){ console.warn('Could not load session', e); }
+}
+function urlParams(){
+  const sp = new URLSearchParams(location.search);
+  return { u: sp.get('u'), s: sp.get('s'), id: sp.get('id') };
+}
+// Fetches the story + its volumes/parts/(published) chapters and
+// reshapes them into the same {id,title,...,volumes:[{chapters,parts}]}
+// shape loadWork() already expects (that shape came from the Writing
+// Studio's own in-memory model, which is why it nests this way).
+async function loadRealWork(){
+  const { u, s, id } = urlParams();
+  let row = null;
+  if (u && s){
+    const { data:r, error } = await supabaseClient.rpc('get_story_by_username_slug', { p_username: u, p_slug: s });
+    if (error) console.error(error); row = r;
+  } else if (id){
+    const { data:r, error } = await supabaseClient.rpc('get_story_for_read', { p_id: id });
+    if (error) console.error(error); row = r;
+  }
+  if (!row || !row.id) return null;
+  CURRENT_WORK_ROW = row;
+  await fetchAuthor(row.author_id);
+  const [{ data:volRows }, { data:chRows, error:chErr }] = await Promise.all([
+    supabaseClient.from('story_volumes').select('*').eq('story_id', row.id).order('number'),
+    supabaseClient.rpc('get_story_chapters_for_read', { p_story_id: row.id })
+  ]);
+  if (chErr) console.error(chErr);
+  let partRows = [];
+  const volIds = (volRows || []).map(function(v){ return v.id; });
+  if (volIds.length){
+    const { data:pr } = await supabaseClient.from('story_parts').select('*').in('volume_id', volIds).order('number');
+    partRows = pr || [];
+  }
+  const chapterShape = function(c){ return { id:c.id, number:c.number, title:c.title, wordCount:c.word_count, status:c.status }; };
+  const byNum = function(a,b){ return a.number - b.number; };
+  const volumes = (volRows || []).slice().sort(byNum).map(function(v){
+    return {
+      id: v.id, number: v.number, title: v.title, description: v.description || '', coverImageId: v.cover_url,
+      chapters: (chRows || []).filter(function(c){ return c.volume_id === v.id && !c.part_id; }).sort(byNum).map(chapterShape),
+      parts: partRows.filter(function(p){ return p.volume_id === v.id; }).sort(byNum).map(function(p){
+        return {
+          id: p.id, number: p.number, title: p.title,
+          chapters: (chRows || []).filter(function(c){ return c.part_id === p.id; }).sort(byNum).map(chapterShape)
+        };
+      })
+    };
+  });
+  return {
+    id: row.id, title: row.title, description: row.description || '',
+    kind: row.kind, structure: 'structured', category: row.kind === 'article' ? 'Article' : 'Story',
+    tags: row.tags || [], status: row.status, visibility: row.visibility,
+    allowImpressions: row.allow_impressions !== false, ownerId: row.author_id,
+    coverImageId: row.cover_url, volumes: volumes
+  };
+}
 
 /* ---------- Normalised, reader-facing model ---------- */
 let STORY=null,FLAT=[],byId={};
@@ -1457,15 +1553,15 @@ const DEMOS=[
   {work:WORK2,seedData:emptyData,seedCms:()=>({items:seedComments2(NOW),likes:{},reported:{}})}
 ];
 function initState(){
-  data=ls.get(kData())||DEMOS[DEMO_I].seedData();
+  data=ls.get(kData())||emptyData();
   data.progress=data.progress||{};data.bookmarks=data.bookmarks||[];
-  cms=ls.get(kCm())||DEMOS[DEMO_I].seedCms();
+  cms=ls.get(kCm())||emptyCms();
   cms.items=cms.items||[];cms.likes=cms.likes||{};cms.reported=cms.reported||{};
   pruneData();
 }
-DEMO_I=Math.min(DEMOS.length-1,Math.max(0,+ls.get(K.demo)||0));
-loadWork(DEMOS[DEMO_I].work);
-initState();
+// Work + reader-state now load in the async boot() at the bottom of
+// this file, once the real story (via ?u=&s= / ?id=) has been fetched
+// — loadWork()/initState() are called from there instead of here.
 
 /* =========================================================
    CONTENTS PAGE
@@ -1480,10 +1576,9 @@ function structHeader(){
     <span class="hdr__ctx">Reader Studio</span>
     <span class="hdr__sp"></span>
     <nav class="hdr__tools" aria-label="Reader tools">
-      <button class="ibtn" data-action="stories" aria-haspopup="dialog" aria-expanded="false" aria-label="Demo stories" title="Demo stories">${ic('library')}</button>
       <button class="ibtn" data-action="bookmarks" aria-haspopup="dialog" aria-expanded="false" aria-label="Bookmarks, ${nb} saved">${ic('bookmark')}${nb?`<span class="badge" aria-hidden="true">${nb}</span>`:''}</button>
       ${themeBtn()}
-      <span class="avatar" role="img" aria-label="Signed in as ${esc(ME.name)}">${esc(ME.name[0])}</span>
+      <span class="avatar" role="img" aria-label="Signed in as ${esc(ME.name)}">${ME.avatarUrl?`<img src="${esc(ME.avatarUrl)}" alt="" loading="lazy">`:esc(ME.name[0]||'?')}</span>
     </nav></div></header>`;
 }
 function statusIcon(st,pct){
@@ -2098,8 +2193,24 @@ async function render(){
   else{document.body.dataset.view='structure';mountStructure()}
 }
 addEventListener('hashchange',render);
-applyPrefs();setTheme(prefs.theme,{instant:true});
-render();
+async function boot(){
+  await loadCurrentUser();
+  let work = null;
+  try{ work = await loadRealWork(); }catch(e){ console.error(e); }
+  if (!work){
+    document.getElementById('app').innerHTML =
+      '<div style="max-width:520px;margin:20vh auto;padding:0 24px;text-align:center;font:15px/1.6 var(--font-ui);color:var(--ink-2)">'+
+      '<p style="font:600 20px var(--font-serif, serif);color:var(--ink);margin:0 0 10px">This Story isn\u2019t available</p>'+
+      '<p style="margin:0 0 18px">It may be unpublished, private, or the link is incorrect.</p>'+
+      '<a href="userpostlogin.html" style="color:var(--accent, #a15b2c);text-decoration:underline">Back to Aspinora</a></div>';
+    return;
+  }
+  loadWork(work);
+  initState();
+  applyPrefs();setTheme(prefs.theme,{instant:true});
+  render();
+}
+boot();
 /* Test/integration hook: swap in another work (same shape as the Writing Studio's) without touching the page. */
 window.__reader={chapters:CHAPTERS,images:IMG,demos:DEMOS,switchDemo,loadWork(w){PARSED.clear();loadWork(w);data=emptyData();cms=emptyCms();render()},get story(){return STORY}};
 
