@@ -1287,6 +1287,59 @@ async function fetchAuthor(id){
   AUTHOR_CACHE_RS[id] = rec;
   return rec;
 }
+/* ===== Real per-paragraph comments (story_chapter_comments /
+   story_chapter_comment_likes) — replaces the old local-only `cms`
+   seeding. cms.items keeps the exact shape cmHTML()/renderCP()/etc.
+   already expect ({id,chapterId,paragraphId,parent,user,body,likes,
+   ts,deleted,edited}); only how it's populated/persisted changes. */
+function toCmsItem(row){
+  return {
+    id: row.id, chapterId: row.chapter_id, paragraphId: row.paragraph_id,
+    parent: row.parent_id, user: row.author_id, body: row.status==='hidden' ? '' : row.body,
+    likes: row.likes || 0, ts: new Date(row.created_at).getTime(),
+    deleted: row.status === 'hidden', edited: !!row.updated_at
+  };
+}
+async function loadChapterComments(chapterId){
+  const { data:rows, error } = await supabaseClient.from('story_chapter_comments')
+    .select('id,chapter_id,paragraph_id,parent_id,author_id,body,likes,status,created_at,updated_at')
+    .eq('chapter_id', chapterId).order('created_at', { ascending: true });
+  if (error){ console.error(error); cms.items = cms.items.filter(function(x){ return x.chapterId !== chapterId; }); return; }
+  const authorIds = Array.from(new Set((rows || []).map(function(r){ return r.author_id; })));
+  await Promise.all(authorIds.filter(function(id){ return !AUTHOR_CACHE_RS[id]; }).map(fetchAuthor));
+  const items = (rows || []).map(toCmsItem);
+  cms.items = cms.items.filter(function(x){ return x.chapterId !== chapterId; }).concat(items);
+  const ids = items.map(function(x){ return x.id; });
+  if (ME.id && ids.length){
+    const { data:likeRows } = await supabaseClient.from('story_chapter_comment_likes').select('comment_id').eq('user_id', ME.id).in('comment_id', ids);
+    (likeRows || []).forEach(function(r){ cms.likes[r.comment_id] = true; });
+  }
+}
+async function postChapterComment(chapterId, paragraphId, body, parentId){
+  const { data, error } = await supabaseClient.from('story_chapter_comments')
+    .insert({ chapter_id: chapterId, paragraph_id: paragraphId, parent_id: parentId || null, author_id: ME.id, body: body })
+    .select('id,chapter_id,paragraph_id,parent_id,author_id,body,likes,status,created_at,updated_at').single();
+  if (error){ console.error(error); toast('Couldn\u2019t post your comment — try again'); return null; }
+  return toCmsItem(data);
+}
+async function updateChapterComment(id, body){
+  const { error } = await supabaseClient.from('story_chapter_comments').update({ body: body, updated_at: new Date().toISOString() }).eq('id', id);
+  if (error){ console.error(error); toast('Couldn\u2019t save your edit'); return false; }
+  return true;
+}
+async function hideChapterComment(id){
+  const { error } = await supabaseClient.from('story_chapter_comments').update({ status:'hidden', body:'' }).eq('id', id);
+  if (error) console.error(error);
+}
+async function removeChapterComment(id){
+  const { error } = await supabaseClient.from('story_chapter_comments').delete().eq('id', id);
+  if (error) console.error(error);
+}
+async function setChapterCommentLike(id, liked){
+  if (!ME.id) return;
+  if (liked) await supabaseClient.from('story_chapter_comment_likes').insert({ comment_id:id, user_id:ME.id });
+  else await supabaseClient.from('story_chapter_comment_likes').delete().eq('comment_id', id).eq('user_id', ME.id);
+}
 async function loadCurrentUser(){
   try{
     const { data:{ session } } = await supabaseClient.auth.getSession();
@@ -1360,7 +1413,7 @@ function loadWork(work){
   const author=api.getAuthor(work.ownerId);
   const S={id:work.id,kind:work.kind||'story',title:(work.title||'').trim()||'Untitled',description:work.description||'',category:work.category||'',tags:work.tags||[],
     status:work.status,allowImpressions:work.allowImpressions!==false,ownerId:work.ownerId,authorName:author?author.name:'',cover:cover(work.coverImageId),
-    single:!storyLike,unavailable:null,volumes:[]};
+    single:!storyLike,unavailable:null,volumes:[],savedToLibrary:false};
   if(S.kind==='story'&&work.status==='draft')S.unavailable='draft';
   else if(work.visibility==='private'&&work.ownerId!==ME.id)S.unavailable='private';
   FLAT=[];byId={};let idx=0;
@@ -1641,7 +1694,8 @@ function heroHTML(cur,tgt){
       <div class="prog"><p class="prog__label" id="pl">Your reading progress</p>
         <div class="bar bar--lg" role="progressbar" aria-labelledby="pl" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
         <p class="prog__sub">${sp.done} of ${sp.total} chapters completed</p>
-        <div class="cta">${btn}<p class="cta__where">${where}</p></div>${alt?`<div class="cta__alt">${alt}</div>`:''}</div>
+        <div class="cta">${btn}<p class="cta__where">${where}</p></div>${alt?`<div class="cta__alt">${alt}</div>`:''}
+        ${ME.id?`<button class="btn btn--ghost" style="margin-top:10px" data-action="toggle-save" aria-pressed="${STORY.savedToLibrary}">${STORY.savedToLibrary?'Saved to Library':'Save to Library'}</button>`:''}</div>
     </div></section>`;
 }
 let LAST_READ=null;
@@ -1765,6 +1819,7 @@ async function mountReader(r){
   clearTimeout(t);
   if(token!==mountToken)return;
   if(err){app.innerHTML=stateHTML(c,'error');window.scrollTo(0,0);const h=$('#chTitle');h&&h.focus({preventScroll:true});return}
+  await loadChapterComments(c.id);
   const blocks=parseChapter(c.id,rec.published.html),counts=countsFor(c.id),big=blocks.length>200;
   usedFonts=new Set();
   const bodyHTML=renderBlocks(blocks,counts);
@@ -1845,6 +1900,29 @@ function updateBookmarkBtn(){
   const b=$('#bmBtn');if(!b||!R)return;
   const on=data.bookmarks.some(x=>x.chapterId===R.id);
   b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'Remove bookmark from this chapter':'Bookmark this place');
+}
+/* ===== "Save to Library" — saving the WHOLE work, distinct from the
+   in-chapter reading-position bookmarks above (which stay local/
+   per-device by design). Backed by bookmarks.story_id. */
+async function loadLibrarySaveState(){
+  if(!ME.id||!STORY)return;
+  const { data:row } = await supabaseClient.from('bookmarks').select('story_id').eq('user_id',ME.id).eq('story_id',STORY.id).maybeSingle();
+  STORY.savedToLibrary=!!row;
+}
+async function toggleLibrarySave(btn){
+  if(!ME.id||!STORY)return;
+  const was=STORY.savedToLibrary;
+  STORY.savedToLibrary=!was;
+  if(btn){btn.setAttribute('aria-pressed',String(!was));btn.textContent=!was?'Saved to Library':'Save to Library'}
+  if(was){
+    const { error } = await supabaseClient.from('bookmarks').delete().eq('user_id',ME.id).eq('story_id',STORY.id);
+    if(error){STORY.savedToLibrary=true;if(btn){btn.setAttribute('aria-pressed','true');btn.textContent='Saved to Library'}console.error(error);return}
+    toast('Removed from your Library');
+  }else{
+    const { error } = await supabaseClient.from('bookmarks').insert({user_id:ME.id,story_id:STORY.id});
+    if(error){STORY.savedToLibrary=false;if(btn){btn.setAttribute('aria-pressed','false');btn.textContent='Save to Library'}console.error(error);return}
+    toast('Saved to your Library');
+  }
 }
 function toggleBookmark(){
   if(!R)return;
@@ -1947,8 +2025,8 @@ function avColor(n){let h=0;for(let i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))>
 const initials=n=>n.split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 const mentionize=b=>esc(b).replace(/^@(\w+)/,'<span class="mention">@$1</span>');
 function cmHTML(c,all,isReply){
-  const u=USERS[c.user]||{name:'Reader',handle:'reader'},mine=c.user===ME.id;
-  const liked=!!cms.likes[c.id],n=(c.likes||0)+(liked?1:0);
+  const u=AUTHOR_CACHE_RS[c.user]||USERS[c.user]||{name:'Reader',handle:'reader'},mine=c.user===ME.id;
+  const liked=!!cms.likes[c.id],n=c.likes||0;
   const reps=isReply?[]:all.filter(r=>r.parent===c.id).sort((a,b)=>a.ts-b.ts);
   const editing=CP.edit===c.id;
   let body;
@@ -2029,15 +2107,19 @@ function closeCP(restore){
 }
 function startReply(id){
   const c=cms.items.find(x=>x.id===id);if(!c)return;
-  const u=USERS[c.user]||{handle:'reader'};
+  const u=AUTHOR_CACHE_RS[c.user]||USERS[c.user]||{handle:'reader'};
   CP.reply={parentId:c.parent||c.id,handle:u.handle};
   const inp=$('#cpInput');
   if(c.parent&&c.user!==ME.id&&!inp.value)inp.value='@'+u.handle+' ';
   updateCompose();inp.focus();
 }
-function sendComment(){
+async function sendComment(){
   const inp=$('#cpInput'),body=inp.value.trim();if(!body||!CP.pid)return;
-  const c={id:'cm_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),chapterId:CP.chId,paragraphId:CP.pid,parent:CP.reply?CP.reply.parentId:null,user:ME.id,body,likes:0,ts:Date.now()};
+  inp.disabled=true;
+  const parentId=CP.reply?CP.reply.parentId:null;
+  const c=await postChapterComment(CP.chId,CP.pid,body,parentId);
+  inp.disabled=false;
+  if(!c)return;
   cms.items.push(c);saveCms();
   inp.value='';inp.style.height='';CP.reply=null;
   renderCP();syncCount(CP.pid);
@@ -2048,18 +2130,24 @@ async function deleteComment(id){
   const hasReplies=cms.items.some(r=>r.parent===id);
   const ok=await confirmDialog({title:'Delete this comment?',body:hasReplies?'Replies will stay, and this comment will show as deleted.':'This can’t be undone.',confirm:'Delete'});
   if(!ok)return;
-  if(hasReplies){c.deleted=true;c.body=''}
+  if(hasReplies){c.deleted=true;c.body='';await hideChapterComment(id)}
   else{
     cms.items=cms.items.filter(x=>x.id!==id);
-    if(c.parent){const p=cms.items.find(x=>x.id===c.parent);if(p&&p.deleted&&!cms.items.some(r=>r.parent===p.id))cms.items=cms.items.filter(x=>x.id!==p.id)}
+    await removeChapterComment(id);
+    if(c.parent){
+      const p=cms.items.find(x=>x.id===c.parent);
+      if(p&&p.deleted&&!cms.items.some(r=>r.parent===p.id)){cms.items=cms.items.filter(x=>x.id!==p.id);await removeChapterComment(p.id)}
+    }
   }
   saveCms();renderCP(true);syncCount(c.paragraphId);toast('Comment deleted');
 }
 function toggleLike(btn){
   const id=btn.dataset.id,c=cms.items.find(x=>x.id===id);if(!c)return;
-  if(cms.likes[id])delete cms.likes[id];else cms.likes[id]=true;
-  saveCms();
-  const liked=!!cms.likes[id],n=(c.likes||0)+(liked?1:0);
+  const was=!!cms.likes[id];
+  if(was)delete cms.likes[id];else cms.likes[id]=true;
+  c.likes=(c.likes||0)+(was?-1:1);
+  saveCms();setChapterCommentLike(id,!was);
+  const liked=!!cms.likes[id],n=c.likes||0;
   btn.setAttribute('aria-pressed',liked);
   btn.setAttribute('aria-label',(liked?'Unlike this comment':'Like this comment')+(n?', '+n+' like'+(n===1?'':'s'):''));
   $('span',btn).textContent=n||'';
@@ -2125,6 +2213,7 @@ document.addEventListener('click',e=>{
     case'bookmarks':openPop('bookmarks',a);break;
     case'close-pop':closePop();break;
     case'bm-toggle':toggleBookmark();break;
+    case'toggle-save':toggleLibrarySave(a);break;
     case'contents':saveReadingState();go('#/');break;
     case'comments':openCP(a.dataset.pid,a);break;
     case'close-comments':closeCP();break;
@@ -2134,7 +2223,7 @@ document.addEventListener('click',e=>{
     case'cm-send':sendComment();break;
     case'clear-reply':CP.reply=null;updateCompose();$('#cpInput').focus();break;
     case'cm-cancel-edit':CP.edit=null;renderCP(true);break;
-    case'cm-save-edit':{const c=cms.items.find(x=>x.id===CP.edit),v=$('#cmEdit').value.trim();if(c&&v){c.body=v;c.edited=true;saveCms()}CP.edit=null;renderCP(true);break}
+    case'cm-save-edit':{const c=cms.items.find(x=>x.id===CP.edit),v=$('#cmEdit').value.trim();if(c&&v){c.body=v;c.edited=true;saveCms();updateChapterComment(c.id,v)}CP.edit=null;renderCP(true);break}
     case'toggle-vol':{const v=a.closest('.vol'),box=$('.vol__contents',v),open=a.getAttribute('aria-expanded')==='true';a.setAttribute('aria-expanded',String(!open));box.hidden=open;break}
     case'goto-bm':closePop(false);go('#/read/'+a.dataset.ch+(a.dataset.pid?'?p='+a.dataset.pid:''));break;
     case'rm-bm':{data.bookmarks=data.bookmarks.filter(b=>b.id!==a.dataset.id);saveData();$('#pop').innerHTML=bookmarksHTML();updateBookmarkBtn();
@@ -2207,6 +2296,7 @@ async function boot(){
   }
   loadWork(work);
   initState();
+  await loadLibrarySaveState();
   applyPrefs();setTheme(prefs.theme,{instant:true});
   render();
 }
