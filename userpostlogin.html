@@ -1037,6 +1037,7 @@ body.is-reading .comment-form textarea{
           <button type="button" data-nav="notifications" role="menuitem">Notification<span class="nav-badge" id="nav-notif-badge" hidden>0</span></button>
           <button type="button" data-nav="drafts" role="menuitem">My Drafts</button>
           <button type="button" data-nav="saved" role="menuitem">Archive</button>
+          <button type="button" id="nav-dashboard-btn" role="menuitem" hidden>Dashboard</button>
           <hr>
           <button type="button" class="danger" id="sign-out-btn" role="menuitem">Sign Out</button>
         </div>
@@ -1467,6 +1468,20 @@ body.is-reading .comment-form textarea{
       <button type="button" class="btn btn-secondary" id="guest-modal-cancel">Not now</button>
       <button type="button" class="btn btn-primary" id="guest-modal-login">Log In / Sign Up</button>
     </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MODERATOR INVITATION MODAL (opened from a moderator_invite notification)
+     ============================================================ -->
+<div class="modal-scrim" id="mod-invite-modal-scrim">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="mod-invite-title">
+    <button type="button" class="modal-close" id="mod-invite-close" aria-label="Close">
+      <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+    <h2 id="mod-invite-title">Moderator invitation</h2>
+    <p class="modal-sub" id="mod-invite-text">Checking your invitation…</p>
+    <div class="modal-actions" id="mod-invite-actions"></div>
   </div>
 </div>
 
@@ -2721,6 +2736,98 @@ async function signOutUser(){
   window.location.href = '/index.html';
 }
 
+/* ---------- staff (admin / moderator) access ----------
+   profiles.role is deliberately NOT readable from the browser, so the
+   only way to learn "am I staff?" is the server-side get_my_role()
+   function. This only decides whether to SHOW the Dashboard menu item —
+   the dashboard page and every action inside it are re-checked on the
+   server, so a tampered client can't gain anything from this flag. */
+async function refreshStaffStatus(){
+  state.isStaff = false;
+  if (state.currentUser && AUTH_LIVE && supabaseClient){
+    try{
+      const { data, error } = await supabaseClient.rpc('get_my_role');
+      if (!error && (data === 'admin' || data === 'moderator')) state.isStaff = true;
+    }catch(e){ console.warn('Could not check staff status:', e); }
+  }
+  const btn = qs('#nav-dashboard-btn');
+  if (btn) btn.hidden = !state.isStaff;
+}
+
+/* ---------- moderator invitation (Accept / Decline) ---------- */
+function modInviteCloseBtnHTML(label){
+  return '<button type="button" class="btn btn-secondary" data-mod-invite="close">' + (label || 'Close') + '</button>';
+}
+function renderModeratorInviteState(status){
+  const text = qs('#mod-invite-text');
+  const actions = qs('#mod-invite-actions');
+  if (status === 'pending'){
+    text.textContent = 'You’ve been invited to become a moderator of Journals. Moderators review reports and help keep the community safe. If you accept, a Dashboard option will appear in your menu.';
+    actions.innerHTML = '<button type="button" class="btn btn-secondary" data-mod-invite="decline">Decline</button>' +
+                        '<button type="button" class="btn btn-primary" data-mod-invite="accept">Accept</button>';
+  } else if (status === 'accepted'){
+    text.textContent = 'You’re already a moderator of Journals.';
+    actions.innerHTML = modInviteCloseBtnHTML() + '<button type="button" class="btn btn-primary" data-mod-invite="dashboard">Open Dashboard</button>';
+  } else if (status === 'declined'){
+    text.textContent = 'You declined this invitation.';
+    actions.innerHTML = modInviteCloseBtnHTML();
+  } else {
+    text.textContent = 'This invitation is no longer active.';
+    actions.innerHTML = modInviteCloseBtnHTML();
+  }
+}
+async function openModeratorInviteModal(){
+  if (!state.currentUser || !supabaseClient) return;
+  qs('#mod-invite-text').textContent = 'Checking your invitation…';
+  qs('#mod-invite-actions').innerHTML = '';
+  openModal('mod-invite-modal-scrim');
+  // Opening the notifications list marks everything read, so "unread"
+  // can't tell us whether the invite is still waiting — ask the server.
+  let status = null;
+  try{
+    const { data, error } = await supabaseClient.from('moderator_invites')
+      .select('status').eq('invitee_id', state.currentUser.id).maybeSingle();
+    if (error) throw error;
+    status = data ? data.status : null;
+  }catch(e){
+    console.warn('Could not load moderator invite:', e);
+    qs('#mod-invite-text').textContent = 'We couldn’t load your invitation. Please try again in a moment.';
+    qs('#mod-invite-actions').innerHTML = modInviteCloseBtnHTML();
+    return;
+  }
+  renderModeratorInviteState(status);
+}
+async function respondToModeratorInvite(accept){
+  const btns = qsa('#mod-invite-actions button');
+  btns.forEach(function(b){ b.disabled = true; });
+  try{
+    const { error } = await supabaseClient.rpc('respond_to_moderator_invite', { p_accept: accept });
+    if (error) throw error;
+    closeModal('mod-invite-modal-scrim');
+    if (accept){
+      await refreshStaffStatus();
+      showToast('You’re now a moderator. Dashboard is in your menu.');
+    } else {
+      showToast('Invitation declined.');
+    }
+  }catch(e){
+    btns.forEach(function(b){ b.disabled = false; });
+    showToast((e && e.message) ? e.message : 'Could not save your response. Please try again.');
+  }
+}
+function initModeratorInviteModal(){
+  qs('#mod-invite-close').addEventListener('click', function(){ closeModal('mod-invite-modal-scrim'); });
+  qs('#mod-invite-actions').addEventListener('click', function(e){
+    const btn = e.target.closest('[data-mod-invite]');
+    if (!btn || btn.disabled) return;
+    const act = btn.getAttribute('data-mod-invite');
+    if (act === 'accept') respondToModeratorInvite(true);
+    else if (act === 'decline') respondToModeratorInvite(false);
+    else if (act === 'dashboard') window.location.href = '/admin_dashboard.html';
+    else closeModal('mod-invite-modal-scrim');
+  });
+}
+
 function syncAuthUI(){
   if (!state.currentUser) return;
   qs('#nav-user-avatar').outerHTML = avatarSpanHTML(state.currentUser.id, state.currentUser.display_name, '').replace('<span class="avatar"','<span class="avatar" id="nav-user-avatar"');
@@ -2729,6 +2836,7 @@ function syncAuthUI(){
   renderNotifBadge();
   renderMessagesBadge();
   subscribeMessagesRealtime();
+  refreshStaffStatus();
 }
 
 /* Any protected action funnels through here: if logged in, run the
@@ -4405,7 +4513,9 @@ const NOTIF_COPY = {
   comment_journal: function(n){ return authorNameHTML(n.actor_id) + ' left an Impression on your Work.'; },
   reply_comment: function(n){ return authorNameHTML(n.actor_id) + ' left a Response to your Impression.'; },
   follow_user: function(n){ return authorNameHTML(n.actor_id) + ' started following you.'; },
-  journal_published: function(n){ return n.message || 'Your Work was published.'; }
+  journal_published: function(n){ return n.message || 'Your Work was published.'; },
+  moderator_invite: function(n){ return authorNameHTML(n.actor_id) + ' invited you to become a moderator of Journals. <b>Tap to respond.</b>'; },
+  moderator_invite_response: function(n){ return escapeHtml(n.message || 'A moderator invitation was answered.'); }
 };
 /* Notifications can reference people the viewer has never otherwise
    loaded a profile for (someone who only ever liked/followed them,
@@ -4438,7 +4548,7 @@ async function renderNotificationsView(){
   list.innerHTML = rows.map(function(n){
     const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new update.'; };
     const actorUsername = n.actor_id ? authorUsername(n.actor_id) : '';
-    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-journal="' + (n.journal_id||'') + '" data-notif-username="' + escapeHtml(actorUsername) + '">' +
+    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-type="' + escapeHtml(n.type || '') + '" data-notif-journal="' + (n.journal_id||'') + '" data-notif-username="' + escapeHtml(actorUsername) + '">' +
       (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:var(--ink-faint)">✦</span>') +
       '<div><div class="n-msg">' + copyFn(n) + '</div><div class="n-time">' + formatRelativeTime(n.created_at) + '</div></div>' +
       (!n.read_at ? '<span class="notif-dot"></span>' : '') +
@@ -4448,6 +4558,7 @@ async function renderNotificationsView(){
     el.style.cursor = 'pointer';
     el.onclick = function(e){
       if (e.target.closest('.avatar-link, .author-name-link')) return;
+      if (this.getAttribute('data-notif-type') === 'moderator_invite'){ openModeratorInviteModal(); return; }
       const jid = this.getAttribute('data-notif-journal');
       const username = this.getAttribute('data-notif-username');
       if (jid) navigateTo('read', { journalId: jid });
@@ -5069,6 +5180,10 @@ function initUserDropdown(){
     if (!state.currentUser) return;
     window.location.href = '/writer-studio.html';
   });
+  qs('#nav-dashboard-btn').addEventListener('click', function(){
+    if (!state.isStaff) return;
+    window.location.href = '/admin_dashboard.html';
+  });
 }
 
 async function completeLoginSuccess(form, result){
@@ -5223,6 +5338,7 @@ function initUsernameOnboardingModal(){
 }
 
 function initGuestModal(){
+  initModeratorInviteModal();
   qs('#guest-modal-close').addEventListener('click', function(){ closeModal('guest-modal-scrim'); });
   qs('#guest-modal-cancel').addEventListener('click', function(){ closeModal('guest-modal-scrim'); });
 }
