@@ -301,13 +301,23 @@ textarea::placeholder{ color:var(--ink-faint); }
   .dtable td, .dtable th{ padding:10px 8px; }
   .dtable{ font-size:12.5px; }
 }
+#gate-screen{ position:fixed; inset:0; z-index:9999; background:var(--cream); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--ink-soft); font-weight:600; font-size:14px; text-align:center; padding:24px; }
+.gate-spin{ width:30px; height:30px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--orange-deep); animation:gate-spin .8s linear infinite; }
+#gate-screen.is-error .gate-spin{ display:none; }
+@keyframes gate-spin{ to{ transform:rotate(360deg); } }
+.staff-pick{ display:block; width:100%; text-align:left; background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-top:6px; font-size:13px; color:var(--ink); cursor:pointer; font-family:inherit; }
+.staff-pick:hover, .staff-pick.is-picked{ border-color:var(--orange); background:var(--orange-soft); }
 </style>
 </head>
 <body>
 
+<div id="gate-screen">
+  <div class="gate-spin"></div>
+  <div id="gate-msg">Checking your access…</div>
+</div>
+
 <div class="preview-strip">
-  <span class="dot"></span> MOCK PREVIEW — no backend connected, nothing here is saved permanently
-  <div class="role-toggle" id="role-toggle"></div>
+  <span class="dot"></span> <span id="preview-note">Checking your access…</span>
 </div>
 
 <div class="dash-shell">
@@ -331,7 +341,7 @@ textarea::placeholder{ color:var(--ink-faint); }
       </div>
       <div class="spacer"></div>
       <div class="topbar-right">
-        <span class="badge ink" id="topbar-role-badge">ADMIN</span>
+        <a class="btn ghost sm" href="/userpostlogin.html">← Journals</a> <span class="badge ink" id="topbar-role-badge">ADMIN</span>
       </div>
     </div>
     <div class="view-root" id="view-root"></div>
@@ -342,6 +352,7 @@ textarea::placeholder{ color:var(--ink-faint); }
 <div class="modal-scrim" id="modal-scrim"><div class="modal-box" id="modal-body"></div></div>
 <div class="toast-stack" id="toast-stack"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ============================================================
    MOCK DATA LAYER — isolated so it can later be swapped for
@@ -349,6 +360,14 @@ textarea::placeholder{ color:var(--ink-faint); }
    ============================================================ */
 (function(){
 'use strict';
+
+// Same public (publishable) key the main app already ships to browsers.
+// It grants nothing by itself: every read/write below is enforced by
+// row-level security and SECURITY DEFINER functions on the server.
+const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+let sb = null;
+let STAFF_ROWS = [];
 
 const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
@@ -1604,51 +1623,122 @@ function renderCaseTimeline(caseId){
 /* ============================================================
    RENDER: MODERATORS (admin only)
    ============================================================ */
-function renderModerators(){
+async function renderModerators(){
   const root = $('#view-root');
   if(!can('moderators.view')){ root.innerHTML = emptyState('No access', 'You don\u2019t have access to this section.'); return; }
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading staff\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_staff');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='moderators') return;
+    root.innerHTML = emptyState('Couldn\u2019t load staff', (err && err.message) || 'Please try again.');
+    return;
+  }
+  if(state.view!=='moderators') return; // navigated away while loading
+  STAFF_ROWS = rows;
+  const iAmAdmin = isAdmin();
   root.innerHTML = `
-    <div class="panel-head" style="margin-bottom:10px;"><div></div>${isAdmin()?`<button class="btn primary sm" id="add-mod-btn">+ Add moderator</button>`:''}</div>
+    <div class="panel-head" style="margin-bottom:10px;"><div></div>${iAmAdmin?`<button class="btn primary sm" id="add-mod-btn">+ Add moderator</button>`:''}</div>
     <div class="panel" style="padding:8px 12px;">
-      ${MODERATORS.length ? `<table class="dtable"><thead><tr><th>Moderator</th><th>Role</th><th>Status</th><th>Appointed</th><th>Cases handled</th><th>Actions</th></tr></thead><tbody>
-      ${MODERATORS.map(m=>{
-        const cases = AUDIT_LOG.filter(l=>l.moderatorId===m.id).length;
-        return `<tr data-open-mod="${m.id}">
-          <td class="name-cell"><span class="mini-av">${esc(m.displayName[0])}</span><span><b>${esc(m.displayName)}</b><br><span class="muted">@${esc(m.username)}</span></span></td>
-          <td>${roleBadge(m)}</td>
-          <td>${statusBadge(m.status)}</td>
-          <td class="muted">${fmtDate(m.dateAppointed)}</td>
-          <td>${cases}</td>
-          <td onclick="event.stopPropagation()">
-            ${m.id!=='m0' && isAdmin() ? (m.status==='active' ? `<button class="btn ghost sm" data-mod-act="suspend" data-mod-id="${m.id}">Suspend</button> <button class="btn ghost sm" data-mod-act="remove" data-mod-id="${m.id}">Remove</button>` : `<button class="btn ghost sm" data-mod-act="reinstate" data-mod-id="${m.id}">Reinstate</button>`) : (m.id==='m0' ? '<span class="muted">Admin</span>' : '<span class="muted">View only</span>')}
-          </td>
+      ${rows.length ? `<table class="dtable"><thead><tr><th>Staff member</th><th>Role</th><th>Status</th><th>Since</th><th>Actions</th></tr></thead><tbody>
+      ${rows.map(r=>{
+        const isStaffNow = r.staff_role==='admin' || r.staff_role==='moderator';
+        const pending = !isStaffNow && r.invite_status==='pending';
+        const name = r.display_name || r.username || 'Unnamed';
+        const since = pending ? r.invited_at : (r.responded_at || null);
+        let action = '<span class="muted">\u2014</span>';
+        if(r.staff_role==='admin') action = '<span class="muted">Admin</span>';
+        else if(iAmAdmin && r.staff_role==='moderator') action = `<button class="btn ghost sm" data-staff-act="revoke" data-user-id="${esc(r.user_id)}" data-user-name="@${esc(r.username||name)}" data-kind="remove">Remove</button>`;
+        else if(iAmAdmin && pending) action = `<button class="btn ghost sm" data-staff-act="revoke" data-user-id="${esc(r.user_id)}" data-user-name="@${esc(r.username||name)}" data-kind="cancel">Cancel invite</button>`;
+        return `<tr>
+          <td class="name-cell"><span class="mini-av">${esc(name[0].toUpperCase())}</span><span><b>${esc(name)}</b><br><span class="muted">@${esc(r.username||'')}</span></span></td>
+          <td>${pending ? '<span class="badge orange">Invited</span>' : roleBadge({role:r.staff_role})}</td>
+          <td>${pending ? statusBadge('Pending') : statusBadge('Active')}</td>
+          <td class="muted">${since ? fmtDate(since) : '\u2014'}</td>
+          <td>${action}</td>
         </tr>`;
-      }).join('')}</tbody></table>` : emptyState('No moderators yet', 'Add a moderator to get started.')}
+      }).join('')}</tbody></table>` : emptyState('No staff yet', 'Add a moderator to get started.')}
     </div>
   `;
-  $('#add-mod-btn').onclick = ()=>{
-    openModal(`
-      <h3>Add a moderator</h3>
-      <p class="sub">Search for an existing user to promote (mock search). New moderators get full default permissions — adjust them afterwards in Staff \u2192 Permissions.</p>
-      <select class="search-mini" style="width:100%;" id="new-mod-select">
-        ${USERS.filter(u=>!MODERATORS.find(m=>m.username===u.username)).map(u=>`<option value="${u.id}">@${esc(u.username)} \u2014 ${esc(u.displayName)}</option>`).join('')}
-      </select>
-      <p class="sub" style="margin-top:8px;">Admin can only be granted through the Supabase console once this is wired up, never from this dashboard.</p>
-      <div class="modal-actions">
-        <button class="btn ghost sm" data-action="close-modal">Cancel</button>
-        <button class="btn primary sm" id="confirm-add-mod">Add as moderator</button>
-      </div>
-    `);
-    $('#confirm-add-mod').onclick = ()=>{
-      const uid = $('#new-mod-select').value;
-      const u = userById(uid);
-      if(u){
-        MODERATORS.push({id:'m'+(MODERATORS.length+1), username:u.username, displayName:u.displayName, role:'moderator', status:'active', dateAppointed:new Date().toISOString(), permissions: ROLE_PERMISSIONS.moderator.slice()});
-        toast('Moderator added.','success');
-      }
+  const addBtn = $('#add-mod-btn');
+  if(addBtn) addBtn.onclick = openAddModeratorModal;
+  root.querySelectorAll('[data-staff-act="revoke"]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const uid = btn.dataset.userId, label = btn.dataset.userName, cancel = btn.dataset.kind==='cancel';
+      confirmAction({
+        title: cancel ? `Cancel the invite for ${label}?` : `Remove ${label} as moderator?`,
+        body: cancel ? 'They won\u2019t be able to accept it any more.' : 'Their Dashboard access ends immediately.',
+        requireReason:false, destructive:true, confirmLabel: cancel ? 'Cancel invite' : 'Remove',
+        onConfirm: async ()=>{
+          try{
+            const { error } = await sb.rpc('revoke_moderator', { target_user_id: uid });
+            if(error) throw error;
+            toast(cancel ? 'Invite cancelled.' : 'Moderator removed.', 'success');
+          }catch(err){ toast((err && err.message) || 'Could not update that person.', 'error'); }
+          renderModerators();
+        }
+      });
+    };
+  });
+}
+function openAddModeratorModal(){
+  let picked = null, timer = null, seq = 0;
+  openModal(`
+    <h3>Add a moderator</h3>
+    <p class="sub">Search by username. They\u2019ll get a notification and only become a moderator if they accept.</p>
+    <input class="search-mini" style="width:100%;" id="mod-search" placeholder="Search username\u2026" autocomplete="off">
+    <div id="mod-search-results" style="margin-top:6px;"></div>
+    <p class="sub" style="margin-top:10px;">Admin can only be granted through the Supabase console, never from this dashboard.</p>
+    <div class="modal-actions">
+      <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+      <button class="btn primary sm" id="confirm-add-mod" disabled>Send invite</button>
+    </div>
+  `);
+  const input = $('#mod-search'), box = $('#mod-search-results'), send = $('#confirm-add-mod');
+  const skip = new Set(STAFF_ROWS.map(r=>r.user_id)); // current staff + people with a pending invite
+  input.focus();
+  input.oninput = ()=>{
+    clearTimeout(timer); picked = null; send.disabled = true;
+    // usernames are lowercase letters, digits and underscores only
+    const q = input.value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+    if(q.length < 2){ box.innerHTML = ''; return; }
+    timer = setTimeout(async ()=>{
+      const mine = ++seq;
+      try{
+        const { data, error } = await sb.from('profiles').select('id, username, display_name').ilike('username', '%'+q+'%').limit(8);
+        if(error) throw error;
+        if(mine !== seq) return; // a newer search is already running
+        const list = (data||[]).filter(u=>!skip.has(u.id));
+        box.innerHTML = list.length
+          ? list.map(u=>`<button type="button" class="staff-pick" data-pick="${esc(u.id)}" data-un="${esc(u.username)}">@${esc(u.username)} \u2014 ${esc(u.display_name||'')}</button>`).join('')
+          : '<p class="sub">No matching members (staff and pending invites are hidden).</p>';
+        box.querySelectorAll('.staff-pick').forEach(b=>{
+          b.onclick = ()=>{
+            box.querySelectorAll('.staff-pick').forEach(x=>x.classList.remove('is-picked'));
+            b.classList.add('is-picked');
+            picked = { id: b.dataset.pick, username: b.dataset.un };
+            send.disabled = false;
+          };
+        });
+      }catch(err){ box.innerHTML = `<p class="sub">Search failed: ${esc((err && err.message)||'try again')}</p>`; }
+    }, 250);
+  };
+  send.onclick = async ()=>{
+    if(!picked) return;
+    send.disabled = true;
+    try{
+      const { error } = await sb.rpc('invite_moderator', { target_user_id: picked.id });
+      if(error) throw error;
+      toast(`Invite sent to @${picked.username}.`, 'success');
       closeModal();
       renderModerators();
-    };
+    }catch(err){
+      toast((err && err.message) || 'Could not send the invite.', 'error');
+      send.disabled = false;
+    }
   };
 }
 function handleModAction(modId, act){
@@ -2765,7 +2855,56 @@ $('#mobile-menu-btn').addEventListener('click', ()=> $('#sidebar').classList.tog
 /* ============================================================
    INIT
    ============================================================ */
-goto('overview');
+function waitForSession(){
+  return new Promise(resolve=>{
+    let done = false;
+    const finish = sess => { if(done) return; done = true; resolve(sess); };
+    sb.auth.onAuthStateChange((ev, sess)=>{
+      if(ev==='INITIAL_SESSION' || ev==='SIGNED_IN' || ev==='SIGNED_OUT') finish(sess);
+    });
+    // Same safeguard as the main app: no event in time is not "signed out".
+    setTimeout(()=> sb.auth.getSession().then(r=>finish(r && r.data ? r.data.session : null)).catch(()=>finish(null)), 4000);
+  });
+}
+function gateMessage(msg){
+  const g = $('#gate-screen'); if(!g) return;
+  g.classList.add('is-error');
+  $('#gate-msg').innerHTML = esc(msg) + '<br><a class="btn ghost sm" href="">Reload</a> <a class="btn ghost sm" href="/userpostlogin.html">Back to Journals</a>';
+}
+async function bootWithAuth(){
+  try{
+    if(!window.supabase){ gateMessage('Could not load the sign-in library. Check your connection and reload.'); return; }
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const session = await waitForSession();
+    if(!session || !session.user){ location.replace('/index.html'); return; }
+    // The server decides who is staff; this page hides itself from everyone else.
+    const { data: role, error } = await sb.rpc('get_my_role');
+    if(error) throw error;
+    if(role !== 'admin' && role !== 'moderator'){ location.replace('/userpostlogin.html'); return; }
+
+    let prof = null;
+    try{
+      const r = await sb.from('profiles').select('username, display_name').eq('id', session.user.id).maybeSingle();
+      prof = r.data;
+    }catch(e){}
+    const displayName = (prof && (prof.display_name || prof.username)) || 'You';
+    MODERATORS.push({
+      id:'me', username:(prof && prof.username) || '', displayName, role, status:'active',
+      dateAppointed:new Date().toISOString(),
+      permissions: role==='admin' ? undefined : ROLE_PERMISSIONS.moderator.slice()
+    });
+    state.currentModeratorId = 'me';
+    state.role = role;
+    $('#preview-note').textContent = `Signed in as ${displayName} (${roleMeta(role).label}). The Moderators page is live \u2014 every other section still shows sample data and nothing there is saved.`;
+    sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') location.replace('/index.html'); });
+    $('#gate-screen').remove();
+    goto('overview');
+  }catch(err){
+    console.warn('Dashboard access check failed:', err);
+    gateMessage('We couldn\u2019t verify your access just now. Please reload and try again.');
+  }
+}
+bootWithAuth();
 
 })();
 </script>
