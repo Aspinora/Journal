@@ -140,6 +140,25 @@ h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,3
 .replies{margin-top:10px;padding-left:16px;border-left:1px solid var(--border)}
 .creport-menu{margin-top:8px;padding:5px;border:1px solid var(--border);border-radius:9px;background:var(--paper2);display:flex;flex-direction:column;gap:1px;max-width:240px}
 .creport-menu[hidden]{display:none}
+.cr-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:500;padding:16px}
+.cr-scrim[hidden]{display:none}
+.cr-box{background:var(--paper);color:var(--ink);border:1px solid var(--border);border-radius:14px;max-width:480px;width:100%;max-height:86vh;overflow:auto;padding:22px}
+.cr-box h2{margin:0 0 4px;font-size:18px;font-family:var(--serif,inherit)}
+.cr-box .cr-sub{color:var(--soft);font-size:12.5px;margin:0 0 16px}
+.cr-box label{display:block;font-size:12px;color:var(--soft);margin:12px 0 4px}
+.cr-box input[type=text],.cr-box input[type=email],.cr-box input[type=tel],.cr-box input[type=url],.cr-box textarea{
+  width:100%;box-sizing:border-box;background:var(--paper2);border:1px solid var(--border);border-radius:8px;
+  color:var(--ink);font:inherit;font-size:13px;padding:8px 10px}
+.cr-box textarea{resize:vertical;min-height:54px}
+.cr-radio-row{display:flex;gap:14px;font-size:13px;margin-top:4px}
+.cr-radio-row label{display:flex;align-items:center;gap:6px;color:var(--ink);margin:0}
+.cr-check-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--ink);margin-top:10px}
+.cr-check-row input{margin-top:2px}
+.cr-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.cr-actions button{border-radius:999px;padding:8px 16px;font-size:13px;cursor:pointer;border:1px solid var(--border);background:var(--paper2);color:var(--ink)}
+.cr-actions button.cr-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cr-actions button:disabled{opacity:.55;cursor:default}
+.cr-err{color:#b3402f;font-size:12px;margin-top:8px;min-height:1em}
 .creport-menu button{width:100%;text-align:left;background:none;border:none;color:var(--ink);font-size:11.5px;padding:6px 8px;border-radius:6px;cursor:pointer;font-family:var(--sans)}
 .creport-menu button:hover{background:var(--border)}
 .no-comments{color:var(--soft);font-size:13px;font-style:italic;padding:10px 0}
@@ -181,8 +200,6 @@ a.byline-link{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:
 .guest-note{font-size:11.5px;color:var(--soft);padding:0 0 10px}
 .guest-note a{color:var(--accent);text-decoration:underline}
 </style>
-<script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
-<script src="/assets/work-content.js"></script>
 </head>
 <body>
 <div class="app-shell" id="app">
@@ -376,6 +393,59 @@ function guardAuth(fn){
   fn();
 }
 function announce(msg){ el.live.textContent = msg; }
+async function submitWorkReport(targetId, reasonLabel, targetType){
+  try{
+    const { error } = await supabaseClient.rpc('submit_report', {
+      p_target_type: targetType || 'journal', p_target_id: targetId, p_reason: reasonLabel, p_description: null
+    });
+    if (error) throw error;
+    announce("Report submitted. Our team will review it.");
+  }catch(err){
+    console.error(err);
+    announce((err && err.message) ? err.message : "Couldn't submit your report — please try again.");
+  }
+}
+let crTargetType = null, crTargetId = null;
+function openCopyrightModal(targetType, targetId){
+  crTargetType = targetType; crTargetId = targetId;
+  document.getElementById('cr-form').reset();
+  document.getElementById('cr-err').textContent = '';
+  document.getElementById('cr-submit').disabled = false;
+  document.getElementById('cr-scrim').hidden = false;
+}
+function closeCopyrightModal(){ document.getElementById('cr-scrim').hidden = true; }
+function initCopyrightModal(){
+  document.getElementById('cr-cancel').addEventListener('click', closeCopyrightModal);
+  document.getElementById('cr-scrim').addEventListener('click', function(e){ if (e.target.id === 'cr-scrim') closeCopyrightModal(); });
+  document.getElementById('cr-form').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const errEl = document.getElementById('cr-err');
+    const submitBtn = document.getElementById('cr-submit');
+    const val = id => document.getElementById(id).value.trim();
+    if (!document.getElementById('cr-goodfaith').checked || !document.getElementById('cr-accuracy').checked){
+      errEl.textContent = 'Please confirm both statements above.'; return;
+    }
+    submitBtn.disabled = true; errEl.textContent = '';
+    try{
+      const { error } = await supabaseClient.rpc('submit_copyright_claim', {
+        p_target_type: crTargetType, p_target_id: crTargetId,
+        p_claimant_name: val('cr-name'), p_claimant_email: val('cr-email'), p_claimant_phone: val('cr-phone') || null,
+        p_claimant_address: val('cr-address'), p_claimant_org: val('cr-org') || null,
+        p_relationship: document.querySelector('input[name="cr-rel"]:checked').value,
+        p_original_work_title: val('cr-worktitle'), p_original_work_url: val('cr-workurl') || null,
+        p_description: val('cr-desc'), p_evidence: val('cr-evidence') || null,
+        p_good_faith: true, p_accuracy: true, p_signature: val('cr-signature')
+      });
+      if (error) throw error;
+      closeCopyrightModal();
+      announce('Copyright claim submitted. Our team will review it.');
+    }catch(err){
+      console.error(err);
+      errEl.textContent = (err && err.message) ? err.message : "Couldn't submit your claim — please try again.";
+      submitBtn.disabled = false;
+    }
+  });
+}
 function closeMore(scope){
   const m = scope.querySelector(".moremenu"); const b = scope.querySelector('[data-act="more"]');
   if (m){ m.classList.remove("open"); } if (b){ b.setAttribute("aria-expanded","false"); }
@@ -627,7 +697,7 @@ function renderPost(post){
        (post.isOwn?'':('<button class="followbtn '+(post.following?'following':'')+'" data-act="follow">'+(post.following?'Following':'Follow')+'</button>'))+
      '</div>'+
    '</div>'+
-   '<div class="'+artClass+'" data-kind="'+post.kind+'">'+JournalContent.render(post.bodyMd, markdownToHtml)+'</div>'+
+   '<div class="'+artClass+'" data-kind="'+post.kind+'">'+markdownToHtml(post.bodyMd)+'</div>'+
    '<div class="tags">'+post.tags.map(function(t){ return '<span class="tag">#'+esc(t)+'</span>'; }).join("")+'</div>'+
    '<div class="actionbar">'+
      '<button class="act '+(post.liked?'liked':'')+'" data-act="like" aria-label="Impression" title="Impression"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg><span class="cnt">'+post.likes+'</span></button>'+
@@ -767,8 +837,12 @@ function wireActions(scope, post){
   });
   scope.querySelectorAll('[data-report]').forEach(function(b){
     b.addEventListener("click", function(){
-      announce("Report submitted: " + b.textContent + ". Our team will review it.");
       closeMore(scope);
+      const kind = b.dataset.report;
+      guardAuth(function(){
+        if (kind === 'copyright'){ openCopyrightModal('journal', post.id); return; }
+        submitWorkReport(post.id, b.textContent.trim());
+      });
     });
   });
   const ta = scope.querySelector(".newcomment textarea");
@@ -882,8 +956,9 @@ function wireActions(scope, post){
     }
     const reasonBtn = e.target.closest("[data-creport]");
     if (reasonBtn){
-      announce("Comment reported: " + reasonBtn.dataset.creport + ". Our team will review it.");
       reasonBtn.closest(".creport-menu").hidden = true;
+      const commentId = reasonBtn.closest(".comment").dataset.commentId;
+      guardAuth(function(){ submitWorkReport(commentId, reasonBtn.dataset.creport, 'comment'); });
     }
   });
 }
@@ -1150,6 +1225,7 @@ async function boot(){
   if (!P_USERNAME && !P_SLUG && !P_ID){ showLoadError("No Work was specified."); return; }
   await openPost(P_USERNAME && P_SLUG ? { username:P_USERNAME, slug:P_SLUG } : { id:P_ID });
 }
+initCopyrightModal();
 function updateProgressIndeterminate(){
   el.progress.style.transitionDuration = "0s";
   el.progress.style.width = "40%";
@@ -1159,5 +1235,35 @@ boot();
 })();
 
 </script>
+<div class="cr-scrim" id="cr-scrim" hidden>
+  <div class="cr-box" role="dialog" aria-modal="true" aria-labelledby="cr-title">
+    <h2 id="cr-title">Copyright / IP claim</h2>
+    <p class="cr-sub">Please provide accurate details. False claims can have legal consequences for the claimant.</p>
+    <form id="cr-form">
+      <label>Your full legal name</label><input type="text" id="cr-name" required>
+      <label>Email address</label><input type="email" id="cr-email" required>
+      <label>Phone number (optional)</label><input type="tel" id="cr-phone">
+      <label>Mailing address</label><input type="text" id="cr-address" required>
+      <label>Company / organization (optional)</label><input type="text" id="cr-org">
+      <label>Your relationship to the original work</label>
+      <div class="cr-radio-row">
+        <label><input type="radio" name="cr-rel" value="owner" checked> I am the copyright owner</label>
+        <label><input type="radio" name="cr-rel" value="authorized_agent"> I represent the owner</label>
+      </div>
+      <label>Title of your original work</label><input type="text" id="cr-worktitle" required>
+      <label>Where your original work can be viewed (optional)</label><input type="url" id="cr-workurl" placeholder="https://">
+      <label>Describe the infringement</label><textarea id="cr-desc" required placeholder="Explain how this Work infringes your rights."></textarea>
+      <label>Supporting evidence (optional)</label><textarea id="cr-evidence" placeholder="Links, dates, or anything that supports your claim."></textarea>
+      <div class="cr-check-row"><input type="checkbox" id="cr-goodfaith" required><label for="cr-goodfaith">I have a good-faith belief that the use is not authorized by the copyright owner, its agent, or the law.</label></div>
+      <div class="cr-check-row"><input type="checkbox" id="cr-accuracy" required><label for="cr-accuracy">The information in this claim is accurate, and I am authorized to act on the copyright owner's behalf.</label></div>
+      <label>Type your full name as your digital signature</label><input type="text" id="cr-signature" required>
+      <p class="cr-err" id="cr-err"></p>
+      <div class="cr-actions">
+        <button type="button" id="cr-cancel">Cancel</button>
+        <button type="submit" class="cr-primary" id="cr-submit">Submit claim</button>
+      </div>
+    </form>
+  </div>
+</div>
 </body>
 </html>
