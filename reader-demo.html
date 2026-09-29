@@ -237,6 +237,36 @@ a.byline-link{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:
 <div class="sr-only" role="status" aria-live="polite" id="liveRegion"></div>
 <div class="sr-only">Turn pages by dragging from the left or right edge of the page, or with the arrow keys.</div>
 
+<div class="cr-scrim" id="cr-scrim" hidden>
+  <div class="cr-box" role="dialog" aria-modal="true" aria-labelledby="cr-title">
+    <h2 id="cr-title">Copyright / IP claim</h2>
+    <p class="cr-sub">Please provide accurate details. False claims can have legal consequences for the claimant.</p>
+    <form id="cr-form">
+      <label>Your full legal name</label><input type="text" id="cr-name" required>
+      <label>Email address</label><input type="email" id="cr-email" required>
+      <label>Phone number (optional)</label><input type="tel" id="cr-phone">
+      <label>Mailing address</label><input type="text" id="cr-address" required>
+      <label>Company / organization (optional)</label><input type="text" id="cr-org">
+      <label>Your relationship to the original work</label>
+      <div class="cr-radio-row">
+        <label><input type="radio" name="cr-rel" value="owner" checked> I am the copyright owner</label>
+        <label><input type="radio" name="cr-rel" value="authorized_agent"> I represent the owner</label>
+      </div>
+      <label>Title of your original work</label><input type="text" id="cr-worktitle" required>
+      <label>Where your original work can be viewed (optional)</label><input type="url" id="cr-workurl" placeholder="https://">
+      <label>Describe the infringement</label><textarea id="cr-desc" required placeholder="Explain how this Work infringes your rights."></textarea>
+      <label>Supporting evidence (optional)</label><textarea id="cr-evidence" placeholder="Links, dates, or anything that supports your claim."></textarea>
+      <div class="cr-check-row"><input type="checkbox" id="cr-goodfaith" required><label for="cr-goodfaith">I have a good-faith belief that the use is not authorized by the copyright owner, its agent, or the law.</label></div>
+      <div class="cr-check-row"><input type="checkbox" id="cr-accuracy" required><label for="cr-accuracy">The information in this claim is accurate, and I am authorized to act on the copyright owner's behalf.</label></div>
+      <label>Type your full name as your digital signature</label><input type="text" id="cr-signature" required>
+      <p class="cr-err" id="cr-err"></p>
+      <div class="cr-actions">
+        <button type="button" id="cr-cancel">Cancel</button>
+        <button type="submit" class="cr-primary" id="cr-submit">Submit claim</button>
+      </div>
+    </form>
+  </div>
+</div>
 <script>
 (function(){
 "use strict";
@@ -1225,7 +1255,7 @@ async function boot(){
   if (!P_USERNAME && !P_SLUG && !P_ID){ showLoadError("No Work was specified."); return; }
   await openPost(P_USERNAME && P_SLUG ? { username:P_USERNAME, slug:P_SLUG } : { id:P_ID });
 }
-initCopyrightModal();
+try{ initCopyrightModal(); }catch(e){ console.warn('Copyright modal init failed:', e); }
 function updateProgressIndeterminate(){
   el.progress.style.transitionDuration = "0s";
   el.progress.style.width = "40%";
@@ -1235,35 +1265,5 @@ boot();
 })();
 
 </script>
-<div class="cr-scrim" id="cr-scrim" hidden>
-  <div class="cr-box" role="dialog" aria-modal="true" aria-labelledby="cr-title">
-    <h2 id="cr-title">Copyright / IP claim</h2>
-    <p class="cr-sub">Please provide accurate details. False claims can have legal consequences for the claimant.</p>
-    <form id="cr-form">
-      <label>Your full legal name</label><input type="text" id="cr-name" required>
-      <label>Email address</label><input type="email" id="cr-email" required>
-      <label>Phone number (optional)</label><input type="tel" id="cr-phone">
-      <label>Mailing address</label><input type="text" id="cr-address" required>
-      <label>Company / organization (optional)</label><input type="text" id="cr-org">
-      <label>Your relationship to the original work</label>
-      <div class="cr-radio-row">
-        <label><input type="radio" name="cr-rel" value="owner" checked> I am the copyright owner</label>
-        <label><input type="radio" name="cr-rel" value="authorized_agent"> I represent the owner</label>
-      </div>
-      <label>Title of your original work</label><input type="text" id="cr-worktitle" required>
-      <label>Where your original work can be viewed (optional)</label><input type="url" id="cr-workurl" placeholder="https://">
-      <label>Describe the infringement</label><textarea id="cr-desc" required placeholder="Explain how this Work infringes your rights."></textarea>
-      <label>Supporting evidence (optional)</label><textarea id="cr-evidence" placeholder="Links, dates, or anything that supports your claim."></textarea>
-      <div class="cr-check-row"><input type="checkbox" id="cr-goodfaith" required><label for="cr-goodfaith">I have a good-faith belief that the use is not authorized by the copyright owner, its agent, or the law.</label></div>
-      <div class="cr-check-row"><input type="checkbox" id="cr-accuracy" required><label for="cr-accuracy">The information in this claim is accurate, and I am authorized to act on the copyright owner's behalf.</label></div>
-      <label>Type your full name as your digital signature</label><input type="text" id="cr-signature" required>
-      <p class="cr-err" id="cr-err"></p>
-      <div class="cr-actions">
-        <button type="button" id="cr-cancel">Cancel</button>
-        <button type="submit" class="cr-primary" id="cr-submit">Submit claim</button>
-      </div>
-    </form>
-  </div>
-</div>
 </body>
 </html>
