@@ -1274,8 +1274,9 @@ const api={
   getImage(url){return url?{src:url}:null},                    // a cover is just a public R2/Storage URL now
   getAuthor(id){return AUTHOR_CACHE_RS[id]||null},
   async getChapter(id){
-    const { data, error } = await supabaseClient.from('story_chapters')
-      .select('id, published_html').eq('id', id).eq('status','published').maybeSingle();
+    if (!CURRENT_WORK_ROW) return null;
+    const { data, error } = await supabaseClient.rpc('get_story_chapters_for_read', { p_story_id: CURRENT_WORK_ROW.id })
+      .select('id, published_html').eq('id', id).maybeSingle();
     if (error || !data) return null;
     return { id: data.id, published: { html: data.published_html || '' } };
   }

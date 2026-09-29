@@ -745,6 +745,8 @@ body.is-reading .comment-form textarea{
 }
 @keyframes page-loader-spin{ to{ transform:rotate(360deg); } }
 </style>
+<script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
+<script src="/assets/work-content.js"></script>
 </head>
 <body>
 
@@ -3212,7 +3214,7 @@ async function renderReadView(journalId, replace){
 
   qs('#read-tags').innerHTML = (j.tags||[]).map(function(t){ return '<span class="read-tag">#' + escapeHtml(t) + '</span>'; }).join('');
   const bodyEl = qs('#read-body');
-  bodyEl.innerHTML = markdownToHtml(j.body);
+  bodyEl.innerHTML = JournalContent.render(j.body, markdownToHtml);
   bodyEl.classList.toggle('is-shayari', j.category === 'Shayari');
   if (j.script){ bodyEl.setAttribute('data-script', j.script); } else { bodyEl.removeAttribute('data-script'); }
 
