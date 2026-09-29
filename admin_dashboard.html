@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Repository write-access verification: comment-only change. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -369,6 +368,7 @@ const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
 let sb = null;
 let STAFF_ROWS = [];
+let STAFF_CACHE = {}; // live rows fetched per view (reports/copyright/privacy/grievances/restrictions/appeals), keyed for detail lookups
 
 const $ = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
@@ -1082,180 +1082,179 @@ function filteredReports(){
   return list;
 }
 
-function renderReports(){
+
+function reportGroup(caseId){ return (STAFF_CACHE.reports||[]).filter(r=>r.case_id===caseId); }
+async function renderReports(){
   const root = $('#view-root');
-  const list = filteredReports();
-  root.innerHTML = `
-    <div class="filter-row">
-      ${REPORT_FILTERS.map(f=>`<button class="chip ${state.reportFilter===f?'active':''}" data-report-filter="${f}">${f}</button>`).join('')}
-      <input class="search-mini" id="report-search" placeholder="Search reports…" value="${esc(state.reportSearch)}">
-      <select class="search-mini" id="report-sort" style="min-width:auto;">
-        <option value="newest" ${state.reportSort==='newest'?'selected':''}>Newest first</option>
-        <option value="oldest" ${state.reportSort==='oldest'?'selected':''}>Oldest first</option>
-      </select>
-    </div>
-    <div id="bulk-bar-slot"></div>
-    <div class="panel" style="padding:8px 12px;">
-      ${list.length ? `<table class="dtable"><thead><tr>
-        <th class="checkbox-cell"><input type="checkbox" id="report-select-all"></th>
-        <th>Case</th><th>Content</th><th>Type</th><th>Reported user</th><th>Reporter</th><th>Reason</th><th>Priority</th><th>Status</th><th>Assigned</th><th>Reported</th>
-      </tr></thead><tbody>
-        ${list.map(r=>{
-          const c = contentById(r.contentId), ru = userById(r.reportedUser), rp = userById(r.reporter), mod = r.assignedTo?modById(r.assignedTo):null;
-          return `<tr data-open-report="${r.id}">
-            <td class="checkbox-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-check" data-bulk-id="${r.id}" ${state.bulkSelection.has(r.id)?'checked':''}></td>
-            <td class="caseid">${r.caseId}</td>
-            <td>${esc(c.title)}</td>
-            <td>${esc(c.type)}</td>
-            <td>@${esc(ru.username)}</td>
-            <td>@${esc(rp.username)}</td>
-            <td>${esc(r.reason)}</td>
-            <td>${priorityBadge(r.priority)}</td>
-            <td>${statusBadge(r.status)}</td>
-            <td class="muted">${mod?esc(mod.displayName):'\u2014'}</td>
-            <td class="muted">${timeAgo(r.createdAt)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody></table>` : (REPORTS.length ? noResultsState() : emptyState('No reports', 'Reports will appear here as readers flag content.'))}
-    </div>
-  `;
-  renderBulkBar('#bulk-bar-slot', list, r=>r.id, 'reports');
-  $('#report-search').oninput = e=>{ state.reportSearch = e.target.value; renderReports(); };
-  $('#report-sort').onchange = e=>{ state.reportSort = e.target.value; renderReports(); };
-}
-
-function renderBulkBar(slotSel, list, idFn, kind){
-  const slot = $(slotSel);
-  const selectedCount = list.filter(x=>state.bulkSelection.has(idFn(x))).length;
-  slot.innerHTML = selectedCount ? `
-    <div class="bulk-bar">
-      <b>${selectedCount} selected</b>
-      <button class="btn soft sm" data-bulk-action="dismiss" data-bulk-kind="${kind}">Bulk dismiss</button>
-      <button class="btn soft sm" data-bulk-action="remove" data-bulk-kind="${kind}">Bulk remove content</button>
-      <button class="btn ghost sm" style="margin-left:auto; background:transparent; border-color:rgba(255,255,255,.3); color:#fff;" data-bulk-action="clear">Clear selection</button>
-    </div>` : '';
-}
-
-/* ============================================================
-   RENDER: REPORT DETAIL (drawer)
-   ============================================================ */
-function renderReportDetail(reportId){
-  const r = reportById(reportId);
-  const c = contentById(r.contentId);
-  const ru = userById(r.reportedUser), rp = userById(r.reporter);
-  const mod = r.assignedTo ? modById(r.assignedTo) : null;
-  const priorHistory = AUDIT_LOG.filter(l=>l.targetUserId===r.reportedUser).slice(0,4);
-  const notes = INTERNAL_NOTES[r.caseId] || [];
-
-  openDrawer(`
-    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <div class="badge orange" style="margin-bottom:8px;">${statusBadge(r.status)}</div>
-    <h2 style="font-size:19px;">Report ${r.caseId}</h2>
-    <div class="kv">
-      <b>Case ID</b><span class="caseid">${r.caseId}</span>
-      <b>Content</b><span>${esc(c.title)} <span class="muted">(${esc(c.type)})</span></span>
-      <b>Reported user</b><span>@${esc(ru.username)} \u2014 ${esc(ru.displayName)}</span>
-      <b>Reporter</b><span>@${esc(rp.username)}</span>
-      <b>Reason</b><span>${esc(r.reason)}</span>
-      <b>Reported</b><span>${fmtDate(r.createdAt)}</span>
-      <b>Assigned to</b><span>${mod?esc(mod.displayName):'Unassigned'}</span>
-    </div>
-
-    <div class="content-preview-box">${esc(c.preview)}</div>
-
-    <div class="filter-row" style="margin:14px 0;">
-      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint);">Priority:</b>
-      ${['Normal','High','Urgent'].map(p=>`<button class="chip ${r.priority===p?'active':''}" data-set-priority="${p}" data-report-id="${r.id}">${p}</button>`).join('')}
-    </div>
-
-    <div style="margin:14px 0;">
-      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Assign moderator</b>
-      <select class="search-mini" style="width:100%;" id="assign-select" data-report-id="${r.id}">
-        <option value="">Unassigned</option>
-        ${MODERATORS.filter(m=>m.status==='active').map(m=>`<option value="${m.id}" ${r.assignedTo===m.id?'selected':''}>${esc(m.displayName)}</option>`).join('')}
-      </select>
-    </div>
-
-    <p style="font-size:13px;"><b>Report description:</b> ${esc(r.description)}</p>
-
-    ${priorHistory.length?`<hr class="divider"><h4 style="font-size:13px; margin-bottom:8px;">Previous moderation history for this user</h4>
-    <div class="timeline">${priorHistory.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body">${esc(l.action)} \u2014 ${esc(l.caseId)}</div></div>`).join('')}</div>`:''}
-
-    <hr class="divider">
-    <h4 style="font-size:13px; margin-bottom:8px;">Internal notes <span class="muted" style="font-weight:500;">(staff only, never shown to users)</span></h4>
-    ${notes.map(n=>`<div class="note-item"><div class="who">${esc(n.author)} \u00b7 ${timeAgo(n.at)}</div>${esc(n.text)}</div>`).join('') || '<p class="muted" style="font-size:12px;">No internal notes yet.</p>'}
-    <div style="display:flex; gap:8px; margin-top:8px;">
-      <input class="search-mini" style="flex:1;" id="note-input" placeholder="Add an internal note…">
-      <button class="btn soft sm" id="add-note-btn">Add</button>
-    </div>
-
-    <hr class="divider">
-    <h4 style="font-size:13px; margin-bottom:8px;">User notification preview <span class="muted" style="font-weight:500;">(what the affected user would see)</span></h4>
-    ${notifPreview(r.reason, r.caseId)}
-
-    <hr class="divider">
-    <div style="display:flex; flex-wrap:wrap; gap:8px;">
-      <button class="btn ghost sm" data-report-act="dismiss" data-report-id="${r.id}">Dismiss report</button>
-      <button class="btn soft sm" data-report-act="remove" data-report-id="${r.id}">Remove content</button>
-      <button class="btn soft sm" data-report-act="restrict" data-report-id="${r.id}">Restrict user</button>
-      <button class="btn danger sm" data-report-act="suspend" data-report-id="${r.id}">Suspend user</button>
-      ${c.status==='removed'?`<button class="btn ghost sm" data-report-act="restore" data-report-id="${r.id}">Restore content</button>`:''}
-    </div>
-  `);
-  $('#add-note-btn').onclick = ()=>{
-    const v = $('#note-input').value.trim();
-    if(!v) return;
-    addNote(r.caseId, currentModerator().displayName, v);
-    toast('Internal note added.', 'success');
-    renderReportDetail(reportId);
-  };
-}
-
-function notifPreview(reason, caseId){
-  return `<div class="notif-preview">
-    <div class="from">From: Moderation Team</div>
-    <div class="msg">Your content was removed because it violated our Community Guidelines (${esc(reason)}).</div>
-    <div class="meta">Case ${esc(caseId)} \u00b7 <a href="#" onclick="return false;">Community Guidelines</a> \u00b7 <button class="btn ghost sm" style="padding:3px 10px;" disabled>Appeal</button></div>
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading reports\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_reports');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='reports') return;
+    root.innerHTML = emptyState('Couldn\u2019t load reports', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='reports') return;
+  STAFF_CACHE.reports = rows;
+  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Content</th><th>Type</th><th>Reason</th><th>Priority</th><th>Status</th><th>Reported</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr data-open-report="${esc(r.id)}">
+        <td class="caseid">${esc(r.case_id)}</td>
+        <td>${esc(r.target_title||'(untitled)')}</td>
+        <td>${esc(r.target_type)}</td>
+        <td>${esc(r.reason)}</td>
+        <td>${priorityBadge(r.priority)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td class="muted">${timeAgo(r.created_at)}</td>
+      </tr>`).join('')}
+    </tbody></table>` : emptyState('No reports', 'Reports will appear here as readers flag content.')}
   </div>`;
 }
-
-/* ============================================================
-   REPORT ACTIONS (dismiss / remove / restrict / suspend / restore)
-   ============================================================ */
+function renderReportDetail(reportId){
+  const all = STAFF_CACHE.reports||[];
+  const r = all.find(x=>x.id===reportId);
+  if(!r) return;
+  const group = all.filter(x=>x.case_id===r.case_id);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:19px;">Report ${esc(r.case_id)}</h2>
+    <div class="kv">
+      <b>Case ID</b><span class="caseid">${esc(r.case_id)}</span>
+      <b>Content</b><span>${esc(r.target_title||'(untitled)')} <span class="muted">(${esc(r.target_type)})</span></span>
+      <b>Priority</b><span>${priorityBadge(r.priority)}</span>
+      <b>Status</b><span>${statusBadge(r.status)}</span>
+      <b>Reports</b><span>${group.length} report${group.length>1?'s':''} on this content</span>
+    </div>
+    ${r.target_preview?`<div class="content-preview-box">${esc(r.target_preview)}</div>`:''}
+    <h4 style="font-size:13px; margin:14px 0 8px;">Reasons given</h4>
+    <ul style="font-size:13px; padding-left:18px; margin:0;">${group.map(g=>`<li>${esc(g.reason)}${g.description?': '+esc(g.description):''}</li>`).join('')}</ul>
+    <div id="case-notes-slot"></div>
+    <hr class="divider">
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      ${r.status!=='Under Review'?`<button class="btn ghost sm" data-report-act="assign" data-report-id="${esc(r.id)}">Assign to me</button>`:''}
+      <button class="btn ghost sm" data-report-act="dismiss" data-report-id="${esc(r.id)}">Dismiss</button>
+      <button class="btn soft sm" data-report-act="warn" data-report-id="${esc(r.id)}">Warn user</button>
+      ${can('users.restrict')?`<button class="btn soft sm" data-report-act="restrict" data-report-id="${esc(r.id)}">Restrict user</button>`:''}
+      <button class="btn danger sm" data-report-act="remove_content" data-report-id="${esc(r.id)}">Remove content</button>
+    </div>
+  `);
+  wireCaseNotes(r.case_id);
+}
 function handleReportAction(reportId, act){
-  const r = reportById(reportId);
-  const c = contentById(r.contentId);
-  if(act==='restrict' || act==='suspend'){
-    openRestrictionModal({
-      userId:r.reportedUser, caseId:r.caseId, defaultScope: act==='suspend'?'account':'posts',
-      onDone:(r2)=>{
-        setReportStatus(r,'Action Taken', r2.reason, {actionLabel: act==='suspend'?'User suspended':'User restricted', result: r2.type});
-        toast(act==='suspend'?'User suspended.':'User restriction created.','success');
-        renderReportDetail(reportId);
-        if(state.view==='reports') renderReports();
-        renderSidebar();
-      }
+  const r = (STAFF_CACHE.reports||[]).find(x=>x.id===reportId);
+  if(!r) return;
+  if(act==='assign'){
+    sb.rpc('assign_case',{p_kind:'report',p_id:reportId}).then(({error})=>{
+      if(error){ toast(error.message,'error'); return; }
+      toast('Case assigned to you.','success');
+      renderReportDetail(reportId);
+      if(state.view==='reports') renderReports();
     });
     return;
   }
-  const actions = {
-    dismiss:{title:'Dismiss this report?', confirmLabel:'Dismiss report', destructive:false},
-    remove:{title:'Remove this content?', body:'The content will be marked removed and the author notified.', confirmLabel:'Remove content', destructive:true},
-    restore:{title:'Restore this content?', confirmLabel:'Restore content', destructive:false},
-  };
-  const cfg = actions[act];
-  confirmAction({
-    title:cfg.title, body:cfg.body, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive,
-    onConfirm:(reason)=>{
-      if(act==='dismiss'){ setReportStatus(r,'Dismissed',reason,{actionLabel:'Report dismissed', result:'No action, report closed'}); toast('Report dismissed.','success'); }
-      if(act==='remove'){ removeContent(c, reason); setReportStatus(r,'Action Taken',reason,{actionLabel:'Content removed', result:'Content removed'}); toast('Content marked for removal.','success'); }
-      if(act==='restore'){ restoreContent(c, reason); toast('Content restored.','success'); }
-      renderReportDetail(reportId);
+  if(act==='restrict'){
+    openRestrictionModalForUser({userId:r.reported_user_id, caseId:r.case_id, onDone:()=>{ closeDrawer(); toast('Restriction issued.','success'); if(state.view==='reports') renderReports(); }});
+    return;
+  }
+  const cfg = {
+    dismiss:{title:'Dismiss this report?', confirmLabel:'Dismiss', destructive:false},
+    warn:{title:'Warn this user?', body:'They will be notified.', confirmLabel:'Send warning', destructive:false},
+    remove_content:{title:'Remove this content?', body:'The content will be hidden and the author notified.', confirmLabel:'Remove content', destructive:true},
+  }[act];
+  if(!cfg) return;
+  confirmAction({...cfg, onConfirm: async (reason)=>{
+    try{
+      const { error } = act==='dismiss'
+        ? await sb.rpc('dismiss_case', {p_kind:'report', p_id:reportId, p_reason:reason})
+        : await sb.rpc('resolve_report', {p_report_id:reportId, p_action:act, p_reason:reason});
+      if(error) throw error;
+      toast('Done.','success');
+      closeDrawer();
       if(state.view==='reports') renderReports();
-      renderSidebar();
-    }
-  });
+    }catch(err){ toast((err&&err.message)||'Could not complete that action.','error'); }
+  }});
 }
+function wireCaseNotes(caseId){
+  const slot = $('#case-notes-slot');
+  if(!slot) return;
+  slot.innerHTML = `<hr class="divider"><h4 style="font-size:13px; margin-bottom:8px;">Internal notes <span class="muted" style="font-weight:500;">(staff only, never shown to users)</span></h4>
+    <div id="case-notes-list" class="muted" style="font-size:12px;">Loading\u2026</div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input class="search-mini" style="flex:1;" id="note-input" placeholder="Add an internal note\u2026">
+      <button class="btn soft sm" id="add-note-btn">Add</button>
+    </div>`;
+  loadCaseNotes(caseId);
+  $('#add-note-btn').onclick = async ()=>{
+    const v = $('#note-input').value.trim();
+    if(!v) return;
+    try{
+      const { error } = await sb.rpc('add_case_note', {p_case_id:caseId, p_text:v});
+      if(error) throw error;
+      $('#note-input').value = '';
+      loadCaseNotes(caseId);
+    }catch(err){ toast((err&&err.message)||'Could not add note.','error'); }
+  };
+}
+async function loadCaseNotes(caseId){
+  const list = $('#case-notes-list');
+  if(!list) return;
+  try{
+    const { data, error } = await sb.rpc('list_case_notes', {p_case_id:caseId});
+    if(error) throw error;
+    list.innerHTML = (data&&data.length) ? data.map(n=>`<div class="note-item"><div class="who">${esc(n.author_name)} \u00b7 ${timeAgo(n.at)}</div>${esc(n.text)}</div>`).join('')
+      : '<p class="muted" style="font-size:12px;">No internal notes yet.</p>';
+  }catch(err){ list.textContent = 'Couldn\u2019t load notes.'; }
+}
+async function openRestrictionModalForUser({userId, caseId, onDone}){
+  let brief = null;
+  try{ const { data } = await sb.rpc('get_user_brief', {p_user:userId}); brief = (data&&data[0])||null; }catch(e){}
+  const label = brief ? '@'+brief.username : 'this user';
+  openModal(`
+    <h3>Restrict ${esc(label)}?</h3>
+    <p class="sub">Choose what\u2019s restricted, for how long, and why. The user is notified.</p>
+    <label class="field-label">Restriction scope</label>
+    <select class="search-mini" style="width:100%; margin-bottom:10px;" id="restrict-scope">
+      ${RESTRICTION_SCOPES.map(sc=>`<option value="${sc.id}">${esc(sc.label)}</option>`).join('')}
+    </select>
+    <label class="field-label">Duration</label>
+    <div class="duration-row" id="duration-row">
+      ${DURATION_TYPES.map((d,i)=>`<label class="radio-pill"><input type="radio" name="duration-type" value="${d.id}" ${i===0?'checked':''}>${esc(d.label)}</label>`).join('')}
+    </div>
+    <input type="number" min="1" value="14" id="restrict-days" class="search-mini" style="width:100%; margin-bottom:10px;" placeholder="Number of days">
+    <textarea id="reason-input" placeholder="Reason for this action (required, visible in the moderation log)\u2026"></textarea>
+    <div id="reason-err" style="color:var(--red); font-size:11.5px; margin-top:4px; display:none;">A reason is required before you can confirm.</div>
+    <div class="modal-actions">
+      <button class="btn ghost sm" data-action="close-modal">Cancel</button>
+      <button class="btn danger sm" id="modal-confirm-btn">Apply restriction</button>
+    </div>
+  `);
+  const daysInput = $('#restrict-days');
+  const sync = ()=>{ daysInput.style.display = document.querySelector('input[name="duration-type"]:checked').value==='temporary'?'':'none'; };
+  sync();
+  $$('input[name="duration-type"]').forEach(elx=>elx.addEventListener('change', sync));
+  $('#modal-confirm-btn').onclick = async ()=>{
+    const reason = $('#reason-input').value.trim();
+    if(!reason){ $('#reason-err').style.display='block'; return; }
+    const scope = $('#restrict-scope').value;
+    const durationType = document.querySelector('input[name="duration-type"]:checked').value;
+    const days = durationType==='temporary' ? (parseInt(daysInput.value,10)||1) : null;
+    try{
+      const { error } = await sb.rpc('apply_restriction', {
+        p_user:userId, p_scope:scope, p_type: scope+'_restriction', p_duration_type:durationType, p_days:days, p_reason:reason, p_case:caseId||null
+      });
+      if(error) throw error;
+      closeModal();
+      onDone && onDone();
+    }catch(err){
+      $('#reason-err').textContent = (err&&err.message)||'Could not apply restriction.';
+      $('#reason-err').style.display='block';
+    }
+  };
+}
+
 
 /* ============================================================
    RENDER: USERS
@@ -1435,195 +1434,224 @@ function filteredRestrictions(){
   }
   return list.sort((a,b)=>new Date(b.start)-new Date(a.start));
 }
-function renderRestrictions(){
-  if(state.restrictionFilter===undefined) state.restrictionFilter='All';
-  if(state.restrictionSearch===undefined) state.restrictionSearch='';
+
+async function renderRestrictions(){
   const root = $('#view-root');
-  const list = filteredRestrictions();
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading restrictions\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_restrictions');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='restrictions') return;
+    root.innerHTML = emptyState('Couldn\u2019t load restrictions', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='restrictions') return;
+  STAFF_CACHE.restrictions = rows;
   root.innerHTML = `
-    <div class="filter-row">
-      ${RESTRICTION_FILTERS.map(f=>`<button class="chip ${state.restrictionFilter===f?'active':''}" data-restriction-filter="${f}">${f}</button>`).join('')}
-      <input class="search-mini" id="restriction-search" placeholder="Search user, case, type\u2026" value="${esc(state.restrictionSearch)}">
-      ${can('users.restrict')?`<button class="btn primary sm" id="issue-restriction-btn">+ Issue restriction</button>`:''}
-    </div>
+    <div class="filter-row">${can('users.restrict')?`<button class="btn primary sm" id="issue-restriction-btn">+ Issue restriction</button>`:''}</div>
     <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Scope</th><th>Type</th><th>Duration</th><th>Moderator</th><th>Start</th><th>Expiry</th><th>Status</th></tr></thead><tbody>
-    ${list.map(x=>{
-      const u = userById(x.userId), m = modById(x.moderatorId);
-      const expiring = x.status==='active' && x.expiry && (new Date(x.expiry)-Date.now()) < 3*86400000;
-      return `<tr data-open-restriction="${x.id}">
-        <td class="caseid">${x.caseId}</td>
-        <td>${u?'@'+esc(u.username):'\u2014'}</td>
-        <td><span class="badge grey">${esc(scopeMeta(x.scope||'posts').label)}</span></td>
-        <td>${esc(x.type)}</td>
-        <td class="muted">${esc(durationLabel(x))}</td>
-        <td class="muted">${esc(m.displayName)}</td>
-        <td class="muted">${fmtDate(x.start)}</td>
-        <td class="${expiring?'expiring':''}">${x.expiry?fmtDate(x.expiry):'\u2014'}${expiring?' \u26A0':''}</td>
-        <td>${statusBadge(x.status)}</td>
-      </tr>`;
-    }).join('')}</tbody></table>` : (state.restrictionFilter!=='All'||state.restrictionSearch ? emptyState('No matching restrictions', 'Try a different filter or search term.') : emptyState('No restrictions', 'Active and past user restrictions will show up here.'))}
-  </div></div>`;
-  $('#restriction-search').oninput = e=>{ state.restrictionSearch = e.target.value; renderRestrictions(); };
-  const issueBtn = $('#issue-restriction-btn');
-  if(issueBtn) issueBtn.onclick = ()=>{
-    openModal(`
-      <h3>Issue a restriction</h3>
-      <p class="sub">Pick the user first, then choose scope and duration.</p>
-      <select class="search-mini" style="width:100%; margin-bottom:10px;" id="issue-user-select">
-        ${USERS.map(u=>`<option value="${u.id}">@${esc(u.username)} \u2014 ${esc(u.displayName)}</option>`).join('')}
-      </select>
-      <div class="modal-actions">
-        <button class="btn ghost sm" data-action="close-modal">Cancel</button>
-        <button class="btn primary sm" id="issue-user-next">Continue</button>
-      </div>
-    `);
-    $('#issue-user-next').onclick = ()=>{
-      const uid = $('#issue-user-select').value;
-      closeModal();
-      openRestrictionModal({userId:uid, caseId:nextCaseId(), onDone:()=>{ toast('Restriction issued.','success'); renderRestrictions(); }});
-    };
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Scope</th><th>Duration</th><th>Moderator</th><th>Start</th><th>Expiry</th><th>Active</th></tr></thead><tbody>
+      ${rows.map(x=>`<tr data-open-restriction="${esc(x.id)}">
+        <td class="caseid">${esc(x.case_id||'\u2014')}</td>
+        <td>${x.username?'@'+esc(x.username):'\u2014'}</td>
+        <td><span class="badge grey">${esc(scopeMeta(x.scope).label)}</span></td>
+        <td class="muted">${x.duration_type==='temporary' ? x.days+' days' : (x.duration_type.charAt(0).toUpperCase()+x.duration_type.slice(1))}</td>
+        <td class="muted">${esc(x.moderator_name||'\u2014')}</td>
+        <td class="muted">${fmtDate(x.start_at)}</td>
+        <td class="muted">${x.expiry?fmtDate(x.expiry):'\u2014'}</td>
+        <td>${x.active?statusBadge('Active'):statusBadge('Expired')}</td>
+      </tr>`).join('')}
+    </tbody></table>` : emptyState('No restrictions', 'Active and past user restrictions will show up here.')}
+    </div></div>`;
+  const btn = $('#issue-restriction-btn');
+  if(btn) btn.onclick = openIssueRestrictionPicker;
+}
+function openIssueRestrictionPicker(){
+  openModal(`
+    <h3>Issue a restriction</h3>
+    <p class="sub">Search for the user first.</p>
+    <input class="search-mini" style="width:100%;" id="restrict-user-search" placeholder="Search username\u2026" autocomplete="off">
+    <div id="restrict-user-results" style="margin-top:6px;"></div>
+    <div class="modal-actions"><button class="btn ghost sm" data-action="close-modal">Cancel</button></div>
+  `);
+  const input = $('#restrict-user-search'), box = $('#restrict-user-results');
+  let timer = null, seq = 0;
+  input.focus();
+  input.oninput = ()=>{
+    clearTimeout(timer);
+    const q = input.value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+    if(q.length<2){ box.innerHTML=''; return; }
+    timer = setTimeout(async ()=>{
+      const mine = ++seq;
+      try{
+        const { data, error } = await sb.from('profiles').select('id,username,display_name').ilike('username','%'+q+'%').limit(8);
+        if(error) throw error;
+        if(mine!==seq) return;
+        box.innerHTML = (data&&data.length) ? data.map(u=>`<button type="button" class="staff-pick" data-pick="${esc(u.id)}" data-un="${esc(u.username)}">@${esc(u.username)} \u2014 ${esc(u.display_name||'')}</button>`).join('') : '<p class="sub">No matches.</p>';
+        box.querySelectorAll('.staff-pick').forEach(b=> b.onclick = ()=>{
+          closeModal();
+          openRestrictionModalForUser({userId:b.dataset.pick, onDone:()=>{ toast('Restriction issued.','success'); renderRestrictions(); }});
+        });
+      }catch(err){ box.innerHTML = `<p class="sub">Search failed.</p>`; }
+    }, 250);
   };
 }
 function renderRestrictionDetail(id){
-  const x = RESTRICTIONS.find(r=>r.id===id);
+  const x = (STAFF_CACHE.restrictions||[]).find(r=>r.id===id);
   if(!x) return;
-  const u = userById(x.userId), m = modById(x.moderatorId);
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Restriction ${esc(x.caseId)}</h2>
+    <h2 style="font-size:18px;">Restriction ${esc(x.case_id||'')}</h2>
     <div class="kv">
-      <b>User</b><span>${u?'@'+esc(u.username):'\u2014'}</span>
-      <b>Scope</b><span>${esc(scopeMeta(x.scope||'posts').label)}</span>
-      <b>Type</b><span>${esc(x.type)}</span>
-      <b>Duration</b><span>${esc(durationLabel(x))}</span>
+      <b>User</b><span>${x.username?'@'+esc(x.username):'\u2014'}</span>
+      <b>Scope</b><span>${esc(scopeMeta(x.scope).label)}</span>
+      <b>Duration</b><span>${x.duration_type==='temporary'?x.days+' days':x.duration_type}</span>
       <b>Reason</b><span>${esc(x.reason)}</span>
-      <b>Issued by</b><span>${esc(m.displayName)}</span>
-      <b>Start</b><span>${fmtDate(x.start)}</span>
+      <b>Issued by</b><span>${esc(x.moderator_name||'\u2014')}</span>
+      <b>Start</b><span>${fmtDate(x.start_at)}</span>
       <b>Expiry</b><span>${x.expiry?fmtDate(x.expiry):'\u2014'}</span>
-      <b>Status</b><span>${statusBadge(x.status)}</span>
+      <b>Active</b><span>${x.active?statusBadge('Active'):statusBadge('Expired')}</span>
     </div>
-    ${x.status==='active' && can('users.restrict') ? `<hr class="divider"><button class="btn ghost sm" id="lift-restriction-btn">Lift restriction early</button>` : ''}
+    ${x.active && can('users.restrict') ? `<hr class="divider"><button class="btn ghost sm" id="lift-restriction-btn">Lift restriction early</button>` : ''}
   `);
   const lift = $('#lift-restriction-btn');
   if(lift) lift.onclick = ()=> confirmAction({
-    title:'Lift this restriction?', confirmLabel:'Lift restriction', destructive:false,
-    onConfirm:(reason)=>{
-      x.status='cancelled';
-      const usr = userById(x.userId); if(usr && !RESTRICTIONS.some(r=>r.userId===x.userId && r.status==='active' && r.id!==x.id)) usr.status='active';
-      logAction({caseId:x.caseId, action:'Restriction lifted', targetUserId:x.userId, targetContentId:null, reason, result:'Restriction lifted early'});
-      toast('Restriction lifted.','success');
-      renderRestrictionDetail(id);
-      if(state.view==='restrictions') renderRestrictions();
+    title:'Lift this restriction?', confirmLabel:'Lift restriction', destructive:false, requireReason:false,
+    onConfirm: async ()=>{
+      try{
+        const { error } = await sb.rpc('lift_restriction', {p_restriction_id:id, p_reason:'Lifted by staff'});
+        if(error) throw error;
+        toast('Restriction lifted.','success');
+        closeDrawer();
+        renderRestrictions();
+      }catch(err){ toast((err&&err.message)||'Could not lift restriction.','error'); }
     }
   });
 }
+
 
 /* ============================================================
    RENDER: APPEALS
    ============================================================ */
-function renderAppeals(){
+
+async function renderAppeals(){
   const root = $('#view-root');
-  const list = [...APPEALS].sort((a,b)=>new Date(b.appealDate)-new Date(a.appealDate));
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading appeals\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_appeals');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='appeals') return;
+    root.innerHTML = emptyState('Couldn\u2019t load appeals', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='appeals') return;
+  STAFF_CACHE.appeals = rows;
   root.innerHTML = `<div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Original action</th><th>Moderator</th><th>Appeal date</th><th>Status</th></tr></thead><tbody>
-    ${list.map(a=>{
-      const u = userById(a.userId), m = modById(a.moderatorId);
-      return `<tr data-open-appeal="${a.id}">
-        <td class="caseid">${a.caseId}</td>
-        <td>@${esc(u.username)}</td>
-        <td>${esc(a.originalAction)}</td>
-        <td class="muted">${esc(m.displayName)}</td>
-        <td class="muted">${fmtDate(a.appealDate)}</td>
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Subject</th><th>Original action</th><th>Appeal date</th><th>Status</th></tr></thead><tbody>
+      ${rows.map(a=>`<tr data-open-appeal="${esc(a.id)}">
+        <td class="caseid">${esc(a.case_id)}</td>
+        <td>${esc(a.subject_type)}</td>
+        <td>${esc(a.original_action)}</td>
+        <td class="muted">${fmtDate(a.appeal_date)}</td>
         <td>${statusBadge(a.status)}</td>
-      </tr>`;
-    }).join('')}</tbody></table>` : emptyState('No appeals', 'User appeals against moderation actions will show up here.')}
+      </tr>`).join('')}
+    </tbody></table>` : emptyState('No appeals', 'User appeals against moderation actions will show up here.')}
   </div>`;
 }
-function renderAppealDetail(appealId){
-  const a = appealById(appealId);
-  const u = userById(a.userId);
+function renderAppealDetail(id){
+  const a = (STAFF_CACHE.appeals||[]).find(x=>x.id===id);
+  if(!a) return;
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Appeal ${a.caseId}</h2>
+    <h2 style="font-size:18px;">Appeal ${esc(a.case_id)}</h2>
     <div class="kv">
-      <b>User</b><span>@${esc(u.username)}</span>
-      <b>Original action</b><span>${esc(a.originalAction)}</span>
-      <b>Original reason</b><span>${esc(a.originalReason)}</span>
-      <b>Moderator</b><span>${esc(modById(a.moderatorId).displayName)}</span>
-      <b>Appeal date</b><span>${fmtDate(a.appealDate)}</span>
+      <b>Subject</b><span>${esc(a.subject_type)}</span>
+      <b>Original action</b><span>${esc(a.original_action)}</span>
+      <b>Original reason</b><span>${esc(a.original_reason||'\u2014')}</span>
+      <b>Appeal date</b><span>${fmtDate(a.appeal_date)}</span>
       <b>Status</b><span>${statusBadge(a.status)}</span>
     </div>
-    <div class="content-preview-box"><b>User's appeal message:</b><br>${esc(a.message)}</div>
-    <h4 style="font-size:13px; margin:14px 0 8px;">Review timeline</h4>
-    <div class="timeline">${a.timeline.map(t=>`<div class="tl-item"><div class="tl-time">${fmtDate(t.at)}</div><div class="tl-body">${esc(t.who)}: ${esc(t.text)}</div></div>`).join('')}</div>
-    ${(a.status==='Pending'||a.status==='Under Review')?`<hr class="divider"><div style="display:flex; gap:8px;">
-      <button class="btn primary sm" data-appeal-act="approve" data-appeal-id="${a.id}">Approve appeal</button>
-      <button class="btn danger sm" data-appeal-act="reject" data-appeal-id="${a.id}">Reject appeal</button>
-    </div>`:''}
+    <div class="content-preview-box"><b>User\u2019s appeal message:</b><br>${esc(a.message)}</div>
+    ${(a.status==='Pending'||a.status==='Under Review') ? `<hr class="divider"><div style="display:flex; gap:8px;">
+      <button class="btn primary sm" data-appeal-act="overturned" data-appeal-id="${esc(a.id)}">Overturn (approve appeal)</button>
+      <button class="btn danger sm" data-appeal-act="upheld" data-appeal-id="${esc(a.id)}">Uphold (reject appeal)</button>
+    </div>` : ''}
   `);
 }
-function handleAppealAction(appealId, act){
-  const a = appealById(appealId);
+function handleAppealAction(id, act){
   confirmAction({
-    title: act==='approve' ? 'Approve this appeal?' : 'Reject this appeal?',
-    body: act==='approve' ? 'The related restriction will be lifted.' : undefined,
-    destructive: act==='reject', confirmLabel: act==='approve'?'Approve appeal':'Reject appeal',
-    onConfirm:(reason)=>{
-      a.status = act==='approve' ? 'Approved' : 'Rejected';
-      a.timeline.push({who:currentModerator().displayName, text:reason, at:new Date().toISOString()});
-      if(act==='approve'){
-        const restr = RESTRICTIONS.find(x=>x.caseId===a.caseId);
-        if(restr){ restr.status='cancelled'; const u=userById(restr.userId); if(u) u.status='active'; }
-        logAction({caseId:a.caseId, action:'Appeal approved', targetUserId:a.userId, targetContentId:null, reason, result:'Restriction lifted'});
-      } else {
-        logAction({caseId:a.caseId, action:'Appeal rejected', targetUserId:a.userId, targetContentId:null, reason, result:'Original decision upheld'});
-      }
-      toast(act==='approve'?'Appeal approved.':'Appeal rejected.', 'success');
-      renderAppealDetail(appealId);
-      if(state.view==='appeals') renderAppeals();
+    title: act==='overturned' ? 'Overturn the original decision?' : 'Uphold the original decision?',
+    body: act==='overturned' ? 'The related restriction will be lifted.' : undefined,
+    destructive: act==='upheld', confirmLabel: act==='overturned'?'Overturn':'Uphold',
+    onConfirm: async (reason)=>{
+      try{
+        const { error } = await sb.rpc('resolve_appeal', {p_id:id, p_decision:act, p_note:reason});
+        if(error) throw error;
+        toast(act==='overturned'?'Appeal overturned.':'Appeal upheld.','success');
+        closeDrawer();
+        renderAppeals();
+      }catch(err){ toast((err&&err.message)||'Could not resolve appeal.','error'); }
     }
   });
 }
 
+
 /* ============================================================
    RENDER: MODERATION LOG
    ============================================================ */
-function renderLog(){
+
+async function renderLog(){
   const root = $('#view-root');
-  const list = [...AUDIT_LOG].sort((a,b)=>new Date(b.at)-new Date(a.at));
-  root.innerHTML = `
-    <div class="immutable-note">\uD83D\uDD12 This log is immutable — entries cannot be edited or deleted, by admins or moderators.</div>
-    <div class="panel" style="padding:8px 12px;">
-      ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Moderator</th><th>Action</th><th>Target user</th><th>Reason</th><th>Date</th><th>Result</th></tr></thead><tbody>
-      ${list.map(l=>{
-        const m = modById(l.moderatorId), u = l.targetUserId?userById(l.targetUserId):null;
-        return `<tr data-open-case="${l.caseId}">
-          <td class="caseid">${l.caseId}</td>
-          <td>${esc(m.displayName)} ${roleBadge(m)}</td>
-          <td>${esc(l.action)}</td>
-          <td>${u?'@'+esc(u.username):'\u2014'}</td>
-          <td class="muted">${esc(l.reason||'')}</td>
-          <td class="muted">${fmtDate(l.at)}</td>
-          <td class="muted">${esc(l.result||'')}</td>
-        </tr>`;
-      }).join('')}</tbody></table>` : emptyState('No log entries', 'Every moderation action taken will be recorded here.')}
-    </div>
-  `;
-}
-function renderCaseTimeline(caseId){
-  const entries = AUDIT_LOG.filter(l=>l.caseId===caseId).sort((a,b)=>new Date(a.at)-new Date(b.at));
-  openDrawer(`
-    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Case timeline</h2>
-    <div class="badge grey caseid" style="margin-bottom:14px;">${esc(caseId)}</div>
-    ${entries.length ? `<div class="timeline">${entries.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br><span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No entries', 'No log entries for this case yet.')}
-  `);
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_mod_log');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='log') return;
+    root.innerHTML = emptyState('Couldn\u2019t load the log', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='log') return;
+  const amAdmin = isAdmin();
+  root.innerHTML = `<div class="immutable-note">\uD83D\uDD12 ${amAdmin? 'As admin, you can delete an entry once you no longer need it.' : 'Only an admin can delete entries from this log.'}</div>
+  <div class="panel" style="padding:8px 12px;">
+  ${rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Moderator</th><th>Action</th><th>Target</th><th>Reason</th><th>Date</th><th>Result</th>${amAdmin?'<th></th>':''}</tr></thead><tbody>
+    ${rows.map(l=>`<tr>
+      <td class="caseid">${esc(l.case_id||'\u2014')}</td>
+      <td>${esc(l.moderator_name)}</td>
+      <td>${esc(l.action)}</td>
+      <td>${l.target_username?'@'+esc(l.target_username):(l.target_title?esc(l.target_title):'\u2014')}</td>
+      <td class="muted">${esc(l.reason||'\u2014')}</td>
+      <td class="muted">${fmtDate(l.at)}</td>
+      <td class="muted">${esc(l.result||'\u2014')}</td>
+      ${amAdmin?`<td><button class="btn ghost sm" data-log-del="${esc(l.id)}">Delete</button></td>`:''}
+    </tr>`).join('')}
+  </tbody></table>` : emptyState('No log entries', 'Moderation actions will appear here.')}
+  </div>`;
+  if(amAdmin){
+    root.querySelectorAll('[data-log-del]').forEach(btn=> btn.onclick = ()=> confirmAction({
+      title:'Delete this log entry?', body:'This cannot be undone.', destructive:true, requireReason:false, confirmLabel:'Delete',
+      onConfirm: async ()=>{
+        try{
+          const { error } = await sb.rpc('delete_mod_log_entry', {p_id:btn.dataset.logDel});
+          if(error) throw error;
+          toast('Deleted.','success');
+          renderLog();
+        }catch(err){ toast((err&&err.message)||'Could not delete.','error'); }
+      }
+    }));
+  }
 }
 
-/* ============================================================
-   RENDER: MODERATORS (admin only)
-   ============================================================ */
+
 async function renderModerators(){
   const root = $('#view-root');
   if(!can('moderators.view')){ root.innerHTML = emptyState('No access', 'You don\u2019t have access to this section.'); return; }
@@ -1742,141 +1770,6 @@ function openAddModeratorModal(){
     }
   };
 }
-function handleModAction(modId, act){
-  const m = modById(modId);
-  if(m.role==='admin'){ toast('Admin accounts can\u2019t be modified from this dashboard.','error'); return; }
-  confirmAction({
-    title: `${act[0].toUpperCase()+act.slice(1)} ${m.displayName}?`, requireReason:false,
-    destructive: act!=='reinstate', confirmLabel: act[0].toUpperCase()+act.slice(1),
-    onConfirm:()=>{
-      if(act==='suspend') m.status='suspended';
-      if(act==='remove'){ const i=MODERATORS.indexOf(m); if(i>-1) MODERATORS.splice(i,1); }
-      if(act==='reinstate') m.status='active';
-      toast('Moderator status updated.','success');
-      renderModerators();
-    }
-  });
-}
-function renderModeratorActivity(modId){
-  const m = modById(modId);
-  const actions = AUDIT_LOG.filter(l=>l.moderatorId===modId);
-  const restr = RESTRICTIONS.filter(x=>x.moderatorId===modId);
-  const appealsFromActions = APPEALS.filter(a=>a.moderatorId===modId);
-  openDrawer(`
-    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc(m.displayName[0])}</span>
-      <div><h2 style="font-size:18px;">${esc(m.displayName)}</h2><span class="muted">${esc(roleMeta(m.role).label)} \u00b7 ${statusBadge(m.status)}</span></div>
-    </div>
-    <div class="kv">
-      <b>Appointed</b><span>${fmtDate(m.dateAppointed)}</span>
-      <b>Cases handled</b><span>${actions.length}</span>
-      <b>Active restrictions issued</b><span>${restr.filter(x=>x.status==='active').length}</span>
-      <b>Appeals from actions</b><span>${appealsFromActions.length}</span>
-    </div>
-    <hr class="divider">
-    <h4 style="font-size:13px; margin-bottom:8px;">Moderation timeline</h4>
-    ${actions.length ? `<div class="timeline">${actions.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)} \u00b7 ${esc(l.caseId)}</div><div class="tl-body">${esc(l.action)} \u2014 <span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No activity yet', 'This moderator hasn\u2019t taken any actions yet.')}
-  `);
-}
-
-/* ============================================================
-   RENDER: SETTINGS (admin only)
-   ============================================================ */
-const SETTINGS_STATE = {
-  guidelinesVersion: 'v3.2',
-  autoFlagThreshold: 3,
-  reportCategories: ['Hate speech','Harassment','Self-harm concern','Copyright / plagiarism','Spam','Other'],
-  defaultRestrictionDays: 14,
-  notifyOnAction: true,
-  notifyOnAppealUpdate: true,
-  platformLockdown: false,
-  requireEvidenceForCopyright: true,
-};
-function renderSettings(){
-  const root = $('#view-root');
-  if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
-  const s = SETTINGS_STATE;
-  root.innerHTML = `<div class="two-col even">
-    <div class="panel">
-      <h3 style="font-size:15px; margin-bottom:6px;">Community Guidelines</h3>
-      <p class="muted" style="font-size:12.5px; margin-bottom:12px;">Current published version: <b>${esc(s.guidelinesVersion)}</b>. Full editing lives in Policies.</p>
-      <button class="btn ghost sm" data-nav="policies">Go to Policies</button>
-    </div>
-    <div class="panel">
-      <h3 style="font-size:15px; margin-bottom:6px;">Moderation Rules</h3>
-      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Auto-flag content after this many reports:</p>
-      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-threshold" value="${s.autoFlagThreshold}">
-      <div style="margin-top:10px;"><button class="btn primary sm" id="set-threshold-save">Save</button></div>
-    </div>
-    <div class="panel">
-      <h3 style="font-size:15px; margin-bottom:6px;">Report Categories</h3>
-      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${s.reportCategories.map((c,i)=>`<span class="badge grey" style="display:inline-flex; align-items:center; gap:5px;">${esc(c)} <span data-remove-category="${i}" style="cursor:pointer;">\u2715</span></span>`).join('')}</div>
-      <div style="display:flex; gap:8px;"><input class="search-mini" style="flex:1;" id="new-category-input" placeholder="Add a category…"><button class="btn soft sm" id="add-category-btn">Add</button></div>
-    </div>
-    <div class="panel">
-      <h3 style="font-size:15px; margin-bottom:6px;">Restriction Durations</h3>
-      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Default temporary restriction length (days):</p>
-      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-duration" value="${s.defaultRestrictionDays}">
-      <div style="margin-top:10px;"><button class="btn primary sm" id="set-duration-save">Save</button></div>
-    </div>
-    <div class="panel">
-      <h3 style="font-size:15px; margin-bottom:6px;">Notification Settings</h3>
-      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:8px;"><input type="checkbox" id="notify-action" ${s.notifyOnAction?'checked':''}> Notify users when action is taken on their content</label>
-      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box;"><input type="checkbox" id="notify-appeal" ${s.notifyOnAppealUpdate?'checked':''}> Notify users on appeal status changes</label>
-    </div>
-    <div class="panel">
-      <h3 style="font-size:15px; margin-bottom:6px;">Platform Safety Settings</h3>
-      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:8px;"><input type="checkbox" id="require-evidence" ${s.requireEvidenceForCopyright?'checked':''}> Require evidence before a copyright takedown</label>
-      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; border-color:var(--red);"><input type="checkbox" id="platform-lockdown" ${s.platformLockdown?'checked':''}> Emergency lockdown (blocks all new posts platform-wide)</label>
-    </div>
-  </div>`;
-  $('#set-threshold-save').onclick = ()=>{ s.autoFlagThreshold = parseInt($('#set-threshold').value,10)||s.autoFlagThreshold; toast('Moderation rule saved.','success'); };
-  $('#set-duration-save').onclick = ()=>{ s.defaultRestrictionDays = parseInt($('#set-duration').value,10)||s.defaultRestrictionDays; toast('Default duration saved.','success'); };
-  $('#add-category-btn').onclick = ()=>{
-    const v = $('#new-category-input').value.trim();
-    if(!v) return;
-    s.reportCategories.push(v);
-    toast('Category added.','success');
-    renderSettings();
-  };
-  $$('[data-remove-category]').forEach(el=> el.onclick = ()=>{ s.reportCategories.splice(parseInt(el.dataset.removeCategory,10),1); renderSettings(); });
-  $('#notify-action').onchange = e=>{ s.notifyOnAction = e.target.checked; toast('Notification setting saved.','success'); };
-  $('#notify-appeal').onchange = e=>{ s.notifyOnAppealUpdate = e.target.checked; toast('Notification setting saved.','success'); };
-  $('#require-evidence').onchange = e=>{ s.requireEvidenceForCopyright = e.target.checked; toast('Safety setting saved.','success'); };
-  $('#platform-lockdown').onchange = e=>{
-    s.platformLockdown = e.target.checked;
-    toast(e.target.checked ? 'Platform lockdown enabled (mock).' : 'Platform lockdown disabled.', e.target.checked?'error':'success');
-    SYSTEM_AUDIT_LOG.unshift({id:'sa'+(SYSTEM_AUDIT_LOG.length+1), at:new Date().toISOString(), actorId:state.currentModeratorId, event:'Platform lockdown '+(e.target.checked?'enabled':'disabled'), detail:'Toggled from Settings.', severity: e.target.checked?'warning':'info'});
-  };
-}
-
-/* ============================================================
-   GLOBAL SEARCH
-   ============================================================ */
-function runGlobalSearch(q){
-  q = q.toLowerCase().trim();
-  if(!q) return null;
-  const users = USERS.filter(u=>u.username.toLowerCase().includes(q)||u.displayName.toLowerCase().includes(q)).slice(0,4);
-  const content = CONTENT.filter(c=>c.title.toLowerCase().includes(q)).slice(0,4);
-  const reports = REPORTS.filter(r=>r.caseId.toLowerCase().includes(q)).slice(0,4);
-  const cases = [...new Set([...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId), ...COPYRIGHT_CLAIMS.map(c=>c.caseId), ...PRIVACY_REQUESTS.map(p=>p.caseId), ...GRIEVANCES.map(g=>g.caseId)])].filter(c=>c.toLowerCase().includes(q)).slice(0,4);
-  const mods = MODERATORS.filter(m=>m.username.toLowerCase().includes(q)||m.displayName.toLowerCase().includes(q)).slice(0,4);
-  return {users, content, reports, cases, mods};
-}
-function renderGlobalSearchResults(q){
-  const box = $('#gsearch-results');
-  const res = runGlobalSearch(q);
-  if(!res){ box.hidden = true; return; }
-  const groups = [];
-  if(res.users.length) groups.push(['Users', res.users.map(u=>`<div class="gsearch-item" data-gs-open="user" data-gs-id="${u.id}"><span class="mini-av">${esc(u.displayName[0])}</span><span><span class="t">${esc(u.displayName)}</span><br><span class="s">@${esc(u.username)}</span></span></div>`).join('')]);
-  if(res.content.length) groups.push(['Content', res.content.map(c=>`<div class="gsearch-item" data-gs-open="content" data-gs-id="${c.id}"><span>\uD83D\uDCC4</span><span><span class="t">${esc(c.title)}</span><br><span class="s">${esc(c.type)}</span></span></div>`).join('')]);
-  if(res.reports.length) groups.push(['Reports', res.reports.map(r=>`<div class="gsearch-item" data-gs-open="report" data-gs-id="${r.id}"><span>\uD83D\uDEA9</span><span><span class="t">${esc(r.caseId)}</span><br><span class="s">${esc(r.reason)}</span></span></div>`).join('')]);
-  if(res.cases.length) groups.push(['Case IDs', res.cases.map(c=>`<div class="gsearch-item" data-gs-open="case" data-gs-id="${c}"><span>\uD83D\uDDC2\uFE0F</span><span class="t caseid">${esc(c)}</span></div>`).join('')]);
-  if(res.mods.length) groups.push(['Moderators', res.mods.map(m=>`<div class="gsearch-item" data-gs-open="mod" data-gs-id="${m.id}"><span class="mini-av">${esc(m.displayName[0])}</span><span class="t">${esc(m.displayName)}</span></div>`).join('')]);
-  box.innerHTML = groups.length ? groups.map(([label,html])=>`<div class="gsearch-group-label">${label}</div>${html}`).join('') : `<div style="padding:14px; text-align:center; color:var(--ink-faint); font-size:12.5px;">No matches for "${esc(q)}"</div>`;
-  box.hidden = false;
-}
 
 /* ============================================================
    RENDER: CASES (central case list + workspace)
@@ -1984,226 +1877,239 @@ function renderCaseWorkspace(caseId){
    RENDER: COPYRIGHT & TAKEDOWNS
    ============================================================ */
 const COPYRIGHT_FILTERS = ['All','New','Under Review','Upheld','Rejected','Content Removed'];
-function renderCopyright(){
-  if(state.copyrightFilter===undefined) state.copyrightFilter='All';
+
+async function renderCopyright(){
   const root = $('#view-root');
-  let list = [...COPYRIGHT_CLAIMS];
-  if(state.copyrightFilter!=='All') list = list.filter(c=>c.status===state.copyrightFilter);
-  list.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
-  root.innerHTML = `
-    <div class="filter-row">
-      ${COPYRIGHT_FILTERS.map(f=>`<button class="chip ${state.copyrightFilter===f?'active':''}" data-copyright-filter="${f}">${esc(f)}</button>`).join('')}
-    </div>
-    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Claimant</th><th>Content owner</th><th>Evidence</th><th>Status</th><th>Submitted</th></tr></thead><tbody>
-    ${list.map(c=>{
-      const owner = userById(c.ownerUserId);
-      return `<tr data-open-copyright="${c.id}">
-        <td class="caseid">${c.caseId}</td>
-        <td>${esc(c.claimantName)}</td>
-        <td>${owner?'@'+esc(owner.username):'\u2014'}</td>
-        <td class="muted">${esc(c.evidence)}</td>
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading copyright claims\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_copyright_claims');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='copyright') return;
+    root.innerHTML = emptyState('Couldn\u2019t load claims', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='copyright') return;
+  STAFF_CACHE.copyright = rows;
+  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Work</th><th>Claimant</th><th>Relationship</th><th>Status</th><th>Submitted</th></tr></thead><tbody>
+      ${rows.map(c=>`<tr data-open-copyright="${esc(c.id)}">
+        <td class="caseid">${esc(c.case_id)}</td>
+        <td>${esc(c.target_title||'(untitled)')}</td>
+        <td>${esc(c.claimant_name)}</td>
+        <td>${c.relationship==='owner'?'Owner':'Authorized agent'}</td>
         <td>${statusBadge(c.status)}</td>
-        <td class="muted">${fmtDate(c.submittedAt)}</td>
-      </tr>`;
-    }).join('')}</tbody></table>` : emptyState('No copyright claims', 'Copyright and takedown complaints will show up here.')}
-    </div></div>
-  `;
+        <td class="muted">${timeAgo(c.submitted_at)}</td>
+      </tr>`).join('')}
+    </tbody></table>` : emptyState('No copyright claims', 'Claims submitted by readers will show up here.')}
+  </div>`;
 }
 function renderCopyrightDetail(id){
-  const c = copyrightById(id);
-  if(!c){ toast('That claim no longer exists.','error'); return; }
-  const owner = userById(c.ownerUserId);
-  const content = contentById(c.contentId);
+  const c = (STAFF_CACHE.copyright||[]).find(x=>x.id===id);
+  if(!c) return;
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Copyright claim ${esc(c.caseId)}</h2>
+    <h2 style="font-size:19px;">Copyright claim ${esc(c.case_id)}</h2>
     <div class="kv">
-      <b>Claimant</b><span>${esc(c.claimantName)} \u2014 ${esc(c.claimantEmail)}</span>
-      <b>Content</b><span>${content?esc(content.title):'(content removed)'}</span>
-      <b>Content owner</b><span>${owner?'@'+esc(owner.username):'\u2014'}</span>
-      <b>Evidence</b><span>${esc(c.evidence)}</span>
-      <b>Reviewer</b><span>${c.reviewedBy?esc(modById(c.reviewedBy).displayName):'Unreviewed'}</span>
-      <b>Submitted</b><span>${fmtDate(c.submittedAt)}</span>
+      <b>Work</b><span>${esc(c.target_title||'(untitled)')} (${esc(c.target_type)})</span>
+      <b>Claimant</b><span>${esc(c.claimant_name)}${c.claimant_org?' \u2014 '+esc(c.claimant_org):''}</span>
+      <b>Email</b><span>${esc(c.claimant_email)}</span>
+      <b>Phone</b><span>${esc(c.claimant_phone||'\u2014')}</span>
+      <b>Address</b><span>${esc(c.claimant_address)}</span>
+      <b>Relationship</b><span>${c.relationship==='owner'?'Copyright owner':'Authorized agent'}</span>
+      <b>Original work</b><span>${esc(c.original_work_title)}${c.original_work_url?' \u2014 '+esc(c.original_work_url):''}</span>
+      <b>Signed</b><span>${esc(c.signature)}</span>
+      <b>Submitted</b><span>${fmtDate(c.submitted_at)}</span>
       <b>Status</b><span>${statusBadge(c.status)}</span>
     </div>
-    <div class="content-preview-box">${esc(c.description)}</div>
-    ${(c.status==='New'||c.status==='Under Review') && can('copyright.review') ? `<hr class="divider"><div style="display:flex; flex-wrap:wrap; gap:8px;">
-      ${c.status==='New'?`<button class="btn ghost sm" data-copyright-act="review" data-copyright-id="${c.id}">Mark under review</button>`:''}
-      <button class="btn danger sm" data-copyright-act="uphold" data-copyright-id="${c.id}">Uphold \u2014 remove content</button>
-      <button class="btn ghost sm" data-copyright-act="reject" data-copyright-id="${c.id}">Reject claim</button>
-    </div>` : ''}
+    <div class="content-preview-box"><b>Description:</b><br>${esc(c.description)}</div>
+    ${c.evidence?`<div class="content-preview-box"><b>Evidence:</b><br>${esc(c.evidence)}</div>`:''}
+    <div id="case-notes-slot"></div>
+    <hr class="divider">
+    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+      ${c.status!=='Under Review'?`<button class="btn ghost sm" data-copyright-act="assign" data-copyright-id="${esc(c.id)}">Assign to me</button>`:''}
+      <button class="btn ghost sm" data-copyright-act="reject" data-copyright-id="${esc(c.id)}">Reject claim</button>
+      <button class="btn danger sm" data-copyright-act="remove" data-copyright-id="${esc(c.id)}">Remove content</button>
+    </div>
   `);
+  wireCaseNotes(c.case_id);
 }
 function handleCopyrightAction(id, act){
-  const c = copyrightById(id);
-  const content = contentById(c.contentId);
-  const cfgs = {
-    review:{title:'Mark this claim as under review?', destructive:false, confirmLabel:'Mark under review'},
-    uphold:{title:'Uphold claim and remove content?', body:'The content will be removed and the author notified.', destructive:true, confirmLabel:'Uphold & remove'},
-    reject:{title:'Reject this copyright claim?', destructive:false, confirmLabel:'Reject claim'},
-  };
-  const cfg = cfgs[act];
-  confirmAction({title:cfg.title, body:cfg.body, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive, onConfirm:(reason)=>{
-    if(act==='review'){ c.status='Under Review'; c.reviewedBy=state.currentModeratorId; }
-    if(act==='uphold'){ c.status='Content Removed'; c.reviewedBy=state.currentModeratorId; if(content){ if(!content.caseId) content.caseId = c.caseId; removeContent(content, reason); } }
-    if(act==='reject'){ c.status='Rejected'; c.reviewedBy=state.currentModeratorId; }
-    logAction({caseId:c.caseId, action:'Copyright claim '+c.status.toLowerCase(), targetUserId:c.ownerUserId, targetContentId:c.contentId, reason, result:c.status});
-    toast('Copyright claim updated.','success');
-    renderCopyrightDetail(id);
-    if(state.view==='copyright') renderCopyright();
+  if(act==='assign'){
+    sb.rpc('assign_case',{p_kind:'copyright',p_id:id}).then(({error})=>{
+      if(error){ toast(error.message,'error'); return; }
+      toast('Assigned to you.','success');
+      renderCopyrightDetail(id);
+      if(state.view==='copyright') renderCopyright();
+    });
+    return;
+  }
+  const cfg = act==='reject'
+    ? {title:'Reject this claim?', confirmLabel:'Reject claim', destructive:false}
+    : {title:'Remove this content?', body:'The content will be hidden and the author notified of the takedown.', confirmLabel:'Remove content', destructive:true};
+  confirmAction({...cfg, onConfirm: async (reason)=>{
+    try{
+      const { error } = await sb.rpc('resolve_copyright_claim', {p_id:id, p_action:act, p_reason:reason});
+      if(error) throw error;
+      toast('Done.','success');
+      closeDrawer();
+      if(state.view==='copyright') renderCopyright();
+    }catch(err){ toast((err&&err.message)||'Could not complete that action.','error'); }
   }});
 }
+
 
 /* ============================================================
    RENDER: PRIVACY REQUESTS
    ============================================================ */
 const PRIVACY_FILTERS = ['All','New','In Progress','Fulfilled','Denied'];
-function renderPrivacy(){
-  if(state.privacyFilter===undefined) state.privacyFilter='All';
+
+async function renderPrivacy(){
   const root = $('#view-root');
-  let list = [...PRIVACY_REQUESTS];
-  if(state.privacyFilter!=='All') list = list.filter(p=>p.status===state.privacyFilter);
-  list.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
-  root.innerHTML = `
-    <div class="filter-row">
-      ${PRIVACY_FILTERS.map(f=>`<button class="chip ${state.privacyFilter===f?'active':''}" data-privacy-filter="${f}">${esc(f)}</button>`).join('')}
-    </div>
-    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>User</th><th>Type</th><th>Status</th><th>Submitted</th><th>Due by</th></tr></thead><tbody>
-    ${list.map(p=>{
-      const u = userById(p.userId);
-      const overdue = p.status!=='Fulfilled' && p.status!=='Denied' && new Date(p.dueBy) < new Date();
-      return `<tr data-open-privacy="${p.id}">
-        <td class="caseid">${p.caseId}</td>
-        <td>${u?'@'+esc(u.username):'\u2014'}</td>
-        <td>${esc(p.type)}</td>
-        <td>${statusBadge(p.status)}</td>
-        <td class="muted">${fmtDate(p.submittedAt)}</td>
-        <td class="${overdue?'expiring':'muted'}">${fmtDate(p.dueBy)}${overdue?' \u26A0 overdue':''}</td>
-      </tr>`;
-    }).join('')}</tbody></table>` : emptyState('No privacy requests', 'Data access, deletion and privacy takedown requests will show up here.')}
-    </div></div>
-  `;
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading privacy requests\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_privacy_requests');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='privacy') return;
+    root.innerHTML = emptyState('Couldn\u2019t load requests', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='privacy') return;
+  STAFF_CACHE.privacy = rows;
+  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Type</th><th>Status</th><th>Submitted</th><th>Due</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr data-open-privacy="${esc(r.id)}">
+        <td class="caseid">${esc(r.case_id)}</td>
+        <td>${esc(r.type)}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td class="muted">${timeAgo(r.submitted_at)}</td>
+        <td class="muted">${fmtDate(r.due_by)}</td>
+      </tr>`).join('')}
+    </tbody></table>` : emptyState('No privacy requests', 'Requests will show up here.')}
+  </div>`;
 }
 function renderPrivacyDetail(id){
-  const p = privacyById(id);
-  if(!p){ toast('That request no longer exists.','error'); return; }
-  const u = userById(p.userId);
+  const r = (STAFF_CACHE.privacy||[]).find(x=>x.id===id);
+  if(!r) return;
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Privacy request ${esc(p.caseId)}</h2>
+    <h2 style="font-size:19px;">Privacy request ${esc(r.case_id)}</h2>
     <div class="kv">
-      <b>User</b><span>${u?'@'+esc(u.username):'\u2014'}</span>
-      <b>Type</b><span>${esc(p.type)}</span>
-      <b>Submitted</b><span>${fmtDate(p.submittedAt)}</span>
-      <b>Due by</b><span>${fmtDate(p.dueBy)}</span>
-      <b>Resolved by</b><span>${p.resolvedBy?esc(modById(p.resolvedBy).displayName):'\u2014'}</span>
-      <b>Status</b><span>${statusBadge(p.status)}</span>
+      <b>Type</b><span>${esc(r.type)}</span>
+      <b>Submitted</b><span>${fmtDate(r.submitted_at)}</span>
+      <b>Due by</b><span>${fmtDate(r.due_by)}</span>
+      <b>Status</b><span>${statusBadge(r.status)}</span>
     </div>
-    <div class="content-preview-box">${esc(p.description)}</div>
-    ${(p.status==='New'||p.status==='In Progress') && can('privacy.resolve') ? `<hr class="divider"><div style="display:flex; flex-wrap:wrap; gap:8px;">
-      ${p.status==='New'?`<button class="btn ghost sm" data-privacy-act="progress" data-privacy-id="${p.id}">Mark in progress</button>`:''}
-      <button class="btn primary sm" data-privacy-act="fulfill" data-privacy-id="${p.id}">Mark fulfilled</button>
-      <button class="btn danger sm" data-privacy-act="deny" data-privacy-id="${p.id}">Deny request</button>
-    </div>` : ''}
+    <div class="content-preview-box">${esc(r.description)}</div>
+    <div id="case-notes-slot"></div>
+    <hr class="divider">
+    <div style="display:flex; gap:8px;">
+      ${r.status!=='In Progress'?`<button class="btn ghost sm" data-privacy-act="assign" data-privacy-id="${esc(r.id)}">Assign to me</button>`:''}
+      <button class="btn primary sm" data-privacy-act="resolve" data-privacy-id="${esc(r.id)}">Mark resolved</button>
+    </div>
   `);
+  wireCaseNotes(r.case_id);
 }
 function handlePrivacyAction(id, act){
-  const p = privacyById(id);
-  const cfgs = {
-    progress:{title:'Mark this request in progress?', destructive:false, confirmLabel:'Mark in progress'},
-    fulfill:{title:'Mark this request fulfilled?', destructive:false, confirmLabel:'Mark fulfilled'},
-    deny:{title:'Deny this privacy request?', destructive:true, confirmLabel:'Deny request'},
-  };
-  const cfg = cfgs[act];
-  confirmAction({title:cfg.title, confirmLabel:cfg.confirmLabel, destructive:cfg.destructive, onConfirm:(reason)=>{
-    if(act==='progress') p.status='In Progress';
-    if(act==='fulfill'){ p.status='Fulfilled'; p.resolvedBy=state.currentModeratorId; }
-    if(act==='deny'){ p.status='Denied'; p.resolvedBy=state.currentModeratorId; }
-    logAction({caseId:p.caseId, action:'Privacy request '+p.status.toLowerCase(), targetUserId:p.userId, targetContentId:null, reason, result:p.status});
-    toast('Privacy request updated.','success');
-    renderPrivacyDetail(id);
-    if(state.view==='privacy') renderPrivacy();
+  if(act==='assign'){
+    sb.rpc('assign_case',{p_kind:'privacy',p_id:id}).then(({error})=>{
+      if(error){ toast(error.message,'error'); return; }
+      toast('Assigned to you.','success');
+      renderPrivacyDetail(id);
+      if(state.view==='privacy') renderPrivacy();
+    });
+    return;
+  }
+  confirmAction({title:'Mark this request resolved?', confirmLabel:'Mark resolved', destructive:false, requireReason:false, onConfirm: async ()=>{
+    try{
+      const { error } = await sb.rpc('resolve_privacy_request', {p_id:id, p_note:null});
+      if(error) throw error;
+      toast('Resolved.','success');
+      closeDrawer();
+      renderPrivacy();
+    }catch(err){ toast((err&&err.message)||'Could not resolve.','error'); }
   }});
 }
+
 
 /* ============================================================
    RENDER: GRIEVANCES
    ============================================================ */
 const GRIEVANCE_FILTERS = ['All','New','Assigned','Resolved'];
-function renderGrievances(){
-  if(state.grievanceFilter===undefined) state.grievanceFilter='All';
+
+async function renderGrievances(){
   const root = $('#view-root');
-  let list = [...GRIEVANCES];
-  if(state.grievanceFilter!=='All') list = list.filter(g=>g.status===state.grievanceFilter);
-  list.sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
-  root.innerHTML = `
-    <div class="filter-row">
-      ${GRIEVANCE_FILTERS.map(f=>`<button class="chip ${state.grievanceFilter===f?'active':''}" data-grievance-filter="${f}">${esc(f)}</button>`).join('')}
-    </div>
-    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Filed by</th><th>Against</th><th>Assigned to</th><th>Status</th><th>Submitted</th></tr></thead><tbody>
-    ${list.map(g=>{
-      const u = userById(g.userId), m = g.assignedTo?modById(g.assignedTo):null;
-      return `<tr data-open-grievance="${g.id}">
-        <td class="caseid">${g.caseId}</td>
-        <td>${u?'@'+esc(u.username):'\u2014'}</td>
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading grievances\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_grievances');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='grievances') return;
+    root.innerHTML = emptyState('Couldn\u2019t load grievances', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='grievances') return;
+  STAFF_CACHE.grievances = rows;
+  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Against</th><th>Status</th><th>Submitted</th></tr></thead><tbody>
+      ${rows.map(g=>`<tr data-open-grievance="${esc(g.id)}">
+        <td class="caseid">${esc(g.case_id)}</td>
         <td>${esc(g.against)}</td>
-        <td class="muted">${m?esc(m.displayName):'Unassigned'}</td>
         <td>${statusBadge(g.status)}</td>
-        <td class="muted">${fmtDate(g.submittedAt)}</td>
-      </tr>`;
-    }).join('')}</tbody></table>` : emptyState('No grievances', 'Complaints about moderation decisions, other users, or platform policy will show up here — kept separate from ordinary content reports.')}
-    </div></div>
-  `;
+        <td class="muted">${timeAgo(g.submitted_at)}</td>
+      </tr>`).join('')}
+    </tbody></table>` : emptyState('No grievances', 'Grievances will show up here.')}
+  </div>`;
 }
 function renderGrievanceDetail(id){
-  const g = grievanceById(id);
-  if(!g){ toast('That grievance no longer exists.','error'); return; }
-  const u = userById(g.userId);
-  const against = g.targetModeratorId ? modById(g.targetModeratorId) : null;
+  const g = (STAFF_CACHE.grievances||[]).find(x=>x.id===id);
+  if(!g) return;
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Grievance ${esc(g.caseId)}</h2>
+    <h2 style="font-size:19px;">Grievance ${esc(g.case_id)}</h2>
     <div class="kv">
-      <b>Filed by</b><span>${u?'@'+esc(u.username):'\u2014'}</span>
-      <b>Against</b><span>${esc(g.against)}${against?' \u2014 '+esc(against.displayName):''}</span>
-      <b>Submitted</b><span>${fmtDate(g.submittedAt)}</span>
+      <b>Against</b><span>${esc(g.against)}</span>
+      <b>Submitted</b><span>${fmtDate(g.submitted_at)}</span>
       <b>Status</b><span>${statusBadge(g.status)}</span>
     </div>
     <div class="content-preview-box">${esc(g.description)}</div>
-    ${can('grievances.assign') ? `<div style="margin:12px 0;">
-      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Assigned to</b>
-      <select class="search-mini" style="width:100%;" id="grievance-assign-select">
-        <option value="">Unassigned</option>
-        ${MODERATORS.filter(m=>m.status==='active').map(m=>`<option value="${m.id}" ${g.assignedTo===m.id?'selected':''}>${esc(m.displayName)}</option>`).join('')}
-      </select>
-    </div>` : ''}
-    ${g.status!=='Resolved' && can('grievances.resolve') ? `<hr class="divider"><button class="btn primary sm" data-grievance-act="resolve" data-grievance-id="${g.id}">Mark resolved</button>` : ''}
+    <div id="case-notes-slot"></div>
+    <hr class="divider">
+    <div style="display:flex; gap:8px;">
+      ${g.status!=='Assigned'?`<button class="btn ghost sm" data-grievance-act="assign" data-grievance-id="${esc(g.id)}">Assign to me</button>`:''}
+      <button class="btn primary sm" data-grievance-act="resolve" data-grievance-id="${esc(g.id)}">Mark resolved</button>
+    </div>
   `);
-  const sel = $('#grievance-assign-select');
-  if(sel) sel.onchange = ()=>{
-    g.assignedTo = sel.value || null;
-    if(g.status==='New' && g.assignedTo) g.status='Assigned';
-    logAction({caseId:g.caseId, action:'Grievance reassigned', targetUserId:g.userId, targetContentId:null, reason:g.assignedTo?`Assigned to ${modById(g.assignedTo).displayName}`:'Unassigned', result:'Assignment updated'});
-    toast('Assignment updated.','success');
-    renderGrievanceDetail(id);
-    if(state.view==='grievances') renderGrievances();
-  };
+  wireCaseNotes(g.case_id);
 }
 function handleGrievanceAction(id, act){
-  const g = grievanceById(id);
-  if(act==='resolve'){
-    confirmAction({title:'Mark this grievance resolved?', confirmLabel:'Mark resolved', destructive:false, onConfirm:(reason)=>{
-      g.status='Resolved';
-      logAction({caseId:g.caseId, action:'Grievance resolved', targetUserId:g.userId, targetContentId:null, reason, result:'Resolved'});
-      toast('Grievance resolved.','success');
+  if(act==='assign'){
+    sb.rpc('assign_case',{p_kind:'grievance',p_id:id}).then(({error})=>{
+      if(error){ toast(error.message,'error'); return; }
+      toast('Assigned to you.','success');
       renderGrievanceDetail(id);
       if(state.view==='grievances') renderGrievances();
-    }});
+    });
+    return;
   }
+  confirmAction({title:'Mark this grievance resolved?', confirmLabel:'Mark resolved', destructive:false, requireReason:false, onConfirm: async ()=>{
+    try{
+      const { error } = await sb.rpc('resolve_grievance', {p_id:id, p_note:null});
+      if(error) throw error;
+      toast('Resolved.','success');
+      closeDrawer();
+      renderGrievances();
+    }catch(err){ toast((err&&err.message)||'Could not resolve.','error'); }
+  }});
 }
+
 
 /* ============================================================
    RENDER: NOTIFICATIONS (compose / preview / history)
@@ -2563,21 +2469,47 @@ function renderPermissionsEditor(modId){
 /* ============================================================
    RENDER: SYSTEM AUDIT LOG (Admin only)
    ============================================================ */
-function renderSystemAudit(){
+
+async function renderSystemAudit(){
   const root = $('#view-root');
   if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'The System Audit Log is only visible to Admins.'); return; }
-  const list = [...SYSTEM_AUDIT_LOG].sort((a,b)=>new Date(b.at)-new Date(a.at));
-  root.innerHTML = `
-    <div class="immutable-note">\uD83D\uDD12 Admin-only, unfiltered platform activity \u2014 separate from the Moderation Log every role can see.</div>
-    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>When</th><th>Actor</th><th>Event</th><th>Detail</th><th>Severity</th></tr></thead><tbody>
-    ${list.map(s=>{
-      const a = modById(s.actorId);
-      return `<tr><td class="muted">${fmtDate(s.at)}</td><td>${a?esc(a.displayName):'System'}</td><td><b>${esc(s.event)}</b></td><td class="muted">${esc(s.detail)}</td><td><span class="badge ${s.severity==='warning'?'gold':'sky'}">${esc(s.severity)}</span></td></tr>`;
-    }).join('')}</tbody></table>` : emptyState('No system events', 'Platform and security-level events will show up here.')}
-    </div></div>
-  `;
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_system_audit_log');
+    if(error) throw error;
+    rows = data || [];
+  }catch(err){
+    if(state.view!=='system-audit') return;
+    root.innerHTML = emptyState('Couldn\u2019t load the audit log', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(state.view!=='system-audit') return;
+  root.innerHTML = `<div class="panel" style="padding:8px 12px;">
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Actor</th><th>Event</th><th>Detail</th><th>Severity</th><th>Date</th><th></th></tr></thead><tbody>
+      ${rows.map(a=>`<tr>
+        <td>${esc(a.actor_name)}</td>
+        <td>${esc(a.event)}</td>
+        <td class="muted">${esc(a.detail||'\u2014')}</td>
+        <td><span class="badge ${a.severity==='warning'?'orange':'grey'}">${esc(a.severity)}</span></td>
+        <td class="muted">${fmtDate(a.at)}</td>
+        <td><button class="btn ghost sm" data-audit-del="${esc(a.id)}">Delete</button></td>
+      </tr>`).join('')}
+    </tbody></table>` : emptyState('No audit entries', 'System-level events will appear here.')}
+  </div>`;
+  root.querySelectorAll('[data-audit-del]').forEach(btn=> btn.onclick = ()=> confirmAction({
+    title:'Delete this audit entry?', destructive:true, requireReason:false, confirmLabel:'Delete',
+    onConfirm: async ()=>{
+      try{
+        const { error } = await sb.rpc('delete_system_audit_log_entry', {p_id:btn.dataset.auditDel});
+        if(error) throw error;
+        toast('Deleted.','success');
+        renderSystemAudit();
+      }catch(err){ toast((err&&err.message)||'Could not delete.','error'); }
+    }
+  }));
 }
+
 
 /* ============================================================
    RENDER: POLICIES
@@ -2905,6 +2837,159 @@ async function bootWithAuth(){
     gateMessage('We couldn\u2019t verify your access just now. Please reload and try again.');
   }
 }
+/* ---- recovered functions (still mock-data; untouched by this pass) ---- */
+function handleModAction(modId, act){
+  const m = modById(modId);
+  if(m.role==='admin'){ toast('Admin accounts can\u2019t be modified from this dashboard.','error'); return; }
+  confirmAction({
+    title: `${act[0].toUpperCase()+act.slice(1)} ${m.displayName}?`, requireReason:false,
+    destructive: act!=='reinstate', confirmLabel: act[0].toUpperCase()+act.slice(1),
+    onConfirm:()=>{
+      if(act==='suspend') m.status='suspended';
+      if(act==='remove'){ const i=MODERATORS.indexOf(m); if(i>-1) MODERATORS.splice(i,1); }
+      if(act==='reinstate') m.status='active';
+      toast('Moderator status updated.','success');
+      renderModerators();
+    }
+  });
+}
+
+function notifPreview(reason, caseId){
+  return `<div class="notif-preview">
+    <div class="from">From: Moderation Team</div>
+    <div class="msg">Your content was removed because it violated our Community Guidelines (${esc(reason)}).</div>
+    <div class="meta">Case ${esc(caseId)} \u00b7 <a href="#" onclick="return false;">Community Guidelines</a> \u00b7 <button class="btn ghost sm" style="padding:3px 10px;" disabled>Appeal</button></div>
+  </div>`;
+}
+
+function renderBulkBar(slotSel, list, idFn, kind){
+  const slot = $(slotSel);
+  const selectedCount = list.filter(x=>state.bulkSelection.has(idFn(x))).length;
+  slot.innerHTML = selectedCount ? `
+    <div class="bulk-bar">
+      <b>${selectedCount} selected</b>
+      <button class="btn soft sm" data-bulk-action="dismiss" data-bulk-kind="${kind}">Bulk dismiss</button>
+      <button class="btn soft sm" data-bulk-action="remove" data-bulk-kind="${kind}">Bulk remove content</button>
+      <button class="btn ghost sm" style="margin-left:auto; background:transparent; border-color:rgba(255,255,255,.3); color:#fff;" data-bulk-action="clear">Clear selection</button>
+    </div>` : '';
+}
+
+function renderCaseTimeline(caseId){
+  const entries = AUDIT_LOG.filter(l=>l.caseId===caseId).sort((a,b)=>new Date(a.at)-new Date(b.at));
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <h2 style="font-size:18px;">Case timeline</h2>
+    <div class="badge grey caseid" style="margin-bottom:14px;">${esc(caseId)}</div>
+    ${entries.length ? `<div class="timeline">${entries.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br><span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No entries', 'No log entries for this case yet.')}
+  `);
+}
+
+function renderGlobalSearchResults(q){
+  const box = $('#gsearch-results');
+  const res = runGlobalSearch(q);
+  if(!res){ box.hidden = true; return; }
+  const groups = [];
+  if(res.users.length) groups.push(['Users', res.users.map(u=>`<div class="gsearch-item" data-gs-open="user" data-gs-id="${u.id}"><span class="mini-av">${esc(u.displayName[0])}</span><span><span class="t">${esc(u.displayName)}</span><br><span class="s">@${esc(u.username)}</span></span></div>`).join('')]);
+  if(res.content.length) groups.push(['Content', res.content.map(c=>`<div class="gsearch-item" data-gs-open="content" data-gs-id="${c.id}"><span>\uD83D\uDCC4</span><span><span class="t">${esc(c.title)}</span><br><span class="s">${esc(c.type)}</span></span></div>`).join('')]);
+  if(res.reports.length) groups.push(['Reports', res.reports.map(r=>`<div class="gsearch-item" data-gs-open="report" data-gs-id="${r.id}"><span>\uD83D\uDEA9</span><span><span class="t">${esc(r.caseId)}</span><br><span class="s">${esc(r.reason)}</span></span></div>`).join('')]);
+  if(res.cases.length) groups.push(['Case IDs', res.cases.map(c=>`<div class="gsearch-item" data-gs-open="case" data-gs-id="${c}"><span>\uD83D\uDDC2\uFE0F</span><span class="t caseid">${esc(c)}</span></div>`).join('')]);
+  if(res.mods.length) groups.push(['Moderators', res.mods.map(m=>`<div class="gsearch-item" data-gs-open="mod" data-gs-id="${m.id}"><span class="mini-av">${esc(m.displayName[0])}</span><span class="t">${esc(m.displayName)}</span></div>`).join('')]);
+  box.innerHTML = groups.length ? groups.map(([label,html])=>`<div class="gsearch-group-label">${label}</div>${html}`).join('') : `<div style="padding:14px; text-align:center; color:var(--ink-faint); font-size:12.5px;">No matches for "${esc(q)}"</div>`;
+  box.hidden = false;
+}
+
+function renderModeratorActivity(modId){
+  const m = modById(modId);
+  const actions = AUDIT_LOG.filter(l=>l.moderatorId===modId);
+  const restr = RESTRICTIONS.filter(x=>x.moderatorId===modId);
+  const appealsFromActions = APPEALS.filter(a=>a.moderatorId===modId);
+  openDrawer(`
+    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc(m.displayName[0])}</span>
+      <div><h2 style="font-size:18px;">${esc(m.displayName)}</h2><span class="muted">${esc(roleMeta(m.role).label)} \u00b7 ${statusBadge(m.status)}</span></div>
+    </div>
+    <div class="kv">
+      <b>Appointed</b><span>${fmtDate(m.dateAppointed)}</span>
+      <b>Cases handled</b><span>${actions.length}</span>
+      <b>Active restrictions issued</b><span>${restr.filter(x=>x.status==='active').length}</span>
+      <b>Appeals from actions</b><span>${appealsFromActions.length}</span>
+    </div>
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Moderation timeline</h4>
+    ${actions.length ? `<div class="timeline">${actions.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)} \u00b7 ${esc(l.caseId)}</div><div class="tl-body">${esc(l.action)} \u2014 <span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No activity yet', 'This moderator hasn\u2019t taken any actions yet.')}
+  `);
+}
+
+function renderSettings(){
+  const root = $('#view-root');
+  if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
+  const s = SETTINGS_STATE;
+  root.innerHTML = `<div class="two-col even">
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Community Guidelines</h3>
+      <p class="muted" style="font-size:12.5px; margin-bottom:12px;">Current published version: <b>${esc(s.guidelinesVersion)}</b>. Full editing lives in Policies.</p>
+      <button class="btn ghost sm" data-nav="policies">Go to Policies</button>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Moderation Rules</h3>
+      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Auto-flag content after this many reports:</p>
+      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-threshold" value="${s.autoFlagThreshold}">
+      <div style="margin-top:10px;"><button class="btn primary sm" id="set-threshold-save">Save</button></div>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Report Categories</h3>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${s.reportCategories.map((c,i)=>`<span class="badge grey" style="display:inline-flex; align-items:center; gap:5px;">${esc(c)} <span data-remove-category="${i}" style="cursor:pointer;">\u2715</span></span>`).join('')}</div>
+      <div style="display:flex; gap:8px;"><input class="search-mini" style="flex:1;" id="new-category-input" placeholder="Add a category…"><button class="btn soft sm" id="add-category-btn">Add</button></div>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Restriction Durations</h3>
+      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Default temporary restriction length (days):</p>
+      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-duration" value="${s.defaultRestrictionDays}">
+      <div style="margin-top:10px;"><button class="btn primary sm" id="set-duration-save">Save</button></div>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Notification Settings</h3>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:8px;"><input type="checkbox" id="notify-action" ${s.notifyOnAction?'checked':''}> Notify users when action is taken on their content</label>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box;"><input type="checkbox" id="notify-appeal" ${s.notifyOnAppealUpdate?'checked':''}> Notify users on appeal status changes</label>
+    </div>
+    <div class="panel">
+      <h3 style="font-size:15px; margin-bottom:6px;">Platform Safety Settings</h3>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:8px;"><input type="checkbox" id="require-evidence" ${s.requireEvidenceForCopyright?'checked':''}> Require evidence before a copyright takedown</label>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; border-color:var(--red);"><input type="checkbox" id="platform-lockdown" ${s.platformLockdown?'checked':''}> Emergency lockdown (blocks all new posts platform-wide)</label>
+    </div>
+  </div>`;
+  $('#set-threshold-save').onclick = ()=>{ s.autoFlagThreshold = parseInt($('#set-threshold').value,10)||s.autoFlagThreshold; toast('Moderation rule saved.','success'); };
+  $('#set-duration-save').onclick = ()=>{ s.defaultRestrictionDays = parseInt($('#set-duration').value,10)||s.defaultRestrictionDays; toast('Default duration saved.','success'); };
+  $('#add-category-btn').onclick = ()=>{
+    const v = $('#new-category-input').value.trim();
+    if(!v) return;
+    s.reportCategories.push(v);
+    toast('Category added.','success');
+    renderSettings();
+  };
+  $$('[data-remove-category]').forEach(el=> el.onclick = ()=>{ s.reportCategories.splice(parseInt(el.dataset.removeCategory,10),1); renderSettings(); });
+  $('#notify-action').onchange = e=>{ s.notifyOnAction = e.target.checked; toast('Notification setting saved.','success'); };
+  $('#notify-appeal').onchange = e=>{ s.notifyOnAppealUpdate = e.target.checked; toast('Notification setting saved.','success'); };
+  $('#require-evidence').onchange = e=>{ s.requireEvidenceForCopyright = e.target.checked; toast('Safety setting saved.','success'); };
+  $('#platform-lockdown').onchange = e=>{
+    s.platformLockdown = e.target.checked;
+    toast(e.target.checked ? 'Platform lockdown enabled (mock).' : 'Platform lockdown disabled.', e.target.checked?'error':'success');
+    SYSTEM_AUDIT_LOG.unshift({id:'sa'+(SYSTEM_AUDIT_LOG.length+1), at:new Date().toISOString(), actorId:state.currentModeratorId, event:'Platform lockdown '+(e.target.checked?'enabled':'disabled'), detail:'Toggled from Settings.', severity: e.target.checked?'warning':'info'});
+  };
+}
+
+function runGlobalSearch(q){
+  q = q.toLowerCase().trim();
+  if(!q) return null;
+  const users = USERS.filter(u=>u.username.toLowerCase().includes(q)||u.displayName.toLowerCase().includes(q)).slice(0,4);
+  const content = CONTENT.filter(c=>c.title.toLowerCase().includes(q)).slice(0,4);
+  const reports = REPORTS.filter(r=>r.caseId.toLowerCase().includes(q)).slice(0,4);
+  const cases = [...new Set([...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId), ...COPYRIGHT_CLAIMS.map(c=>c.caseId), ...PRIVACY_REQUESTS.map(p=>p.caseId), ...GRIEVANCES.map(g=>g.caseId)])].filter(c=>c.toLowerCase().includes(q)).slice(0,4);
+  const mods = MODERATORS.filter(m=>m.username.toLowerCase().includes(q)||m.displayName.toLowerCase().includes(q)).slice(0,4);
+  return {users, content, reports, cases, mods};
+}
+
 bootWithAuth();
 
 })();
