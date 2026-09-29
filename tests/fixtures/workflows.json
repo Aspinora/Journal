@@ -1,0 +1,18 @@
+{
+  "purpose": "Synthetic acceptance-test definitions; never automatically seeded into production",
+  "roles": ["owner", "other_controlled_account", "anonymous"],
+  "workflows": [
+    {"kind":"journal", "structure":"single", "text":"Baseline single journal — 123"},
+    {"kind":"journal", "structure":"multiple", "entries":["Baseline entry one", "Baseline entry two"]},
+    {"kind":"story", "structure":"volumes-parts-chapters", "chapters":["Opening chapter", "Second chapter"]},
+    {"kind":"article", "structure":"simple", "text":"Baseline article with a heading and list"},
+    {"kind":"article", "structure":"structured", "chapters":["Introduction", "Discussion"]},
+    {"kind":"poetry", "structure":"single", "text":"First line\nSecond line\n\nNew stanza"},
+    {"kind":"shayari", "structure":"single", "text":"एक पंक्ति\nایک سطر\nএকটি পংক্তি"},
+    {"kind":"thought", "structure":"single", "text":"A short baseline thought 🙂"}
+  ],
+  "states": ["draft", "published"],
+  "visibility": ["private", "unlisted", "public"],
+  "viewports": [{"width":390,"height":844}, {"width":768,"height":1024}, {"width":1024,"height":768}, {"width":1440,"height":900}, {"width":1920,"height":1080}],
+  "initial_manual_run": "Create private drafts only; public/unlisted publishing belongs in controlled later-phase testing"
+}
