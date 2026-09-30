@@ -1289,9 +1289,22 @@ async function openRestrictionModalForUser({userId, caseId, defaultScope, onDone
 function renderUsers(){
   const root = $('#view-root');
   root.innerHTML = `
+    <div class="stat-grid" id="user-stats-slot">${Array(4).fill('<div class="stat-card skel skel-card"></div>').join('')}</div>
     <div class="filter-row"><input class="search-mini" id="user-search" placeholder="Search users by username or name…" style="margin-left:0; min-width:280px;" value="${esc(state.userSearch||'')}" autocomplete="off"></div>
     <div class="table-scroll"><div class="panel" style="padding:8px 12px;" id="user-table-slot"></div></div>
   `;
+  (async ()=>{
+    try{
+      const { data, error } = await sb.rpc('get_user_stats');
+      if(error) throw error;
+      const slot = $('#user-stats-slot');
+      if(!slot || state.view!=='users' || !data) return;
+      slot.innerHTML = statCard('Total users', data.total, `${data.new_7d} joined in the last 7 days`, 'var(--sky)')
+        + statCard('Active in last 24 hours', data.active_24h, 'signed in or kept a session open', 'var(--mint)')
+        + statCard('Active in last 7 days', data.active_7d, 'signed in or kept a session open', 'var(--lavender)')
+        + statCard('Restricted or suspended', Number(data.restricted)+Number(data.suspended), `${data.suspended} suspended`, 'var(--orange)');
+    }catch(err){ const slot = $('#user-stats-slot'); if(slot) slot.innerHTML = ''; }
+  })();
   let timer = null;
   const draw = async (q)=>{
     const mine = ++USERS_SEQ;
@@ -1311,12 +1324,13 @@ function renderUsers(){
     if(mine!==USERS_SEQ || state.view!=='users') return;
     STAFF_CACHE.users = rows;
     const total = rows.length ? Number(rows[0].total_count) : 0;
-    slot.innerHTML = rows.length ? `<table class="dtable"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Works</th><th>Reports</th><th>Active restrictions</th></tr></thead><tbody>
+    slot.innerHTML = rows.length ? `<table class="dtable"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Last active</th><th>Works</th><th>Reports</th><th>Active restrictions</th></tr></thead><tbody>
       ${rows.map(u=>`<tr data-open-user="${esc(u.id)}">
           <td class="name-cell">${avatarHTML(u.avatar_url, u.display_name||u.username)}<span><b>${esc(u.display_name||u.username||'Unnamed')}</b><br><span class="muted">${u.username?'@'+esc(u.username):'no username yet'}</span></span></td>
           <td>${u.role==='member' ? '<span class="muted">Member</span>' : `<span class="badge ${u.role==='admin'?'ink':'sky'}">${esc(u.role.charAt(0).toUpperCase()+u.role.slice(1))}</span>`}</td>
           <td>${statusBadge(u.status)}</td>
           <td class="muted">${fmtDate(u.created_at)}</td>
+          <td class="muted">${u.last_active ? timeAgo(u.last_active) : 'Never'}</td>
           <td>${u.works_count}</td>
           <td>${u.report_count}</td>
           <td>${u.active_restrictions}</td>
@@ -1897,101 +1911,139 @@ function openAddModeratorModal(){
    RENDER: CASES (central case list + workspace)
    ============================================================ */
 const CASE_FILTERS = ['All','Open','In Progress','Resolved'];
-function renderCases(){
+let CASES_SEQ = 0;
+const LINKED_KINDS = {
+  Report:{key:'reports', rpc:'list_reports', open:(id)=>renderReportDetail(id), page:'reports'},
+  Appeal:{key:'appeals', rpc:'list_appeals', open:(id)=>renderAppealDetail(id), page:'appeals'},
+  Copyright:{key:'copyright', rpc:'list_copyright_claims', open:(id)=>renderCopyrightDetail(id), page:'copyright'},
+  Privacy:{key:'privacy', rpc:'list_privacy_requests', open:(id)=>renderPrivacyDetail(id), page:'privacy'},
+  Grievance:{key:'grievances', rpc:'list_grievances', open:(id)=>renderGrievanceDetail(id), page:'grievances'},
+  Restriction:{key:'restrictions', rpc:'list_restrictions', open:(id)=>renderRestrictionDetail(id), page:'restrictions'}
+};
+async function openLinked(kind, id){
+  const k = LINKED_KINDS[kind];
+  if(!k){ return; }
+  try{
+    const { data, error } = await sb.rpc(k.rpc);
+    if(error) throw error;
+    STAFF_CACHE[k.key] = data||[];
+  }catch(err){ toast((err&&err.message)||'Could not open that item.','error'); return; }
+  if(!(STAFF_CACHE[k.key]||[]).some(x=>x.id===id)){ toast('That item has already been resolved.','error'); return; }
+  k.open(id);
+}
+async function renderCases(){
   if(state.caseFilter===undefined) state.caseFilter='All';
   if(state.caseSearch===undefined) state.caseSearch='';
   const root = $('#view-root');
-  let list = getCaseSummaries();
-  if(state.caseFilter!=='All') list = list.filter(c=>c.status===state.caseFilter);
-  if(state.caseSearch){
-    const q = state.caseSearch.toLowerCase();
-    list = list.filter(c=> c.caseId.toLowerCase().includes(q) || (c.title||'').toLowerCase().includes(q));
-  }
   root.innerHTML = `
     <div class="filter-row">
       ${CASE_FILTERS.map(f=>`<button class="chip ${state.caseFilter===f?'active':''}" data-case-filter="${f}">${esc(f)}</button>`).join('')}
-      <input class="search-mini" id="case-search" placeholder="Search case ID or title…" value="${esc(state.caseSearch)}">
+      <input class="search-mini" id="case-search" placeholder="Search case ID or title\u2026" value="${esc(state.caseSearch)}" autocomplete="off">
     </div>
-    <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    ${list.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Type(s)</th><th>Title</th><th>Priority</th><th>Assignee</th><th>Status</th><th>Opened</th></tr></thead><tbody>
-    ${list.map(c=>{
-      const m = c.assignedTo ? modById(c.assignedTo) : null;
-      return `<tr data-open-case-full="${esc(c.caseId)}">
-        <td class="caseid">${esc(c.caseId)}</td>
-        <td>${c.types.map(t=>`<span class="badge grey" style="margin-right:2px;">${esc(t)}</span>`).join('')}</td>
-        <td>${esc(c.title)}</td>
-        <td>${priorityBadge(c.priority)}</td>
-        <td class="muted">${m?esc(m.displayName):'Unassigned'}</td>
-        <td>${statusBadge(c.status)}</td>
-        <td class="muted">${c.openedAt?fmtDate(c.openedAt):'\u2014'}</td>
-      </tr>`;
-    }).join('')}</tbody></table>` : (state.caseFilter!=='All'||state.caseSearch ? emptyState('No matching cases','Try a different filter or search term.') : emptyState('No cases', 'Cases are assembled automatically from reports, restrictions, appeals and legal requests that share a case ID.'))}
-    </div></div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;" id="case-table-slot"><span class="muted" style="padding:10px; display:block;">Loading cases\u2026</span></div></div>
   `;
-  $('#case-search').oninput = e=>{ state.caseSearch = e.target.value; renderCases(); };
+  let timer = null;
+  const draw = async ()=>{
+    const mine = ++CASES_SEQ;
+    const slot = $('#case-table-slot'); if(!slot) return;
+    let rows;
+    try{
+      const { data, error } = await sb.rpc('list_cases_for_staff', {p_status:state.caseFilter, p_search:state.caseSearch||null, p_limit:100, p_offset:0});
+      if(error) throw error;
+      rows = data||[];
+    }catch(err){
+      if(mine!==CASES_SEQ || state.view!=='cases') return;
+      slot.innerHTML = emptyState('Couldn\u2019t load cases', (err&&err.message)||'Please try again.');
+      return;
+    }
+    if(mine!==CASES_SEQ || state.view!=='cases') return;
+    const total = rows.length ? Number(rows[0].total_count) : 0;
+    slot.innerHTML = rows.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Type(s)</th><th>Title</th><th>Priority</th><th>Assignee</th><th>Status</th><th>Opened</th></tr></thead><tbody>
+      ${rows.map(c=>`<tr data-open-case-full="${esc(c.case_id)}">
+        <td class="caseid">${esc(c.case_id)}</td>
+        <td>${(c.types||[]).map(t=>`<span class="badge grey" style="margin-right:2px;">${esc(t)}</span>`).join('')}</td>
+        <td>${esc(c.title||'\u2014')}</td>
+        <td>${priorityBadge(c.priority||'Normal')}</td>
+        <td>${c.assignee_name ? `<span class="name-cell">${avatarHTML(c.assignee_avatar, c.assignee_name, 22)}<span>${esc(c.assignee_name)}</span></span>` : '<span class="muted">Unassigned</span>'}</td>
+        <td>${statusBadge(c.status)}</td>
+        <td class="muted">${c.opened_at?fmtDate(c.opened_at):'\u2014'}</td>
+      </tr>`).join('')}</tbody></table>${total>rows.length?`<p class="muted" style="padding:8px 4px;">Showing ${rows.length} of ${total} \u2014 search to narrow down.</p>`:''}`
+      : (state.caseFilter!=='All'||state.caseSearch ? emptyState('No matching cases','Try a different filter or search term.') : emptyState('No open cases', 'Cases appear here while a report, claim, request, grievance, appeal or restriction is open. Once resolved, the history stays in the Moderation Log.'));
+  };
+  draw();
+  $('#case-search').oninput = e=>{ state.caseSearch = e.target.value.trim(); clearTimeout(timer); timer = setTimeout(draw, 250); };
 }
-function renderCaseWorkspace(caseId){
-  const all = getCaseSummaries();
-  const c = all.find(x=>x.caseId===caseId);
-  if(!c){ toast('That case no longer exists.','error'); return; }
-  const notes = INTERNAL_NOTES[caseId] || [];
-  const entries = AUDIT_LOG.filter(l=>l.caseId===caseId).sort((a,b)=>new Date(a.at)-new Date(b.at));
-  const linkRows = [];
-  if(c.report) linkRows.push(['Report', c.report.reason, 'data-open-report', c.report.id]);
-  if(c.restriction) linkRows.push(['Restriction', c.restriction.type, 'data-open-restriction', c.restriction.id]);
-  if(c.appeal) linkRows.push(['Appeal', c.appeal.originalAction, 'data-open-appeal', c.appeal.id]);
-  if(c.copyright) linkRows.push(['Copyright claim', c.copyright.description, 'data-open-copyright', c.copyright.id]);
-  if(c.privacy) linkRows.push(['Privacy request', c.privacy.type, 'data-open-privacy', c.privacy.id]);
-  if(c.grievance) linkRows.push(['Grievance', c.grievance.against, 'data-open-grievance', c.grievance.id]);
-
+async function renderCaseWorkspace(caseId){
+  let c, staff = [];
+  try{
+    const [d, s] = await Promise.all([sb.rpc('get_case_detail', {p_case_id:caseId}), sb.rpc('list_staff')]);
+    if(d.error) throw d.error;
+    c = d.data;
+    staff = (s.data||[]).filter(r=>r.staff_role==='admin'||r.staff_role==='moderator');
+  }catch(err){ toast((err&&err.message)||'Could not load this case.','error'); return; }
+  if(!c){ toast('Could not load this case.','error'); return; }
+  const items = c.items||[], notes = c.notes||[], log = c.log||[];
+  const assignable = items.filter(i=>['Report','Copyright','Privacy','Grievance'].includes(i.kind) && i.bucket!=='Resolved');
+  const cur = c.assignee ? c.assignee.id : '';
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:19px;">Case ${esc(c.caseId)}</h2>
+    <h2 style="font-size:19px;">Case ${esc(c.case_id)}</h2>
     <div class="kv">
-      <b>Types</b><span>${c.types.map(t=>`<span class="badge grey" style="margin-right:2px;">${esc(t)}</span>`).join('')}</span>
-      <b>Title</b><span>${esc(c.title)}</span>
-      <b>Priority</b><span>${priorityBadge(c.priority)}</span>
+      <b>Types</b><span>${(c.types||[]).length ? c.types.map(t=>`<span class="badge grey" style="margin-right:2px;">${esc(t)}</span>`).join('') : '\u2014'}</span>
+      <b>Title</b><span>${esc(c.title||'\u2014')}</span>
+      <b>Priority</b><span>${priorityBadge(c.priority||'Normal')}</span>
       <b>Status</b><span>${statusBadge(c.status)}</span>
-      <b>Opened</b><span>${c.openedAt?fmtDate(c.openedAt):'\u2014'}</span>
+      <b>Opened</b><span>${c.opened_at?fmtDate(c.opened_at):'\u2014'}</span>
+      <b>Assigned to</b><span>${c.assignee ? `<span class="name-cell">${avatarHTML(c.assignee.avatar_url, c.assignee.name, 22)}<span>${esc(c.assignee.name)}</span></span>` : '<span class="muted">Unassigned</span>'}</span>
     </div>
-    ${can('cases.assign') ? `<div style="margin:12px 0;">
-      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Assigned moderator</b>
-      <select class="search-mini" style="width:100%;" id="case-assign-select">
-        <option value="">Unassigned</option>
-        ${MODERATORS.filter(m=>m.status==='active').map(m=>`<option value="${m.id}" ${c.assignedTo===m.id?'selected':''}>${esc(m.displayName)}</option>`).join('')}
-      </select>
+    ${c.status==='Resolved' && !items.length ? '<p class="muted" style="font-size:12px; margin-top:8px;">This case is resolved. Its history is below.</p>' : ''}
+    ${assignable.length && (can('cases.assign')||can('grievances.assign')) ? `<div style="margin:12px 0;">
+      <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">Assign to</b>
+      <div style="display:flex; gap:8px;">
+        <select class="search-mini" style="flex:1;" id="case-assign-select">
+          ${staff.map(m=>`<option value="${esc(m.user_id)}" ${cur===m.user_id?'selected':''}>${esc(m.display_name||m.username||'Unnamed')}${m.staff_role==='admin'?' (admin)':''}</option>`).join('')}
+        </select>
+        <button class="btn soft sm" id="case-assign-btn" type="button">Assign</button>
+      </div>
     </div>` : ''}
     <hr class="divider">
     <h4 style="font-size:13px; margin-bottom:8px;">Linked items</h4>
-    ${linkRows.length ? linkRows.map(([label,desc,attr,id])=>`
-      <div class="linked-item" ${attr}="${esc(id)}"><b>${esc(label)}</b><span class="muted">${esc(desc||'')}</span></div>
-    `).join('') : '<p class="muted" style="font-size:12px;">No linked items.</p>'}
+    ${items.length ? items.map(i=>`<div class="linked-item" data-open-linked="${esc(i.kind+':'+i.id)}" style="cursor:pointer;"><b>${esc(i.kind)}</b><span class="muted">${esc(i.title||'')} \u00b7 ${esc(i.bucket)}</span></div>`).join('') : '<p class="muted" style="font-size:12px;">No open items.</p>'}
     <hr class="divider">
     <h4 style="font-size:13px; margin-bottom:8px;">Case timeline</h4>
-    ${entries.length ? `<div class="timeline">${entries.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br><span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : '<p class="muted" style="font-size:12px;">No log entries for this case yet.</p>'}
+    ${log.length ? `<div class="timeline">${log.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body"><b>${esc(String(l.action||'').replace(/_/g,' '))}</b>${l.moderator_name?' by '+esc(l.moderator_name):''}<br><span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : '<p class="muted" style="font-size:12px;">No log entries for this case yet.</p>'}
     <hr class="divider">
     <h4 style="font-size:13px; margin-bottom:8px;">Internal notes <span class="muted" style="font-weight:500;">(staff only)</span></h4>
-    ${notes.map(n=>`<div class="note-item"><div class="who">${esc(n.author)} \u00b7 ${timeAgo(n.at)}</div>${esc(n.text)}</div>`).join('') || '<p class="muted" style="font-size:12px;">No internal notes yet.</p>'}
-    <div style="display:flex; gap:8px; margin-top:8px;">
-      <input class="search-mini" style="flex:1;" id="case-note-input" placeholder="Add an internal note…">
-      <button class="btn soft sm" id="case-add-note-btn">Add</button>
-    </div>
+    ${notes.map(n=>`<div class="note-item"><div class="who">${esc(n.author_name)} \u00b7 ${timeAgo(n.at)}</div>${esc(n.text)}</div>`).join('') || '<p class="muted" style="font-size:12px;">No internal notes yet.</p>'}
+    ${items.length || notes.length ? `<div style="display:flex; gap:8px; margin-top:8px;">
+      <input class="search-mini" style="flex:1;" id="case-note-input" maxlength="1000" placeholder="Add an internal note\u2026">
+      <button class="btn soft sm" id="case-add-note-btn" type="button">Add</button>
+    </div>` : ''}
   `);
-  const assignSel = $('#case-assign-select');
-  if(assignSel) assignSel.onchange = ()=>{
-    const modId = assignSel.value || null;
-    if(c.report) c.report.assignedTo = modId;
-    if(c.grievance) c.grievance.assignedTo = modId;
-    logAction({caseId, action:'Case reassigned', targetUserId:null, targetContentId:null, reason:modId?`Reassigned to ${modById(modId).displayName}`:'Unassigned', result:'Assignment updated'});
-    toast('Assignment updated.','success');
-    renderCaseWorkspace(caseId);
+  const ab = $('#case-assign-btn');
+  if(ab) ab.onclick = async ()=>{
+    const to = $('#case-assign-select').value; if(!to) return;
+    ab.disabled = true;
+    try{
+      for(const i of assignable){
+        const { error } = await sb.rpc('assign_case', {p_kind:i.kind.toLowerCase(), p_id:i.id, p_to:to});
+        if(error) throw error;
+      }
+      toast('Assignment updated.','success');
+      renderCaseWorkspace(caseId);
+      if(state.view==='cases') renderCases();
+    }catch(err){ ab.disabled = false; toast((err&&err.message)||'Could not assign this case.','error'); }
   };
-  $('#case-add-note-btn').onclick = ()=>{
-    const v = $('#case-note-input').value.trim();
-    if(!v) return;
-    addNote(caseId, currentModerator().displayName, v);
-    toast('Internal note added.','success');
-    renderCaseWorkspace(caseId);
+  const nb = $('#case-add-note-btn');
+  if(nb) nb.onclick = async ()=>{
+    const v = $('#case-note-input').value.trim(); if(!v) return;
+    nb.disabled = true;
+    try{
+      const { error } = await sb.rpc('add_case_note', {p_case_id:caseId, p_text:v});
+      if(error) throw error;
+      toast('Internal note added.','success');
+      renderCaseWorkspace(caseId);
+    }catch(err){ nb.disabled = false; toast((err&&err.message)||'Could not add the note.','error'); }
   };
 }
 
@@ -2508,35 +2560,65 @@ function renderRepeatOffenders(){
 /* ============================================================
    RENDER: ASSIGNMENTS (moderator workload)
    ============================================================ */
-function renderAssignments(){
+let ASSIGN_SEQ = 0;
+async function renderAssignments(){
   const root = $('#view-root');
-  const activeMods = MODERATORS.filter(m=>m.role==='moderator' && m.status==='active');
-  const unassignedReports = REPORTS.filter(r=>!r.assignedTo && (r.status==='New'||r.status==='Under Review')).length;
-  const unassignedGrievances = GRIEVANCES.filter(g=>!g.assignedTo && g.status!=='Resolved').length;
+  const mine = ++ASSIGN_SEQ;
+  root.innerHTML = skeletonStats() + `<div class="panel skel skel-card" style="height:200px;"></div>`;
+  let o;
+  try{
+    const { data, error } = await sb.rpc('get_assignment_overview');
+    if(error) throw error;
+    if(!data) throw new Error('Staff access required.');
+    o = data;
+  }catch(err){
+    if(mine!==ASSIGN_SEQ || state.view!=='assignments') return;
+    root.innerHTML = errorState('Couldn\u2019t load assignments', (err&&err.message)||'Please try again.', renderAssignments);
+    return;
+  }
+  if(mine!==ASSIGN_SEQ || state.view!=='assignments') return;
+  const staff = o.staff||[];
+  const unassigned = o.unassigned||[];
+  const KIND_LABEL = {report:'Report', grievance:'Grievance', copyright:'Copyright', privacy:'Privacy'};
   root.innerHTML = `
     <div class="stat-grid">
-      ${statCard('Unassigned reports', unassignedReports, 'waiting for a moderator', 'var(--orange)')}
-      ${statCard('Unassigned grievances', unassignedGrievances, 'waiting for a moderator', 'var(--gold)')}
-      ${statCard('Active moderators', activeMods.length, 'available for assignment', 'var(--mint)')}
-      ${statCard('Open cases', getCaseSummaries().filter(c=>c.status!=='Resolved').length, 'across all queues', 'var(--lavender)')}
+      ${statCard('Unassigned reports', o.unassigned_reports, 'waiting for a moderator', 'var(--orange)')}
+      ${statCard('Unassigned grievances', o.unassigned_grievances, 'waiting for a moderator', 'var(--gold)')}
+      ${statCard('Staff available', staff.length, 'admins and moderators', 'var(--mint)')}
+      ${statCard('Open cases', o.open_cases, 'across all queues', 'var(--lavender)')}
+    </div>
+    <div class="panel" style="padding:8px 12px; margin-bottom:14px;">
+      <div class="panel-head"><h3>Waiting for an owner</h3></div>
+      ${unassigned.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Type</th><th>Title</th><th>Priority</th><th>Assign to</th></tr></thead><tbody>
+        ${unassigned.map(u=>`<tr>
+          <td class="caseid"><span data-open-case-full="${esc(u.case_id)}" style="cursor:pointer; text-decoration:underline;">${esc(u.case_id)}</span></td>
+          <td><span class="badge grey">${esc(KIND_LABEL[u.kind]||u.kind)}</span></td>
+          <td>${esc(u.title||'\u2014')}</td>
+          <td>${u.priority?priorityBadge(u.priority):'<span class="muted">\u2014</span>'}</td>
+          <td><div style="display:flex; gap:6px;"><select class="search-mini asg-sel" style="min-width:140px;">${staff.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('')}</select>
+            <button class="btn soft sm" data-assign-kind="${esc(u.kind)}" data-assign-id="${esc(u.id)}" type="button">Assign</button></div></td>
+        </tr>`).join('')}</tbody></table>` : emptyState('Nothing waiting', 'Every open report, grievance, claim and request has an owner.')}
     </div>
     <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    <table class="dtable"><thead><tr><th>Moderator</th><th>Open reports</th><th>Open grievances</th><th>Active restrictions issued</th><th>Total workload</th></tr></thead><tbody>
-    ${activeMods.map(m=>{
-      const rep = REPORTS.filter(r=>r.assignedTo===m.id && (r.status==='New'||r.status==='Under Review')).length;
-      const gr = GRIEVANCES.filter(g=>g.assignedTo===m.id && g.status!=='Resolved').length;
-      const restr = RESTRICTIONS.filter(x=>x.moderatorId===m.id && x.status==='active').length;
-      return `<tr data-open-mod="${m.id}">
-        <td class="name-cell"><span class="mini-av">${esc(m.displayName[0])}</span><b>${esc(m.displayName)}</b></td>
-        <td class="muted">${rep}</td>
-        <td class="muted">${gr}</td>
-        <td class="muted">${restr}</td>
-        <td><span class="badge ${(rep+gr)>=3?'gold':'sky'}">${rep+gr}</span></td>
-      </tr>`;
-    }).join('')}
+    <table class="dtable"><thead><tr><th>Staff member</th><th>Open reports</th><th>Open grievances</th><th>Copyright</th><th>Privacy</th><th>Active restrictions issued</th><th>Total workload</th></tr></thead><tbody>
+    ${staff.map(m=>`<tr>
+        <td class="name-cell">${avatarHTML(m.avatar_url, m.name)}<span><b>${esc(m.name)}</b><br><span class="muted">${m.role==='admin'?'Admin':'Moderator'}</span></span></td>
+        <td class="muted">${m.open_reports}</td><td class="muted">${m.open_grievances}</td><td class="muted">${m.open_copyright}</td><td class="muted">${m.open_privacy}</td><td class="muted">${m.restrictions_issued}</td>
+        <td><span class="badge ${m.workload>=3?'gold':'sky'}">${m.workload}</span></td>
+      </tr>`).join('')}
     </tbody></table>
     </div></div>
   `;
+  $$('[data-assign-id]').forEach(btn=> btn.onclick = async ()=>{
+    const to = btn.closest('tr').querySelector('.asg-sel').value;
+    btn.disabled = true;
+    try{
+      const { error } = await sb.rpc('assign_case', {p_kind:btn.dataset.assignKind, p_id:btn.dataset.assignId, p_to:to});
+      if(error) throw error;
+      toast('Assigned.','success');
+      renderAssignments();
+    }catch(err){ btn.disabled = false; toast((err&&err.message)||'Could not assign this item.','error'); }
+  });
 }
 
 /* ============================================================
@@ -2803,6 +2885,8 @@ document.addEventListener('click', (e)=>{
 
   const openReport = e.target.closest('[data-open-report]');
   if(openReport){ renderReportDetail(openReport.dataset.openReport); return; }
+  const openLinkedEl = e.target.closest('[data-open-linked]');
+  if(openLinkedEl){ const [k,...rest] = openLinkedEl.dataset.openLinked.split(':'); openLinked(k, rest.join(':')); return; }
   const openUser = e.target.closest('[data-open-user]');
   if(openUser){ renderUserDetail(openUser.dataset.openUser); return; }
   const openContent = e.target.closest('[data-open-content]');
@@ -2920,10 +3004,9 @@ document.addEventListener('click', (e)=>{
     const kind = gsItem.dataset.gsOpen, id = gsItem.dataset.gsId;
     $('#gsearch-results').hidden = true; $('#gsearch-input').value='';
     if(kind==='user'){ goto('users'); renderUserDetail(id); }
-    else if(kind==='content'){ goto('content'); renderContentDetail(id); }
-    else if(kind==='report'){ goto('reports'); renderReportDetail(id); }
-    else if(kind==='case'){ if(can('cases.view')){ goto('cases'); renderCaseWorkspace(id); } else { goto('log'); renderCaseTimeline(id); } }
-    else if(kind==='mod'){ goto('moderators'); if(can('moderators.view')) renderModeratorActivity(id); }
+    else if(kind==='content'){ if(can('content.view')){ goto('content'); openContentByKey(id, gsItem.dataset.gsTitle); } else toast('You don\u2019t have access to Content.','error'); }
+    else if(kind==='case'){ if(can('cases.view')) goto('cases'); renderCaseWorkspace(id); }
+    else if(kind==='mod'){ if(can('moderators.view')) goto('moderators'); }
     return;
   }
 
@@ -3010,7 +3093,7 @@ async function bootWithAuth(){
     }
     state.currentModeratorId = 'me';
     state.role = role;
-    $('#preview-note').textContent = `Signed in as ${displayName} (${roleMeta(role).label}). Live sections: Overview, Reports, Content, Users, Restrictions, Appeals, Copyright, Privacy, Grievances, Moderators, Permissions, Policies, Settings and the logs. Sections not listed still show sample data and nothing there is saved.`;
+    $('#preview-note').textContent = `Signed in as ${displayName} (${roleMeta(role).label}). Live sections: Overview, Reports, Cases, Assignments, global search, Content, Users, Restrictions, Appeals, Copyright, Privacy, Grievances, Moderators, Permissions, Policies, Settings and the logs. Sections not listed still show sample data and nothing there is saved.`;
     sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') location.replace('/index.html'); });
     $('#gate-screen').remove();
     goto('overview');
@@ -3056,28 +3139,42 @@ function renderBulkBar(slotSel, list, idFn, kind){
     </div>` : '';
 }
 
-function renderCaseTimeline(caseId){
-  const entries = AUDIT_LOG.filter(l=>l.caseId===caseId).sort((a,b)=>new Date(a.at)-new Date(b.at));
-  openDrawer(`
-    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Case timeline</h2>
-    <div class="badge grey caseid" style="margin-bottom:14px;">${esc(caseId)}</div>
-    ${entries.length ? `<div class="timeline">${entries.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}</div><div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br><span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No entries', 'No log entries for this case yet.')}
-  `);
-}
+function renderCaseTimeline(caseId){ return renderCaseWorkspace(caseId); }
 
-function renderGlobalSearchResults(q){
+let GS_SEQ = 0;
+async function renderGlobalSearchResults(q){
   const box = $('#gsearch-results');
-  const res = runGlobalSearch(q);
+  q = (q||'').trim();
+  const mine = ++GS_SEQ;
+  if(q.length < 2){ box.hidden = true; return; }
+  let res;
+  try{
+    const { data, error } = await sb.rpc('staff_global_search', {p_q:q});
+    if(error) throw error;
+    res = data;
+  }catch(err){
+    if(mine!==GS_SEQ) return;
+    box.hidden = false;
+    box.innerHTML = `<div style="padding:14px; text-align:center; color:var(--ink-faint); font-size:12.5px;">Search isn\u2019t available right now.</div>`;
+    return;
+  }
+  if(mine!==GS_SEQ) return;
   if(!res){ box.hidden = true; return; }
   const groups = [];
-  if(res.users.length) groups.push(['Users', res.users.map(u=>`<div class="gsearch-item" data-gs-open="user" data-gs-id="${u.id}"><span class="mini-av">${esc(u.displayName[0])}</span><span><span class="t">${esc(u.displayName)}</span><br><span class="s">@${esc(u.username)}</span></span></div>`).join('')]);
-  if(res.content.length) groups.push(['Content', res.content.map(c=>`<div class="gsearch-item" data-gs-open="content" data-gs-id="${c.id}"><span>\uD83D\uDCC4</span><span><span class="t">${esc(c.title)}</span><br><span class="s">${esc(c.type)}</span></span></div>`).join('')]);
-  if(res.reports.length) groups.push(['Reports', res.reports.map(r=>`<div class="gsearch-item" data-gs-open="report" data-gs-id="${r.id}"><span>\uD83D\uDEA9</span><span><span class="t">${esc(r.caseId)}</span><br><span class="s">${esc(r.reason)}</span></span></div>`).join('')]);
-  if(res.cases.length) groups.push(['Case IDs', res.cases.map(c=>`<div class="gsearch-item" data-gs-open="case" data-gs-id="${c}"><span>\uD83D\uDDC2\uFE0F</span><span class="t caseid">${esc(c)}</span></div>`).join('')]);
-  if(res.mods.length) groups.push(['Moderators', res.mods.map(m=>`<div class="gsearch-item" data-gs-open="mod" data-gs-id="${m.id}"><span class="mini-av">${esc(m.displayName[0])}</span><span class="t">${esc(m.displayName)}</span></div>`).join('')]);
-  box.innerHTML = groups.length ? groups.map(([label,html])=>`<div class="gsearch-group-label">${label}</div>${html}`).join('') : `<div style="padding:14px; text-align:center; color:var(--ink-faint); font-size:12.5px;">No matches for "${esc(q)}"</div>`;
+  if((res.users||[]).length) groups.push(['Users', res.users.map(u=>`<div class="gsearch-item" data-gs-open="user" data-gs-id="${esc(u.id)}">${avatarHTML(u.avatar_url, u.display_name||u.username)}<span><span class="t">${esc(u.display_name||u.username||'Unnamed')}</span><br><span class="s">${u.username?'@'+esc(u.username):''}</span></span></div>`).join('')]);
+  if((res.content||[]).length) groups.push(['Content', res.content.map(c=>`<div class="gsearch-item" data-gs-open="content" data-gs-id="${esc(c.key)}" data-gs-title="${esc(c.title||'')}"><span>\uD83D\uDCC4</span><span><span class="t">${esc(c.title||'(untitled)')}</span><br><span class="s">${esc(c.category||'')}${c.username?' \u00b7 @'+esc(c.username):''}</span></span></div>`).join('')]);
+  if((res.cases||[]).length) groups.push(['Case IDs', res.cases.map(c=>`<div class="gsearch-item" data-gs-open="case" data-gs-id="${esc(c)}"><span>\uD83D\uDDC2\uFE0F</span><span class="t caseid">${esc(c)}</span></div>`).join('')]);
+  if((res.staff||[]).length) groups.push(['Staff', res.staff.map(m=>`<div class="gsearch-item" data-gs-open="mod" data-gs-id="${esc(m.id)}">${avatarHTML(m.avatar_url, m.display_name||m.username)}<span class="t">${esc(m.display_name||m.username||'Unnamed')}</span></div>`).join('')]);
   box.hidden = false;
+  box.innerHTML = groups.length ? groups.map(([label,html])=>`<div class="gsearch-group-label">${label}</div>${html}`).join('') : `<div style="padding:14px; text-align:center; color:var(--ink-faint); font-size:12.5px;">No matches for \u201c${esc(q)}\u201d</div>`;
+}
+async function openContentByKey(key, title){
+  try{
+    const { data, error } = await sb.rpc('list_content_for_staff', {p_filter:'all', p_search:title||null, p_limit:50, p_offset:0});
+    if(error) throw error;
+    STAFF_CACHE.content = data||[];
+  }catch(err){ toast((err&&err.message)||'Could not open that Work.','error'); return; }
+  renderContentDetail(key);
 }
 
 function renderModeratorActivity(modId){
