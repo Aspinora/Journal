@@ -368,6 +368,17 @@ const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
 let sb = null;
 let STAFF_ROWS = [];
+let STAFF_COUNTS = {};
+function sc(k){ return Number(STAFF_COUNTS[k])||0; }
+let countsTimer = null;
+async function refreshStaffCounts(){
+  if(typeof sb==='undefined' || !sb) return;
+  try{
+    const { data } = await sb.rpc('get_staff_overview');
+    if(data){ STAFF_COUNTS = data; renderSidebar(); }
+  }catch(e){}
+}
+function refreshStaffCountsSoon(){ clearTimeout(countsTimer); countsTimer = setTimeout(refreshStaffCounts, 700); }
 let STAFF_CACHE = {}; // live rows fetched per view (reports/copyright/privacy/grievances/restrictions/appeals), keyed for detail lookups
 
 const $ = (s,r)=> (r||document).querySelector(s);
@@ -727,21 +738,21 @@ const ROLE_PREVIEW_MOD = {admin:'m0', moderator:'m2'};
 const NAV_GROUPS = [
   {label:'Operations', items:[
     {id:'overview', label:'Overview', icon:'\u25A6', perm:null},
-    {id:'reports', label:'Reports', icon:'\u2691', perm:'reports.view', count:()=>REPORTS.filter(r=>r.status==='New').length},
+    {id:'reports', label:'Reports', icon:'\u2691', perm:'reports.view', count:()=>sc('new_reports')},
     {id:'cases', label:'Cases', icon:'\uD83D\uDDC3\uFE0F', perm:'cases.view'},
   ]},
   {label:'Enforcement', items:[
     {id:'content', label:'Content', icon:'\u25A4', perm:'content.view'},
     {id:'users', label:'Users', icon:'\u25CB', perm:'users.view'},
     {id:'restrictions', label:'Restrictions', icon:'\u26D4', perm:'users.view'},
-    {id:'appeals', label:'Appeals', icon:'\u21BA', perm:'appeals.view', count:()=>APPEALS.filter(a=>a.status==='Pending').length},
+    {id:'appeals', label:'Appeals', icon:'\u21BA', perm:'appeals.view', count:()=>sc('new_appeals')},
   ]},
   {label:'Legal & Rights', items:[
-    {id:'copyright', label:'Copyright & Takedowns', icon:'\u00A9', perm:'copyright.view'},
-    {id:'privacy', label:'Privacy Requests', icon:'\uD83D\uDD12', perm:'copyright.view'},
+    {id:'copyright', label:'Copyright & Takedowns', icon:'\u00A9', perm:'copyright.view', count:()=>sc('new_copyright')},
+    {id:'privacy', label:'Privacy Requests', icon:'\uD83D\uDD12', perm:'copyright.view', count:()=>sc('new_privacy')},
   ]},
   {label:'Grievances', items:[
-    {id:'grievances', label:'Grievance Queue', icon:'\uD83D\uDCE9', perm:'grievances.view'},
+    {id:'grievances', label:'Grievance Queue', icon:'\uD83D\uDCE9', perm:'grievances.view', count:()=>sc('new_grievances')},
   ]},
   {label:'Communications', items:[
     {id:'notifications', label:'Notifications', icon:'\uD83D\uDD14', perm:'notifications.send'},
@@ -779,6 +790,7 @@ function toast(msg, kind){
   el.className = 'toast'+(kind?(' '+kind):'');
   el.textContent = msg;
   stack.appendChild(el);
+  if(kind==='success') refreshStaffCountsSoon();
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 2600);
 }
 
@@ -963,65 +975,63 @@ function statCard(label, value, sub, color){
 }
 function skeletonStats(){ return `<div class="stat-grid">${Array(4).fill('<div class="stat-card skel skel-card"></div>').join('')}</div>`; }
 
-function renderOverview(){
+let OVERVIEW_SEQ = 0;
+async function renderOverview(){
   const root = $('#view-root');
-  if(!state.overviewLoaded){
-    root.innerHTML = skeletonStats() + `<div class="panel skel skel-card" style="height:220px;"></div>`;
-    setTimeout(()=>{ state.overviewLoaded = true; renderOverview(); }, 550);
+  const mine = ++OVERVIEW_SEQ;
+  root.innerHTML = skeletonStats() + `<div class="panel skel skel-card" style="height:220px;"></div>`;
+  let o;
+  try{
+    const { data, error } = await sb.rpc('get_staff_overview');
+    if(error) throw error;
+    if(!data) throw new Error('Staff access required.');
+    o = data;
+  }catch(err){
+    if(mine!==OVERVIEW_SEQ || state.view!=='overview') return;
+    root.innerHTML = errorState('Couldn\u2019t load dashboard data', (err&&err.message)||'Please try again.', renderOverview);
     return;
   }
-
-  const pending = REPORTS.filter(r=>r.status==='New'||r.status==='Under Review').length;
-  const highPriority = REPORTS.filter(r=>(r.priority==='High'||r.priority==='Urgent') && r.status!=='Dismissed' && r.status!=='Action Taken').length;
-  const activeRestr = RESTRICTIONS.filter(x=>x.status==='active').length;
-  const expiringSoon = RESTRICTIONS.filter(x=>x.status==='active' && x.expiry && (new Date(x.expiry)-Date.now()) < 3*86400000).length;
-  const pendingAppeals = APPEALS.filter(a=>a.status==='Pending'||a.status==='Under Review').length;
-  const removedContent = CONTENT.filter(c=>c.status==='removed').length;
-  const recentActions = AUDIT_LOG.slice(0,6);
-  const recentReports = [...REPORTS].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,5);
-
+  if(mine!==OVERVIEW_SEQ || state.view!=='overview') return;
+  STAFF_COUNTS = o;
+  renderSidebar();
+  const recentReports = o.recent_reports || [];
+  const recentActions = o.recent_actions || [];
+  const top = o.top_category;
   root.innerHTML = `
     <div class="stat-grid">
-      ${statCard('Pending reports', pending, `${REPORTS.filter(r=>r.status==='New').length} unassigned`, 'var(--orange)')}
-      ${statCard('High priority', highPriority, 'needs attention', 'var(--red)')}
-      ${statCard('Active restrictions', activeRestr, `${expiringSoon} expiring within 3 days`, 'var(--lavender)')}
-      ${statCard('Pending appeals', pendingAppeals, `${APPEALS.filter(a=>a.status==='Pending').length} awaiting first review`, 'var(--mint)')}
+      ${statCard('Pending reports', o.pending_reports, `${o.unassigned_reports} unassigned`, 'var(--orange)')}
+      ${statCard('High priority', o.high_priority, 'needs attention', 'var(--red)')}
+      ${statCard('Active restrictions', o.active_restrictions, `${o.expiring_soon} expiring within 3 days`, 'var(--lavender)')}
+      ${statCard('Pending appeals', o.pending_appeals, `${o.new_appeals} awaiting first review`, 'var(--mint)')}
     </div>
     <div class="two-col">
       <div class="panel">
         <div class="panel-head"><h3>Recent reports</h3><button class="btn ghost sm" data-nav="reports">View all</button></div>
         ${recentReports.length ? `<table class="dtable"><thead><tr><th>Case</th><th>Content</th><th>Reason</th><th>Priority</th><th>Status</th></tr></thead><tbody>
-          ${recentReports.map(r=>`<tr data-open-report="${r.id}"><td class="caseid">${r.caseId}</td><td>${esc(contentById(r.contentId).title)}</td><td>${esc(r.reason)}</td><td>${priorityBadge(r.priority)}</td><td>${statusBadge(r.status)}</td></tr>`).join('')}
+          ${recentReports.map(r=>`<tr data-nav="reports" style="cursor:pointer;"><td class="caseid">${esc(r.case_id||'\u2014')}</td><td>${esc(r.target_title||'(untitled)')}</td><td>${esc(r.reason||'')}</td><td>${priorityBadge(r.priority||'Normal')}</td><td>${statusBadge(r.status)}</td></tr>`).join('')}
         </tbody></table>` : emptyState('No reports yet', 'New reports from readers will show up here.')}
       </div>
       <div class="panel">
         <div class="panel-head"><h3>Recent moderation actions</h3><button class="btn ghost sm" data-nav="log">Full log</button></div>
         ${recentActions.length ? `<div class="timeline">${recentActions.map(l=>`
-          <div class="tl-item"><div class="tl-time">${timeAgo(l.at)} \u2014 ${esc(modById(l.moderatorId).displayName)}</div><div class="tl-body"><b>${esc(l.action)}</b> \u00b7 ${esc(l.caseId)} <span class="muted">\u2014 ${esc(l.reason||'')}</span></div></div>
+          <div class="tl-item"><div class="tl-time">${timeAgo(l.at)}${l.moderator_name?' \u2014 '+esc(l.moderator_name):''}</div><div class="tl-body"><b>${esc(String(l.action||'').replace(/_/g,' '))}</b>${l.case_id?' \u00b7 '+esc(l.case_id):''} <span class="muted">\u2014 ${esc(l.reason||'')}</span></div></div>
         `).join('')}</div>` : emptyState('No actions yet', 'Moderation actions will appear here as they happen.')}
       </div>
     </div>
     <div class="two-col">
       <div class="panel">
-        <div class="panel-head"><h3>Content removal statistics</h3></div>
-        <div class="kv"><b>Removed</b><span>${removedContent} of ${CONTENT.length} tracked items</span>
-        <b>Under review</b><span>${CONTENT.filter(c=>c.status==='under_review').length} items</span>
-        <b>Most-reported category</b><span>${topReportedCategory()}</span></div>
+        <div class="panel-head"><h3>Content statistics</h3></div>
+        <div class="kv"><b>Removed</b><span>${o.content_removed} of ${o.content_total} published Works</span>
+        <b>Under review</b><span>${o.content_under_review} Works</span>
+        <b>Most-reported category</b><span>${top ? esc(top.category)+' ('+top.reports+' report'+(top.reports===1?'':'s')+')' : '\u2014'}</span></div>
       </div>
       <div class="panel">
         <div class="panel-head"><h3>User restriction statistics</h3></div>
-        <div class="kv"><b>Active</b><span>${RESTRICTIONS.filter(x=>x.status==='active').length}</span>
-        <b>Expired</b><span>${RESTRICTIONS.filter(x=>x.status==='expired').length}</span>
-        <b>Cancelled</b><span>${RESTRICTIONS.filter(x=>x.status==='cancelled').length}</span></div>
+        <div class="kv"><b>Active</b><span>${o.active_restrictions}</span>
+        <b>Expired</b><span>${o.expired_restrictions}</span></div>
       </div>
     </div>
-    <div style="text-align:center; margin-top:6px;">
-      <button class="btn ghost sm" id="demo-error-btn" style="opacity:.55;">Simulate error state (demo only)</button>
-    </div>
   `;
-  $('#demo-error-btn').onclick = ()=>{
-    root.innerHTML = errorState('Couldn\u2019t load dashboard data', 'This is a simulated failure for demo purposes.', ()=>{ state.overviewLoaded=false; renderOverview(); });
-  };
 }
 function topReportedCategory(){
   const counts = {};
@@ -2696,6 +2706,7 @@ function goto(view){
   state.bulkSelection.clear();
   $('#view-title').textContent = VIEW_TITLES[view] || view;
   renderSidebar();
+  if(view!=='overview') refreshStaffCounts();
   (VIEW_RENDERERS[view]||renderOverview)();
   $('#sidebar').classList.remove('open');
 }
@@ -2926,7 +2937,7 @@ async function bootWithAuth(){
     });
     state.currentModeratorId = 'me';
     state.role = role;
-    $('#preview-note').textContent = `Signed in as ${displayName} (${roleMeta(role).label}). The Moderators page is live \u2014 every other section still shows sample data and nothing there is saved.`;
+    $('#preview-note').textContent = `Signed in as ${displayName} (${roleMeta(role).label}). Live sections: Overview, Reports, Content, Users, Restrictions, Appeals, Copyright, Privacy, Grievances, Moderators and the logs. Sections not listed still show sample data and nothing there is saved.`;
     sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') location.replace('/index.html'); });
     $('#gate-screen').remove();
     goto('overview');
