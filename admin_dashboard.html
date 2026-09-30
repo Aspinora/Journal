@@ -263,6 +263,12 @@ textarea::placeholder{ color:var(--ink-faint); }
 .expiring{ color:var(--red); font-weight:700; }
 
 /* ---------- avatar ---------- */
+.mini-av{ position:relative; overflow:hidden; }
+.mini-av img, .sb-profile .av img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.sb-profile .av{ position:relative; overflow:hidden; }
+#refresh-btn .rf-ic{ display:inline-block; }
+#refresh-btn.spinning .rf-ic{ animation:rf-spin .7s linear infinite; }
+@keyframes rf-spin{ to{ transform:rotate(360deg); } }
 .mini-av{ width:28px;height:28px;border-radius:50%; background:var(--sky-soft); color:var(--sky); display:inline-flex; align-items:center; justify-content:center; font-weight:800; font-size:12px; flex:none; }
 .name-cell{ display:flex; align-items:center; gap:8px; }
 
@@ -341,7 +347,7 @@ textarea::placeholder{ color:var(--ink-faint); }
       </div>
       <div class="spacer"></div>
       <div class="topbar-right">
-        <a class="btn ghost sm" href="/userpostlogin.html">← Journals</a> <span class="badge ink" id="topbar-role-badge">ADMIN</span>
+        <button class="btn ghost sm" id="refresh-btn" type="button" title="Refresh this page"><span class="rf-ic">↻</span> Refresh</button> <a class="btn ghost sm" href="/userpostlogin.html">← Journals</a> <span class="badge ink" id="topbar-role-badge">ADMIN</span>
       </div>
     </div>
     <div class="view-root" id="view-root"></div>
@@ -960,7 +966,7 @@ function renderSidebar(){
 
   const me = currentModerator();
   $('#sb-profile').innerHTML = `
-    <div class="av">${esc(me.displayName.split(' ').map(s=>s[0]).join(''))}</div>
+    <div class="av">${esc(me.displayName.split(' ').map(s=>s[0]).join(''))}${me.avatarUrl && /^https:\/\//i.test(me.avatarUrl)?`<img src="${esc(me.avatarUrl)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</div>
     <div class="meta"><b>${esc(me.displayName)}</b><span>${esc(roleMeta(state.role).label)}</span></div>
   `;
   $('#topbar-role-badge').textContent = roleMeta(state.role).short.toUpperCase();
@@ -1057,6 +1063,12 @@ function errorState(title, sub, retry){
 function priorityBadge(p){
   const map = {Urgent:'red', High:'gold', Normal:'grey'};
   return `<span class="badge ${map[p]||'grey'}">${esc(p)}</span>`;
+}
+function avatarHTML(url, name, size){
+  const ch = ((String(name||'?').trim()[0])||'?').toUpperCase();
+  const st = size ? ` style="width:${size}px; height:${size}px; font-size:${Math.round(size*0.4)}px;"` : '';
+  const ok = typeof url==='string' && /^https:\/\//i.test(url);
+  return `<span class="mini-av"${st}>${esc(ch)}${ok?`<img src="${esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</span>`;
 }
 function statusBadge(s){
   const map = {New:'orange', 'Under Review':'sky', 'Action Taken':'mint', Dismissed:'grey',
@@ -1221,6 +1233,8 @@ async function loadCaseNotes(caseId){
   }catch(err){ list.textContent = 'Couldn\u2019t load notes.'; }
 }
 async function openRestrictionModalForUser({userId, caseId, defaultScope, onDone}){
+  if(!STAFF_CACHE.settings){ try{ const sr = await sb.rpc('get_settings'); if(sr.data) STAFF_CACHE.settings = sr.data; }catch(e){} }
+  const defDays = Math.max(1, parseInt((STAFF_CACHE.settings||{}).defaultRestrictionDays,10) || 14);
   let brief = null;
   try{ const { data } = await sb.rpc('get_user_brief', {p_user:userId}); brief = (data&&data[0])||null; }catch(e){}
   const label = brief ? '@'+brief.username : 'this user';
@@ -1235,7 +1249,7 @@ async function openRestrictionModalForUser({userId, caseId, defaultScope, onDone
     <div class="duration-row" id="duration-row">
       ${DURATION_TYPES.map((d,i)=>`<label class="radio-pill"><input type="radio" name="duration-type" value="${d.id}" ${i===0?'checked':''}>${esc(d.label)}</label>`).join('')}
     </div>
-    <input type="number" min="1" value="14" id="restrict-days" class="search-mini" style="width:100%; margin-bottom:10px;" placeholder="Number of days">
+    <input type="number" min="1" value="${defDays}" id="restrict-days" class="search-mini" style="width:100%; margin-bottom:10px;" placeholder="Number of days">
     <textarea id="reason-input" placeholder="Reason for this action (required, visible in the moderation log)\u2026"></textarea>
     <div id="reason-err" style="color:var(--red); font-size:11.5px; margin-top:4px; display:none;">A reason is required before you can confirm.</div>
     <div class="modal-actions">
@@ -1299,7 +1313,7 @@ function renderUsers(){
     const total = rows.length ? Number(rows[0].total_count) : 0;
     slot.innerHTML = rows.length ? `<table class="dtable"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Works</th><th>Reports</th><th>Active restrictions</th></tr></thead><tbody>
       ${rows.map(u=>`<tr data-open-user="${esc(u.id)}">
-          <td class="name-cell"><span class="mini-av">${esc(((u.display_name||u.username||'?')[0]||'?').toUpperCase())}</span><span><b>${esc(u.display_name||u.username||'Unnamed')}</b><br><span class="muted">${u.username?'@'+esc(u.username):'no username yet'}</span></span></td>
+          <td class="name-cell">${avatarHTML(u.avatar_url, u.display_name||u.username)}<span><b>${esc(u.display_name||u.username||'Unnamed')}</b><br><span class="muted">${u.username?'@'+esc(u.username):'no username yet'}</span></span></td>
           <td>${u.role==='member' ? '<span class="muted">Member</span>' : `<span class="badge ${u.role==='admin'?'ink':'sky'}">${esc(u.role.charAt(0).toUpperCase()+u.role.slice(1))}</span>`}</td>
           <td>${statusBadge(u.status)}</td>
           <td class="muted">${fmtDate(u.created_at)}</td>
@@ -1334,7 +1348,7 @@ async function renderUserDetail(userId){
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc((nameLabel[0]||'?').toUpperCase())}</span>
+      ${avatarHTML(u.avatar_url, nameLabel, 44)}
       <div><h2 style="font-size:18px;">${esc(nameLabel)}</h2><span class="muted">${u.username?'@'+esc(u.username):'no username yet'}</span></div>
     </div>
     <div class="kv">
@@ -1791,7 +1805,7 @@ async function renderModerators(){
         else if(iAmAdmin && r.staff_role==='moderator') action = `<button class="btn ghost sm" data-staff-act="revoke" data-user-id="${esc(r.user_id)}" data-user-name="@${esc(r.username||name)}" data-kind="remove">Remove</button>`;
         else if(iAmAdmin && pending) action = `<button class="btn ghost sm" data-staff-act="revoke" data-user-id="${esc(r.user_id)}" data-user-name="@${esc(r.username||name)}" data-kind="cancel">Cancel invite</button>`;
         return `<tr>
-          <td class="name-cell"><span class="mini-av">${esc(name[0].toUpperCase())}</span><span><b>${esc(name)}</b><br><span class="muted">@${esc(r.username||'')}</span></span></td>
+          <td class="name-cell">${avatarHTML(r.avatar_url, name)}<span><b>${esc(name)}</b><br><span class="muted">@${esc(r.username||'')}</span></span></td>
           <td>${pending ? '<span class="badge orange">Invited</span>' : roleBadge({role:r.staff_role})}</td>
           <td>${pending ? statusBadge('Pending') : statusBadge('Active')}</td>
           <td class="muted">${since ? fmtDate(since) : '\u2014'}</td>
@@ -2528,32 +2542,54 @@ function renderAssignments(){
 /* ============================================================
    RENDER: PERMISSIONS (Admin only — granular per-moderator editing)
    ============================================================ */
-function renderPermissions(){
+let PERM_SEQ = 0;
+async function renderPermissions(){
   const root = $('#view-root');
   if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'Only Admins can view or edit moderator permissions.'); return; }
-  const mods = MODERATORS.filter(m=>m.role==='moderator');
+  const mine = ++PERM_SEQ;
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading permissions\u2026</span></div>`;
+  let staff, permRows;
+  try{
+    const [a, b] = await Promise.all([sb.rpc('list_staff'), sb.rpc('list_staff_permissions')]);
+    if(a.error) throw a.error;
+    if(b.error) throw b.error;
+    staff = (a.data||[]).filter(r=>r.staff_role==='moderator');
+    permRows = b.data||[];
+  }catch(err){
+    if(mine!==PERM_SEQ || state.view!=='permissions') return;
+    root.innerHTML = emptyState('Couldn\u2019t load permissions', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(mine!==PERM_SEQ || state.view!=='permissions') return;
+  const map = {}; permRows.forEach(r=>{ map[r.user_id] = r.permissions||[]; });
+  STAFF_CACHE.permStaff = staff; STAFF_CACHE.permMap = map;
   root.innerHTML = `
-    <p class="sub" style="margin-bottom:14px;">Every moderator gets the full permission set by default. Revoke individual permissions per person here \u2014 nothing here is enforced server-side yet (see the security note at the top of this file once Supabase is wired up).</p>
+    <p class="sub" style="margin-bottom:14px;">Every moderator starts with the full permission set. Untick anything a moderator shouldn\u2019t be able to do. Actions (removing content, restricting users, resolving cases and so on) are enforced on the server, so changes take effect on their next action. Section \u201cview\u201d permissions currently hide the page in the dashboard but don\u2019t block direct data reads.</p>
     <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    <table class="dtable"><thead><tr><th>Moderator</th><th>Status</th><th>Permissions granted</th><th></th></tr></thead><tbody>
-    ${mods.map(m=>`<tr>
-      <td class="name-cell"><span class="mini-av">${esc(m.displayName[0])}</span><b>${esc(m.displayName)}</b></td>
-      <td>${statusBadge(m.status)}</td>
-      <td class="muted">${(m.permissions||[]).length} of ${PERMISSIONS.length}</td>
-      <td><button class="btn ghost sm" data-edit-perms="${m.id}">Edit permissions</button></td>
-    </tr>`).join('')}
-    </tbody></table>
+    ${staff.length ? `<table class="dtable"><thead><tr><th>Moderator</th><th>Permissions granted</th><th></th></tr></thead><tbody>
+    ${staff.map(m=>{
+      const name = m.display_name || m.username || 'Unnamed';
+      const custom = Object.prototype.hasOwnProperty.call(map, m.user_id);
+      return `<tr>
+        <td class="name-cell">${avatarHTML(m.avatar_url, name)}<span><b>${esc(name)}</b><br><span class="muted">@${esc(m.username||'')}</span></span></td>
+        <td class="muted">${custom ? map[m.user_id].length+' of '+PERMISSIONS.length : 'All ('+PERMISSIONS.length+') \u00b7 default'}</td>
+        <td><button class="btn ghost sm" data-edit-perms="${esc(m.user_id)}">Edit permissions</button></td>
+      </tr>`;}).join('')}
+    </tbody></table>` : emptyState('No moderators yet', 'Add a moderator from the Moderators page, then manage what they can do here.')}
     </div></div>
   `;
 }
-function renderPermissionsEditor(modId){
-  const m = modById(modId);
+function renderPermissionsEditor(userId){
+  const m = (STAFF_CACHE.permStaff||[]).find(x=>x.user_id===userId);
   if(!m) return;
-  const perms = new Set(m.permissions||[]);
+  const map = STAFF_CACHE.permMap||{};
+  const perms = new Set(Object.prototype.hasOwnProperty.call(map,userId) ? map[userId] : PERMISSIONS);
+  const name = m.display_name || m.username || 'Unnamed';
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">Permissions \u2014 ${esc(m.displayName)}</h2>
-    <p class="sub" style="margin-bottom:12px;">Uncheck anything this moderator shouldn\u2019t have access to.</p>
+    <h2 style="font-size:18px;">Permissions \u2014 ${esc(name)}</h2>
+    <p class="sub" style="margin-bottom:8px;">Untick anything this moderator shouldn\u2019t have access to.</p>
+    <div style="display:flex; gap:8px; margin-bottom:12px;"><button class="btn ghost sm" id="perm-all-btn" type="button">Select all</button><button class="btn ghost sm" id="perm-none-btn" type="button">Clear all</button></div>
     ${PERMISSION_GROUPS.map(g=>`
       <div style="margin-bottom:14px;">
         <b style="font-size:11.5px; text-transform:uppercase; color:var(--ink-faint); display:block; margin-bottom:6px;">${esc(g.label)}</b>
@@ -2564,13 +2600,19 @@ function renderPermissionsEditor(modId){
       <button class="btn primary sm" id="save-perms-btn">Save permissions</button>
     </div>
   `);
-  $('#save-perms-btn').onclick = ()=>{
+  $('#perm-all-btn').onclick = ()=> $$('.perm-check').forEach(c=>c.checked=true);
+  $('#perm-none-btn').onclick = ()=> $$('.perm-check').forEach(c=>c.checked=false);
+  $('#save-perms-btn').onclick = async ()=>{
+    const btn = $('#save-perms-btn');
     const checked = $$('.perm-check').filter(c=>c.checked).map(c=>c.value);
-    m.permissions = checked;
-    SYSTEM_AUDIT_LOG.unshift({id:'sa'+(SYSTEM_AUDIT_LOG.length+1), at:new Date().toISOString(), actorId:state.currentModeratorId, event:'Permission changed', detail:`Updated permissions for ${m.displayName} (${checked.length} of ${PERMISSIONS.length} granted).`, severity:'info'});
-    toast('Permissions updated.','success');
-    closeDrawer();
-    if(state.view==='permissions') renderPermissions();
+    btn.disabled = true;
+    try{
+      const { error } = await sb.rpc('set_staff_permissions', {p_user:userId, p_permissions:checked});
+      if(error) throw error;
+      toast('Permissions updated.','success');
+      closeDrawer();
+      if(state.view==='permissions') renderPermissions();
+    }catch(err){ btn.disabled = false; toast((err&&err.message)||'Could not save permissions.','error'); }
   };
 }
 
@@ -2622,58 +2664,83 @@ async function renderSystemAudit(){
 /* ============================================================
    RENDER: POLICIES
    ============================================================ */
-function renderPolicies(){
+let POLICY_SEQ = 0;
+async function renderPolicies(){
   const root = $('#view-root');
+  const mine = ++POLICY_SEQ;
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading policies\u2026</span></div>`;
+  let rows;
+  try{
+    const { data, error } = await sb.rpc('list_policies');
+    if(error) throw error;
+    rows = data||[];
+  }catch(err){
+    if(mine!==POLICY_SEQ || state.view!=='policies') return;
+    root.innerHTML = emptyState('Couldn\u2019t load policies', (err&&err.message)||'Please try again.');
+    return;
+  }
+  if(mine!==POLICY_SEQ || state.view!=='policies') return;
+  STAFF_CACHE.policies = rows;
   root.innerHTML = `
     <div class="table-scroll"><div class="panel" style="padding:8px 12px;">
-    <table class="dtable"><thead><tr><th>Policy</th><th>Category</th><th>Current version</th><th>Last updated</th></tr></thead><tbody>
-    ${POLICIES.map(p=>`<tr data-open-policy="${p.id}"><td><b>${esc(p.title)}</b></td><td class="muted">${esc(p.category)}</td><td><span class="badge grey">${esc(p.currentVersion)}</span></td><td class="muted">${esc(p.lastUpdated)}</td></tr>`).join('')}
-    </tbody></table>
+    ${rows.length ? `<table class="dtable"><thead><tr><th>Policy</th><th>Category</th><th>Current version</th><th>Last updated</th></tr></thead><tbody>
+    ${rows.map(p=>`<tr data-open-policy="${esc(p.id)}"><td><b>${esc(p.title)}</b></td><td class="muted">${esc(p.category||'')}</td><td><span class="badge grey">${esc(p.current_version||'\u2014')}</span></td><td class="muted">${p.last_updated?fmtDate(p.last_updated):'\u2014'}</td></tr>`).join('')}
+    </tbody></table>` : emptyState('No policies', 'Published policies will show up here.')}
     </div></div>
   `;
 }
-function renderPolicyDetail(id){
-  const p = policyById(id);
+async function renderPolicyDetail(id){
+  const p = (STAFF_CACHE.policies||[]).find(x=>x.id===id);
   if(!p) return;
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
     <h2 style="font-size:18px;">${esc(p.title)}</h2>
     <div class="kv">
-      <b>Category</b><span>${esc(p.category)}</span>
-      <b>Current version</b><span>${esc(p.currentVersion)}</span>
-      <b>Last updated</b><span>${esc(p.lastUpdated)} by ${esc(modById(p.updatedBy).displayName)}</span>
+      <b>Category</b><span>${esc(p.category||'')}</span>
+      <b>Current version</b><span>${esc(p.current_version||'\u2014')}</span>
+      <b>Last updated</b><span>${p.last_updated?fmtDate(p.last_updated):'\u2014'}</span>
     </div>
-    <div class="content-preview-box">${esc(p.body)}</div>
+    <div class="content-preview-box" style="white-space:pre-wrap;">${esc(p.body||'')}</div>
     <hr class="divider">
     <h4 style="font-size:13px; margin-bottom:8px;">Version history</h4>
-    <div class="timeline">${p.versions.map(v=>`<div class="tl-item"><div class="tl-time">${esc(v.date)}</div><div class="tl-body"><b>${esc(v.version)}</b><br><span class="muted">${esc(v.summary)}</span></div></div>`).join('')}</div>
+    <div id="policy-versions-slot"><span class="muted">Loading\u2026</span></div>
     ${isAdmin() ? `<hr class="divider"><button class="btn primary sm" id="new-policy-version-btn">Publish new version</button>` : ''}
   `);
   const btn = $('#new-policy-version-btn');
   if(btn) btn.onclick = ()=>{
     openModal(`
-      <h3>Publish a new version of "${esc(p.title)}"</h3>
+      <h3>Publish a new version of \u201c${esc(p.title)}\u201d</h3>
       <label class="field-label">Version label</label>
       <input class="search-mini" style="width:100%; margin-bottom:8px;" id="pv-version" placeholder="e.g. v3.3">
-      <label class="field-label">Summary of changes</label>
+      <label class="field-label">Policy text</label>
+      <textarea id="pv-body" style="min-height:160px;">${esc(p.body||'')}</textarea>
+      <label class="field-label" style="margin-top:8px;">Summary of changes</label>
       <textarea id="pv-summary" placeholder="What changed in this version\u2026"></textarea>
       <div class="modal-actions">
         <button class="btn ghost sm" data-action="close-modal">Cancel</button>
         <button class="btn primary sm" id="pv-save-btn">Publish</button>
       </div>
     `);
-    $('#pv-save-btn').onclick = ()=>{
-      const version = $('#pv-version').value.trim(), summary = $('#pv-summary').value.trim();
-      if(!version || !summary){ toast('Version and summary are required.','error'); return; }
-      const date = new Date().toISOString().slice(0,10);
-      p.versions.unshift({version, date, summary});
-      p.currentVersion = version; p.lastUpdated = date; p.updatedBy = state.currentModeratorId;
-      toast('New policy version published.','success');
-      closeModal();
-      renderPolicyDetail(id);
-      if(state.view==='policies') renderPolicies();
+    $('#pv-save-btn').onclick = async ()=>{
+      const version = $('#pv-version').value.trim(), summary = $('#pv-summary').value.trim(), body = $('#pv-body').value.trim();
+      if(!version || !summary || !body){ toast('Version, policy text and summary are all required.','error'); return; }
+      const save = $('#pv-save-btn'); save.disabled = true;
+      try{
+        const { error } = await sb.rpc('save_policy', {p_id:id, p_body:body, p_version:version, p_summary:summary});
+        if(error) throw error;
+        toast('New policy version published.','success');
+        closeModal();
+        await renderPolicies();
+        renderPolicyDetail(id);
+      }catch(err){ save.disabled = false; toast((err&&err.message)||'Could not publish this version.','error'); }
     };
   };
+  let vers = null;
+  try{ const { data, error } = await sb.rpc('list_policy_versions', {p_policy_id:id}); if(error) throw error; vers = data||[]; }catch(e){}
+  const slot = $('#policy-versions-slot');
+  if(!slot) return;
+  slot.innerHTML = vers===null ? '<span class="muted">Couldn\u2019t load version history.</span>'
+    : (vers.length ? `<div class="timeline">${vers.map(v=>`<div class="tl-item"><div class="tl-time">${v.date?fmtDate(v.date):''}</div><div class="tl-body"><b>${esc(v.version)}</b><br><span class="muted">${esc(v.summary||'')}</span></div></div>`).join('')}</div>` : '<span class="muted">No earlier versions recorded.</span>');
 }
 
 /* ============================================================
@@ -2926,18 +2993,24 @@ async function bootWithAuth(){
 
     let prof = null;
     try{
-      const r = await sb.from('profiles').select('username, display_name').eq('id', session.user.id).maybeSingle();
+      const r = await sb.from('profiles').select('username, display_name, avatar_url').eq('id', session.user.id).maybeSingle();
       prof = r.data;
     }catch(e){}
     const displayName = (prof && (prof.display_name || prof.username)) || 'You';
     MODERATORS.push({
-      id:'me', username:(prof && prof.username) || '', displayName, role, status:'active',
+      id:'me', username:(prof && prof.username) || '', displayName, avatarUrl:(prof && prof.avatar_url) || null, role, status:'active',
       dateAppointed:new Date().toISOString(),
       permissions: role==='admin' ? undefined : ROLE_PERMISSIONS.moderator.slice()
     });
+    if(role==='moderator'){
+      try{
+        const pr = await sb.rpc('get_my_permissions');
+        if(!pr.error && Array.isArray(pr.data)) MODERATORS[MODERATORS.length-1].permissions = pr.data;
+      }catch(e){}
+    }
     state.currentModeratorId = 'me';
     state.role = role;
-    $('#preview-note').textContent = `Signed in as ${displayName} (${roleMeta(role).label}). Live sections: Overview, Reports, Content, Users, Restrictions, Appeals, Copyright, Privacy, Grievances, Moderators and the logs. Sections not listed still show sample data and nothing there is saved.`;
+    $('#preview-note').textContent = `Signed in as ${displayName} (${roleMeta(role).label}). Live sections: Overview, Reports, Content, Users, Restrictions, Appeals, Copyright, Privacy, Grievances, Moderators, Permissions, Policies, Settings and the logs. Sections not listed still show sample data and nothing there is saved.`;
     sb.auth.onAuthStateChange(ev=>{ if(ev==='SIGNED_OUT') location.replace('/index.html'); });
     $('#gate-screen').remove();
     goto('overview');
@@ -3030,31 +3103,64 @@ function renderModeratorActivity(modId){
   `);
 }
 
-function renderSettings(){
+let SETTINGS_SEQ = 0;
+async function saveSetting(patch, okMsg){
+  try{
+    const { data, error } = await sb.rpc('update_settings', {p_patch:patch});
+    if(error) throw error;
+    if(data) STAFF_CACHE.settings = data;
+    toast(okMsg||'Setting saved.','success');
+    return true;
+  }catch(err){
+    toast((err&&err.message)||'Could not save this setting.','error');
+    return false;
+  }
+}
+async function renderSettings(){
   const root = $('#view-root');
   if(!isAdmin()){ root.innerHTML = emptyState('Admins only', 'You don\u2019t have access to this section.'); return; }
-  const s = SETTINGS_STATE;
+  const mine = ++SETTINGS_SEQ;
+  root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading settings\u2026</span></div>`;
+  let s, guidelinesVersion = '\u2014';
+  try{
+    const { data, error } = await sb.rpc('get_settings');
+    if(error) throw error;
+    if(!data) throw new Error('Settings not found.');
+    s = data;
+    try{
+      const pr = await sb.rpc('list_policies');
+      const g = (pr.data||[]).find(x=>/community guidelines/i.test(x.title));
+      if(g) guidelinesVersion = g.current_version;
+    }catch(e){}
+  }catch(err){
+    if(mine!==SETTINGS_SEQ || state.view!=='settings') return;
+    root.innerHTML = errorState('Couldn\u2019t load settings', (err&&err.message)||'Please try again.', renderSettings);
+    return;
+  }
+  if(mine!==SETTINGS_SEQ || state.view!=='settings') return;
+  STAFF_CACHE.settings = s;
+  const cats = Array.isArray(s.reportCategories) ? s.reportCategories : [];
   root.innerHTML = `<div class="two-col even">
     <div class="panel">
       <h3 style="font-size:15px; margin-bottom:6px;">Community Guidelines</h3>
-      <p class="muted" style="font-size:12.5px; margin-bottom:12px;">Current published version: <b>${esc(s.guidelinesVersion)}</b>. Full editing lives in Policies.</p>
+      <p class="muted" style="font-size:12.5px; margin-bottom:12px;">Current published version: <b>${esc(guidelinesVersion)}</b>. Full editing lives in Policies.</p>
       <button class="btn ghost sm" data-nav="policies">Go to Policies</button>
     </div>
     <div class="panel">
       <h3 style="font-size:15px; margin-bottom:6px;">Moderation Rules</h3>
-      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Auto-flag content after this many reports:</p>
-      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-threshold" value="${s.autoFlagThreshold}">
+      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Auto-flag a Work as under review after this many different people report it:</p>
+      <input type="number" min="1" max="50" class="search-mini" style="width:100%;" id="set-threshold" value="${esc(s.autoFlagThreshold)}">
       <div style="margin-top:10px;"><button class="btn primary sm" id="set-threshold-save">Save</button></div>
     </div>
     <div class="panel">
       <h3 style="font-size:15px; margin-bottom:6px;">Report Categories</h3>
-      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${s.reportCategories.map((c,i)=>`<span class="badge grey" style="display:inline-flex; align-items:center; gap:5px;">${esc(c)} <span data-remove-category="${i}" style="cursor:pointer;">\u2715</span></span>`).join('')}</div>
-      <div style="display:flex; gap:8px;"><input class="search-mini" style="flex:1;" id="new-category-input" placeholder="Add a category…"><button class="btn soft sm" id="add-category-btn">Add</button></div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">${cats.map((c,i)=>`<span class="badge grey" style="display:inline-flex; align-items:center; gap:5px;">${esc(c)} <span data-remove-category="${i}" style="cursor:pointer;">\u2715</span></span>`).join('')}</div>
+      <div style="display:flex; gap:8px;"><input class="search-mini" style="flex:1;" id="new-category-input" maxlength="60" placeholder="Add a category\u2026"><button class="btn soft sm" id="add-category-btn">Add</button></div>
     </div>
     <div class="panel">
       <h3 style="font-size:15px; margin-bottom:6px;">Restriction Durations</h3>
-      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Default temporary restriction length (days):</p>
-      <input type="number" min="1" class="search-mini" style="width:100%;" id="set-duration" value="${s.defaultRestrictionDays}">
+      <p class="muted" style="font-size:12.5px; margin-bottom:8px;">Default temporary restriction length (days), pre-filled when issuing a restriction:</p>
+      <input type="number" min="1" max="3650" class="search-mini" style="width:100%;" id="set-duration" value="${esc(s.defaultRestrictionDays)}">
       <div style="margin-top:10px;"><button class="btn primary sm" id="set-duration-save">Save</button></div>
     </div>
     <div class="panel">
@@ -3064,27 +3170,50 @@ function renderSettings(){
     </div>
     <div class="panel">
       <h3 style="font-size:15px; margin-bottom:6px;">Platform Safety Settings</h3>
-      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:8px;"><input type="checkbox" id="require-evidence" ${s.requireEvidenceForCopyright?'checked':''}> Require evidence before a copyright takedown</label>
+      <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; margin-bottom:4px;"><input type="checkbox" id="require-evidence" ${s.requireEvidenceForCopyright?'checked':''}> Require evidence before a copyright takedown</label>
+      <p class="muted" style="font-size:11.5px; margin:0 0 8px 4px;">Saved as a policy preference; not yet enforced on incoming claims.</p>
       <label class="radio-pill" style="display:flex; width:100%; box-sizing:border-box; border-color:var(--red);"><input type="checkbox" id="platform-lockdown" ${s.platformLockdown?'checked':''}> Emergency lockdown (blocks all new posts platform-wide)</label>
     </div>
   </div>`;
-  $('#set-threshold-save').onclick = ()=>{ s.autoFlagThreshold = parseInt($('#set-threshold').value,10)||s.autoFlagThreshold; toast('Moderation rule saved.','success'); };
-  $('#set-duration-save').onclick = ()=>{ s.defaultRestrictionDays = parseInt($('#set-duration').value,10)||s.defaultRestrictionDays; toast('Default duration saved.','success'); };
-  $('#add-category-btn').onclick = ()=>{
+  const intField = (id, key, min, max, label)=>{
+    $(id+'-save').onclick = async ()=>{
+      const v = parseInt($(id).value,10);
+      if(!Number.isFinite(v) || v<min || v>max){ toast(`Enter a whole number from ${min} to ${max}.`,'error'); return; }
+      if(await saveSetting({[key]:v}, label)) renderSettings();
+    };
+  };
+  intField('#set-threshold','autoFlagThreshold',1,50,'Moderation rule saved.');
+  intField('#set-duration','defaultRestrictionDays',1,3650,'Default duration saved.');
+  $('#add-category-btn').onclick = async ()=>{
     const v = $('#new-category-input').value.trim();
     if(!v) return;
-    s.reportCategories.push(v);
-    toast('Category added.','success');
-    renderSettings();
+    if(cats.some(c=>c.toLowerCase()===v.toLowerCase())){ toast('That category already exists.','error'); return; }
+    if(cats.length>=25){ toast('You can have at most 25 categories.','error'); return; }
+    if(await saveSetting({reportCategories:[...cats, v]}, 'Category added.')) renderSettings();
   };
-  $$('[data-remove-category]').forEach(el=> el.onclick = ()=>{ s.reportCategories.splice(parseInt(el.dataset.removeCategory,10),1); renderSettings(); });
-  $('#notify-action').onchange = e=>{ s.notifyOnAction = e.target.checked; toast('Notification setting saved.','success'); };
-  $('#notify-appeal').onchange = e=>{ s.notifyOnAppealUpdate = e.target.checked; toast('Notification setting saved.','success'); };
-  $('#require-evidence').onchange = e=>{ s.requireEvidenceForCopyright = e.target.checked; toast('Safety setting saved.','success'); };
+  $$('[data-remove-category]').forEach(el=> el.onclick = async ()=>{
+    if(cats.length<=1){ toast('Keep at least one report category.','error'); return; }
+    const next = cats.filter((c,i)=>i!==parseInt(el.dataset.removeCategory,10));
+    if(await saveSetting({reportCategories:next}, 'Category removed.')) renderSettings();
+  });
+  const toggle = (id, key, msg)=>{ $(id).onchange = async e=>{ if(!(await saveSetting({[key]:e.target.checked}, msg))) renderSettings(); }; };
+  toggle('#notify-action','notifyOnAction','Notification setting saved.');
+  toggle('#notify-appeal','notifyOnAppealUpdate','Notification setting saved.');
+  toggle('#require-evidence','requireEvidenceForCopyright','Safety setting saved.');
   $('#platform-lockdown').onchange = e=>{
-    s.platformLockdown = e.target.checked;
-    toast(e.target.checked ? 'Platform lockdown enabled (mock).' : 'Platform lockdown disabled.', e.target.checked?'error':'success');
-    SYSTEM_AUDIT_LOG.unshift({id:'sa'+(SYSTEM_AUDIT_LOG.length+1), at:new Date().toISOString(), actorId:state.currentModeratorId, event:'Platform lockdown '+(e.target.checked?'enabled':'disabled'), detail:'Toggled from Settings.', severity: e.target.checked?'warning':'info'});
+    const on = e.target.checked;
+    confirmAction({
+      title: on ? 'Turn on emergency lockdown?' : 'Turn off emergency lockdown?',
+      body: on ? 'Nobody except staff will be able to publish anything until you turn this off. Existing published Works stay visible.' : 'Publishing will open up again for everyone.',
+      requireReason:false, destructive:on, confirmLabel: on ? 'Turn on lockdown' : 'Turn off lockdown',
+      onConfirm: async ()=>{
+        const ok = await saveSetting({platformLockdown:on}, on ? 'Lockdown is on. Publishing is paused.' : 'Lockdown is off.');
+        renderSettings();
+      }
+    });
+    // if the modal is dismissed without confirming, put the checkbox back
+    const scrim = $('#modal-scrim');
+    setTimeout(function chk(){ if(scrim.classList.contains('open')) return setTimeout(chk,300); if(state.view==='settings' && $('#platform-lockdown') && $('#platform-lockdown').checked!==!!(STAFF_CACHE.settings||{}).platformLockdown) $('#platform-lockdown').checked = !!(STAFF_CACHE.settings||{}).platformLockdown; }, 300);
   };
 }
 
@@ -3098,6 +3227,28 @@ function runGlobalSearch(q){
   const mods = MODERATORS.filter(m=>m.username.toLowerCase().includes(q)||m.displayName.toLowerCase().includes(q)).slice(0,4);
   return {users, content, reports, cases, mods};
 }
+
+let REFRESHING = false;
+async function refreshCurrentView(){
+  if(REFRESHING) return;
+  REFRESHING = true;
+  const btn = $('#refresh-btn');
+  if(btn){ btn.classList.add('spinning'); btn.disabled = true; }
+  const started = Date.now();
+  try{
+    const fn = VIEW_RENDERERS[state.view] || renderOverview;
+    await Promise.resolve(fn());
+    await refreshStaffCounts();
+  }catch(e){ toast('Couldn\u2019t refresh just now.','error'); }
+  const wait = Math.max(0, 500-(Date.now()-started));
+  setTimeout(()=>{ REFRESHING = false; const b=$('#refresh-btn'); if(b){ b.classList.remove('spinning'); b.disabled=false; } }, wait);
+}
+document.addEventListener('click', e=>{ if(e.target.closest('#refresh-btn')) refreshCurrentView(); });
+let lastHidden = 0;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){ lastHidden = Date.now(); return; }
+  if(lastHidden && Date.now()-lastHidden > 60000){ refreshStaffCounts(); toast('Tip: press Refresh to update this page.'); }
+});
 
 bootWithAuth();
 
