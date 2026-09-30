@@ -701,6 +701,8 @@ const state = {
   reportSort: 'newest',
   reportSearch: '',
   contentFilter: 'All',
+  contentSearch: '',
+  userSearch: '',
   bulkSelection: new Set(),
   detailStack: [], // for drawer breadcrumbs (not heavily used, kept simple)
   overviewLoaded: false,
@@ -1208,7 +1210,7 @@ async function loadCaseNotes(caseId){
       : '<p class="muted" style="font-size:12px;">No internal notes yet.</p>';
   }catch(err){ list.textContent = 'Couldn\u2019t load notes.'; }
 }
-async function openRestrictionModalForUser({userId, caseId, onDone}){
+async function openRestrictionModalForUser({userId, caseId, defaultScope, onDone}){
   let brief = null;
   try{ const { data } = await sb.rpc('get_user_brief', {p_user:userId}); brief = (data&&data[0])||null; }catch(e){}
   const label = brief ? '@'+brief.username : 'this user';
@@ -1231,6 +1233,7 @@ async function openRestrictionModalForUser({userId, caseId, onDone}){
       <button class="btn danger sm" id="modal-confirm-btn">Apply restriction</button>
     </div>
   `);
+  if(defaultScope && $('#restrict-scope')) $('#restrict-scope').value = defaultScope;
   const daysInput = $('#restrict-days');
   const sync = ()=>{ daysInput.style.display = document.querySelector('input[name="duration-type"]:checked').value==='temporary'?'':'none'; };
   sync();
@@ -1262,89 +1265,147 @@ async function openRestrictionModalForUser({userId, caseId, onDone}){
 function renderUsers(){
   const root = $('#view-root');
   root.innerHTML = `
-    <div class="filter-row"><input class="search-mini" id="user-search" placeholder="Search users by username or name…" style="margin-left:0; min-width:280px;"></div>
-    <div class="panel" style="padding:8px 12px;" id="user-table-slot"></div>
+    <div class="filter-row"><input class="search-mini" id="user-search" placeholder="Search users by username or name…" style="margin-left:0; min-width:280px;" value="${esc(state.userSearch||'')}" autocomplete="off"></div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;" id="user-table-slot"></div></div>
   `;
-  const draw = (q)=>{
-    let list = USERS;
-    if(q) list = list.filter(u=>u.username.toLowerCase().includes(q)||u.displayName.toLowerCase().includes(q));
+  let timer = null;
+  const draw = async (q)=>{
+    const mine = ++USERS_SEQ;
     const slot = $('#user-table-slot');
-    slot.innerHTML = list.length ? `<table class="dtable"><thead><tr><th>User</th><th>Status</th><th>Joined</th><th>Reports</th><th>Active restrictions</th></tr></thead><tbody>
-      ${list.map(u=>{
-        const reportsCount = REPORTS.filter(r=>r.reportedUser===u.id).length;
-        const activeRestr = RESTRICTIONS.filter(x=>x.userId===u.id && x.status==='active').length;
-        return `<tr data-open-user="${u.id}">
-          <td class="name-cell"><span class="mini-av">${esc(u.displayName[0])}</span><span><b>${esc(u.displayName)}</b><br><span class="muted">@${esc(u.username)}</span></span></td>
+    if(!slot) return;
+    slot.innerHTML = `<span class="muted" style="padding:10px; display:block;">Loading users\u2026</span>`;
+    let rows;
+    try{
+      const { data, error } = await sb.rpc('list_users_for_staff', {p_search: q||null, p_limit:100, p_offset:0});
+      if(error) throw error;
+      rows = data || [];
+    }catch(err){
+      if(mine!==USERS_SEQ || state.view!=='users') return;
+      slot.innerHTML = emptyState('Couldn\u2019t load users', (err&&err.message)||'Please try again.');
+      return;
+    }
+    if(mine!==USERS_SEQ || state.view!=='users') return;
+    STAFF_CACHE.users = rows;
+    const total = rows.length ? Number(rows[0].total_count) : 0;
+    slot.innerHTML = rows.length ? `<table class="dtable"><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Joined</th><th>Works</th><th>Reports</th><th>Active restrictions</th></tr></thead><tbody>
+      ${rows.map(u=>`<tr data-open-user="${esc(u.id)}">
+          <td class="name-cell"><span class="mini-av">${esc(((u.display_name||u.username||'?')[0]||'?').toUpperCase())}</span><span><b>${esc(u.display_name||u.username||'Unnamed')}</b><br><span class="muted">${u.username?'@'+esc(u.username):'no username yet'}</span></span></td>
+          <td>${u.role==='member' ? '<span class="muted">Member</span>' : `<span class="badge ${u.role==='admin'?'ink':'sky'}">${esc(u.role.charAt(0).toUpperCase()+u.role.slice(1))}</span>`}</td>
           <td>${statusBadge(u.status)}</td>
-          <td class="muted">${fmtDate(u.joinDate)}</td>
-          <td>${reportsCount}</td>
-          <td>${activeRestr}</td>
-        </tr>`;
-      }).join('')}
-    </tbody></table>` : noResultsState();
+          <td class="muted">${fmtDate(u.created_at)}</td>
+          <td>${u.works_count}</td>
+          <td>${u.report_count}</td>
+          <td>${u.active_restrictions}</td>
+        </tr>`).join('')}
+    </tbody></table>${total>rows.length?`<p class="muted" style="padding:8px 4px;">Showing ${rows.length} of ${total} \u2014 search to narrow down.</p>`:''}` : noResultsState();
   };
-  draw('');
-  $('#user-search').oninput = e=> draw(e.target.value.toLowerCase());
+  draw(state.userSearch||'');
+  $('#user-search').oninput = e=>{
+    state.userSearch = e.target.value.trim();
+    clearTimeout(timer);
+    timer = setTimeout(()=>draw(state.userSearch), 250);
+  };
 }
 
-function renderUserDetail(userId){
-  const u = userById(userId);
-  const history = AUDIT_LOG.filter(l=>l.targetUserId===userId);
-  const activeRestr = RESTRICTIONS.filter(x=>x.userId===userId && x.status==='active');
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+async function renderUserDetail(userId){
+  if(!UUID_RE.test(userId||'')){ toast('This entry is demo data, not a live account.','error'); return; }
+  let u = (STAFF_CACHE.users||[]).find(x=>x.id===userId);
+  if(!u){
+    try{
+      const { data } = await sb.rpc('get_user_brief', {p_user:userId});
+      const b = data && data[0];
+      if(!b){ toast('User not found.','error'); return; }
+      u = {id:b.id, username:b.username, display_name:b.display_name, role:'member', status:'active', created_at:null, works_count:'\u2014', report_count:'\u2014', active_restrictions:'\u2014'};
+    }catch(e){ toast('Could not load this user.','error'); return; }
+  }
+  const nameLabel = u.display_name || u.username || 'Unnamed';
+  const isStaffTarget = u.role==='admin';
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
     <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc(u.displayName[0])}</span>
-      <div><h2 style="font-size:18px;">${esc(u.displayName)}</h2><span class="muted">@${esc(u.username)}</span></div>
+      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc((nameLabel[0]||'?').toUpperCase())}</span>
+      <div><h2 style="font-size:18px;">${esc(nameLabel)}</h2><span class="muted">${u.username?'@'+esc(u.username):'no username yet'}</span></div>
     </div>
     <div class="kv">
+      <b>Role</b><span>${esc(u.role.charAt(0).toUpperCase()+u.role.slice(1))}</span>
       <b>Status</b><span>${statusBadge(u.status)}</span>
-      <b>Joined</b><span>${fmtDate(u.joinDate)}</span>
-      <b>Total reports</b><span>${REPORTS.filter(r=>r.reportedUser===userId).length}</span>
-      <b>Active restrictions</b><span>${activeRestr.length}</span>
+      <b>Joined</b><span>${u.created_at?fmtDate(u.created_at):'\u2014'}</span>
+      <b>Published works</b><span>${u.works_count}</span>
+      <b>Total reports</b><span>${u.report_count}</span>
+      <b>Active restrictions</b><span>${u.active_restrictions}</span>
     </div>
-    <div style="display:flex; gap:8px; margin:14px 0;">
-      <button class="btn soft sm" data-user-act="restrict" data-user-id="${u.id}">Restrict</button>
-      <button class="btn danger sm" data-user-act="suspend" data-user-id="${u.id}">Suspend</button>
-      ${u.status!=='active'?`<button class="btn ghost sm" data-user-act="restore" data-user-id="${u.id}">Restore / reinstate</button>`:''}
+    <div style="display:flex; gap:8px; margin:14px 0; flex-wrap:wrap;">
+      ${!isStaffTarget && can('users.restrict')?`<button class="btn soft sm" data-user-act="restrict" data-user-id="${esc(u.id)}">Restrict</button>`:''}
+      ${!isStaffTarget && can('users.suspend')?`<button class="btn danger sm" data-user-act="suspend" data-user-id="${esc(u.id)}">Suspend</button>`:''}
+      ${u.status!=='active' && can('users.reinstate')?`<button class="btn ghost sm" data-user-act="restore" data-user-id="${esc(u.id)}">Lift all restrictions</button>`:''}
     </div>
+    ${isStaffTarget?'<p class="muted" style="font-size:12px;">Admin accounts can\u2019t be restricted.</p>':''}
+    <hr class="divider">
+    <h4 style="font-size:13px; margin-bottom:8px;">Active restrictions</h4>
+    <div id="user-restr-slot"><span class="muted">Loading\u2026</span></div>
     <hr class="divider">
     <h4 style="font-size:13px; margin-bottom:8px;">Moderation history &amp; timeline</h4>
-    ${history.length ? `<div class="timeline">${history.map(l=>{
-      const restr = RESTRICTIONS.find(x=>x.caseId===l.caseId);
-      return `<div class="tl-item"><div class="tl-time">${fmtDate(l.at)} \u00b7 ${esc(l.caseId)}</div>
-      <div class="tl-body"><b>${esc(l.action)}</b> by ${esc(modById(l.moderatorId).displayName)}<br>
-      <span class="muted">${esc(l.reason||'')}</span>
-      ${restr?`<br><span class="muted">Duration: ${esc(restr.type)} (${esc(durationLabel(restr))}) \u00b7 ${restr.expiry?'expires '+fmtDate(restr.expiry):'no fixed expiry'} \u00b7 ${statusBadge(restr.status)}</span>`:''}</div></div>`;
-    }).join('')}</div>` : emptyState('No moderation history', 'This user has no prior moderation actions on record.')}
+    <div id="user-history-slot"><span class="muted">Loading\u2026</span></div>
   `);
+  const [restrRes, histRes] = await Promise.all([
+    sb.rpc('list_restrictions').then(r=>r, e=>({error:e})),
+    sb.rpc('get_user_moderation_history', {p_user:userId}).then(r=>r, e=>({error:e}))
+  ]);
+  const rSlot = $('#user-restr-slot'), hSlot = $('#user-history-slot');
+  if(rSlot){
+    if(restrRes.error){ rSlot.innerHTML = '<span class="muted">Couldn\u2019t load restrictions.</span>'; }
+    else{
+      const mine = (restrRes.data||[]).filter(x=>x.user_id===userId && x.active);
+      rSlot.innerHTML = mine.length ? mine.map(x=>`<div class="linked-item" data-open-restriction="${esc(x.id)}" style="cursor:pointer;"><b>${esc(scopeMeta(x.scope).label)}</b> \u00b7 ${x.duration_type==='temporary'?x.days+' days':esc(x.duration_type)} \u00b7 <span class="muted">${x.expiry?'expires '+fmtDate(x.expiry):'no fixed expiry'}</span></div>`).join('') : '<span class="muted">None.</span>';
+    }
+  }
+  if(hSlot){
+    if(histRes.error){ hSlot.innerHTML = '<span class="muted">Couldn\u2019t load history.</span>'; }
+    else{
+      const h = histRes.data||[];
+      hSlot.innerHTML = h.length ? `<div class="timeline">${h.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)}${l.case_id?' \u00b7 '+esc(l.case_id):''}</div>
+        <div class="tl-body"><b>${esc(String(l.action||'').replace(/_/g,' '))}</b>${l.moderator_name?' by '+esc(l.moderator_name):''}<br>
+        <span class="muted">${esc(l.reason||'')}</span>
+        ${l.duration?`<br><span class="muted">Duration: ${esc(l.duration)}${l.expiry?' \u00b7 expires '+fmtDate(l.expiry):''}</span>`:''}</div></div>`).join('')}</div>` : emptyState('No moderation history', 'This user has no prior moderation actions on record.');
+    }
+  }
 }
 
 function handleUserAction(userId, act){
-  const u = userById(userId);
+  const u = (STAFF_CACHE.users||[]).find(x=>x.id===userId);
+  const label = u && u.username ? '@'+u.username : 'this user';
+  const refresh = ()=>{ renderUserDetail(userId); if(state.view==='users') renderUsers(); };
   if(act==='restrict' || act==='suspend'){
-    openRestrictionModal({
-      userId, caseId:nextCaseId(), defaultScope: act==='suspend'?'account':'posts',
-      onDone:()=>{
-        toast(act==='suspend'?'User suspended.':'User restriction created.','success');
-        renderUserDetail(userId);
-        if(state.view==='users') renderUsers();
-      }
+    openRestrictionModalForUser({
+      userId, caseId:null, defaultScope: act==='suspend'?'account':'posts',
+      onDone:()=>{ toast(act==='suspend'?'User suspended.':'User restriction created.','success');
+        // cache is stale until the list is re-read; drop it so the drawer refetches fresh counts
+        STAFF_CACHE.users = null; refresh(); }
     });
     return;
   }
-  confirmAction({title:`Restore @${u.username}?`, confirmLabel:'Restore account', destructive:false, requireReason:false, onConfirm:(reason)=>{
-    const caseId = nextCaseId();
-    u.status='active'; RESTRICTIONS.filter(x=>x.userId===userId&&x.status==='active').forEach(x=>x.status='cancelled'); logAction({caseId, action:'User reinstated', targetUserId:userId, targetContentId:null, reason:reason||'Reinstated by moderator.', result:'Account restored'}); toast('User restored.','success');
-    renderUserDetail(userId);
-    if(state.view==='users') renderUsers();
+  confirmAction({title:`Lift all restrictions on ${label}?`, confirmLabel:'Lift restrictions', destructive:false, requireReason:true, onConfirm: async (reason)=>{
+    try{
+      const { data, error } = await sb.rpc('list_restrictions');
+      if(error) throw error;
+      const active = (data||[]).filter(x=>x.user_id===userId && x.active);
+      for(const x of active){
+        const { error: e2 } = await sb.rpc('lift_restriction', {p_restriction_id:x.id, p_reason:reason||'Lifted by staff'});
+        if(e2) throw e2;
+      }
+      toast(active.length ? 'Restrictions lifted.' : 'No active restrictions to lift.','success');
+      STAFF_CACHE.users = null;
+      refresh();
+    }catch(err){ toast((err&&err.message)||'Could not lift restrictions.','error'); }
   }});
 }
 
 /* ============================================================
    RENDER: CONTENT
    ============================================================ */
-const CONTENT_FILTERS = ['All','Reported','Active','Removed','Under Review'];
+const CONTENT_FILTERS = ['All','Reported','Active','Removed','Under Review','Locked'];
+let USERS_SEQ = 0, CONTENT_SEQ = 0;
 function filteredContent(){
   let list = [...CONTENT];
   const f = state.contentFilter;
@@ -1354,69 +1415,106 @@ function filteredContent(){
   else if(f==='Under Review') list = list.filter(c=>c.status==='under_review');
   return list;
 }
-function renderContent(){
+async function renderContent(){
   const root = $('#view-root');
-  const list = filteredContent();
   root.innerHTML = `
-    <div class="filter-row">${CONTENT_FILTERS.map(f=>`<button class="chip ${state.contentFilter===f?'active':''}" data-content-filter="${f}">${f}</button>`).join('')}</div>
-    <div id="content-bulk-slot"></div>
-    <div class="panel" style="padding:8px 12px;">
-      ${list.length ? `<table class="dtable"><thead><tr>
-        <th class="checkbox-cell"><input type="checkbox" id="content-select-all"></th>
+    <div class="filter-row">${CONTENT_FILTERS.map(f=>`<button class="chip ${state.contentFilter===f?'active':''}" data-content-filter="${f}">${f}</button>`).join('')}
+      <input class="search-mini" id="content-search" placeholder="Search title or author\u2026" value="${esc(state.contentSearch||'')}" autocomplete="off" style="margin-left:auto; min-width:220px;"></div>
+    <div class="table-scroll"><div class="panel" style="padding:8px 12px;" id="content-table-slot"><span class="muted" style="padding:10px; display:block;">Loading content\u2026</span></div></div>
+  `;
+  let timer = null;
+  const draw = async ()=>{
+    const mine = ++CONTENT_SEQ;
+    const slot = $('#content-table-slot');
+    if(!slot) return;
+    let rows;
+    try{
+      const { data, error } = await sb.rpc('list_content_for_staff', {p_filter: state.contentFilter||'All', p_search: state.contentSearch||null, p_limit:100, p_offset:0});
+      if(error) throw error;
+      rows = data || [];
+    }catch(err){
+      if(mine!==CONTENT_SEQ || state.view!=='content') return;
+      slot.innerHTML = emptyState('Couldn\u2019t load content', (err&&err.message)||'Please try again.');
+      return;
+    }
+    if(mine!==CONTENT_SEQ || state.view!=='content') return;
+    STAFF_CACHE.content = rows;
+    const total = rows.length ? Number(rows[0].total_count) : 0;
+    slot.innerHTML = rows.length ? `<table class="dtable"><thead><tr>
         <th>Title</th><th>Type</th><th>Author</th><th>Status</th><th>Reports</th><th>Published</th><th></th>
       </tr></thead><tbody>
-        ${list.map(c=>{
-          const a = userById(c.author);
-          return `<tr data-open-content="${c.id}">
-            <td class="checkbox-cell" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-check-content" data-bulk-id="${c.id}" ${state.bulkSelection.has(c.id)?'checked':''}></td>
-            <td>${esc(c.title)}${c.caseId?`<br><span class="caseid">${c.caseId}</span>`:''}</td>
-            <td>${esc(c.type)}</td>
-            <td>@${esc(a.username)}</td>
-            <td>${statusBadge(c.status)}</td>
-            <td>${c.reports}</td>
-            <td class="muted">${fmtDate(c.pubDate)}</td>
-            <td onclick="event.stopPropagation()"><button class="btn ghost sm" data-open-content="${c.id}">View</button></td>
-          </tr>`;
-        }).join('')}
-      </tbody></table>` : (CONTENT.length ? noResultsState() : emptyState('No content', 'Published Works will show up here.'))}
-    </div>
-  `;
-  renderBulkBar('#content-bulk-slot', list, c=>c.id, 'content');
+        ${rows.map(c=>`<tr data-open-content="${esc(c.target_type+':'+c.id)}">
+            <td>${esc(c.title||'(untitled)')}${c.case_id?`<br><span class="caseid">${esc(c.case_id)}</span>`:''}</td>
+            <td>${esc(c.category)}</td>
+            <td>${c.username?'@'+esc(c.username):'\u2014'}</td>
+            <td>${statusBadge(c.moderation_status)}${c.visibility!=='public'?` <span class="badge grey">${esc(c.visibility)}</span>`:''}</td>
+            <td>${c.report_count}</td>
+            <td class="muted">${fmtDate(c.published_at)}</td>
+            <td onclick="event.stopPropagation()"><button class="btn ghost sm" data-open-content="${esc(c.target_type+':'+c.id)}">View</button></td>
+          </tr>`).join('')}
+      </tbody></table>${total>rows.length?`<p class="muted" style="padding:8px 4px;">Showing ${rows.length} of ${total} \u2014 use search or filters to narrow down.</p>`:''}`
+      : ((state.contentFilter&&state.contentFilter!=='All')||state.contentSearch ? noResultsState() : emptyState('No content', 'Published Works will show up here.'));
+  };
+  draw();
+  $('#content-search').oninput = e=>{
+    state.contentSearch = e.target.value.trim();
+    clearTimeout(timer);
+    timer = setTimeout(draw, 250);
+  };
 }
-function renderContentDetail(contentId){
-  const c = contentById(contentId);
-  const a = userById(c.author);
+function contentByKey(key){ return (STAFF_CACHE.content||[]).find(c=>(c.target_type+':'+c.id)===key); }
+function renderContentDetail(key){
+  const c = contentByKey(key);
+  if(!c){ toast('Open this Work from the Content list.','error'); return; }
+  const st = c.moderation_status;
+  const btn = (act,label,cls,perm)=> can(perm) ? `<button class="btn ${cls} sm" data-content-act="${act}" data-content-id="${esc(key)}">${label}</button>` : '';
   openDrawer(`
     <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <h2 style="font-size:18px;">${esc(c.title)}</h2>
+    <h2 style="font-size:18px;">${esc(c.title||'(untitled)')}</h2>
     <div class="kv">
-      <b>Type</b><span>${esc(c.type)}</span>
-      <b>Author</b><span>@${esc(a.username)}</span>
-      <b>Status</b><span>${statusBadge(c.status)}</span>
-      <b>Reports</b><span>${c.reports}</span>
-      <b>Published</b><span>${fmtDate(c.pubDate)}</span>
-      ${c.caseId?`<b>Case ID</b><span class="caseid">${c.caseId}</span>`:''}
+      <b>Type</b><span>${esc(c.category)}</span>
+      <b>Author</b><span>${c.username?'@'+esc(c.username):'\u2014'}${c.author_id?` <button class="btn ghost sm" data-open-user="${esc(c.author_id)}" style="margin-left:6px;">View author</button>`:''}</span>
+      <b>Status</b><span>${statusBadge(st)}</span>
+      <b>Visibility</b><span>${esc(c.visibility)}</span>
+      <b>Reports</b><span>${c.report_count}</span>
+      <b>Published</b><span>${fmtDate(c.published_at)}</span>
+      ${c.case_id?`<b>Case ID</b><span class="caseid">${esc(c.case_id)}</span>`:''}
     </div>
-    <div class="content-preview-box">${esc(c.preview)}</div>
-    <div style="display:flex; gap:8px; margin-top:10px;">
-      ${c.status!=='removed'?`<button class="btn danger sm" data-content-act="remove" data-content-id="${c.id}">Remove</button>`:`<button class="btn ghost sm" data-content-act="restore" data-content-id="${c.id}">Restore</button>`}
+    <div class="content-preview-box">${esc(c.excerpt||'(no preview)')}</div>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">
+      ${st==='removed' ? btn('active','Restore','ghost','content.restore') : ''}
+      ${st==='locked' ? btn('active','Unlock','ghost','content.restore') : ''}
+      ${st==='under_review' ? btn('active','Clear review','ghost','content.restore') : ''}
+      ${st==='active' ? btn('under_review','Mark under review','soft','content.review') : ''}
+      ${(st==='active'||st==='under_review') ? btn('locked','Lock','soft','content.lock') : ''}
+      ${st!=='removed' ? btn('removed','Remove','danger','content.remove') : ''}
     </div>
   `);
 }
-function handleContentAction(contentId, act){
-  const c = contentById(contentId);
+const CONTENT_ACTION_COPY = {
+  removed:{title:'Remove this content?', label:'Remove content', toast:'Content removed.', destructive:true},
+  active:{title:'Restore this content?', label:'Restore content', toast:'Content restored.', destructive:false},
+  under_review:{title:'Mark this content as under review?', label:'Mark under review', toast:'Marked under review.', destructive:false},
+  locked:{title:'Lock this content?', label:'Lock content', toast:'Content locked.', destructive:false}
+};
+function handleContentAction(key, act){
+  const c = contentByKey(key);
+  const copy = CONTENT_ACTION_COPY[act];
+  if(!c || !copy) return;
   confirmAction({
-    title: act==='remove' ? 'Remove this content?' : 'Restore this content?',
-    destructive: act==='remove', confirmLabel: act==='remove'?'Remove content':'Restore content',
-    onConfirm:(reason)=>{
-      if(!c.caseId) c.caseId = nextCaseId();
-      if(act==='remove'){ removeContent(c, reason); toast('Content marked for removal.','success'); }
-      else { restoreContent(c, reason); toast('Content restored.','success'); }
-      renderContentDetail(contentId);
-      if(state.view==='content') renderContent();
+    title: copy.title, destructive: copy.destructive, confirmLabel: copy.label,
+    onConfirm: async (reason)=>{
+      try{
+        const { error } = await sb.rpc('set_content_moderation', {p_target_type:c.target_type, p_target_id:c.id, p_status:act, p_reason:reason, p_case:c.case_id||null});
+        if(error) throw error;
+        toast(copy.toast,'success');
+        closeDrawer();
+        if(state.view==='content') renderContent();
+      }catch(err){ toast((err&&err.message)||'Action failed.','error'); }
     }
   });
 }
+
 
 /* ============================================================
    RENDER: RESTRICTIONS
