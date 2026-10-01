@@ -893,7 +893,7 @@ function wireActions(scope, post){
           post.commentCount++;
           ta.value = "";
           refreshCommentsList(scope, post);
-        }catch(e){ console.error(e); announce("Couldn't post your response — try again."); }
+        }catch(e){ console.error(e); announce((e && /restriction is active/i.test(e.message||'')) ? e.message : "Couldn't post your response — try again."); }
         postCommentBtn.disabled = false; ta.disabled = false;
       });
     });
