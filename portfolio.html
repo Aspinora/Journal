@@ -24,6 +24,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
+<script src="/config.js"></script>
 
 <style>
 :root{
@@ -770,8 +771,8 @@ h1,h2,h3{ font-family:var(--font-display); font-weight:600; line-height:1.15; ma
 /* ==================================================================
    SUPABASE — same project/keys as index.html & userpostlogin.html
    ================================================================== */
-const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+const SUPABASE_URL = window.JOURNAL_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.JOURNAL_CONFIG.SUPABASE_ANON_KEY;
 let supabaseClient = null;
 try{
   if (window.supabase){
