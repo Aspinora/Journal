@@ -50,6 +50,7 @@
      SUPABASE CLIENT LIBRARY (CDN — no npm/build tools needed)
      ============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
+<script src="/config.js"></script>
 
 <style>
 /* ============================================================
@@ -1563,8 +1564,8 @@ body.is-reading .comment-form textarea{
       URL and anon/public key (Project Settings → API in Supabase).
    Never paste your service_role key into this file.
    ------------------------------------------------------------------ */
-const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+const SUPABASE_URL = window.JOURNAL_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.JOURNAL_CONFIG.SUPABASE_ANON_KEY;
 
 let supabaseClient = null;
 try{
