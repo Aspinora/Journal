@@ -366,6 +366,7 @@ textarea::placeholder{ color:var(--ink-faint); }
 <div class="toast-stack" id="toast-stack"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/config.js"></script>
 <script>
 /* ============================================================
    MOCK DATA LAYER — isolated so it can later be swapped for
@@ -377,8 +378,8 @@ textarea::placeholder{ color:var(--ink-faint); }
 // Same public (publishable) key the main app already ships to browsers.
 // It grants nothing by itself: every read/write below is enforced by
 // row-level security and SECURITY DEFINER functions on the server.
-const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+const SUPABASE_URL = window.JOURNAL_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.JOURNAL_CONFIG.SUPABASE_ANON_KEY;
 let sb = null;
 let STAFF_ROWS = [];
 let STAFF_COUNTS = {};
