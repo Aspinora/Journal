@@ -404,23 +404,6 @@ const timeAgo = d => {
   const h=Math.floor(m/60); if(h<24) return h+'h ago'; const dd=Math.floor(h/24); return dd+'d ago';
 };
 
-let caseCounter = 421;
-function nextCaseId(){ caseCounter++; return `CASE-2026-${String(caseCounter).padStart(6,'0')}`; }
-
-const CATEGORIES = ['Journals','Stories','Poetry','Shayari','Thoughts','Articles','The Wall','Updates'];
-
-const USERS = [
-  {id:'u1', username:'meera.writes', displayName:'Meera Kapoor', joinDate:'2025-11-02', status:'active'},
-  {id:'u2', username:'kabir.thoughts', displayName:'Kabir Sen', joinDate:'2025-09-14', status:'active'},
-  {id:'u3', username:'ananya.p', displayName:'Ananya Prasad', joinDate:'2026-01-20', status:'restricted'},
-  {id:'u4', username:'r.iyer', displayName:'Rohan Iyer', joinDate:'2025-07-03', status:'active'},
-  {id:'u5', username:'noorjahan_', displayName:'Noor Jahan', joinDate:'2026-02-11', status:'suspended'},
-  {id:'u6', username:'devsharma', displayName:'Dev Sharma', joinDate:'2025-12-29', status:'active'},
-  {id:'u7', username:'lyra.k', displayName:'Lyra Krishnan', joinDate:'2026-03-01', status:'active'},
-  {id:'u8', username:'arjun_writes', displayName:'Arjun Mehta', joinDate:'2025-08-19', status:'active'},
-];
-function userById(id){ return USERS.find(u=>u.id===id); }
-
 /* ============================================================
    ROLE / PERMISSION MODEL  (spec sections 1, 3, 4)
 
@@ -482,14 +465,7 @@ const PERMISSION_GROUPS = [
 // an Admin (see the Permissions screen); that's stored per-person below.
 const ROLE_PERMISSIONS = { moderator: PERMISSIONS.slice() };
 
-const MODERATORS = [
-  {id:'m0', username:'priya.admin', displayName:'Priya Nair', role:'admin', status:'active', dateAppointed:'2025-06-01'},
-  {id:'m1', username:'sam.mod', displayName:'Sam D\u2019Souza', role:'moderator', status:'active', dateAppointed:'2025-08-12', permissions: ROLE_PERMISSIONS.moderator.slice()},
-  {id:'m2', username:'fatima.mod', displayName:'Fatima Rizvi', role:'moderator', status:'active', dateAppointed:'2025-10-05', permissions: ROLE_PERMISSIONS.moderator.slice()},
-  {id:'m3', username:'oliver.mod', displayName:'Oliver Fernandes', role:'moderator', status:'suspended', dateAppointed:'2025-11-19', permissions: ROLE_PERMISSIONS.moderator.slice()},
-  {id:'m4', username:'grace.thomas', displayName:'Grace Thomas', role:'moderator', status:'active', dateAppointed:'2026-01-15', permissions: ROLE_PERMISSIONS.moderator.filter(p=>!p.startsWith('copyright.'))},
-  {id:'m5', username:'idris.khan', displayName:'Idris Khan', role:'moderator', status:'active', dateAppointed:'2026-02-20', permissions: ROLE_PERMISSIONS.moderator.filter(p=>!p.startsWith('grievances.'))},
-];
+const MODERATORS = []; // filled at sign-in with the real staff member (see bootWithAuth)
 function modById(id){ return MODERATORS.find(m=>m.id===id); }
 
 // can(permission) — the ONLY function views/nav should call to decide
@@ -507,213 +483,33 @@ function can(perm){
 // permissions, so they get their own guard instead of a PERMISSIONS entry.
 function isAdmin(){ return currentModerator().role === 'admin'; }
 
-const CONTENT = [
-  {id:'c1', caseId:nextCaseId(), type:'Journals', title:'Losing my father, one year on', author:'u3', status:'active', reports:2, pubDate:'2026-08-01', preview:'It has been a year since I sat by his bedside and pretended I wasn\u2019t already grieving...'},
-  {id:'c2', caseId:nextCaseId(), type:'Poetry', title:'Ash and Marigold', author:'u2', status:'active', reports:1, pubDate:'2026-08-10', preview:'I burned the letters you never sent, and marigolds grew where the smoke had settled...'},
-  {id:'c3', caseId:nextCaseId(), type:'Thoughts', title:'(untitled thought)', author:'u5', status:'removed', reports:4, pubDate:'2026-07-22', preview:'Everyone in this city is fake and I\u2019m done pretending to care about any of you...'},
-  {id:'c4', caseId:null, type:'Stories', title:'The Lighthouse Keeper\u2019s Daughter', author:'u1', status:'active', reports:0, pubDate:'2026-09-02', preview:'Every evening at six, she climbed the hundred and twelve steps to light the lamp...'},
-  {id:'c5', caseId:nextCaseId(), type:'Shayari', title:'\u0628\u0632\u0645 \u0645\u06be\u0644\u06cc', type_label:'Shayari', author:'u6', status:'under_review', reports:1, pubDate:'2026-08-28', preview:'A ghazal flagged for a possibly plagiarised couplet, pending author response...'},
-  {id:'c6', caseId:null, type:'Articles', title:'Why Indian Independent Journaling Is Having a Moment', author:'u4', status:'active', reports:0, pubDate:'2026-06-19', preview:'A look at the platforms and communities reviving long-form personal writing...'},
-  {id:'c7', caseId:nextCaseId(), type:'The Wall', title:'Pinned wall post', author:'u8', status:'active', reports:1, pubDate:'2026-09-10', preview:'Does anyone else feel like September always resets your whole outlook?'},
-  {id:'c8', caseId:nextCaseId(), type:'Journals', title:'Draft: things I can\u2019t say out loud', author:'u7', status:'active', reports:1, pubDate:'2026-09-05', preview:'Content reported for allegedly identifying a private individual without consent...'},
-];
-function contentById(id){ return CONTENT.find(c=>c.id===id); }
-
-const REASONS = ['Harassment or bullying','Hate speech','Spam or misleading','Self-harm concern','Copyright / plagiarism','Privacy violation','Sexual content','Impersonation'];
-
-const REPORTS = [
-  {id:'r1', caseId:CONTENT[0].caseId, contentId:'c1', reportedUser:'u3', reporter:'u4', reason:'Self-harm concern', description:'The last two paragraphs read like a goodbye letter, I\u2019m worried about the author.', createdAt:'2026-09-14T10:20:00', priority:'Urgent', status:'New', assignedTo:null, assignedAt:null},
-  {id:'r2', caseId:CONTENT[1].caseId, contentId:'c2', reportedUser:'u2', reporter:'u6', reason:'Copyright / plagiarism', description:'This poem is lifted almost line for line from a published collection.', createdAt:'2026-09-13T18:05:00', priority:'High', status:'Under Review', assignedTo:'m1', assignedAt:'2026-09-13T19:00:00'},
-  {id:'r3', caseId:CONTENT[2].caseId, contentId:'c3', reportedUser:'u5', reporter:'u1', reason:'Hate speech', description:'Repeated targeted insults directed at a specific community.', createdAt:'2026-09-10T09:15:00', priority:'High', status:'Action Taken', assignedTo:'m2', assignedAt:'2026-09-10T09:40:00'},
-  {id:'r4', caseId:CONTENT[4].caseId, contentId:'c5', reportedUser:'u6', reporter:'u2', reason:'Copyright / plagiarism', description:'Second couplet appears to be copied from a known Urdu poet.', createdAt:'2026-09-12T14:00:00', priority:'Normal', status:'Under Review', assignedTo:'m2', assignedAt:'2026-09-12T15:10:00'},
-  {id:'r5', caseId:CONTENT[6].caseId, contentId:'c7', reportedUser:'u8', reporter:'u3', reason:'Spam or misleading', description:'Same message posted to The Wall six times today.', createdAt:'2026-09-15T08:30:00', priority:'Normal', status:'New', assignedTo:null, assignedAt:null},
-  {id:'r6', caseId:CONTENT[7].caseId, contentId:'c8', reportedUser:'u7', reporter:'u5', reason:'Privacy violation', description:'Names and describes a private individual (not on the platform) in identifying detail.', createdAt:'2026-09-16T11:45:00', priority:'High', status:'New', assignedTo:null, assignedAt:null},
-  {id:'r7', caseId:nextCaseId(), contentId:'c1', reportedUser:'u3', reporter:'u7', reason:'Self-harm concern', description:'Flagging again, same journal, still worried.', createdAt:'2026-09-15T16:00:00', priority:'Urgent', status:'New', assignedTo:null, assignedAt:null},
-  {id:'r8', caseId:nextCaseId(), contentId:'c4', reportedUser:'u1', reporter:'u2', reason:'Harassment or bullying', description:'A side character in the story is a thinly veiled parody of me.', createdAt:'2026-09-08T13:20:00', priority:'Normal', status:'Dismissed', assignedTo:'m1', assignedAt:'2026-09-08T14:00:00'},
-];
-function reportById(id){ return REPORTS.find(r=>r.id===id); }
-
-const RESTRICTIONS = [
-  {id:'x1', caseId:REPORTS[2].caseId, userId:'u5', scope:'posts', type:'Posting restricted', durationType:'temporary', days:30, reason:'Repeated hate speech after a prior warning.', moderatorId:'m2', start:'2026-09-10T10:00:00', expiry:'2026-10-10T10:00:00', status:'active'},
-  {id:'x2', caseId:nextCaseId(), userId:'u3', scope:'comments', type:'Comment restriction', durationType:'temporary', days:17, reason:'Escalating arguments in comment sections.', moderatorId:'m1', start:'2026-09-01T00:00:00', expiry:'2026-09-18T00:00:00', status:'active'},
-  {id:'x3', caseId:nextCaseId(), userId:'u6', scope:'publishing', type:'Publishing throttled', durationType:'indefinite', days:null, reason:'Multiple plagiarism reports pending review.', moderatorId:'m2', start:'2026-08-20T00:00:00', expiry:null, status:'active'},
-  {id:'x4', caseId:nextCaseId(), userId:'u8', scope:'wall', type:'Wall posting suspended', durationType:'temporary', days:7, reason:'Spamming identical content.', moderatorId:'m1', start:'2026-07-01T00:00:00', expiry:'2026-07-08T00:00:00', status:'expired'},
-  {id:'x5', caseId:nextCaseId(), userId:'u4', scope:'comments', type:'Comment restriction', durationType:'temporary', days:7, reason:'Issued in error — reversed same day.', moderatorId:'m0', start:'2026-06-11T00:00:00', expiry:'2026-06-18T00:00:00', status:'cancelled'},
-  {id:'x6', caseId:nextCaseId(), userId:'u7', scope:'account', type:'Account suspended', durationType:'permanent', days:null, reason:'Confirmed ban evasion after a prior permanent restriction.', moderatorId:'m0', start:'2026-05-14T00:00:00', expiry:null, status:'active'},
-];
-function restrictionById(id){ return RESTRICTIONS.find(x=>x.id===id); }
-
-const APPEALS = [
-  {id:'a1', caseId:RESTRICTIONS[0].caseId, userId:'u5', originalAction:'Posting suspended (30 days)', originalReason:'Repeated hate speech after a prior warning.', moderatorId:'m2', appealDate:'2026-09-12T09:00:00', status:'Pending', message:'I understand the concern but I believe the earlier comment was taken out of context. I\u2019d like a chance to explain.', timeline:[{who:'Noor Jahan', text:'Appeal submitted.', at:'2026-09-12T09:00:00'}]},
-  {id:'a2', caseId:RESTRICTIONS[1].caseId, userId:'u3', originalAction:'Comment restriction (17 days)', originalReason:'Escalating arguments in comment sections.', moderatorId:'m1', appealDate:'2026-09-05T12:00:00', status:'Under Review', message:'I was defending myself against someone else who was baiting me first.', timeline:[{who:'Ananya Prasad', text:'Appeal submitted.', at:'2026-09-05T12:00:00'},{who:'Sam D\u2019Souza', text:'Reviewing comment thread history.', at:'2026-09-06T10:00:00'}]},
-  {id:'a3', caseId:nextCaseId(), userId:'u5', originalAction:'Content removed', originalReason:'A prior journal removed for targeted harassment.', moderatorId:'m2', appealDate:'2026-08-15T09:00:00', status:'Rejected', message:'It wasn\u2019t about a real person, it was fiction.', timeline:[{who:'Noor Jahan', text:'Appeal submitted.', at:'2026-08-15T09:00:00'},{who:'Fatima Rizvi', text:'Reviewed content and original report; decision upheld.', at:'2026-08-17T11:00:00'}]},
-  {id:'a4', caseId:nextCaseId(), userId:'u8', originalAction:'Wall posting suspended (7 days)', originalReason:'Spamming identical content.', moderatorId:'m1', appealDate:'2026-07-02T09:00:00', status:'Approved', message:'It was a scheduling bug in a third-party tool, not intentional spam.', timeline:[{who:'Arjun Mehta', text:'Appeal submitted.', at:'2026-07-02T09:00:00'},{who:'Sam D\u2019Souza', text:'Verified explanation, restriction lifted early.', at:'2026-07-03T14:00:00'}]},
-];
-function appealById(id){ return APPEALS.find(a=>a.id===id); }
-
-const AUDIT_LOG = [
-  {id:'l1', caseId:REPORTS[2].caseId, moderatorId:'m2', action:'Content removed', targetUserId:'u5', targetContentId:'c3', reason:'Repeated hate speech targeting a community.', at:'2026-09-10T09:40:00', duration:null, expiry:null, result:'Content removed, user posting-suspended 30 days'},
-  {id:'l2', caseId:REPORTS[2].caseId, moderatorId:'m2', action:'User restricted', targetUserId:'u5', targetContentId:null, reason:'Repeated hate speech after a prior warning.', at:'2026-09-10T09:41:00', duration:'30 days', expiry:'2026-10-10T10:00:00', result:'Posting suspended'},
-  {id:'l3', caseId:REPORTS[7].caseId, moderatorId:'m1', action:'Report dismissed', targetUserId:'u1', targetContentId:'c4', reason:'Fictional character, not a clear real-person parody.', at:'2026-09-08T14:00:00', duration:null, expiry:null, result:'No action, report closed'},
-  {id:'l4', caseId:RESTRICTIONS[3].caseId, moderatorId:'m1', action:'User restricted', targetUserId:'u8', targetContentId:'c7', reason:'Spamming identical content to The Wall.', at:'2026-07-01T00:00:00', duration:'7 days', expiry:'2026-07-08T00:00:00', result:'Wall posting suspended'},
-  {id:'l5', caseId:RESTRICTIONS[4].caseId, moderatorId:'m0', action:'Restriction cancelled', targetUserId:'u4', targetContentId:null, reason:'Issued in error against the wrong account.', at:'2026-06-11T02:00:00', duration:null, expiry:null, result:'Restriction reversed'},
-  {id:'l6', caseId:APPEALS[3].caseId, moderatorId:'m1', action:'Appeal approved', targetUserId:'u8', targetContentId:null, reason:'Verified third-party scheduling bug, not intentional spam.', at:'2026-07-03T14:00:00', duration:null, expiry:null, result:'Restriction lifted early'},
-  {id:'l7', caseId:APPEALS[2].caseId, moderatorId:'m2', action:'Appeal rejected', targetUserId:'u5', targetContentId:null, reason:'Content clearly targeted a specific, identifiable person.', at:'2026-08-17T11:00:00', duration:null, expiry:null, result:'Original decision upheld'},
-];
-
-const INTERNAL_NOTES = {}; // caseId -> [{author, text, at}]
-function addNote(caseId, author, text){
-  if(!INTERNAL_NOTES[caseId]) INTERNAL_NOTES[caseId]=[];
-  INTERNAL_NOTES[caseId].unshift({author, text, at:new Date().toISOString()});
-}
-addNote(REPORTS[2].caseId, 'Fatima Rizvi', 'Second offence from this account — escalate to suspension if it recurs.');
-addNote(RESTRICTIONS[0].caseId, 'Fatima Rizvi', 'User has an active appeal, hold off on further action until reviewed.');
-
+ // caseId -> [{author, text, at}]
 /* ============================================================
    COPYRIGHT & TAKEDOWNS
    ============================================================ */
-const COPYRIGHT_CLAIMS = [
-  {id:'cp1', caseId:nextCaseId(), contentId:'c2', ownerUserId:'u2', claimantName:'Meera Kulkarni', claimantEmail:'meera.k@example.com',
-    description:'This poem reproduces six lines from my 2023 published chapbook "Salt Water" without credit.', evidence:'salt_water_pg14_scan.pdf',
-    status:'Under Review', submittedAt:'2026-09-13T20:00:00', reviewedBy:'m1'},
-  {id:'cp2', caseId:nextCaseId(), contentId:'c6', ownerUserId:'u6', claimantName:'Rhea Varma', claimantEmail:'rhea.varma@example.com',
-    description:'Entire opening chapter matches my serialized story published on another platform in 2024.', evidence:'original_ch1_timestamp.png',
-    status:'New', submittedAt:'2026-09-19T08:30:00', reviewedBy:null},
-  {id:'cp3', caseId:nextCaseId(), contentId:'c8', ownerUserId:'u7', claimantName:'Dev Anand Studio (agent)', claimantEmail:'rights@devanandstudio.example',
-    description:'Shayari collection appears to be a direct translation of a copyrighted lyric set we represent.', evidence:'licensing_agreement.pdf',
-    status:'Content Removed', submittedAt:'2026-08-02T09:00:00', reviewedBy:'m2'},
-  {id:'cp4', caseId:nextCaseId(), contentId:'c4', ownerUserId:'u1', claimantName:'Anonymous reader', claimantEmail:'n/a',
-    description:'Claimed as plagiarism, but the flagged article is an original review — no matching source found.', evidence:'(none provided)',
-    status:'Rejected', submittedAt:'2026-07-20T12:00:00', reviewedBy:'m1'},
-];
-function copyrightById(id){ return COPYRIGHT_CLAIMS.find(c=>c.id===id); }
-
 /* ============================================================
    PRIVACY REQUESTS
    ============================================================ */
-const PRIVACY_REQUESTS = [
-  {id:'pr1', caseId:nextCaseId(), userId:'u4', type:'Data deletion', description:'Requesting full account and content deletion under platform privacy policy.',
-    status:'In Progress', submittedAt:'2026-09-15T11:00:00', dueBy:'2026-09-29T11:00:00', resolvedBy:null},
-  {id:'pr2', caseId:nextCaseId(), userId:'u2', type:'Data access', description:'Requesting a copy of all personal data held, per data access request.',
-    status:'New', submittedAt:'2026-09-20T09:00:00', dueBy:'2026-10-04T09:00:00', resolvedBy:null},
-  {id:'pr3', caseId:nextCaseId(), userId:'u8', type:'Content takedown (privacy)', description:'A comment thread reveals my real name and city; I never disclosed either publicly.',
-    status:'Fulfilled', submittedAt:'2026-08-10T14:00:00', dueBy:'2026-08-24T14:00:00', resolvedBy:'m1'},
-];
-function privacyById(id){ return PRIVACY_REQUESTS.find(p=>p.id===id); }
-
 /* ============================================================
    GRIEVANCES (separate from Reports — complaints about moderation
    itself, other users' conduct off-content, or platform policy)
    ============================================================ */
-const GRIEVANCES = [
-  {id:'gr1', caseId:nextCaseId(), userId:'u5', against:'Moderator decision', targetModeratorId:'m2',
-    description:'I believe my restriction was applied unfairly compared to similar cases — requesting a second look outside the normal appeal.',
-    status:'Assigned', submittedAt:'2026-09-11T10:00:00', assignedTo:'m0'},
-  {id:'gr2', caseId:nextCaseId(), userId:'u3', against:'Another user', targetModeratorId:null,
-    description:'A user has been messaging me repeatedly off-thread after I asked them to stop; it doesn\u2019t show up as reportable content.',
-    status:'New', submittedAt:'2026-09-21T16:00:00', assignedTo:null},
-  {id:'gr3', caseId:nextCaseId(), userId:'u6', against:'Platform policy', targetModeratorId:null,
-    description:'The plagiarism review process took three weeks with no updates — requesting a clearer SLA be published.',
-    status:'Resolved', submittedAt:'2026-08-05T09:00:00', assignedTo:'m1'},
-];
-function grievanceById(id){ return GRIEVANCES.find(g=>g.id===id); }
-
 /* ============================================================
    NOTIFICATIONS / TEMPLATES / ANNOUNCEMENTS
    ============================================================ */
-const NOTIFICATION_TEMPLATES = [
-  {id:'t1', name:'Restriction notice', category:'Enforcement', subject:'A restriction has been applied to your account',
-    body:'Hi {{username}}, after review a {{scope}} restriction has been applied to your account for {{duration}}. Reason: {{reason}}. You can appeal this from your account settings.'},
-  {id:'t2', name:'Content removed', category:'Enforcement', subject:'One of your posts has been removed',
-    body:'Hi {{username}}, your post "{{title}}" was removed for violating our community guidelines. Reason: {{reason}}.'},
-  {id:'t3', name:'Appeal decision', category:'Appeals', subject:'Update on your appeal', body:'Hi {{username}}, your appeal for case {{caseId}} has been reviewed. Decision: {{decision}}.'},
-  {id:'t4', name:'Copyright takedown', category:'Legal & Rights', subject:'Content removed following a copyright claim',
-    body:'Hi {{username}}, your content "{{title}}" was removed following a verified copyright claim. Contact support if you believe this is in error.'},
-  {id:'t5', name:'Privacy request update', category:'Legal & Rights', subject:'Update on your privacy request', body:'Hi {{username}}, your {{type}} request (case {{caseId}}) is now {{status}}.'},
-];
-function templateById(id){ return NOTIFICATION_TEMPLATES.find(t=>t.id===id); }
-
-const NOTIFICATIONS = [
-  {id:'n1', toUserId:'u5', subject:'A restriction has been applied to your account', message:'A posting restriction has been applied for 30 days following a hate speech report.', sentAt:'2026-09-10T09:42:00', sentBy:'m2', channel:'in-app', caseId:REPORTS[2].caseId},
-  {id:'n2', toUserId:'u8', subject:'Update on your appeal', message:'Your appeal for case '+APPEALS[3].caseId+' has been approved and the restriction lifted.', sentAt:'2026-07-03T14:05:00', sentBy:'m1', channel:'in-app', caseId:APPEALS[3].caseId},
-  {id:'n3', toUserId:'u7', subject:'Content removed following a copyright claim', message:'Your shayari collection was removed after a verified copyright claim.', sentAt:'2026-08-02T09:30:00', sentBy:'m2', channel:'email', caseId:COPYRIGHT_CLAIMS[2].caseId},
-];
-function notificationById(id){ return NOTIFICATIONS.find(n=>n.id===id); }
-
-const ANNOUNCEMENTS = [
-  {id:'an1', title:'Updated community guidelines — effective Oct 1', body:'We\u2019ve clarified our policy on AI-assisted writing disclosure. Read the full update in Help Center.', audience:'All users', status:'Scheduled', publishedAt:'2026-10-01T00:00:00', publishedBy:'m0'},
-  {id:'an2', title:'New copyright review workflow for moderators', body:'Copyright claims now require evidence attachment before a takedown can be issued. See the Policies tab for details.', audience:'All moderators', status:'Published', publishedAt:'2026-09-15T09:00:00', publishedBy:'m0'},
-  {id:'an3', title:'Planned maintenance window', body:'The Wall and messaging will be briefly unavailable during scheduled maintenance.', audience:'All users', status:'Draft', publishedAt:null, publishedBy:'m0'},
-];
-function announcementById(id){ return ANNOUNCEMENTS.find(a=>a.id===id); }
-
 /* ============================================================
    SYSTEM AUDIT LOG (Admin-only — platform/account/security events,
    distinct from the Moderation Log every role can see)
    ============================================================ */
-const SYSTEM_AUDIT_LOG = [
-  {id:'sa1', at:'2026-09-22T08:10:00', actorId:'m0', event:'Permission changed', detail:'Revoked copyright.* permissions for Grace Thomas.', severity:'info'},
-  {id:'sa2', at:'2026-09-20T17:45:00', actorId:'m0', event:'Permission changed', detail:'Revoked grievances.* permissions for Idris Khan.', severity:'info'},
-  {id:'sa3', at:'2026-09-18T13:05:00', actorId:'m3', event:'Failed sign-in', detail:'3 failed sign-in attempts before lockout (mock).', severity:'warning'},
-  {id:'sa4', at:'2026-09-11T19:20:00', actorId:'m0', event:'Moderator suspended', detail:'Oliver Fernandes suspended pending internal review.', severity:'warning'},
-  {id:'sa5', at:'2026-06-01T09:00:00', actorId:'m0', event:'Account created', detail:'Admin account provisioned.', severity:'info'},
-];
-
 /* ============================================================
    POLICIES (Admin-only editing; moderators can view for reference)
    ============================================================ */
-const POLICIES = [
-  {id:'po1', title:'Community Guidelines', category:'General', currentVersion:'v3.2', lastUpdated:'2026-09-15', updatedBy:'m0',
-    body:'Defines acceptable content across Story, Shayari, Poem and Article posts, including harassment, hate speech, and self-harm content handling.',
-    versions:[{version:'v3.2', date:'2026-09-15', summary:'Clarified AI-assisted writing disclosure requirement.'},{version:'v3.1', date:'2026-05-02', summary:'Added self-harm content escalation path.'},{version:'v3.0', date:'2026-01-10', summary:'Full rewrite for platform relaunch.'}]},
-  {id:'po2', title:'Restriction Durations', category:'Enforcement', currentVersion:'v1.4', lastUpdated:'2026-08-01', updatedBy:'m0',
-    body:'Default duration guidance for temporary restrictions by scope and severity; when indefinite vs permanent applies.',
-    versions:[{version:'v1.4', date:'2026-08-01', summary:'Added Wall-specific durations.'},{version:'v1.3', date:'2026-03-11', summary:'Introduced indefinite tier.'}]},
-  {id:'po3', title:'Copyright & Takedown Policy', category:'Legal & Rights', currentVersion:'v2.0', lastUpdated:'2026-09-01', updatedBy:'m0',
-    body:'Evidence requirements, claimant verification, and the counter-notice process for copyright claims.',
-    versions:[{version:'v2.0', date:'2026-09-01', summary:'Now requires evidence attachment before removal.'},{version:'v1.0', date:'2026-02-14', summary:'Initial policy.'}]},
-  {id:'po4', title:'Grievance Handling', category:'Grievances', currentVersion:'v1.1', lastUpdated:'2026-07-20', updatedBy:'m0',
-    body:'How grievances against moderator decisions, other users, or platform policy are routed and resolved.',
-    versions:[{version:'v1.1', date:'2026-07-20', summary:'Added routing for policy-related grievances.'},{version:'v1.0', date:'2026-04-01', summary:'Initial policy.'}]},
-];
-function policyById(id){ return POLICIES.find(p=>p.id===id); }
-
 /* ============================================================
    CASES — computed live from Reports, Restrictions, Appeals,
    Copyright claims, Privacy requests and Grievances that share a
    caseId, so this view can never drift out of sync with the
    underlying queues. Nothing here is stored separately.
    ============================================================ */
-function getCaseSummaries(){
-  const ids = new Set([
-    ...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId),
-    ...COPYRIGHT_CLAIMS.map(c=>c.caseId), ...PRIVACY_REQUESTS.map(p=>p.caseId), ...GRIEVANCES.map(g=>g.caseId),
-  ]);
-  return [...ids].map(caseId=>{
-    const report = REPORTS.find(r=>r.caseId===caseId);
-    const restriction = RESTRICTIONS.find(x=>x.caseId===caseId);
-    const appeal = APPEALS.find(a=>a.caseId===caseId);
-    const copyright = COPYRIGHT_CLAIMS.find(c=>c.caseId===caseId);
-    const privacy = PRIVACY_REQUESTS.find(p=>p.caseId===caseId);
-    const grievance = GRIEVANCES.find(g=>g.caseId===caseId);
-    const types = [];
-    if(report) types.push('Report');
-    if(restriction) types.push('Restriction');
-    if(appeal) types.push('Appeal');
-    if(copyright) types.push('Copyright');
-    if(privacy) types.push('Privacy');
-    if(grievance) types.push('Grievance');
-    let status = 'Resolved';
-    if((report&&report.status==='New') || (copyright&&copyright.status==='New') || (privacy&&privacy.status==='New') || (grievance&&grievance.status==='New')) status='Open';
-    else if((report&&report.status==='Under Review') || (appeal&&(appeal.status==='Pending'||appeal.status==='Under Review')) || (restriction&&restriction.status==='active') || (copyright&&copyright.status==='Under Review') || (privacy&&privacy.status==='In Progress') || (grievance&&grievance.status==='Assigned')) status='In Progress';
-    const assignedTo = (report&&report.assignedTo) || (grievance&&grievance.assignedTo) || (restriction&&restriction.moderatorId) || (copyright&&copyright.reviewedBy) || (privacy&&privacy.resolvedBy) || null;
-    const priority = (report&&report.priority) || (copyright?'High':null) || 'Normal';
-    const openedAt = (report&&report.createdAt) || (copyright&&copyright.submittedAt) || (privacy&&privacy.submittedAt) || (grievance&&grievance.submittedAt) || (restriction&&restriction.start);
-    const title = (report&&report.reason) || (copyright&&'Copyright claim') || (privacy&&privacy.type) || (grievance&&('Grievance: '+grievance.against)) || (restriction&&restriction.type) || 'Case';
-    return {caseId, types, status, assignedTo, priority, openedAt, title, report, restriction, appeal, copyright, privacy, grievance};
-  }).sort((a,b)=> new Date(b.openedAt||0) - new Date(a.openedAt||0));
-}
-
 /* ============================================================
    STATE
    ============================================================ */
@@ -732,11 +528,9 @@ const state = {
   overviewLoaded: false,
 };
 
-function currentModerator(){ return modById(state.currentModeratorId) || MODERATORS[0]; }
+function currentModerator(){ return modById(state.currentModeratorId) || MODERATORS[0] || {id:'', username:'', displayName:'', role:'moderator', status:'active', permissions:[]}; }
 
 // Which mock staff record represents "me" when previewing each role.
-const ROLE_PREVIEW_MOD = {admin:'m0', moderator:'m2'};
-
 /* ============================================================
    NAV CONFIG — grouped to match the full Phase 5 information
    architecture. Every section below is fully built against mock
@@ -899,19 +693,6 @@ function closeDrawer(){ $('#drawer-scrim').classList.remove('open'); $('#drawer-
 /* ============================================================
    AUDIT / ACTIONS
    ============================================================ */
-function logAction({caseId, action, targetUserId, targetContentId, reason, duration, expiry, result}){
-  AUDIT_LOG.unshift({
-    id:'l'+(AUDIT_LOG.length+1)+Math.random().toString(36).slice(2,5),
-    caseId, moderatorId: state.currentModeratorId, action, targetUserId, targetContentId, reason,
-    at:new Date().toISOString(), duration:duration||null, expiry:expiry||null, result
-  });
-}
-
-function setReportStatus(report, status, reason, extra){
-  report.status = status;
-  logAction({caseId:report.caseId, action:extra&&extra.actionLabel||status, targetUserId:report.reportedUser, targetContentId:report.contentId, reason, duration:extra&&extra.duration, expiry:extra&&extra.expiry, result:extra&&extra.result||status});
-}
-
 // Restriction scopes a restriction can apply to, and the three duration
 // modes the spec calls for. Used by the restriction modal, the
 // Restrictions table, and restrictUser() below.
@@ -929,89 +710,13 @@ const DURATION_TYPES = [
   {id:'permanent',  label:'Permanent'},
 ];
 function scopeMeta(id){ return RESTRICTION_SCOPES.find(s=>s.id===id) || RESTRICTION_SCOPES[1]; }
-function durationLabel(x){
-  if(x.durationType==='temporary') return `${x.days||'\u2014'} days`;
-  if(x.durationType==='indefinite') return 'Indefinite';
-  if(x.durationType==='permanent') return 'Permanent';
-  return '\u2014';
-}
-
-function restrictUser({userId, caseId, scope, durationType, days, reason}){
-  const start = new Date();
-  const expiry = durationType==='temporary' ? new Date(start.getTime()+(days||1)*86400000) : null;
-  const sc = scopeMeta(scope);
-  const r = {id:'x'+(RESTRICTIONS.length+1)+Math.random().toString(36).slice(2,5), caseId, userId, scope, type:sc.verb, durationType, days:durationType==='temporary'?days:null,
-    reason, moderatorId:state.currentModeratorId, start:start.toISOString(), expiry: expiry?expiry.toISOString():null, status:'active'};
-  RESTRICTIONS.unshift(r);
-  const u = userById(userId); if(u) u.status = scope==='account' ? 'suspended' : 'restricted';
-  logAction({caseId, action:'User restricted', targetUserId:userId, targetContentId:null, reason,
-    duration: durationType==='temporary' ? days+' days' : DURATION_TYPES.find(d=>d.id===durationType).label,
-    expiry: expiry?expiry.toISOString():null, result:sc.verb});
-  return r;
-}
-
 // The one place a restriction gets created anywhere in the dashboard —
 // from a report, a user profile, or the Restrictions page's own
 // "Issue restriction" button. Always asks for scope + duration + reason
 // instead of a fixed hardcoded duration.
-function openRestrictionModal({userId, caseId, defaultScope='posts', onDone}){
-  const u = userById(userId);
-  openModal(`
-    <h3>Restrict @${esc(u.username)}?</h3>
-    <p class="sub">Choose what\u2019s restricted, for how long, and why. The user is notified without your identity being shown.</p>
-    <label class="field-label">Restriction scope</label>
-    <select class="search-mini" style="width:100%; margin-bottom:10px;" id="restrict-scope">
-      ${RESTRICTION_SCOPES.map(s=>`<option value="${s.id}" ${s.id===defaultScope?'selected':''}>${esc(s.label)}</option>`).join('')}
-    </select>
-    <label class="field-label">Duration</label>
-    <div class="duration-row" id="duration-row">
-      ${DURATION_TYPES.map((d,i)=>`<label class="radio-pill"><input type="radio" name="duration-type" value="${d.id}" ${i===0?'checked':''}>${esc(d.label)}</label>`).join('')}
-    </div>
-    <input type="number" min="1" value="14" id="restrict-days" class="search-mini" style="width:100%; margin-bottom:10px;" placeholder="Number of days">
-    <textarea id="reason-input" placeholder="Reason for this action (required, visible in the moderation log)…"></textarea>
-    <div id="reason-err" style="color:var(--red); font-size:11.5px; margin-top:4px; display:none;">A reason is required before you can confirm.</div>
-    <div class="modal-actions">
-      <button class="btn ghost sm" data-action="close-modal">Cancel</button>
-      <button class="btn danger sm" id="modal-confirm-btn">Apply restriction</button>
-    </div>
-  `);
-  const daysInput = $('#restrict-days');
-  const syncDaysVisibility = ()=>{
-    const dt = document.querySelector('input[name="duration-type"]:checked').value;
-    daysInput.style.display = dt==='temporary' ? '' : 'none';
-  };
-  syncDaysVisibility();
-  $$('input[name="duration-type"]').forEach(r=> r.addEventListener('change', syncDaysVisibility));
-  $('#modal-confirm-btn').onclick = ()=>{
-    const reason = $('#reason-input').value.trim();
-    if(!reason){ $('#reason-err').style.display='block'; return; }
-    const scope = $('#restrict-scope').value;
-    const durationType = document.querySelector('input[name="duration-type"]:checked').value;
-    const days = parseInt(daysInput.value,10) || 1;
-    closeModal();
-    const r = restrictUser({userId, caseId: caseId||nextCaseId(), scope, durationType, days, reason});
-    onDone && onDone(r);
-  };
-}
-
-function removeContent(content, reason){
-  content.status = 'removed';
-  logAction({caseId:content.caseId, action:'Content removed', targetUserId:content.author, targetContentId:content.id, reason, result:'Content removed'});
-}
-function restoreContent(content, reason){
-  content.status = 'active';
-  logAction({caseId:content.caseId, action:'Content restored', targetUserId:content.author, targetContentId:content.id, reason, result:'Content restored'});
-}
-
 /* ============================================================
    RENDER: SIDEBAR + ROLE TOGGLE
    ============================================================ */
-function renderRoleToggle(){
-  const box = $('#role-toggle');
-  if(!box) return;
-  box.innerHTML = ROLES.map(r=>`<button data-role="${r.id}" class="${state.role===r.id?'active':''}">${esc(r.short)}</button>`).join('');
-}
-
 function renderSidebar(){
   const nav = $('#sb-nav');
   nav.innerHTML = NAV_GROUPS.map(group=>{
@@ -1032,7 +737,7 @@ function renderSidebar(){
     <div class="meta"><b>${esc(me.displayName)}</b><span>${esc(roleMeta(state.role).label)}</span></div>
   `;
   $('#topbar-role-badge').textContent = roleMeta(state.role).short.toUpperCase();
-  renderRoleToggle();
+  
 }
 
 /* ============================================================
@@ -1102,13 +807,6 @@ async function renderOverview(){
     </div>
   `;
 }
-function topReportedCategory(){
-  const counts = {};
-  CONTENT.forEach(c=>{ counts[c.type] = (counts[c.type]||0) + (c.reports||0); });
-  const top = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
-  return top && top[1]>0 ? `${top[0]} (${top[1]} reports)` : '\u2014';
-}
-
 /* ============================================================
    SHARED: states
    ============================================================ */
@@ -1152,25 +850,6 @@ function roleBadge(m){
 /* ============================================================
    RENDER: REPORTS
    ============================================================ */
-const REPORT_FILTERS = ['All','New','Under Review','Action Taken','Dismissed','High Priority','Unassigned','Assigned to me'];
-
-function filteredReports(){
-  let list = [...REPORTS];
-  const f = state.reportFilter;
-  if(f==='High Priority') list = list.filter(r=>r.priority==='High'||r.priority==='Urgent');
-  else if(f==='Unassigned') list = list.filter(r=>!r.assignedTo);
-  else if(f==='Assigned to me') list = list.filter(r=>r.assignedTo===state.currentModeratorId);
-  else if(f!=='All') list = list.filter(r=>r.status===f);
-  if(state.reportSearch){
-    const q = state.reportSearch.toLowerCase();
-    list = list.filter(r=> r.caseId.toLowerCase().includes(q) || contentById(r.contentId).title.toLowerCase().includes(q) || userById(r.reportedUser).username.toLowerCase().includes(q));
-  }
-  list.sort((a,b)=> state.reportSort==='newest' ? new Date(b.createdAt)-new Date(a.createdAt) : new Date(a.createdAt)-new Date(b.createdAt));
-  return list;
-}
-
-
-function reportGroup(caseId){ return (STAFF_CACHE.reports||[]).filter(r=>r.case_id===caseId); }
 async function renderReports(){
   const root = $('#view-root');
   root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading reports\u2026</span></div>`;
@@ -1533,15 +1212,6 @@ function handleUserAction(userId, act){
    ============================================================ */
 const CONTENT_FILTERS = ['All','Reported','Active','Under Review','Locked'];
 let USERS_SEQ = 0, CONTENT_SEQ = 0;
-function filteredContent(){
-  let list = [...CONTENT];
-  const f = state.contentFilter;
-  if(f==='Reported') list = list.filter(c=>c.reports>0);
-  else if(f==='Active') list = list.filter(c=>c.status==='active');
-  else if(f==='Removed') list = list.filter(c=>c.status==='removed');
-  else if(f==='Under Review') list = list.filter(c=>c.status==='under_review');
-  return list;
-}
 async function renderContent(){
   const root = $('#view-root');
   root.innerHTML = `
@@ -1662,20 +1332,6 @@ function handleContentAction(key, act){
 /* ============================================================
    RENDER: RESTRICTIONS
    ============================================================ */
-const RESTRICTION_FILTERS = ['All','Active','Expired','Cancelled'];
-function filteredRestrictions(){
-  let list = [...RESTRICTIONS];
-  if(state.restrictionFilter && state.restrictionFilter!=='All') list = list.filter(x=>x.status===state.restrictionFilter.toLowerCase());
-  if(state.restrictionSearch){
-    const q = state.restrictionSearch.toLowerCase();
-    list = list.filter(x=>{
-      const u = userById(x.userId);
-      return (u&&u.username.toLowerCase().includes(q)) || x.caseId.toLowerCase().includes(q) || x.type.toLowerCase().includes(q);
-    });
-  }
-  return list.sort((a,b)=>new Date(b.start)-new Date(a.start));
-}
-
 async function renderRestrictions(){
   const root = $('#view-root');
   root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading restrictions\u2026</span></div>`;
@@ -2160,8 +1816,6 @@ async function renderCaseWorkspace(caseId){
 /* ============================================================
    RENDER: COPYRIGHT & TAKEDOWNS
    ============================================================ */
-const COPYRIGHT_FILTERS = ['All','New','Under Review','Upheld','Rejected','Content Removed'];
-
 async function renderCopyright(){
   const root = $('#view-root');
   root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading copyright claims\u2026</span></div>`;
@@ -2248,8 +1902,6 @@ function handleCopyrightAction(id, act){
 /* ============================================================
    RENDER: PRIVACY REQUESTS
    ============================================================ */
-const PRIVACY_FILTERS = ['All','New','In Progress','Fulfilled','Denied'];
-
 async function renderPrivacy(){
   const root = $('#view-root');
   root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading privacy requests\u2026</span></div>`;
@@ -2324,8 +1976,6 @@ function handlePrivacyAction(id, act){
 /* ============================================================
    RENDER: GRIEVANCES
    ============================================================ */
-const GRIEVANCE_FILTERS = ['All','New','Assigned','Resolved'];
-
 async function renderGrievances(){
   const root = $('#view-root');
   root.innerHTML = `<div class="panel" style="padding:18px;"><span class="muted">Loading grievances\u2026</span></div>`;
@@ -2400,9 +2050,6 @@ function handleGrievanceAction(id, act){
    ============================================================ */
 /* ---------- Notifications (one-to-one) ---------- */
 let NOTIF_SEQ = 0;
-function fillPlaceholders(text, vars){
-  return String(text||'').replace(/\{\{\s*(\w+)\s*\}\}/g, (m,k)=> (vars && vars[k]!=null && vars[k]!=='') ? vars[k] : m);
-}
 async function renderNotifications(){
   const root = $('#view-root');
   const mine = ++NOTIF_SEQ;
@@ -3121,17 +2768,6 @@ document.addEventListener('click', (e)=>{
   const nav = e.target.closest('[data-nav]');
   if(nav){ goto(nav.dataset.nav); return; }
 
-  const roleBtn = e.target.closest('#role-toggle button');
-  if(roleBtn){
-    state.role = roleBtn.dataset.role;
-    state.currentModeratorId = ROLE_PREVIEW_MOD[state.role] || 'm0';
-    const item = NAV.find(n=>n.id===state.view);
-    if(item && !navVisible(item)) state.view = 'overview';
-    toast(`Switched to ${roleMeta(state.role).label} preview.`);
-    goto(state.view);
-    return;
-  }
-
   if(e.target.closest('[data-action="close-drawer"]')){ closeDrawer(); return; }
   if(e.target.closest('[data-action="close-modal"]')){ closeModal(); return; }
   if(e.target===$('#drawer-scrim')){ closeDrawer(); return; }
@@ -3149,8 +2785,6 @@ document.addEventListener('click', (e)=>{
   if(openAppeal){ renderAppealDetail(openAppeal.dataset.openAppeal); return; }
   const openCase = e.target.closest('[data-open-case]');
   if(openCase){ renderCaseTimeline(openCase.dataset.openCase); return; }
-  const openMod = e.target.closest('[data-open-mod]');
-  if(openMod){ renderModeratorActivity(openMod.dataset.openMod); return; }
   const openRestriction = e.target.closest('[data-open-restriction]');
   if(openRestriction){ renderRestrictionDetail(openRestriction.dataset.openRestriction); return; }
   const openCaseFull = e.target.closest('[data-open-case-full]');
@@ -3196,15 +2830,6 @@ document.addEventListener('click', (e)=>{
     return;
   }
 
-  const setPriority = e.target.closest('[data-set-priority]');
-  if(setPriority){
-    const r = reportById(setPriority.dataset.reportId);
-    r.priority = setPriority.dataset.setPriority;
-    toast('Priority updated.','success');
-    renderReportDetail(r.id);
-    return;
-  }
-
   const reportAct = e.target.closest('[data-report-act]');
   if(reportAct){ handleReportAction(reportAct.dataset.reportId, reportAct.dataset.reportAct); return; }
   const userAct = e.target.closest('[data-user-act]');
@@ -3213,8 +2838,6 @@ document.addEventListener('click', (e)=>{
   if(contentAct){ handleContentAction(contentAct.dataset.contentId, contentAct.dataset.contentAct); return; }
   const appealAct = e.target.closest('[data-appeal-act]');
   if(appealAct){ handleAppealAction(appealAct.dataset.appealId, appealAct.dataset.appealAct); return; }
-  const modAct = e.target.closest('[data-mod-act]');
-  if(modAct){ handleModAction(modAct.dataset.modId, modAct.dataset.modAct); return; }
   const copyrightAct = e.target.closest('[data-copyright-act]');
   if(copyrightAct){ handleCopyrightAction(copyrightAct.dataset.copyrightId, copyrightAct.dataset.copyrightAct); return; }
   const privacyAct = e.target.closest('[data-privacy-act]');
@@ -3223,35 +2846,6 @@ document.addEventListener('click', (e)=>{
   if(grievanceAct){ handleGrievanceAction(grievanceAct.dataset.grievanceId, grievanceAct.dataset.grievanceAct); return; }
   const announcementAct = e.target.closest('[data-announcement-act]');
   if(announcementAct){ handleAnnouncementAction(announcementAct.dataset.announcementId, announcementAct.dataset.announcementAct); return; }
-
-  const bulkAction = e.target.closest('[data-bulk-action]');
-  if(bulkAction){
-    const action = bulkAction.dataset.bulkAction;
-    if(action==='clear'){ state.bulkSelection.clear(); (VIEW_RENDERERS[state.view])(); return; }
-    const kind = bulkAction.dataset.bulkKind;
-    const ids = Array.from(state.bulkSelection);
-    confirmAction({
-      title:`${action==='dismiss'?'Dismiss':'Remove'} ${ids.length} selected ${kind}?`,
-      destructive:true, confirmLabel:'Confirm bulk action',
-      onConfirm:(reason)=>{
-        ids.forEach(id=>{
-          if(kind==='reports'){
-            const r = reportById(id);
-            if(action==='dismiss') setReportStatus(r,'Dismissed',reason,{actionLabel:'Report dismissed (bulk)', result:'No action, report closed'});
-            if(action==='remove'){ const c = contentById(r.contentId); removeContent(c, reason); setReportStatus(r,'Action Taken',reason,{actionLabel:'Content removed (bulk)', result:'Content removed'}); }
-          } else {
-            const c = contentById(id);
-            if(!c.caseId) c.caseId = nextCaseId();
-            if(action==='remove') removeContent(c, reason);
-          }
-        });
-        state.bulkSelection.clear();
-        toast(`Bulk action applied to ${ids.length} item(s).`,'success');
-        (VIEW_RENDERERS[state.view])();
-      }
-    });
-    return;
-  }
 
   const gsItem = e.target.closest('[data-gs-open]');
   if(gsItem){
@@ -3268,31 +2862,6 @@ document.addEventListener('click', (e)=>{
 });
 
 document.addEventListener('change', (e)=>{
-  if(e.target.id==='report-select-all'){
-    const list = filteredReports();
-    list.forEach(r=> e.target.checked ? state.bulkSelection.add(r.id) : state.bulkSelection.delete(r.id));
-    renderReports();
-  }
-  if(e.target.id==='content-select-all'){
-    const list = filteredContent();
-    list.forEach(c=> e.target.checked ? state.bulkSelection.add(c.id) : state.bulkSelection.delete(c.id));
-    renderContent();
-  }
-  if(e.target.classList.contains('bulk-check')){
-    e.target.checked ? state.bulkSelection.add(e.target.dataset.bulkId) : state.bulkSelection.delete(e.target.dataset.bulkId);
-    renderBulkBar('#bulk-bar-slot', filteredReports(), r=>r.id, 'reports');
-  }
-  if(e.target.classList.contains('bulk-check-content')){
-    e.target.checked ? state.bulkSelection.add(e.target.dataset.bulkId) : state.bulkSelection.delete(e.target.dataset.bulkId);
-    renderBulkBar('#content-bulk-slot', filteredContent(), c=>c.id, 'content');
-  }
-  if(e.target.id==='assign-select'){
-    const r = reportById(e.target.dataset.reportId);
-    r.assignedTo = e.target.value || null;
-    r.assignedAt = e.target.value ? new Date().toISOString() : null;
-    toast('Moderator assigned.','success');
-    renderSidebar();
-  }
 });
 
 $('#gsearch-input').addEventListener('input', e=> renderGlobalSearchResults(e.target.value));
@@ -3365,42 +2934,6 @@ async function bootWithAuth(){
   }
 }
 /* ---- recovered functions (still mock-data; untouched by this pass) ---- */
-function handleModAction(modId, act){
-  const m = modById(modId);
-  if(m.role==='admin'){ toast('Admin accounts can\u2019t be modified from this dashboard.','error'); return; }
-  confirmAction({
-    title: `${act[0].toUpperCase()+act.slice(1)} ${m.displayName}?`, requireReason:false,
-    destructive: act!=='reinstate', confirmLabel: act[0].toUpperCase()+act.slice(1),
-    onConfirm:()=>{
-      if(act==='suspend') m.status='suspended';
-      if(act==='remove'){ const i=MODERATORS.indexOf(m); if(i>-1) MODERATORS.splice(i,1); }
-      if(act==='reinstate') m.status='active';
-      toast('Moderator status updated.','success');
-      renderModerators();
-    }
-  });
-}
-
-function notifPreview(reason, caseId){
-  return `<div class="notif-preview">
-    <div class="from">From: Moderation Team</div>
-    <div class="msg">Your content was removed because it violated our Community Guidelines (${esc(reason)}).</div>
-    <div class="meta">Case ${esc(caseId)} \u00b7 <a href="#" onclick="return false;">Community Guidelines</a> \u00b7 <button class="btn ghost sm" style="padding:3px 10px;" disabled>Appeal</button></div>
-  </div>`;
-}
-
-function renderBulkBar(slotSel, list, idFn, kind){
-  const slot = $(slotSel);
-  const selectedCount = list.filter(x=>state.bulkSelection.has(idFn(x))).length;
-  slot.innerHTML = selectedCount ? `
-    <div class="bulk-bar">
-      <b>${selectedCount} selected</b>
-      <button class="btn soft sm" data-bulk-action="dismiss" data-bulk-kind="${kind}">Bulk dismiss</button>
-      <button class="btn soft sm" data-bulk-action="remove" data-bulk-kind="${kind}">Bulk remove content</button>
-      <button class="btn ghost sm" style="margin-left:auto; background:transparent; border-color:rgba(255,255,255,.3); color:#fff;" data-bulk-action="clear">Clear selection</button>
-    </div>` : '';
-}
-
 function renderCaseTimeline(caseId){ return renderCaseWorkspace(caseId); }
 
 let GS_SEQ = 0;
@@ -3437,29 +2970,6 @@ async function openContentByKey(key, title){
     STAFF_CACHE.content = data||[];
   }catch(err){ toast((err&&err.message)||'Could not open that Work.','error'); return; }
   renderContentDetail(key);
-}
-
-function renderModeratorActivity(modId){
-  const m = modById(modId);
-  const actions = AUDIT_LOG.filter(l=>l.moderatorId===modId);
-  const restr = RESTRICTIONS.filter(x=>x.moderatorId===modId);
-  const appealsFromActions = APPEALS.filter(a=>a.moderatorId===modId);
-  openDrawer(`
-    <button class="iconbtn drawer-close" data-action="close-drawer">\u2715</button>
-    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-      <span class="mini-av" style="width:44px; height:44px; font-size:17px;">${esc(m.displayName[0])}</span>
-      <div><h2 style="font-size:18px;">${esc(m.displayName)}</h2><span class="muted">${esc(roleMeta(m.role).label)} \u00b7 ${statusBadge(m.status)}</span></div>
-    </div>
-    <div class="kv">
-      <b>Appointed</b><span>${fmtDate(m.dateAppointed)}</span>
-      <b>Cases handled</b><span>${actions.length}</span>
-      <b>Active restrictions issued</b><span>${restr.filter(x=>x.status==='active').length}</span>
-      <b>Appeals from actions</b><span>${appealsFromActions.length}</span>
-    </div>
-    <hr class="divider">
-    <h4 style="font-size:13px; margin-bottom:8px;">Moderation timeline</h4>
-    ${actions.length ? `<div class="timeline">${actions.map(l=>`<div class="tl-item"><div class="tl-time">${fmtDate(l.at)} \u00b7 ${esc(l.caseId)}</div><div class="tl-body">${esc(l.action)} \u2014 <span class="muted">${esc(l.reason||'')}</span></div></div>`).join('')}</div>` : emptyState('No activity yet', 'This moderator hasn\u2019t taken any actions yet.')}
-  `);
 }
 
 let SETTINGS_SEQ = 0;
@@ -3574,17 +3084,6 @@ async function renderSettings(){
     const scrim = $('#modal-scrim');
     setTimeout(function chk(){ if(scrim.classList.contains('open')) return setTimeout(chk,300); if(state.view==='settings' && $('#platform-lockdown') && $('#platform-lockdown').checked!==!!(STAFF_CACHE.settings||{}).platformLockdown) $('#platform-lockdown').checked = !!(STAFF_CACHE.settings||{}).platformLockdown; }, 300);
   };
-}
-
-function runGlobalSearch(q){
-  q = q.toLowerCase().trim();
-  if(!q) return null;
-  const users = USERS.filter(u=>u.username.toLowerCase().includes(q)||u.displayName.toLowerCase().includes(q)).slice(0,4);
-  const content = CONTENT.filter(c=>c.title.toLowerCase().includes(q)).slice(0,4);
-  const reports = REPORTS.filter(r=>r.caseId.toLowerCase().includes(q)).slice(0,4);
-  const cases = [...new Set([...REPORTS.map(r=>r.caseId), ...RESTRICTIONS.map(x=>x.caseId), ...APPEALS.map(a=>a.caseId), ...COPYRIGHT_CLAIMS.map(c=>c.caseId), ...PRIVACY_REQUESTS.map(p=>p.caseId), ...GRIEVANCES.map(g=>g.caseId)])].filter(c=>c.toLowerCase().includes(q)).slice(0,4);
-  const mods = MODERATORS.filter(m=>m.username.toLowerCase().includes(q)||m.displayName.toLowerCase().includes(q)).slice(0,4);
-  return {users, content, reports, cases, mods};
 }
 
 let REFRESHING = false;
