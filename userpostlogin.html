@@ -2742,6 +2742,33 @@ async function signOutUser(){
    function. This only decides whether to SHOW the Dashboard menu item —
    the dashboard page and every action inside it are re-checked on the
    server, so a tampered client can't gain anything from this flag. */
+
+/* ---------- active moderation restrictions: tell the person up front ---------- */
+async function showRestrictionBanner(){
+  const old = document.getElementById('restriction-banner'); if (old) old.remove();
+  if (!state.currentUser || !AUTH_LIVE || !supabaseClient) return;
+  let rows = [];
+  try{
+    const { data, error } = await supabaseClient.rpc('get_my_restrictions');
+    if (error) throw error;
+    rows = data || [];
+  }catch(e){ return; }
+  if (!rows.length) return;
+  const label = { comments:'commenting', posts:'creating new Works', publishing:'publishing', wall:'posting on the Wall', messaging:'messaging', account:'your whole account' };
+  const lines = rows.map(function(r){
+    const until = r.expiry ? ' until ' + new Date(r.expiry).toLocaleDateString(undefined, { day:'numeric', month:'short', year:'numeric' }) : ' (no fixed end date)';
+    return '<b>' + escapeHtml(label[r.scope] || r.scope) + '</b> restricted' + until + (r.reason ? ' \u2014 ' + escapeHtml(r.reason) : '');
+  });
+  const bar = document.createElement('div');
+  bar.id = 'restriction-banner';
+  bar.setAttribute('role', 'status');
+  bar.style.cssText = 'background:#FFF1E4;color:#6B3A10;border-bottom:1px solid #F1C9A0;padding:10px 16px;font-size:13px;line-height:1.5;position:relative;z-index:50;';
+  bar.innerHTML = '<div style="max-width:960px;margin:0 auto;display:flex;gap:12px;align-items:flex-start;"><div style="flex:1;">' +
+    lines.join('<br>') + '<br><span style="opacity:.8;">You can appeal from Help &amp; Requests.</span></div>' +
+    '<button type="button" aria-label="Dismiss" style="background:none;border:0;font-size:18px;cursor:pointer;color:inherit;line-height:1;">\u00d7</button></div>';
+  bar.querySelector('button').onclick = function(){ bar.remove(); };
+  document.body.insertBefore(bar, document.body.firstChild);
+}
 async function refreshStaffStatus(){
   state.isStaff = false;
   if (state.currentUser && AUTH_LIVE && supabaseClient){
@@ -2837,6 +2864,7 @@ function syncAuthUI(){
   renderMessagesBadge();
   subscribeMessagesRealtime();
   refreshStaffStatus();
+  showRestrictionBanner();
 }
 
 /* Any protected action funnels through here: if logged in, run the
@@ -3212,6 +3240,11 @@ async function fetchRootComments(journalId){
 async function fetchReplies(journalId, parentId){
   const all = COMMENT_CACHE[journalId] || await loadCommentsForJournal(journalId);
   return all.filter(function(c){ return c.parent_id === parentId; });
+}
+function friendlyWriteError(err, fallback){
+  const m = (err && err.message) ? String(err.message) : '';
+  if (/restriction is active|Publishing is temporarily paused/i.test(m)) return m;
+  return fallback;
 }
 async function postComment(journalId, body, parentId){
   let c;
@@ -3650,7 +3683,7 @@ async function persistDraft(draftPayload, showSavingState){
     return result.data;
   }catch(err){
     setSaveStatus('unsaved');
-    showToast("Couldn't save your draft — check your connection.");
+    showToast(friendlyWriteError(err, "Couldn't save your draft — check your connection."));
     return null;
   }
 }
@@ -4320,7 +4353,7 @@ async function renderComments(j){
     qs('#submit-comment-btn').addEventListener('click', async function(){
       const text = qs('#new-comment-text').value.trim();
       if (!text) return;
-      await postComment(j.id, text, null);
+      try{ await postComment(j.id, text, null); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Impression — please try again.")); return; }
       qs('#new-comment-text').value = '';
       await renderComments(j);
       qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
@@ -4381,7 +4414,7 @@ function wireCommentEvents(j){
         box.querySelector('button').onclick = async function(){
           const text = box.querySelector('textarea').value.trim();
           if (!text) return;
-          await postComment(j.id, text, cid);
+          try{ await postComment(j.id, text, cid); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Response — please try again.")); return; }
           box.hidden = true;
           qs('[data-view-replies="' + cid + '"]').hidden = false;
           const replies = await fetchReplies(j.id, cid);
@@ -4514,7 +4547,9 @@ const NOTIF_COPY = {
   reply_comment: function(n){ return authorNameHTML(n.actor_id) + ' left a Response to your Impression.'; },
   follow_user: function(n){ return authorNameHTML(n.actor_id) + ' started following you.'; },
   journal_published: function(n){ return n.message || 'Your Work was published.'; },
-  moderator_invite: function(n){ return authorNameHTML(n.actor_id) + ' invited you to become a moderator of Journals. <b>Tap to respond.</b>'; },
+  moderator_invite: function(n){ return '<b>Admin</b> wants you to be a moderator of Journals. <b>Tap to respond.</b>'; },
+  mod_action: function(n){ return '<b>Admin</b> \u00b7 ' + escapeHtml(n.message || 'You have an update from the Journals team.'); },
+  announcement: function(n){ return '<b>Announcement</b> \u00b7 ' + escapeHtml(n.message || 'New announcement from Journals.'); },
   moderator_invite_response: function(n){ return escapeHtml(n.message || 'A moderator invitation was answered.'); }
 };
 /* Notifications can reference people the viewer has never otherwise
@@ -4546,10 +4581,10 @@ async function renderNotificationsView(){
     return;
   }
   list.innerHTML = rows.map(function(n){
-    const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new update.'; };
+    const copyFn = NOTIF_COPY[n.type] || function(){ return n.message ? escapeHtml(n.message) : 'You have a new update.'; };
     const actorUsername = n.actor_id ? authorUsername(n.actor_id) : '';
     return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-type="' + escapeHtml(n.type || '') + '" data-notif-journal="' + (n.journal_id||'') + '" data-notif-username="' + escapeHtml(actorUsername) + '">' +
-      (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:var(--ink-faint)">✦</span>') +
+      (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:#F1751B;color:#fff;font-weight:700">A</span>') +
       '<div><div class="n-msg">' + copyFn(n) + '</div><div class="n-time">' + formatRelativeTime(n.created_at) + '</div></div>' +
       (!n.read_at ? '<span class="notif-dot"></span>' : '') +
     '</div>';
@@ -5126,7 +5161,7 @@ async function doPublish(){
     showToast(msg);
     navigateTo('read', { journalId: journal.id });
   }catch(e){
-    showToast("Couldn't publish — please try again.");
+    showToast(friendlyWriteError(e, "Couldn't publish — please try again."));
   }finally{
     btn.disabled = false;
     btn.textContent = 'Publish';
