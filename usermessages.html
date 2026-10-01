@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"></script>
+<script src="/config.js"></script>
 <style>
   :root{
     --ivory:#FBF7F0;
@@ -591,8 +592,8 @@
 /* ============================================================
    CONFIG — same Supabase project the rest of Journals uses.
    ============================================================ */
-const SUPABASE_URL = "https://txrtxienudcwpywfnqtj.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4cnR4aWVudWRjd3B5d2ZucXRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1Mzk0MzEsImV4cCI6MjEwNDExNTQzMX0.SVOLn-ct-mH_LA4YhFAmNFW5gByXr-MCvVMyKOv6nbs";
+const SUPABASE_URL = window.JOURNAL_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.JOURNAL_CONFIG.SUPABASE_ANON_KEY;
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
