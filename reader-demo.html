@@ -6,6 +6,7 @@
 <title>Journals — Reader</title>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
+<script src="/config.js"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -276,8 +277,8 @@ a.byline-link{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:
    This file is a completely independent page — it never shares a
    process with userpostlogin.html, so every piece of data it needs
    (session, journal, comments, likes, follows) is fetched here. */
-const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+const SUPABASE_URL = window.JOURNAL_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.JOURNAL_CONFIG.SUPABASE_ANON_KEY;
 let supabaseClient = null;
 try{
   if (window.supabase){
