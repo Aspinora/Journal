@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <script>
@@ -2655,6 +2655,11 @@ async function fetchReplies(journalId, parentId){
   const all = COMMENT_CACHE[journalId] || await loadCommentsForJournal(journalId);
   return all.filter(function(c){ return c.parent_id === parentId; });
 }
+function friendlyWriteError(err, fallback){
+  const m = (err && err.message) ? String(err.message) : '';
+  if (/restriction is active|Publishing is temporarily paused/i.test(m)) return m;
+  return fallback;
+}
 async function postComment(journalId, body, parentId){
   let c;
   if (DEMO_MODE){
@@ -2964,7 +2969,7 @@ async function persistDraft(draftPayload, showSavingState){
     return result.data;
   }catch(err){
     setSaveStatus('unsaved');
-    showToast("Couldn't save your draft — check your connection.");
+    showToast(friendlyWriteError(err, "Couldn't save your draft — check your connection."));
     return null;
   }
 }
@@ -3317,7 +3322,7 @@ async function renderComments(j){
     qs('#submit-comment-btn').addEventListener('click', async function(){
       const text = qs('#new-comment-text').value.trim();
       if (!text) return;
-      await postComment(j.id, text, null);
+      try{ await postComment(j.id, text, null); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Impression — please try again.")); return; }
       qs('#new-comment-text').value = '';
       await renderComments(j);
       qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
@@ -3377,7 +3382,7 @@ function wireCommentEvents(j){
         box.querySelector('button').onclick = async function(){
           const text = box.querySelector('textarea').value.trim();
           if (!text) return;
-          await postComment(j.id, text, cid);
+          try{ await postComment(j.id, text, cid); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Response — please try again.")); return; }
           box.hidden = true;
           qs('[data-view-replies="' + cid + '"]').hidden = false;
           const replies = await fetchReplies(j.id, cid);
@@ -3872,7 +3877,7 @@ async function doPublish(){
     showToast(msg);
     navigateTo('read', { journalId: journal.id });
   }catch(e){
-    showToast("Couldn't publish — please try again.");
+    showToast(friendlyWriteError(e, "Couldn't publish — please try again."));
   }finally{
     btn.disabled = false;
     btn.textContent = 'Publish';
