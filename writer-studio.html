@@ -7,6 +7,7 @@
 <title>Story Studio · Journals by Aspinora</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
+<script src="/config.js"></script>
 <script>
 try{var t=JSON.parse(localStorage.getItem('sw_theme')||'null');if(t!=='light'&&t!=='sepia'&&t!=='dark')t='light';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='light'}
 </script>
@@ -433,8 +434,8 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
    Nothing secret lives here. When connecting to production, supply these
    values from your host page / env, and use short-lived signed upload URLs.
    ===================================================================== */
-const SUPABASE_URL = 'https://txrtxienudcwpywfnqtj.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_IynOGfqeFgK0-orZTt5c5Q_gkG1aFJy';
+const SUPABASE_URL = window.JOURNAL_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = window.JOURNAL_CONFIG.SUPABASE_ANON_KEY;
 const CONFIG = {
   ownerId: null,                          // set from the real Supabase session at boot
   autosaveMs: 1200, autosaveMaxWaitMs: 12000,
