@@ -563,7 +563,15 @@ let sb = null;
 const KIND_TO_CATEGORY_ID = { journal: 1, poetry: 3, shayari: 4, thought: 5, article: 6 };
 const CATEGORY_ID_TO_KIND = { 1: 'journal', 2: 'journal', 3: 'poetry', 4: 'shayari', 5: 'thought', 6: 'article' };
 const wordCount = html => (html || '').replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
-function throwDb(error) { throw new StudioError('db', (error && error.message) || 'The database did not accept that.'); }
+function friendlyDbError(e) {
+  const msg = (e && e.message) || '', code = e && e.code;
+  if (code === '42501' || /row-level security|permission denied/i.test(msg)) return 'You don\u2019t have permission to save this. Your session may have expired \u2014 sign in again and retry.';
+  if (code === '23505' || /duplicate key|unique constraint/i.test(msg)) return 'Another of your posts already uses that link name. Change the title slightly and try again.';
+  if (/JWT|token.*expired|not authenticated/i.test(msg)) return 'Your session has expired. Sign in again, then retry.';
+  if (/Failed to fetch|NetworkError|network request failed/i.test(msg)) return 'Couldn\u2019t reach the server. Check your connection and retry.';
+  return msg || 'The database did not accept that.';
+}
+function throwDb(error) { throw new StudioError('db', friendlyDbError(error)); }
 
 function chapterNodeFromRow(c) { return { id: c.id, number: c.number, title: c.title || '', status: c.status, wordCount: c.word_count || 0, updatedAt: Date.parse(c.updated_at), publishedAt: c.published_at ? Date.parse(c.published_at) : null }; }
 function journalToStory(row) {
@@ -704,7 +712,11 @@ const Store = {
     if (name === 'stories') {
       const singleEntry = Kind.single(o);
       if (singleEntry) {
-        const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
+        /* A single entry's published state lives on its one chapter. Without this, saving the
+           story-level record right after publishing wrote the stale 'draft' status back over it. */
+        const ch0 = o.volumes && o.volumes[0] && o.volumes[0].chapters && o.volumes[0].chapters[0];
+        if (ch0) o.status = ch0.status === 'published' ? 'published' : 'draft';
+        const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', excerpt: (o.description || '').trim() || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
         const { error } = await sb.from('journals').upsert(row); if (error) throwDb(error);
       } else {
         const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), last_chapter_id: o.lastChapterId || null, updated_at: new Date().toISOString() };
@@ -825,9 +837,20 @@ async function deleteCover({ entity, persist }) {
 /* =====================================================================
    4. UI INFRASTRUCTURE: toast, popovers, modals, form helpers
    ===================================================================== */
-function toast(msg, kind) {
-  const t = h('div', { class: 'toast' + (kind === 'err' ? ' err' : ''), role: kind === 'err' ? 'alert' : 'status' }, msg);
-  $('#toasts').append(t); setTimeout(() => t.remove(), kind === 'err' ? 6500 : 3200);
+function toast(msg, kind, link) {
+  const t = h('div', { class: 'toast' + (kind === 'err' ? ' err' : ''), role: kind === 'err' ? 'alert' : 'status' }, msg,
+    link ? h('a', { href: link.href, style: { marginLeft: '12px', fontWeight: '600', color: 'inherit', textDecoration: 'underline' } }, link.label) : null);
+  $('#toasts').append(t); setTimeout(() => t.remove(), kind === 'err' ? 6500 : (link ? 9000 : 3200));
+}
+/* Link to the published post in the reader, or null when it has no public slug yet. */
+async function readerLinkFor(id) {
+  try {
+    let { data: w } = await sb.from('journals').select('slug, status').eq('id', id).maybeSingle();
+    if (!w) ({ data: w } = await sb.from('story_works').select('slug, status').eq('id', id).maybeSingle());
+    if (!w || !w.slug || w.status === 'draft') return null;
+    const { data: p } = await sb.from('profiles').select('username').eq('id', CONFIG.ownerId).maybeSingle();
+    return p && p.username ? 'reader-demo.html?u=' + encodeURIComponent(p.username) + '&s=' + encodeURIComponent(w.slug) : null;
+  } catch (e) { return null; }
 }
 /* Popovers never steal focus from the editor (buttons swallow pointerdown). */
 const noFocusSteal = e => { if (!e.target.closest('input,textarea,select,[contenteditable="true"],[data-focusable]')) e.preventDefault(); };
@@ -1649,7 +1672,7 @@ const App = {
   story: null, rec: null,
   locked(obj) { return Kind.isStory(this.story) && !!obj && obj.status === 'published'; },
   async listStories() { return (await Store.all('stories')).sort((a, b) => b.updatedAt - a.updatedAt); },
-  storyPersistSoon: debounce(() => App.persistStory().catch(() => {}), 2500),
+  storyPersistSoon: debounce(() => App.persistStory().catch(e => { if (Date.now() - (App._lastPersistToast || 0) > 20000) { App._lastPersistToast = Date.now(); toast('Couldn\u2019t save the details: ' + e.message, 'err'); } }), 2500),
   async persistStory() { if (!App.story) return; simCheck('save'); App.story.updatedAt = Date.now(); await Store.put('stories', App.story); },
   async persistChapter(snap) {
     simCheck('save');
@@ -2110,7 +2133,7 @@ const UI = {
     const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
     const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
     const already = f.chapter.status === 'published';
-    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); toast('Published'); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Publish changes' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
+    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast('Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Publish changes' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
     const m = openModal({ title: 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
   },
   /* ---- developer tools */
