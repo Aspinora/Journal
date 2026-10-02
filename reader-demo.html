@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
+<script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
+<script src="/assets/work-content.js"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -310,7 +312,7 @@ function initialsOf(name){
   if (!name) return '?';
   return name.trim().split(/\s+/).map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
 }
-function wordCount(text){ const t=(text||'').trim(); return t ? t.split(/\s+/).length : 0; }
+function wordCount(text){ let t=(text||'').trim(); if (JournalContent.isHtml(t)) t=t.replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').trim(); return t ? t.split(/\s+/).length : 0; }
 function readingTimeMinutes(words){ return Math.max(1, Math.round(words/200)); }
 function formatDateShort(iso){ return iso ? new Date(iso).toLocaleDateString(undefined,{month:'short',day:'numeric'}) : ''; }
 function formatRelTime(iso){
@@ -701,7 +703,7 @@ function renderPost(post){
          (profileHref?'</a>':'</div>')+
        '</div>'+
      '</div>'+
-     '<div class="article teaser-article">'+markdownToHtml(post.teaserExcerpt)+'</div>'+
+     '<div class="article teaser-article">'+JournalContent.render(post.teaserExcerpt, markdownToHtml)+'</div>'+
      '<div class="teaser-readmore"><a class="read-whole-btn" href="'+studioHref+'">'+esc(post.readWholeLabel)+'</a></div>';
     return wrap;
   }
@@ -728,7 +730,7 @@ function renderPost(post){
        (post.isOwn?'':('<button class="followbtn '+(post.following?'following':'')+'" data-act="follow">'+(post.following?'Following':'Follow')+'</button>'))+
      '</div>'+
    '</div>'+
-   '<div class="'+artClass+'" data-kind="'+post.kind+'">'+markdownToHtml(post.bodyMd)+'</div>'+
+   '<div class="'+artClass+'" data-kind="'+post.kind+'">'+JournalContent.render(post.bodyMd, markdownToHtml)+'</div>'+
    '<div class="tags">'+post.tags.map(function(t){ return '<span class="tag">#'+esc(t)+'</span>'; }).join("")+'</div>'+
    '<div class="actionbar">'+
      '<button class="act '+(post.liked?'liked':'')+'" data-act="like" aria-label="Impression" title="Impression"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg><span class="cnt">'+post.likes+'</span></button>'+
