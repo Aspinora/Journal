@@ -1,0 +1,26 @@
+const {JSDOM}=require("/home/claude/Journal/node_modules/jsdom");const fs=require("fs");
+const dom=new JSDOM("<body></body>",{runScripts:"outside-only"});const w=dom.window;
+w.eval(fs.readFileSync("assets/vendor/dompurify-3.4.16.min.js","utf8"));
+w.eval(fs.readFileSync("assets/work-content.js","utf8"));
+const src=fs.readFileSync("reader-demo.html","utf8");
+const i=src.indexOf("function markdownToHtml(md)");
+const start=src.lastIndexOf("function esc(",i);
+let depth=0,j=src.indexOf("{",i);
+for(let k=j;k<src.length;k++){if(src[k]=="{")depth++;if(src[k]=="}"){depth--;if(!depth){j=k+1;break}}}
+w.eval(src.slice(start,j));
+const R=(v)=>w.JournalContent.render(v,w.markdownToHtml);
+let fails=0;
+const t=(name,input,checks)=>{const out=R(input);const ok=checks.every(c=>c(out));if(!ok)fails++;console.log((ok?"PASS":"FAIL").padEnd(5),name);if(!ok)console.log("   ->",out.slice(0,300))};
+t("writer-studio HTML renders as tags, not text","<p>Hello <strong>world</strong></p><h2>Title</h2>",[o=>o.includes("<strong>world</strong>"),o=>!o.includes("&lt;p")]);
+t("script tag removed","<p>a</p><script>alert(1)</script>",[o=>!/<script/i.test(o),o=>o.includes("<p>a</p>")]);
+t("onerror/onclick stripped",'<p onclick="x()">a</p><img src="https://x.test/a.png" onerror="alert(1)">',[o=>!/onerror|onclick/i.test(o),o=>o.includes("<img")]);
+t("javascript: href stripped",'<p><a href="javascript:alert(1)">x</a></p>',[o=>!/javascript:/i.test(o)]);
+t("iframe removed",'<p>a</p><iframe src="https://evil.test"></iframe>',[o=>!/<iframe/i.test(o)]);
+t("safe colour style kept",'<p style="color:#ff0000">red</p>',[o=>/color/i.test(o)]);
+t("bad style (url()) dropped",'<p style="background:url(https://evil.test/x)">a</p>',[o=>!/url\(/i.test(o)]);
+t("old markdown: line breaks kept","line one\nline two\n\nnew para",[o=>/<br/i.test(o)||o.split("<p").length>2]);
+t("old markdown: bold + image","**bold** and ![alt](https://x.test/i.png)",[o=>o.includes("<strong>bold</strong>"),o=>o.includes("<img")]);
+t("old markdown containing <script> is neutralised","hi <script>alert(1)</script>",[o=>!/<script/i.test(o)]);
+t("text showing &lt;p&gt; stays text","Use &lt;p&gt; for paragraphs",[o=>!/<p>\s*for/i.test(o)]);
+t("empty body","",[o=>o===""]);
+console.log(fails? fails+" FAILED":"all passed");
