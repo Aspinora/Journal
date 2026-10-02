@@ -1,26 +1,55 @@
-const {JSDOM}=require("/home/claude/Journal/node_modules/jsdom");const fs=require("fs");
-const dom=new JSDOM("<body></body>",{runScripts:"outside-only"});const w=dom.window;
-w.eval(fs.readFileSync("assets/vendor/dompurify-3.4.16.min.js","utf8"));
-w.eval(fs.readFileSync("assets/work-content.js","utf8"));
-const src=fs.readFileSync("reader-demo.html","utf8");
-const i=src.indexOf("function markdownToHtml(md)");
-const start=src.lastIndexOf("function esc(",i);
-let depth=0,j=src.indexOf("{",i);
-for(let k=j;k<src.length;k++){if(src[k]=="{")depth++;if(src[k]=="}"){depth--;if(!depth){j=k+1;break}}}
-w.eval(src.slice(start,j));
-const R=(v)=>w.JournalContent.render(v,w.markdownToHtml);
-let fails=0;
-const t=(name,input,checks)=>{const out=R(input);const ok=checks.every(c=>c(out));if(!ok)fails++;console.log((ok?"PASS":"FAIL").padEnd(5),name);if(!ok)console.log("   ->",out.slice(0,300))};
-t("writer-studio HTML renders as tags, not text","<p>Hello <strong>world</strong></p><h2>Title</h2>",[o=>o.includes("<strong>world</strong>"),o=>!o.includes("&lt;p")]);
-t("script tag removed","<p>a</p><script>alert(1)</script>",[o=>!/<script/i.test(o),o=>o.includes("<p>a</p>")]);
-t("onerror/onclick stripped",'<p onclick="x()">a</p><img src="https://x.test/a.png" onerror="alert(1)">',[o=>!/onerror|onclick/i.test(o),o=>o.includes("<img")]);
-t("javascript: href stripped",'<p><a href="javascript:alert(1)">x</a></p>',[o=>!/javascript:/i.test(o)]);
-t("iframe removed",'<p>a</p><iframe src="https://evil.test"></iframe>',[o=>!/<iframe/i.test(o)]);
-t("safe colour style kept",'<p style="color:#ff0000">red</p>',[o=>/color/i.test(o)]);
-t("bad style (url()) dropped",'<p style="background:url(https://evil.test/x)">a</p>',[o=>!/url\(/i.test(o)]);
-t("old markdown: line breaks kept","line one\nline two\n\nnew para",[o=>/<br/i.test(o)||o.split("<p").length>2]);
-t("old markdown: bold + image","**bold** and ![alt](https://x.test/i.png)",[o=>o.includes("<strong>bold</strong>"),o=>o.includes("<img")]);
-t("old markdown containing <script> is neutralised","hi <script>alert(1)</script>",[o=>!/<script/i.test(o)]);
-t("text showing &lt;p&gt; stays text","Use &lt;p&gt; for paragraphs",[o=>!/<p>\s*for/i.test(o)]);
-t("empty body","",[o=>o===""]);
-console.log(fails? fails+" FAILED":"all passed");
+// Wiring checks: the readers must actually use the shared sanitizer, and every
+// page must take its Supabase config from config.js (no inline copies).
+// Behaviour of the sanitizer itself is covered in content-rendering.test.cjs.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const read = f => fs.readFileSync(path.join(root, f), 'utf8');
+
+const SANITIZER_PAGES = ['index.html', 'userpostlogin.html', 'reader-demo.html'];
+const SUPABASE_PAGES = ['admin_dashboard.html', 'index.html', 'portfolio.html', 'reader-demo.html',
+  'reader-studio.html', 'thewall.html', 'usermessages.html', 'userpostlogin.html', 'writer-studio.html'];
+
+for (const file of SANITIZER_PAGES) {
+  test(`${file}: loads the sanitizer before the page script and renders bodies through it`, () => {
+    const s = read(file);
+    const purify = s.indexOf('/assets/vendor/dompurify-');
+    const content = s.indexOf('/assets/work-content.js');
+    const firstInline = s.search(/<script>(?!\s*<\/script>)/);
+    assert.ok(purify > -1 && content > purify, `${file}: sanitizer scripts missing or out of order`);
+    assert.ok(firstInline === -1 || content < firstInline || /<script src="\/assets\/work-content\.js">/.test(s),
+      `${file}: sanitizer must load before page code`);
+    assert.match(s, /JournalContent\.render\(/, `${file}: never calls JournalContent.render`);
+  });
+}
+
+test('readers never feed a post body straight to markdownToHtml', () => {
+  for (const file of ['userpostlogin.html', 'reader-demo.html']) {
+    const s = read(file);
+    assert.doesNotMatch(s, /innerHTML\s*=\s*markdownToHtml\(/, `${file}: raw markdownToHtml into innerHTML`);
+    assert.doesNotMatch(s, /['"]\s*\+\s*markdownToHtml\(/, `${file}: raw markdownToHtml in a template`);
+  }
+});
+
+for (const file of SUPABASE_PAGES) {
+  test(`${file}: gets Supabase settings from config.js, with no inline copy`, () => {
+    const s = read(file);
+    const sb = s.search(/supabase-js/);
+    const cfg = s.indexOf('<script src="/config.js"></script>');
+    const use = s.indexOf('window.JOURNAL_CONFIG');
+    assert.ok(sb > -1 && cfg > sb && use > cfg, `${file}: config.js must load after supabase-js and before use`);
+    // Boolean checks only, so a failure never prints a key value.
+    assert.equal(/sb_publishable_[A-Za-z0-9_-]{10,}/.test(s), false, `${file}: inline publishable key`);
+    assert.equal(/['"]eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\./.test(s), false, `${file}: inline JWT key`);
+    assert.equal(/https:\/\/[a-z0-9]{20}\.supabase\.co/.test(s), false, `${file}: inline Supabase URL`);
+  });
+}
+
+test('config.js is the only place holding the URL, and holds no secret keys', () => {
+  const s = read('config.js');
+  assert.match(s, /SUPABASE_URL/);
+  assert.match(s, /SUPABASE_ANON_KEY/);
+  assert.equal(/service_role|secret/i.test(s.replace(/\/\*[\s\S]*?\*\//, '')), false, 'config.js must not hold secrets');
+});
