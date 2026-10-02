@@ -51,6 +51,8 @@
      ============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
+<script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
+<script src="/assets/work-content.js"></script>
 
 <style>
 /* ============================================================
@@ -4225,7 +4227,7 @@ async function renderReadView(journalId, replace, preloadedJournal){
 
   qs('#read-tags').innerHTML = (j.tags||[]).map(function(t){ return '<span class="read-tag">#' + escapeHtml(t) + '</span>'; }).join('');
   const bodyEl = qs('#read-body');
-  bodyEl.innerHTML = markdownToHtml(j.body);
+  bodyEl.innerHTML = JournalContent.render(j.body, markdownToHtml);
   bodyEl.classList.toggle('is-shayari', j.category === 'Shayari');
   if (j.script){ bodyEl.setAttribute('data-script', j.script); } else { bodyEl.removeAttribute('data-script'); }
 
