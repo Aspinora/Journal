@@ -3933,8 +3933,18 @@ function handoffUrl(pathOrView){
    These URLs start with "/" on purpose: the address bar can be a nested
    clean path such as /alice/my-story, and a relative "userpostlogin.html"
    would resolve to /alice/userpostlogin.html, a page that does not exist. */
+/* ?next=<path> (sent by pages that need a sign-in, e.g. writer-studio and the reader) is honoured only for
+   plain same-site paths to our own pages, so it can never become an open redirect. */
+const SAFE_NEXT_PAGES = ['/writer-studio.html', '/reader-demo.html', '/reader-studio.html', '/portfolio.html', '/thewall.html', '/usermessages.html', '/userpostlogin.html', '/user-settings.html'];
+function safeNextUrl(raw){
+  if (!raw || typeof raw !== 'string' || raw.charAt(0) !== '/' || raw.charAt(1) === '/' || raw.indexOf('\\') !== -1) return '';
+  const page = raw.split(/[?#]/)[0];
+  return SAFE_NEXT_PAGES.indexOf(page) !== -1 ? raw : '';
+}
 function memberDestinationUrl(){
   const q = new URLSearchParams(window.location.search);
+  const next = safeNextUrl(q.get('next'));
+  if (next) return next;
   const readId = q.get('read');
   if (readId) return readerUrlFor(readId);
   const category = q.get('category');
