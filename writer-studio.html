@@ -377,6 +377,7 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
       <span class="hdr__ctx">Writer Studio</span>
       <span class="hdr__sp"></span>
       <nav class="hdr__tools" aria-label="Writer tools">
+        <a id="libBack" class="btn ghost" href="/userpostlogin.html">&larr; Journals</a>
         <button id="libTheme" class="ib" type="button"></button>
         <button id="libDev" class="ib" type="button"></button>
         <button id="libNew" class="btn primary" type="button">New story</button>
@@ -1885,6 +1886,7 @@ const UI = {
     $$('#modeSeg button').forEach(b => b.addEventListener('click', () => this.setMode(b.dataset.m)));
     $('#btnPreviewP').addEventListener('click', () => this.setMode(this.mode === 'preview' ? 'write' : 'preview'));
     $('#btnSaveDraft').addEventListener('click', () => App.saveDraft()); $('#btnPublish').addEventListener('click', () => this.publishDialog());
+    $('#libBack').addEventListener('click', e => { try { const r = document.referrer && new URL(document.referrer); if (r && r.origin === location.origin && !/\/writer-studio(\.html)?$/.test(r.pathname) && history.length > 1) { e.preventDefault(); history.back(); } } catch (x) {} });
     $('#libNew').addEventListener('click', () => this.newStory()); $('#libDev').addEventListener('click', e => this.devMenu(e.currentTarget));
     const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; if (Kind.single(App.story)) App.story.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
     t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Ed.focusForCommand(); const first = Ed.el.firstElementChild; if (first) Ed.placeCaret(first, true); } });
