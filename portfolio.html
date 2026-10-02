@@ -1226,7 +1226,11 @@ function heartIconSVG(liked){
 }
 
 function workCardHTML(w, isOwner){
-  const readHref = (state.currentUser ? 'userpostlogin.html' : 'index.html') + '?read=' + w.id;
+  /* Every Work opens in the reader page (same address shape the feed uses). */
+  const ownerName = state.profile && state.profile.username;
+  const readHref = (ownerName && w.slug)
+    ? '/reader-demo.html?u=' + encodeURIComponent(ownerName) + '&s=' + encodeURIComponent(w.slug)
+    : '/reader-demo.html?id=' + encodeURIComponent(w.id);
   const ownerActions = !isOwner ? '' : (
     '<div class="j-owner-actions">' +
       '<button type="button" class="danger delete-work-btn" data-id="' + w.id + '" title="Delete"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M9 7V5h6v2m-8 0 1 13h8l1-13" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
@@ -2142,7 +2146,7 @@ async function initPortfolio(){
   state.isOwner = !!(state.currentUser && state.currentUser.id === profile.id);
 
   const [{ data: rows }, { count: followerCount }, followingRow] = await Promise.all([
-    supabaseClient.from('journals').select('id,title,excerpt,category_id,visibility,published_at,like_count,comment_count,read_count,cover_url').eq('author_id', profile.id).eq('status', 'published').order('published_at', { ascending:false }),
+    supabaseClient.from('journals').select('id,slug,title,excerpt,category_id,visibility,published_at,like_count,comment_count,read_count,cover_url').eq('author_id', profile.id).eq('status', 'published').order('published_at', { ascending:false }),
     supabaseClient.from('follows').select('follower_id', { count:'exact', head:true }).eq('following_id', profile.id),
     state.currentUser && !state.isOwner
       ? supabaseClient.from('follows').select('follower_id').eq('follower_id', state.currentUser.id).eq('following_id', profile.id).maybeSingle()
