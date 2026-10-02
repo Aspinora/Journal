@@ -1888,8 +1888,17 @@ function authorNameHTML(authorId){
    the slug/author handy (reader-demo.html resolves that via
    get_journal_for_read, same RPC fetchJournal() already uses). */
 function readerUrlFor(id, slug, username){
-  if (username && slug) return 'reader-demo.html?u=' + encodeURIComponent(username) + '&s=' + encodeURIComponent(slug);
-  return 'reader-demo.html?id=' + encodeURIComponent(id);
+  if (username && slug) return '/reader-demo.html?u=' + encodeURIComponent(username) + '&s=' + encodeURIComponent(slug);
+  return '/reader-demo.html?id=' + encodeURIComponent(id);
+}
+/* The ONE way any code in this page opens a Work: hand off to the reader page.
+   replace=true swaps the current history entry (used when arriving from a link,
+   so Back never lands on a page that would just redirect again). */
+function goToReader(journalId, opts){
+  opts = opts || {};
+  const j = opts.preloadedJournal || (typeof JOURNAL_CACHE !== 'undefined' ? JOURNAL_CACHE[journalId] : null) || null;
+  const url = readerUrlFor(journalId, j && j.slug, j && j.author_id ? authorUsername(j.author_id) : '');
+  if (opts.replace) window.location.replace(url); else window.location.href = url;
 }
 function formatRelativeTime(iso){
   const then = new Date(iso).getTime();
@@ -3835,6 +3844,12 @@ function navigateTo(view, params){
   const replace = !!params.replace;
   // Any navigation supersedes a route load that is still waiting on the network.
   state.routeToken++;
+  // Every Work opens in the reader page (reader-demo.html). The old in-page reader below is retired
+  // and removed in Step 8; '__preview__' belongs to the retired write view and is never a real Work.
+  if (view === 'read' && params.journalId && params.journalId !== '__preview__'){
+    goToReader(params.journalId, { replace: replace, preloadedJournal: params.preloadedJournal });
+    return;
+  }
   // Portfolios live on their own page (portfolio.html); there is no #view-portfolio in this SPA.
   // Hand off BEFORE touching any view: looking the missing element up used to throw here, which
   // blanked the page (all views already deactivated) and, on first load, kept the loader up forever.
@@ -5761,7 +5776,7 @@ async function applyRoute(route, opts){
   if (route.type === 'view'){ navigateTo(route.view, { replace: true }); return; }
   if (route.type === 'write'){ window.location.href = '/writer-studio.html' + (route.draftId ? ('?open=' + encodeURIComponent(route.draftId)) : ''); return; }
   if (route.type === 'portfolio'){ navigateTo('portfolio', { username: route.username, replace: true }); return; }
-  if (route.type === 'work'){ await loadJournalByUsernameAndSlug(route.username, route.slug, true, myToken); return; }
+  if (route.type === 'work'){ window.location.replace(readerUrlFor(null, route.slug, route.username)); return; }
   navigateTo('home', { replace: true });
 }
 
