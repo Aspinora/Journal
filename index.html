@@ -3022,9 +3022,26 @@ function setPath(path, replace){
   const fn = replace ? 'replaceState' : 'pushState';
   history[fn]({ aspinoraNav:true }, '', path);
 }
+/* The ONE way any code in this page opens a Work: hand off to the reader page
+   (reader-demo.html), for guests and members alike. */
+function readerUrlFor(id, slug, username){
+  if (username && slug) return '/reader-demo.html?u=' + encodeURIComponent(username) + '&s=' + encodeURIComponent(slug);
+  return '/reader-demo.html?id=' + encodeURIComponent(id);
+}
+function goToReader(journalId, opts){
+  opts = opts || {};
+  const j = opts.preloadedJournal || (typeof JOURNAL_CACHE !== 'undefined' ? JOURNAL_CACHE[journalId] : null) || null;
+  const url = readerUrlFor(journalId, j && j.slug, j && j.author_id ? authorUsername(j.author_id) : '');
+  if (opts.replace) window.location.replace(url); else window.location.href = url;
+}
 function navigateTo(view, params){
   params = params || {};
   const replace = !!params.replace;
+  // Every Work opens in the reader page; the in-page reader below is retired (removed in Step 8).
+  if (view === 'read' && params.journalId && params.journalId !== '__preview__'){
+    goToReader(params.journalId, { replace: replace, preloadedJournal: params.preloadedJournal });
+    return;
+  }
   state.currentView = view;
   qsa('.view').forEach(function(v){ v.classList.remove('active'); });
   const targetId = '#view-' + (view === 'explore' ? 'home' : view);
@@ -3919,7 +3936,7 @@ function handoffUrl(pathOrView){
 function memberDestinationUrl(){
   const q = new URLSearchParams(window.location.search);
   const readId = q.get('read');
-  if (readId) return '/userpostlogin.html?read=' + encodeURIComponent(readId);
+  if (readId) return readerUrlFor(readId);
   const category = q.get('category');
   if (category) return '/userpostlogin.html?category=' + encodeURIComponent(category);
   const nav = q.get('nav');
@@ -3927,6 +3944,7 @@ function memberDestinationUrl(){
   const parts = window.location.pathname.replace(/\/?index\.html$/i, '').split('/').filter(Boolean);
   if (!parts.length) return '/userpostlogin.html';
   if (parts.length === 1 && parts[0] === 'wall') return '/thewall.html';
+  if (parts.length === 2 && !['write','drafts','published','saved','notifications','home','explore'].includes(parts[0])) return readerUrlFor(null, parts[1], parts[0]);
   return handoffUrl('/' + parts.join('/'));
 }
 /* replace(), not href: index.html must not stay in the back stack, or Back
@@ -4484,7 +4502,7 @@ async function routeFromPath(replace){
   }
 
   if (parts.length === 2){
-    await loadJournalByUsernameAndSlug(parts[0], parts[1], replace);
+    window.location.replace(readerUrlFor(null, parts[1], parts[0]));
     return;
   }
 
