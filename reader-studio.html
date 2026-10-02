@@ -2209,7 +2209,7 @@ document.addEventListener('click',e=>{
   const a=t.closest('[data-action]');if(!a)return;
   const act=a.dataset.action;
   switch(act){
-    case'exit':if(CONFIG.overviewUrl)location.href=CONFIG.overviewUrl;else toast('In the full site this returns to the Story Overview.');break;
+    case'exit':{const q=urlParams();location.href=CONFIG.overviewUrl||((q.u&&q.s)?'/reader-demo.html?u='+encodeURIComponent(q.u)+'&s='+encodeURIComponent(q.s):(q.id?'/reader-demo.html?id='+encodeURIComponent(q.id):'/userpostlogin.html'));break;}
     case'theme-toggle':setTheme(THEME_NEXT[root.dataset.theme]||'sepia');break;
     case'settings':openPop('settings',a);break;
     case'bookmarks':openPop('bookmarks',a);break;
