@@ -422,7 +422,8 @@ const el = {
 };
 
 function guardAuth(fn){
-  if (!S.me){ window.location.href = 'index.html'; return; }
+  /* Guests sign in on the front page; ?next= brings them back to this exact Work afterwards. */
+  if (!S.me){ window.location.href = '/index.html?next=' + encodeURIComponent(location.pathname + location.search); return; }
   fn();
 }
 function announce(msg){ el.live.textContent = msg; }
@@ -1007,7 +1008,7 @@ function wireCommentToggles(scope){
 /* ============ 6. LOADING / OPENING A POST ============ */
 function showLoadError(msg){
   el.pageFront.className = "page front";
-  el.pageFront.innerHTML = '<div class="load-state">' + esc(msg) + '<br><br><a href="userpostlogin.html">Back to Discover</a></div>';
+  el.pageFront.innerHTML = '<div class="load-state">' + esc(msg) + '<br><br><a href="/userpostlogin.html">Back to Discover</a></div>';
 }
 function flashProgress(){
   el.progress.style.transitionDuration = "0s";
@@ -1018,19 +1019,45 @@ function flashProgress(){
     setTimeout(function(){ el.progress.style.transitionDuration = ".4s"; el.progress.style.width = "0%"; }, 500);
   });
 }
+/* Back navigation. Turning pages pushes history entries, so a plain history.back() would only
+   step to the previous page of the same Work. Each entry therefore remembers how many entries this
+   page added (depth) and whether the visitor arrived from another page of this site (inApp);
+   leaving then rewinds exactly past them, back to the page the reader came from. */
+function cameFromApp(){
+  try{
+    if (!document.referrer) return false;
+    const r = new URL(document.referrer);
+    return r.origin === location.origin && !/\/reader-demo(\.html)?$/.test(r.pathname);
+  }catch(e){ return false; }
+}
+function leaveReader(){
+  const st = history.state || {};
+  if (st.inApp) { history.go(-((typeof st.depth === 'number' ? st.depth : 0) + 1)); return; }
+  window.location.href = S.me ? '/userpostlogin.html' : '/index.html';
+}
 function syncUrl(post){
   const qs = post.username ? ('?u='+encodeURIComponent(post.username)+'&s='+encodeURIComponent(post.slug)) : ('?id='+encodeURIComponent(post.id));
   const url = location.pathname + qs;
-  if (firstUrlSync){ history.replaceState({ id: post.id }, '', url); firstUrlSync = false; }
-  else history.pushState({ id: post.id }, '', url);
+  const cur = history.state || {};
+  if (firstUrlSync){
+    history.replaceState({ id: post.id, depth: typeof cur.depth === 'number' ? cur.depth : 0,
+      inApp: typeof cur.inApp === 'boolean' ? cur.inApp : cameFromApp() }, '', url);
+    firstUrlSync = false;
+  } else {
+    history.pushState({ id: post.id, depth: (typeof cur.depth === 'number' ? cur.depth : 0) + 1, inApp: !!cur.inApp }, '', url);
+  }
 }
+let openToken = 0;   // a newer open (Back/Forward, a page turn) makes any slower, older load discard itself
 async function openPost(identifier){
+  const myToken = ++openToken;
   try{
     const row = (identifier.username && identifier.slug)
       ? await rpcByUsernameSlug(identifier.username, identifier.slug)
       : await rpcById(identifier.id);
+    if (myToken !== openToken) return;
     if (!row){ showLoadError("This Work couldn't be found — it may have been removed or made private."); return; }
     const post = await normalizePost(row);
+    if (myToken !== openToken) return;
     S.post = post; S.prevRef = null; S.nextRef = null;
     mountPage(el.pageFront, post, "front");
     flashProgress();
@@ -1239,7 +1266,7 @@ document.addEventListener("click", function(e){
   }
 });
 
-el.backBtn.addEventListener("click", function(){ window.location.href = "userpostlogin.html"; });
+el.backBtn.addEventListener("click", leaveReader);
 
 /* ============ 9. BOOT ============ */
 async function boot(){
