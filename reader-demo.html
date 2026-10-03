@@ -205,8 +205,6 @@ a.byline-link{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:
 .guest-note{font-size:11.5px;color:var(--soft);padding:0 0 10px}
 .guest-note a{color:var(--accent);text-decoration:underline}
 </style>
-<link rel="stylesheet" href="/assets/elements.css">
-<script src="/assets/elements.js"></script>
 </head>
 <body>
 <div class="app-shell" id="app">
@@ -522,18 +520,29 @@ function removeCommentFromTree(post, id){
   post.comments = post.comments.filter(function(c){ return String(c.id) !== id; });
   post.comments.forEach(function(c){ if (c.replies) c.replies = c.replies.filter(function(r){ return String(r.id) !== id; }); });
 }
-async function fetchMyCommentLikes(ids){
+/* A normal post lives in `journals` (journal_likes / comments / comment_likes); a multi-chapter Story or
+   Article lives in `story_works` and has its own story_likes / story_comments / story_comment_likes. */
+const CTX_JOURNAL = { likes:'journal_likes', likeFk:'journal_id', bmFk:'journal_id', comments:'comments', commentFk:'journal_id',
+  commentLikes:'comment_likes', embed:'profiles!comments_author_id_fkey(display_name, username, avatar_url)',
+  reportComment:'comment', reportWork:'journal' };
+const CTX_STORY = { likes:'story_likes', likeFk:'story_id', bmFk:'story_id', comments:'story_comments', commentFk:'story_id',
+  commentLikes:'story_comment_likes', embed:'profiles!story_comments_author_id_fkey(display_name, username, avatar_url)',
+  reportComment:'story_comment', reportWork:'story_work' };
+function ctxFor(post){ return post && post.isTeaser ? CTX_STORY : CTX_JOURNAL; }
+async function fetchMyCommentLikes(ids, ctx){
+  ctx = ctx || CTX_JOURNAL;
   if (!ids.length || !S.me) return new Set();
-  const { data } = await supabaseClient.from('comment_likes').select('comment_id').eq('user_id', S.me.id).in('comment_id', ids);
+  const { data } = await supabaseClient.from(ctx.commentLikes).select('comment_id').eq('user_id', S.me.id).in('comment_id', ids);
   return new Set((data||[]).map(function(r){ return r.comment_id; }));
 }
-async function fetchCommentsTree(journalId){
-  const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username, avatar_url)')
-    .eq('journal_id', journalId).eq('status', 'visible')
+async function fetchCommentsTree(targetId, ctx){
+  ctx = ctx || CTX_JOURNAL;
+  const { data, error } = await supabaseClient.from(ctx.comments)
+    .select('id, ' + ctx.commentFk + ', parent_id, author_id, body, created_at, likes, status, ' + ctx.embed)
+    .eq(ctx.commentFk, targetId).eq('status', 'visible')
     .order('created_at', { ascending: true });
   if (error){ console.error(error); return []; }
-  const likedSet = await fetchMyCommentLikes(data.map(function(c){ return c.id; }));
+  const likedSet = await fetchMyCommentLikes(data.map(function(c){ return c.id; }), ctx);
   const byId = {};
   data.forEach(function(c){ c.replies = []; c.likedByMe = likedSet.has(c.id); byId[c.id] = c; });
   const roots = [];
@@ -555,10 +564,9 @@ async function normalizePost(row){
   // single-chapter story_works row falls straight through to the
   // normal full-render path below (get_work_for_read already returned
   // its one chapter's HTML as body_markdown in that case).
-  // Multipart journals always preview their description, even with one published entry.
-  const isStructuredPreview = row.is_multipart === true || (row.kind === 'story' && (row.chapter_count || 0) > 1);
-  if (isStructuredPreview){
-    return {
+  const isMultiChapterStory = row.kind === 'story' && (row.chapter_count || 0) > 1;
+  if (isMultiChapterStory){
+    const post = {
       id: row.id, slug: row.slug, authorId: row.author_id,
       type: cat.name, title: row.title,
       author: authorName, username: authorUsername, avatarColorHex: avatarColor(row.author_id), avatarUrl: authorAvatarUrl,
@@ -567,8 +575,21 @@ async function normalizePost(row){
       grad: 'linear-gradient(135deg,' + cat.color + ',#20140c)',
       teaserExcerpt: row.excerpt || '',
       isTeaser: true,
-      readWholeLabel: row.is_multipart === true ? 'Read whole Journal' : (row.category_id === 6 ? 'Read whole Article' : 'Read whole Story')
+      readWholeLabel: row.category_id === 6 ? 'Read whole Article' : 'Read whole Story',
+      likes: row.like_count || 0, liked: false, saved: false, following: false,
+      isOwn: !!(S.me && S.me.id === row.author_id), commentCount: 0, comments: []
     };
+    if (S.me){
+      const [likeRes, bmRes] = await Promise.all([
+        supabaseClient.from('story_likes').select('story_id').eq('story_id', post.id).eq('user_id', S.me.id).maybeSingle(),
+        supabaseClient.from('bookmarks').select('story_id').eq('story_id', post.id).eq('user_id', S.me.id).maybeSingle()
+      ]);
+      post.liked = !!(likeRes && likeRes.data);
+      post.saved = !!(bmRes && bmRes.data);
+    }
+    post.comments = await fetchCommentsTree(post.id, CTX_STORY);
+    post.commentCount = post.comments.reduce(function(n, c){ return n + 1 + ((c.replies && c.replies.length) || 0); }, 0);
+    return post;
   }
   const words = wordCount(row.body_markdown || '');
   const kind = cat.name === 'Poetry' ? 'poem' : (cat.name === 'Shayari' || cat.name === 'Thoughts') ? 'short' : 'long';
@@ -683,6 +704,36 @@ function applyDropCap(articleEl, kind){
   frag.appendChild(document.createTextNode(text.slice(cut)));
   node.replaceWith(frag);
 }
+function socialHTML(post){
+  return '<div class="actionbar">'+
+     '<button class="act '+(post.liked?'liked':'')+'" data-act="like" aria-label="Impression" title="Impression"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg><span class="cnt">'+post.likes+'</span></button>'+
+     '<button class="act" data-act="comment" aria-label="Respond" title="Respond"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.5 8.5 0 01-4-1L3 20l1-5.5A8.38 8.38 0 0112.5 3 8.38 8.38 0 0121 11.5z"/></svg><span class="cnt">'+post.commentCount+'</span></button>'+
+     '<button class="act '+(post.saved?'saved':'')+'" data-act="save" aria-label="Save" title="Save"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></button>'+
+     '<span class="spacer"></span>'+
+     '<button class="act" data-act="share" aria-label="Share" title="Share"><svg viewBox="0 0 24 24"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7M16 6l-4-4-4 4M12 2v14"/></svg></button>'+
+     '<div class="morewrap">'+
+       '<button class="act" data-act="more" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></button>'+
+       '<div class="moremenu" role="menu">'+
+         '<div class="mm-label">Report</div>'+
+         '<button class="mm-copyright" data-report="copyright">Copyright / IP concern</button>'+
+         '<div class="mm-copyright-note">Routes to Journals\' copyright review pathway.</div>'+
+         '<button data-report="plagiarism">Plagiarism or infringement</button>'+
+         '<button data-report="inappropriate">Inappropriate or prohibited content</button>'+
+         '<button data-report="harassment">Harassment or abusive content</button>'+
+         '<button data-report="spam">Spam</button>'+
+         '<button data-report="misleading">Misleading or deceptive content</button>'+
+         '<button data-report="privacy">Privacy concern</button>'+
+         '<button data-report="broken">Broken or missing content</button>'+
+         '<button data-report="other">Other</button>'+
+       '</div>'+
+     '</div>'+
+   '</div>'+
+   '<div class="comments">'+
+     '<h3>Marginalia · '+post.commentCount+'</h3>'+
+     (S.me ? '<div class="newcomment"><textarea rows="1" placeholder="Leave a response in the margin…" aria-label="Add a response"></textarea><button data-act="post-comment">Respond</button></div>' : '<p class="guest-note"><a href="index.html">Log in</a> to leave a response.</p>')+
+     '<div class="clist">'+commentsListHTML(post)+'</div>'+
+   '</div>';
+}
 function renderPost(post){
   const wrap = document.createElement("div");
   wrap.className = "page-scroll";
@@ -711,6 +762,8 @@ function renderPost(post){
      '</div>'+
      '<div class="article teaser-article">'+JournalContent.render(post.teaserExcerpt, markdownToHtml)+'</div>'+
      '<div class="teaser-readmore"><a class="read-whole-btn" href="'+studioHref+'">'+esc(post.readWholeLabel)+'</a></div>';
+    wrap.insertAdjacentHTML('beforeend', socialHTML(post));
+    wireActions(wrap, post);
     return wrap;
   }
   const artClass = post.kind==="poem" ? "article poetry" : post.kind==="short" ? "article short" : "article";
@@ -738,34 +791,7 @@ function renderPost(post){
    '</div>'+
    '<div class="'+artClass+'" data-kind="'+post.kind+'">'+JournalContent.render(post.bodyMd, markdownToHtml)+'</div>'+
    '<div class="tags">'+post.tags.map(function(t){ return '<span class="tag">#'+esc(t)+'</span>'; }).join("")+'</div>'+
-   '<div class="actionbar">'+
-     '<button class="act '+(post.liked?'liked':'')+'" data-act="like" aria-label="Impression" title="Impression"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg><span class="cnt">'+post.likes+'</span></button>'+
-     '<button class="act" data-act="comment" aria-label="Respond" title="Respond"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-8.5 8.5 8.5 8.5 0 01-4-1L3 20l1-5.5A8.38 8.38 0 0112.5 3 8.38 8.38 0 0121 11.5z"/></svg><span class="cnt">'+post.commentCount+'</span></button>'+
-     '<button class="act '+(post.saved?'saved':'')+'" data-act="save" aria-label="Save" title="Save"><svg viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></button>'+
-     '<span class="spacer"></span>'+
-     '<button class="act" data-act="share" aria-label="Share" title="Share"><svg viewBox="0 0 24 24"><path d="M4 12v7a2 2 0 002 2h12a2 2 0 002-2v-7M16 6l-4-4-4 4M12 2v14"/></svg></button>'+
-     '<div class="morewrap">'+
-       '<button class="act" data-act="more" aria-haspopup="true" aria-expanded="false" aria-label="More actions" title="More"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg></button>'+
-       '<div class="moremenu" role="menu">'+
-         '<div class="mm-label">Report</div>'+
-         '<button class="mm-copyright" data-report="copyright">Copyright / IP concern</button>'+
-         '<div class="mm-copyright-note">Routes to Journals\' copyright review pathway.</div>'+
-         '<button data-report="plagiarism">Plagiarism or infringement</button>'+
-         '<button data-report="inappropriate">Inappropriate or prohibited content</button>'+
-         '<button data-report="harassment">Harassment or abusive content</button>'+
-         '<button data-report="spam">Spam</button>'+
-         '<button data-report="misleading">Misleading or deceptive content</button>'+
-         '<button data-report="privacy">Privacy concern</button>'+
-         '<button data-report="broken">Broken or missing content</button>'+
-         '<button data-report="other">Other</button>'+
-       '</div>'+
-     '</div>'+
-   '</div>'+
-   '<div class="comments">'+
-     '<h3>Marginalia · '+post.commentCount+'</h3>'+
-     (S.me ? '<div class="newcomment"><textarea rows="1" placeholder="Leave a response in the margin…" aria-label="Add a response"></textarea><button data-act="post-comment">Respond</button></div>' : '<p class="guest-note"><a href="index.html">Log in</a> to leave a response.</p>')+
-     '<div class="clist">'+commentsListHTML(post)+'</div>'+
-   '</div>';
+   socialHTML(post);
   applyDropCap(wrap.querySelector(".article"), post.kind);
   wireActions(wrap, post);
   return wrap;
@@ -799,6 +825,7 @@ function mountPeek(container, ref, cls){
 
 /* ============ 5. ACTIONS (real backend calls) ============ */
 function wireActions(scope, post){
+  const X = ctxFor(post);
   const likeBtn = scope.querySelector('[data-act="like"]');
   likeBtn.addEventListener("click", function(){
     guardAuth(async function(){
@@ -807,8 +834,10 @@ function wireActions(scope, post){
       likeBtn.classList.toggle("liked", post.liked);
       likeBtn.querySelector(".cnt").textContent = post.likes;
       try{
-        if (was) await supabaseClient.from('journal_likes').delete().eq('journal_id', post.id).eq('user_id', S.me.id);
-        else await supabaseClient.from('journal_likes').insert({ journal_id: post.id, user_id: S.me.id });
+        const lr = was
+          ? await supabaseClient.from(X.likes).delete().eq(X.likeFk, post.id).eq('user_id', S.me.id)
+          : await supabaseClient.from(X.likes).insert({ [X.likeFk]: post.id, user_id: S.me.id });
+        if (lr && lr.error) throw lr.error;
       }catch(e){
         console.error(e);
         post.liked = was; post.likes += was?1:-1;
@@ -826,8 +855,10 @@ function wireActions(scope, post){
       const pageEl = scope.closest(".page"); if (pageEl) pageEl.classList.toggle("saved", post.saved);
       announce(post.saved ? "Saved to your shelf" : "Removed from your shelf");
       try{
-        if (was) await supabaseClient.from('bookmarks').delete().eq('journal_id', post.id).eq('user_id', S.me.id);
-        else await supabaseClient.from('bookmarks').insert({ journal_id: post.id, user_id: S.me.id });
+        const br = was
+          ? await supabaseClient.from('bookmarks').delete().eq(X.bmFk, post.id).eq('user_id', S.me.id)
+          : await supabaseClient.from('bookmarks').insert({ [X.bmFk]: post.id, user_id: S.me.id });
+        if (br && br.error) throw br.error;
       }catch(e){ console.error(e); post.saved = was; btn.classList.toggle("saved", post.saved); }
     });
   }
@@ -879,8 +910,8 @@ function wireActions(scope, post){
       closeMore(scope);
       const kind = b.dataset.report;
       guardAuth(function(){
-        if (kind === 'copyright'){ openCopyrightModal('journal', post.id); return; }
-        submitWorkReport(post.id, b.textContent.trim());
+        if (kind === 'copyright'){ openCopyrightModal(X.reportWork, post.id); return; }
+        submitWorkReport(post.id, b.textContent.trim(), X.reportWork);
       });
     });
   });
@@ -892,9 +923,9 @@ function wireActions(scope, post){
       guardAuth(async function(){
         postCommentBtn.disabled = true; ta.disabled = true;
         try{
-          const { data, error } = await supabaseClient.from('comments').insert({
-            journal_id: post.id, author_id: S.me.id, body: val, parent_id: null, status: 'visible'
-          }).select('id, journal_id, parent_id, author_id, body, created_at, likes, status').single();
+          const { data, error } = await supabaseClient.from(X.comments).insert({
+            [X.commentFk]: post.id, author_id: S.me.id, body: val, parent_id: null, status: 'visible'
+          }).select('id, ' + X.commentFk + ', parent_id, author_id, body, created_at, likes, status').single();
           if (error) throw error;
           data.profiles = { display_name: S.me.display_name, username: S.me.username, avatar_url: S.me.avatar_url };
           data.replies = []; data.likedByMe = false;
@@ -919,8 +950,10 @@ function wireActions(scope, post){
         likeBtn2.classList.toggle("is-liked", c.likedByMe);
         likeBtn2.textContent = "♡ " + c.likes;
         try{
-          if (was) await supabaseClient.from('comment_likes').delete().eq('comment_id', id).eq('user_id', S.me.id);
-          else await supabaseClient.from('comment_likes').insert({ comment_id: id, user_id: S.me.id });
+          const clr = was
+            ? await supabaseClient.from(X.commentLikes).delete().eq('comment_id', id).eq('user_id', S.me.id)
+            : await supabaseClient.from(X.commentLikes).insert({ comment_id: id, user_id: S.me.id });
+          if (clr && clr.error) throw clr.error;
         }catch(err){
           console.error(err);
           c.likedByMe = was; c.likes += was?1:-1;
@@ -941,7 +974,7 @@ function wireActions(scope, post){
       textEl.textContent = next.trim();
       (async function(){
         try{
-          await supabaseClient.from('comments').update({ body: next.trim(), updated_at: new Date().toISOString() }).eq('id', id).eq('author_id', S.me.id);
+          await supabaseClient.from(X.comments).update({ body: next.trim(), updated_at: new Date().toISOString() }).eq('id', id).eq('author_id', S.me.id);
           c.body = next.trim();
         }catch(err){ console.error(err); textEl.textContent = current; announce("Couldn't save the edit."); }
       })();
@@ -953,7 +986,7 @@ function wireActions(scope, post){
       if (!window.confirm("Delete this response?")) return;
       (async function(){
         try{
-          await supabaseClient.from('comments').delete().eq('id', id).eq('author_id', S.me.id);
+          await supabaseClient.from(X.comments).delete().eq('id', id).eq('author_id', S.me.id);
           removeCommentFromTree(post, id);
           post.commentCount = Math.max(0, post.commentCount - 1);
           refreshCommentsList(scope, post);
@@ -969,9 +1002,9 @@ function wireActions(scope, post){
         const val = window.prompt("Reply to " + name + ":");
         if (!val || !val.trim()) return;
         try{
-          const { data, error } = await supabaseClient.from('comments').insert({
-            journal_id: post.id, author_id: S.me.id, body: val.trim(), parent_id: parentId, status: 'visible'
-          }).select('id, journal_id, parent_id, author_id, body, created_at, likes, status').single();
+          const { data, error } = await supabaseClient.from(X.comments).insert({
+            [X.commentFk]: post.id, author_id: S.me.id, body: val.trim(), parent_id: parentId, status: 'visible'
+          }).select('id, ' + X.commentFk + ', parent_id, author_id, body, created_at, likes, status').single();
           if (error) throw error;
           data.profiles = { display_name: S.me.display_name, username: S.me.username, avatar_url: S.me.avatar_url };
           data.replies = []; data.likedByMe = false;
@@ -997,7 +1030,7 @@ function wireActions(scope, post){
     if (reasonBtn){
       reasonBtn.closest(".creport-menu").hidden = true;
       const commentId = reasonBtn.closest(".comment").dataset.commentId;
-      guardAuth(function(){ submitWorkReport(commentId, reasonBtn.dataset.creport, 'comment'); });
+      guardAuth(function(){ submitWorkReport(commentId, reasonBtn.dataset.creport, X.reportComment); });
     }
   });
 }
@@ -1032,7 +1065,9 @@ function cameFromApp(){
   try{
     if (!document.referrer) return false;
     const r = new URL(document.referrer);
-    return r.origin === location.origin && !/\/reader-demo(\.html)?$/.test(r.pathname);
+    /* reader-studio is part of the reader: coming back from it (its Back button opens this page afresh)
+       must not make Discover step back into the studio, so it counts as not coming from the app. */
+    return r.origin === location.origin && !/\/reader-(demo|studio)(\.html)?$/.test(r.pathname);
   }catch(e){ return false; }
 }
 function leaveReader(){
@@ -1302,4 +1337,3 @@ boot();
 </script>
 </body>
 </html>
-
