@@ -435,6 +435,8 @@ input[type="range"]{flex:1;width:100%;height:28px;accent-color:var(--accent);mar
 .cm__replies{list-style:none;margin:10px 0 0;padding:0 0 0 14px;border-left:1px solid var(--rule-strong)}
 .cm--reply{grid-template-columns:24px minmax(0,1fr);gap:10px;padding:10px 0 4px;border-top:0}
 .cm--reply .av{width:24px;height:24px;font-size:10px}
+.av{overflow:hidden}.av img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.rpt{display:grid;gap:6px;margin:14px 0 4px}.rpt .btn{justify-content:flex-start;text-align:left}
 .cm--reply .cm__body{font-size:14.5px}
 .cm__edit textarea{width:100%;min-height:72px}
 .cm__edit .row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
@@ -568,8 +570,6 @@ html.scroll-locked body{width:100%}
 <script>
 try{var p=JSON.parse(localStorage.getItem('journals.reader.prefs.v2')||'null'),t=p&&p.theme;if(t!=='light'&&t!=='sepia'&&t!=='dark')t='sepia';document.documentElement.dataset.theme=t}catch(e){}
 </script>
-<link rel="stylesheet" href="/assets/elements.css">
-<script src="/assets/elements.js"></script>
 </head>
 <body data-view="structure">
 <div id="app"></div>
@@ -987,7 +987,7 @@ let CURRENT_WORK_ROW=null;      // raw story_works row for the open story
 let AUTHOR_CACHE_RS={};         // author_id -> {id,name,handle,avatarUrl}
 const api={
   getWork(){return CURRENT_WORK_ROW},
-  getImage(url){return url?{src:url}:null},                    // a cover is just a public R2/Storage URL now
+  getImage(url){url=url&&String(url).replace(/^(__url:)+/,'');return url&&/^(https?:|data:|\/)/i.test(url)?{src:url}:null},                    // a cover is just a public R2/Storage URL now
   getAuthor(id){return AUTHOR_CACHE_RS[id]||null},
   async getChapter(id){
     if (!CURRENT_WORK_ROW) return null;
@@ -1102,7 +1102,7 @@ async function loadRealWork(){
   const byNum = function(a,b){ return a.number - b.number; };
   const volumes = (volRows || []).slice().sort(byNum).map(function(v){
     return {
-      id: v.id, number: v.number, title: v.title, description: v.description || '', coverImageId: v.cover_url, implicit: !!v.is_implicit,
+      id: v.id, number: v.number, title: v.title, description: v.description || '', coverImageId: v.cover_url,
       chapters: (chRows || []).filter(function(c){ return c.volume_id === v.id && !c.part_id; }).sort(byNum).map(chapterShape),
       parts: partRows.filter(function(p){ return p.volume_id === v.id; }).sort(byNum).map(function(p){
         return {
@@ -1114,7 +1114,7 @@ async function loadRealWork(){
   });
   return {
     id: row.id, title: row.title, description: row.description || '',
-    kind: row.kind, structure: row.kind === 'journal' ? 'multiple' : 'structured', category: row.kind === 'journal' ? 'Journal' : (row.kind === 'article' ? 'Article' : 'Story'),
+    kind: row.kind, structure: 'structured', category: row.kind === 'article' ? 'Article' : 'Story',
     tags: row.tags || [], status: row.status, visibility: row.visibility,
     allowImpressions: row.allow_impressions !== false, ownerId: row.author_id,
     coverImageId: row.cover_url, volumes: volumes
@@ -1126,7 +1126,7 @@ let STORY=null,FLAT=[],byId={};
 const isPub=c=>c&&c.status==='published';
 function loadWork(work){
   const cover=id=>api.getImage(id);
-  const storyLike=work.kind==='story'||(work.kind==='article'&&work.structure==='structured')||(work.kind==='journal'&&work.structure==='multiple');
+  const storyLike=work.kind==='story'||(work.kind==='article'&&work.structure==='structured');
   const author=api.getAuthor(work.ownerId);
   const S={id:work.id,kind:work.kind||'story',title:(work.title||'').trim()||'Untitled',description:work.description||'',category:work.category||'',tags:work.tags||[],
     status:work.status,allowImpressions:work.allowImpressions!==false,ownerId:work.ownerId,authorName:author?author.name:'',cover:cover(work.coverImageId),
@@ -1135,7 +1135,7 @@ function loadWork(work){
   else if(work.visibility==='private'&&work.ownerId!==ME.id)S.unavailable='private';
   FLAT=[];byId={};let idx=0;
   (work.volumes||[]).forEach(v=>{
-    const vol={id:v.id,number:v.number,title:(v.title||'').trim(),description:v.description||'',cover:cover(v.coverImageId),implicit:!!v.implicit,direct:[],parts:[],chapters:[]};
+    const vol={id:v.id,number:v.number,title:(v.title||'').trim(),description:v.description||'',cover:cover(v.coverImageId),direct:[],parts:[],chapters:[]};
     const mk=(c,part)=>({id:c.id,number:c.number,title:(c.title||'').trim(),wordCount:c.wordCount||0,mins:Math.max(1,Math.ceil((c.wordCount||0)/230)),vol,part});
     (v.chapters||[]).filter(isPub).forEach(c=>vol.direct.push(mk(c,null)));
     (v.parts||[]).forEach(p=>{
@@ -1149,13 +1149,8 @@ function loadWork(work){
   STORY=S;
 }
 const volLabel=v=>'Volume '+roman(v.number);
-const partLabel=p=>(STORY&&STORY.kind==='journal'?'Section ':'Part ')+roman(p.number);
-const unitLabel=(plural=false,lower=false)=>{
-  const label=STORY&&STORY.kind==='journal'?(plural?'Entries':'Entry'):(plural?'Chapters':'Chapter');
-  return lower?label.toLowerCase():label;
-};
-const workLabel=()=>STORY&&STORY.kind==='journal'?'Journal':STORY&&STORY.kind==='article'?'Article':'Story';
-const chName=c=>c.title||(unitLabel()+' '+c.number);
+const partLabel=p=>'Part '+roman(p.number);
+const chName=c=>c.title||('Chapter '+c.number);
 
 /* ---------- Reader-side state (progress, bookmarks, comments) — separate from the work ---------- */
 let data,cms; // initialised by initState(), once the chapter parser exists
@@ -1260,7 +1255,6 @@ function walk(node){
   Array.from(node.childNodes).forEach(ch=>{
     if(ch.nodeType===3)return;
     if(ch.nodeType!==1){ch.remove();return}
-    if(ch.classList.contains('journal-element')){const el=JournalElements.clean(ch);if(el)ch.replaceWith(el);else ch.remove();return;}
     walk(ch);
     const tag=ch.tagName;
     if(!ALLOW.has(tag)){while(ch.firstChild)ch.parentNode.insertBefore(ch.firstChild,ch);ch.remove();return}
@@ -1290,9 +1284,8 @@ function parseChapter(id,html){
   Array.from(doc.body.children).forEach(el=>{
     const t=el.tagName;
     if(t==='UL'||t==='OL'){list++;Array.from(el.children).forEach(li=>{if(li.tagName==='LI')push('li',li,{list:t.toLowerCase(),listIdx:list})});return}
-    if(t==='HR'){out.push({type:el.classList.contains('journal-page-break')?'pagebreak':'scene',pid:el.getAttribute('data-pid'),idx:out.length,empty:false});return}
-    if(t==='FIGURE') { const figure = JournalElements.clean(el); if (figure) out.push({type:figure.classList.contains('journal-page-settings')?'layout':'element',html:figure.outerHTML,pid:el.getAttribute('data-pid'),idx:out.length,empty:false}); return; }
-    if(t==='IMG')return;
+    if(t==='HR'){out.push({type:'scene',pid:el.getAttribute('data-pid'),idx:out.length,empty:false});return}
+    if(t==='FIGURE'||t==='IMG')return;
     push({H1:'h1',H2:'h2',H3:'h2',H4:'h2',BLOCKQUOTE:'quote'}[t]||'p',el);
   });
   out.forEach((b,i)=>{if(!b.pid)b.pid='paragraph_x'+pad3(i+1)}); // never expected; keeps rendering safe
@@ -1330,7 +1323,7 @@ const aaBtn=()=>`<button class="ibtn" data-action="settings" aria-haspopup="dial
 function structHeader(){
   const nb=data.bookmarks.length;
   return`<header class="hdr"><div class="hdr__in">
-    <button class="ibtn" data-action="exit" aria-label="Back to ${workLabel()} Overview">${ic('back')}</button>
+    <button class="ibtn" data-action="exit" aria-label="Back to Story Overview">${ic('back')}</button>
     ${brand()}
     <span class="hdr__ctx">Reader Studio</span>
     <span class="hdr__sp"></span>
@@ -1353,19 +1346,16 @@ function chRow(c,cur){
   const sr=st==='done'?`Completed ${doneOn}. `:st==='current'?`In progress, ${pct} percent. `:'Not started. ';
   return`<a class="ch ch--${st}${isCur?' is-current':''}" href="#/read/${c.id}"${isCur?' aria-current="true"':''} data-ch="${c.id}">
     <span class="ch__st">${statusIcon(st,pct)}</span>
-    <span class="ch__main">${c.title?`<span class="ch__no">${unitLabel()} ${c.number}</span>`:''}<span class="ch__title"><span class="sr-only">${sr}</span>${esc(chName(c))}</span>${st==='current'?`<span class="ch__bar" aria-hidden="true"><i style="width:${pct}%"></i></span>`:''}</span>
+    <span class="ch__main">${c.title?`<span class="ch__no">Chapter ${c.number}</span>`:''}<span class="ch__title"><span class="sr-only">${sr}</span>${esc(chName(c))}</span>${st==='current'?`<span class="ch__bar" aria-hidden="true"><i style="width:${pct}%"></i></span>`:''}</span>
     <span class="ch__meta">${bm?`<span title="Bookmarked">${ic('bookmark')}<span class="sr-only">Bookmarked</span></span>`:''}${meta}</span></a>`;
 }
 function partHTML(p,cur){
-  const mins=p.chapters.reduce((n,c)=>n+c.mins,0),meta=`${p.chapters.length} ${unitLabel(p.chapters.length!==1,true)} · ${fmtMins(mins)}`;
+  const mins=p.chapters.reduce((n,c)=>n+c.mins,0),meta=`${p.chapters.length} ${p.chapters.length===1?'chapter':'chapters'} · ${fmtMins(mins)}`;
   const ttl=`<span class="part__no">${partLabel(p)}</span>${p.title?`<h3 class="part__title">${esc(p.title)}</h3>`:''}`;
   const rows=p.chapters.map(c=>chRow(c,cur)).join('');
   return`<div class="part"><div class="part__head"><div class="part__ttl">${ttl}</div><span class="part__count">${meta}</span></div>${rows}</div>`;
 }
 function volumeHTML(v,cur){
-  if(STORY.kind==='journal'&&v.implicit){
-    return `<section class="vol" aria-label="Journal entries">${v.direct.map(c=>chRow(c,cur)).join('')}${v.parts.map(p=>partHTML(p,cur)).join('')}</section>`;
-  }
   const chs=v.chapters,done=chs.filter(c=>chStatus(c.id)==='done').length;
   const vp=chs.reduce((n,c)=>n+chPct(c.id),0)/chs.length,mins=chs.reduce((n,c)=>n+c.mins,0);
   const ph=`<span class="ph__no">${roman(v.number)}</span><span class="ph__t">${esc(v.title||volLabel(v))}</span>`;
@@ -1373,9 +1363,9 @@ function volumeHTML(v,cur){
     <div class="vol__cover">${coverHTML(v.cover,'cover--port',`${volLabel(v)} cover${v.title?': '+v.title:''}`,ph)}</div>
     <div class="vol__head"><p class="vol__no">${volLabel(v)}</p>${v.title?`<h2 class="vol__title" id="${v.id}-t">${esc(v.title)}</h2>`:`<h2 class="sr-only" id="${v.id}-t">${volLabel(v)}</h2>`}
       ${v.description?`<p class="vol__desc">${esc(v.description)}</p>`:''}
-      <div class="vol__meta">${v.parts.length?`<span>${v.parts.length} ${STORY.kind==='journal'?(v.parts.length===1?'section':'sections'):(v.parts.length===1?'part':'parts')}</span>`:''}<span>${chs.length} ${unitLabel(chs.length!==1,true)}</span><span>${fmtMins(mins)}</span>
+      <div class="vol__meta">${v.parts.length?`<span>${v.parts.length} ${v.parts.length===1?'part':'parts'}</span>`:''}<span>${chs.length} ${chs.length===1?'chapter':'chapters'}</span><span>${fmtMins(mins)}</span>
         <span class="vol__prog"><span class="bar" aria-hidden="true"><i style="width:${Math.round(vp*100)}%"></i></span>${done} of ${chs.length} read</span>
-        <button class="vol__toggle" data-action="toggle-vol" aria-expanded="true" aria-controls="${v.id}-c">${ic('chev')}<span>${unitLabel(true)}</span></button></div></div>
+        <button class="vol__toggle" data-action="toggle-vol" aria-expanded="true" aria-controls="${v.id}-c">${ic('chev')}<span>Chapters</span></button></div></div>
     <div class="vol__contents" id="${v.id}-c">${v.direct.length?`<div class="part part--plain">${v.direct.map(c=>chRow(c,cur)).join('')}</div>`:''}${v.parts.map(p=>partHTML(p,cur)).join('')}</div></section>`;
 }
 function heroHTML(cur,tgt){
@@ -1383,10 +1373,10 @@ function heroHTML(cur,tgt){
   const mins=FLAT.reduce((n,c)=>n+c.mins,0);
   let btn='',where='',alt='';
   if(tgt.kind==='start'){btn=`<a class="btn" href="#/read/${tgt.chapter.id}">Start Reading ${ic('next')}</a>`;where=`<b>${esc(chName(FLAT[0]))}</b>Begin at the beginning`}
-  else if(tgt.kind==='finished'){btn=`<a class="btn" href="#/read/${FLAT[0].id}">Read Again ${ic('next')}</a>`;where=`<b>You’ve reached the end</b>Every ${unitLabel(false,true)} completed`}
+  else if(tgt.kind==='finished'){btn=`<a class="btn" href="#/read/${FLAT[0].id}">Read Again ${ic('next')}</a>`;where=`<b>You’ve reached the end</b>Every chapter completed`}
   else if(tgt.kind==='continue'){const c=tgt.chapter,st=chStatus(c.id);
     btn=`<a class="btn" href="#/read/${c.id}">Continue Reading ${ic('next')}</a>`;
-    where=`<b>${c.title?`${unitLabel()} ${c.number} · ${esc(c.title)}`:`${unitLabel()} ${c.number}`}</b>${st==='current'?'Pick up where you left off':'Up next'}`;
+    where=`<b>${c.title?`Chapter ${c.number} · ${esc(c.title)}`:`Chapter ${c.number}`}</b>${st==='current'?'Pick up where you left off':'Up next'}`;
     alt=`<a class="link-btn" href="#/read/${FLAT[0].id}">Start from the beginning</a>`}
   const statusL={ongoing:'Ongoing',completed:'Completed',hiatus:'On hiatus'}[STORY.status];
   const kicker=[STORY.category,statusL].filter(Boolean).join(' · ');
@@ -1399,10 +1389,10 @@ function heroHTML(cur,tgt){
       ${STORY.authorName?`<p class="byline">by <b>${esc(STORY.authorName)}</b></p>`:''}
       ${STORY.description?`<p class="summary">${esc(STORY.description)}</p>`:''}
       ${STORY.tags.length?`<ul class="tags" aria-label="Tags">${STORY.tags.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}
-      <ul class="facts">${STORY.kind==='journal'&&STORY.volumes.every(v=>v.implicit)?'':`<li><b>${STORY.volumes.length}</b><span>${STORY.volumes.length===1?'Volume':'Volumes'}</span></li>`}${nParts?`<li><b>${nParts}</b><span>${STORY.kind==='journal'?(nParts===1?'Section':'Sections'):(nParts===1?'Part':'Parts')}</span></li>`:''}<li><b>${FLAT.length}</b><span>${unitLabel(FLAT.length!==1)}</span></li><li><b>${fmtMins(mins).replace(' min','')}</b><span>${mins<60?'min read':'read'}</span></li></ul>
+      <ul class="facts"><li><b>${STORY.volumes.length}</b><span>${STORY.volumes.length===1?'Volume':'Volumes'}</span></li>${nParts?`<li><b>${nParts}</b><span>${nParts===1?'Part':'Parts'}</span></li>`:''}<li><b>${FLAT.length}</b><span>${FLAT.length===1?'Chapter':'Chapters'}</span></li><li><b>${fmtMins(mins).replace(' min','')}</b><span>${mins<60?'min read':'read'}</span></li></ul>
       <div class="prog"><p class="prog__label" id="pl">Your reading progress</p>
         <div class="bar bar--lg" role="progressbar" aria-labelledby="pl" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
-        <p class="prog__sub">${sp.done} of ${sp.total} ${unitLabel(true,true)} completed</p>
+        <p class="prog__sub">${sp.done} of ${sp.total} chapters completed</p>
         <div class="cta">${btn}<p class="cta__where">${where}</p></div>${alt?`<div class="cta__alt">${alt}</div>`:''}
         ${ME.id?`<button class="btn btn--ghost" style="margin-top:10px" data-action="toggle-save" aria-pressed="${STORY.savedToLibrary}">${STORY.savedToLibrary?'Saved to Library':'Save to Library'}</button>`:''}</div>
     </div></section>`;
@@ -1419,7 +1409,7 @@ function mountStructure(){
   const cur=tgt.kind==='continue'&&chStatus(tgt.chapter.id)==='current'?tgt.chapter:null;
   app.innerHTML=structHeader()+`<main class="wrap" id="main">${heroHTML(cur,tgt)}${STORY.volumes.map(v=>volumeHTML(v,cur)).join('')}</main>
     <div class="wrap"><footer class="foot"><a class="brand" href="#/" aria-label="Journals, powered by Aspinora"><span class="lg l"></span><span class="lg d"></span></a>
-    <span>Demo story and reader activity are sample data. <button class="link-btn" data-action="reset-demo">Reset demo</button></span></footer></div>`;
+    </footer></div>`;
   window.scrollTo(0,0);
   if(LAST_READ){const row=$(`[data-ch="${LAST_READ}"]`);if(row)row.scrollIntoView({block:'center'});LAST_READ=null}
   else{const h=$('#viewTitle');h&&h.focus({preventScroll:true})}
@@ -1439,8 +1429,6 @@ function cbtnHTML(pid,n){
 }
 const wrapAttrs=b=>`${b.align?` data-align="${b.align}"`:''}${b.mbr!=null?` style="--mbr:${b.mbr.toFixed(2)}"`:''}${b.rtl?' data-rtl="1"':''}`;
 function blockHTML(b,counts,first){
-  if(b.type==='pagebreak')return '<hr class="journal-page-break">';
-  if(b.type==='element' || b.type==='layout') { const t = document.createElement('template'); t.innerHTML = b.html; const figure = JournalElements.clean(t.content.firstElementChild); if (!figure) return ''; figure.removeAttribute('contenteditable'); return figure.outerHTML; }
   if(b.type==='scene')return`<div class="blk blk--scene" data-pid="${b.pid}"><div class="scene" role="separator" aria-hidden="true"><i></i></div></div>`;
   if(b.empty)return`<div class="blk blk--empty" data-pid="${b.pid}"${wrapAttrs(b)} aria-hidden="true"><p class="txt" dir="auto"><br></p></div>`;
   const inner=san(b.html),cb=cbtnHTML(b.pid,counts[b.pid]||0),dir=` dir="${b.dir}"`;
@@ -1471,42 +1459,42 @@ function renderBlocks(blocks,counts){
 }
 function readerHeader(c){
   const crumb=STORY.single?`<b>${esc(STORY.title)}</b>`:
-    `<span class="c-long">${esc(STORY.title)}${STORY.kind==='journal'&&c.vol.implicit?'':' · Vol. '+roman(c.vol.number)}${c.part?' · '+partLabel(c.part):''} · </span><b class="c-full">${unitLabel()} ${c.number}</b><b class="c-short">${STORY.kind==='journal'?'Entry':'Ch.'} ${c.number}</b>${c.title?`<span class="c-long"> — ${esc(c.title)}</span>`:''}`;
+    `<span class="c-long">${esc(STORY.title)} · Vol. ${roman(c.vol.number)}${c.part?' · Part '+roman(c.part.number):''} · </span><b class="c-full">Chapter ${c.number}</b><b class="c-short">Ch. ${c.number}</b>${c.title?`<span class="c-long"> — ${esc(c.title)}</span>`:''}`;
   return`<header class="hdr hdr--reader"><div class="hdr__in">
-    <button class="ibtn" data-action="${STORY.single?'exit':'contents'}" aria-label="${STORY.single?'Back to '+workLabel()+' Overview':'Back to contents'}">${ic('back')}</button>
+    <button class="ibtn" data-action="${STORY.single?'exit':'contents'}" aria-label="${STORY.single?'Back to Story Overview':'Back to contents'}">${ic('back')}</button>
     ${brand()}
     <div class="crumb">${crumb}</div>
     <nav class="hdr__tools" aria-label="Reading tools">
       <button class="ibtn" data-action="bm-toggle" id="bmBtn" aria-pressed="false" aria-label="Bookmark this place">${ic('bookmark')}</button>
       ${aaBtn()}${themeBtn()}</nav></div>
-    <div class="progress" role="progressbar" aria-label="${unitLabel()} reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progBar"><i id="progFill"></i></div></header>`;
+    <div class="progress" role="progressbar" aria-label="Chapter reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progBar"><i id="progFill"></i></div></header>`;
 }
-const storySub=()=>{const sp=storyProgress();return`${sp.done} of ${sp.total} ${unitLabel(true,true)} completed`};
+const storySub=()=>{const sp=storyProgress();return`${sp.done} of ${sp.total} chapters completed`};
 function openerHTML(c){
   const mins=`${c.mins} min read`;
   if(STORY.single)return`<header class="opener">${STORY.category?`<p class="opener__vol">${esc(STORY.category)}</p>`:''}<h1 class="opener__title" id="chTitle" tabindex="-1">${esc(STORY.title)}</h1><p class="opener__meta">${STORY.authorName?esc(STORY.authorName)+' · ':''}${mins}</p></header>`;
-  const vol=STORY.kind==='journal'&&c.vol.implicit?'':`${volLabel(c.vol)}${c.vol.title?' · '+esc(c.vol.title):''}`;
+  const vol=`${volLabel(c.vol)}${c.vol.title?' · '+esc(c.vol.title):''}`;
   const part=c.part?`<p class="opener__part">${partLabel(c.part)}${c.part.title?' — '+esc(c.part.title):''}</p>`:'';
-  return`<header class="opener">${vol?`<p class="opener__vol">${vol}</p>`:''}${part}<div class="opener__rule"></div>
-    ${c.title?`<p class="opener__no">${unitLabel()} ${c.number}</p>`:''}<h1 class="opener__title" id="chTitle" tabindex="-1">${esc(chName(c))}</h1><p class="opener__meta">${mins}</p></header>`;
+  return`<header class="opener"><p class="opener__vol">${vol}</p>${part}<div class="opener__rule"></div>
+    ${c.title?`<p class="opener__no">Chapter ${c.number}</p>`:''}<h1 class="opener__title" id="chTitle" tabindex="-1">${esc(chName(c))}</h1><p class="opener__meta">${mins}</p></header>`;
 }
 function endHTML(c){
   const last=c.index===FLAT.length-1,done=chStatus(c.id)==='done',nx=FLAT[c.index+1],sp=storyProgress();
   const fin=STORY.single;
   return`<section class="end${done?' is-done':''}" id="endBox" aria-labelledby="endT">
     <svg class="end__ring" viewBox="0 0 58 58" aria-hidden="true"><circle cx="29" cy="29" r="27"/><circle class="rg" cx="29" cy="29" r="27"/><path d="M19 30l7 7 13-14"/></svg>
-    <p class="end__label">${fin||last?'The End':unitLabel()+' complete'}</p>
-    <h2 class="end__title" id="endT">${fin?'Thanks for reading':last?'You have reached the last page':unitLabel()+' '+c.number+' completed'}</h2>
+    <p class="end__label">${fin||last?'The End':'Chapter complete'}</p>
+    <h2 class="end__title" id="endT">${fin?'Thanks for reading':last?'You have reached the last page':'Chapter '+c.number+' completed'}</h2>
     ${fin?'':`<div class="bar end__bar" aria-hidden="true"><i id="endBar" style="width:${Math.round(sp.pct*100)}%"></i></div><p class="end__sub" id="endSub">${storySub()}</p>`}
-    ${fin?`<button class="btn" data-action="exit">Back</button>`:last?`<a class="btn" href="#/">Back to contents</a>`:`<a class="btn" href="#/read/${nx.id}">Next ${unitLabel(false,true)} ${ic('next')}</a>`}</section>`;
+    ${fin?`<button class="btn" data-action="exit">Back</button>`:last?`<a class="btn" href="#/">Back to contents</a>`:`<a class="btn" href="#/read/${nx.id}">Next chapter ${ic('next')}</a>`}</section>`;
 }
 function pagerHTML(c){
   if(STORY.single)return'';
   const p=FLAT[c.index-1],n=FLAT[c.index+1];
-  const sub=(x,fwd)=>fwd&&x.vol.id!==c.vol.id?`Begins ${volLabel(x.vol)}`:fwd&&x.part&&(!c.part||x.part.id!==c.part.id)?`Begins ${partLabel(x.part)}`:`${unitLabel()} ${x.number}`+(!fwd&&x.vol.id!==c.vol.id?` · ${volLabel(x.vol)}`:'');
-  return`<nav class="pager" aria-label="${unitLabel()} navigation">
-    ${p?`<a class="prev" href="#/read/${p.id}"><span class="pager__d">← Previous ${unitLabel()}</span><span class="pager__t">${esc(chName(p))}</span><span class="pager__s">${sub(p,false)}</span></a>`:'<span></span>'}
-    ${n?`<a class="next" href="#/read/${n.id}"><span class="pager__d">Next ${unitLabel()} →</span><span class="pager__t">${esc(chName(n))}</span><span class="pager__s">${sub(n,true)}</span></a>`:''}</nav>`;
+  const sub=(x,fwd)=>fwd&&x.vol.id!==c.vol.id?`Begins ${volLabel(x.vol)}`:fwd&&x.part&&(!c.part||x.part.id!==c.part.id)?`Begins ${partLabel(x.part)}`:`Chapter ${x.number}`+(!fwd&&x.vol.id!==c.vol.id?` · ${volLabel(x.vol)}`:'');
+  return`<nav class="pager" aria-label="Chapter navigation">
+    ${p?`<a class="prev" href="#/read/${p.id}"><span class="pager__d">← Previous Chapter</span><span class="pager__t">${esc(chName(p))}</span><span class="pager__s">${sub(p,false)}</span></a>`:'<span></span>'}
+    ${n?`<a class="next" href="#/read/${n.id}"><span class="pager__d">Next Chapter →</span><span class="pager__t">${esc(chName(n))}</span><span class="pager__s">${sub(n,true)}</span></a>`:''}</nav>`;
 }
 function cpanelHTML(){
   return`<aside class="cpanel" id="cpanel" aria-label="Paragraph comments" aria-hidden="true" tabindex="-1">
@@ -1519,8 +1507,8 @@ function cpanelHTML(){
 }
 function stateHTML(c,kind){
   const head=readerHeader(c).replace(/<div class="progress"[\s\S]*?<\/i><\/div>/,'');
-  if(kind==='loading')return head+`<main class="chapter" id="main"><div class="state" role="status"><span class="spin" aria-hidden="true"></span><p>Loading ${unitLabel(false,true)}…</p></div></main>`;
-  return head+`<main class="chapter" id="main"><div class="state" role="alert"><h1 class="state__t" id="chTitle" tabindex="-1">This ${unitLabel(false,true)} couldn’t be loaded</h1><p>It may have been unpublished, or the connection dropped.</p><div class="state__row"><button class="btn" data-action="retry">Try again</button>${STORY.single?'':`<a class="btn btn--ghost" href="#/">Back to contents</a>`}</div></div></main>`;
+  if(kind==='loading')return head+`<main class="chapter" id="main"><div class="state" role="status"><span class="spin" aria-hidden="true"></span><p>Loading chapter…</p></div></main>`;
+  return head+`<main class="chapter" id="main"><div class="state" role="alert"><h1 class="state__t" id="chTitle" tabindex="-1">This chapter couldn’t be loaded</h1><p>It may have been unpublished, or the connection dropped.</p><div class="state__row"><button class="btn" data-action="retry">Try again</button>${STORY.single?'':`<a class="btn btn--ghost" href="#/">Back to contents</a>`}</div></div></main>`;
 }
 async function mountReader(r){
   const token=++mountToken,c=byId[r.chId];
@@ -1531,7 +1519,7 @@ async function mountReader(r){
   if(token!==mountToken)return;
   if(err){app.innerHTML=stateHTML(c,'error');window.scrollTo(0,0);const h=$('#chTitle');h&&h.focus({preventScroll:true});return}
   await loadChapterComments(c.id);
-  const blocks=parseChapter(c.id,rec.published.html),counts=countsFor(c.id),big=blocks.length>200 && !blocks.some(b=>b.type==='element'||b.type==='layout');
+  const blocks=parseChapter(c.id,rec.published.html),counts=countsFor(c.id),big=blocks.length>200;
   usedFonts=new Set();
   const bodyHTML=renderBlocks(blocks,counts);
   loadScriptFonts(blocks.map(b=>b.text||'').join(' '));usedFonts.forEach(loadFont);
@@ -1541,16 +1529,15 @@ async function mountReader(r){
       <div class="body rt${big?' is-big':''}" id="chBody" lang="en">${bodyHTML}</div>
       <div class="foot-c">${endHTML(c)}${pagerHTML(c)}</div>
     </article></main></div>${commentsOn()?cpanelHTML()+'<div class="cscrim" id="cscrim" data-action="close-comments"></div>':''}</div>
-    <button class="skip" data-action="skip">Skip to ${unitLabel(false,true)} text</button>`;
-  document.title=`${STORY.single?STORY.title:unitLabel()+' '+c.number+': '+chName(c)+' — '+STORY.title}`;
-  JournalElements.hydrate($('#chBody'));
+    <button class="skip" data-action="skip">Skip to chapter text</button>`;
+  document.title=`${STORY.single?STORY.title:'Chapter '+c.number+': '+chName(c)+' — '+STORY.title}`;
   R={id:c.id,token,c,blocks:$$('.blk',$('#chBody')),article:$('#article'),fill:$('#progFill'),bar:$('#progBar'),
      pct:0,shown:-1,done:chStatus(c.id)==='done',touched:false,saveT:null,doneT:null,io:null};
   window.scrollTo(0,0);
   let target=r.pid;
   if(!target){const p=data.progress[c.id];if(p&&!p.done&&p.pct>=.02&&p.pid)target=p.pid}
   if(target&&!R.blocks.some(b=>b.dataset.pid===target))target=null;   // paragraph no longer exists → start at the top
-  const firstPid=(blocks.find(b=>!['element','layout','pagebreak','scene'].includes(b.type))||{}).pid||null;
+  const firstPid=blocks.length?blocks[0].pid:null;
   data.position={chapterId:c.id,paragraphId:target||firstPid,ts:Date.now()};saveData();
   if(target)requestAnimationFrame(()=>{scrollToPid(target);updateScroll()});else updateScroll();
   if(target&&document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(R&&R.token===token&&!R.touched){scrollToPid(target);updateScroll()}});
@@ -1611,7 +1598,7 @@ function withAnchor(fn){
 function updateBookmarkBtn(){
   const b=$('#bmBtn');if(!b||!R)return;
   const on=data.bookmarks.some(x=>x.chapterId===R.id);
-  b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'Remove bookmark from this '+unitLabel(false,true):'Bookmark this place');
+  b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'Remove bookmark from this chapter':'Bookmark this place');
 }
 /* ===== "Save to Library" — saving the WHOLE work, distinct from the
    in-chapter reading-position bookmarks above (which stay local/
@@ -1642,7 +1629,7 @@ function toggleBookmark(){
   if(i>=0){data.bookmarks.splice(i,1);toast('Bookmark removed')}
   else{const b=topBlock(),pid=b?b.dataset.pid:null;
     data.bookmarks.push({id:'bm_'+Date.now().toString(36),chapterId:R.id,paragraphId:pid,excerpt:pid?excerptOf(R.id,pid):'',ts:Date.now()});
-    toast(STORY.single?'Bookmarked':`Bookmarked — ${R.c.title?unitLabel()+' '+R.c.number+', '+R.c.title:unitLabel()+' '+R.c.number}`)}
+    toast(STORY.single?'Bookmarked':`Bookmarked — ${R.c.title?'Chapter '+R.c.number+', '+R.c.title:'Chapter '+R.c.number}`)}
   saveData();updateBookmarkBtn();
 }
 
@@ -1676,7 +1663,7 @@ function bookmarksHTML(){
   const list=data.bookmarks.filter(b=>byId[b.chapterId]).sort((a,b)=>b.ts-a.ts);
   return`${grab}<div class="pop__h"><span id="popT">Bookmarks</span><button class="ibtn" data-action="close-pop" aria-label="Close bookmarks">${ic('x')}</button></div>`+
   (list.length?`<ul class="bm-list">${list.map(b=>{const c=byId[b.chapterId];
-    return`<li class="bm"><button class="bm__go" data-action="goto-bm" data-ch="${b.chapterId}" data-pid="${b.paragraphId||''}"><span class="bm__w">${unitLabel()} ${c.number}${STORY.kind==='journal'&&c.vol.implicit?'':' · Vol. '+roman(c.vol.number)} · ${ago(b.ts)}</span><span class="bm__t">${esc(chName(c))}</span>${b.excerpt?`<span class="bm__x">${esc(b.excerpt)}</span>`:''}</button><button class="ibtn bm__rm" data-action="rm-bm" data-id="${b.id}" aria-label="Remove bookmark: ${esc(chName(c))}">${ic('x')}</button></li>`}).join('')}</ul>`
+    return`<li class="bm"><button class="bm__go" data-action="goto-bm" data-ch="${b.chapterId}" data-pid="${b.paragraphId||''}"><span class="bm__w">Chapter ${c.number} · Vol. ${roman(c.vol.number)} · ${ago(b.ts)}</span><span class="bm__t">${esc(chName(c))}</span>${b.excerpt?`<span class="bm__x">${esc(b.excerpt)}</span>`:''}</button><button class="ibtn bm__rm" data-action="rm-bm" data-id="${b.id}" aria-label="Remove bookmark: ${esc(chName(c))}">${ic('x')}</button></li>`}).join('')}</ul>`
   :`<div class="empty"><b>No bookmarks yet</b>Tap the bookmark icon while reading to save your place.</div>`);
 }
 function openPop(kind,trigger){
@@ -1732,7 +1719,7 @@ function cmHTML(c,all,isReply){
   else if(editing)body=`<div class="cm__edit"><textarea class="field" id="cmEdit" rows="3" maxlength="1000" aria-label="Edit comment">${esc(c.body)}</textarea><div class="row"><button class="btn btn--ghost btn--sm" data-action="cm-cancel-edit">Cancel</button><button class="btn btn--sm" data-action="cm-save-edit">Save</button></div></div>`;
   else body=`<p class="cm__body" dir="auto">${mentionize(c.body)}</p>`;
   const acts=(c.deleted||editing)?'':`<div class="cm__act"><button class="lk" data-action="like" data-id="${c.id}" aria-pressed="${liked}" aria-label="${liked?'Unlike this comment':'Like this comment'}${n?', '+n+' like'+(n===1?'':'s'):''}">${ic('heart')}<span>${n||''}</span></button><button data-action="reply" data-id="${c.id}">Reply</button><button class="more" data-action="menu" data-id="${c.id}" aria-haspopup="menu" aria-expanded="false" aria-label="More options">${ic('more')}</button></div>`;
-  return`<li class="cm${isReply?' cm--reply':''}${c.deleted?' cm--gone':''}" id="${c.id}"><span class="av" style="--av:${avColor(u.name)}" aria-hidden="true">${esc(initials(u.name))}</span><div>
+  return`<li class="cm${isReply?' cm--reply':''}${c.deleted?' cm--gone':''}" id="${c.id}"><span class="av" style="--av:${avColor(u.name)}" aria-hidden="true">${u.avatarUrl?`<img src="${esc(u.avatarUrl)}" alt="" loading="lazy" onerror="this.remove()">`:''}${u.avatarUrl?'':esc(initials(u.name))}</span><div>
     <div class="cm__head"><b>${esc(u.name)}</b><span>@${esc(u.handle)}</span><span>${ago(c.ts)}${c.edited?' · edited':''}${mine?' · you':''}</span></div>${body}${acts}
     ${reps.length?`<ul class="cm__replies">${reps.map(r=>cmHTML(r,all,true)).join('')}</ul>`:''}</div></li>`;
 }
@@ -1866,12 +1853,35 @@ function openMenu(btn,c){
   btn.setAttribute('aria-expanded','true');MENU={el,btn,c};
   const f=$('button:not([disabled])',el);f&&f.focus();
 }
+const REPORT_REASONS=['Harassment / Bullying','Hate or Discrimination','Sexual / Explicit Content','Violence / Dangerous Content','Spam / Misleading','Privacy Violation','Copyright / Intellectual Property','Other'];
+function reasonDialog(){
+  return new Promise(res=>{
+    const prev=document.activeElement,sc=document.createElement('div');sc.className='modal-scrim';
+    sc.innerHTML=`<div class="modal" role="dialog" aria-modal="true" aria-labelledby="rptT"><h2 id="rptT">Report this comment</h2><p>Why are you reporting it? Our team will review it.</p><div class="rpt">${REPORT_REASONS.map(r=>`<button class="btn btn--ghost btn--sm" data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div><div class="row"><button class="btn btn--ghost btn--sm" data-r="">Cancel</button></div></div>`;
+    document.body.appendChild(sc);
+    const btns=$$('button',sc);btns[0].focus();
+    const done=v=>{sc.remove();document.removeEventListener('keydown',kd,true);prev&&prev.focus&&prev.focus({preventScroll:true});res(v)};
+    const kd=e=>{
+      if(e.key==='Escape'){e.stopPropagation();done('')}
+      else if(e.key==='Tab'){e.preventDefault();const i=btns.indexOf(document.activeElement);btns[(i+(e.shiftKey?-1:1)+btns.length)%btns.length].focus()}
+    };
+    document.addEventListener('keydown',kd,true);
+    sc.addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(b)done(b.dataset.r);else if(e.target===sc)done('')});
+  });
+}
+async function reportComment(c){
+  if(!ME.id){location.href='/index.html?next='+encodeURIComponent(location.pathname+location.search);return}
+  const reason=await reasonDialog();if(!reason)return;
+  const {error}=await supabaseClient.rpc('submit_report',{p_target_type:'story_chapter_comment',p_target_id:c.id,p_reason:reason,p_description:null});
+  if(error){console.error(error);toast(error.message||'Couldn’t submit your report — try again');return}
+  cms.reported[c.id]=true;saveCms();toast('Thanks — we’ll review this comment.');
+}
 function handleMenu(act){
   const {c,btn}=MENU;closeMenu();
   if(act==='edit'){CP.edit=c.id;renderCP(true)}
   else if(act==='delete')deleteComment(c.id);
   else if(act==='reply')startReply(c.id);
-  else if(act==='report'){cms.reported[c.id]=true;saveCms();toast('Thanks — we’ll review this comment.')}
+  else if(act==='report')reportComment(c);
   if(act!=='delete'&&act!=='edit'&&btn&&document.contains(btn))btn.focus();
 }
 function confirmDialog(o){
@@ -2004,4 +2014,3 @@ window.__reader={chapters:CHAPTERS,images:IMG,loadWork(w){PARSED.clear();loadWor
 </script>
 </body>
 </html>
-
