@@ -2716,17 +2716,12 @@ async function fetchLatestJournals(opts){
     else list.sort(function(a,b){ return new Date(b.published_at) - new Date(a.published_at); });
     return { rows: list.slice(0, page * pageSize), total: list.length };
   }
-  // Stories/Articles show a merged journals+story_works feed (Option A)
-  // — everything a Story/Article-in-progress in Writer Studio produces
-  // once it has 2+ published chapters/parts/volumes lives in story_works,
-  // not journals, so those two category chips need their own RPC-backed
-  // query instead of the plain .from('journals') path below. Every other
-  // category (Journals/Poetry/Shayari/Thoughts) and Home/All are
-  // untouched — they never touch story_works.
-  if (opts.category === 'stories' || opts.category === 'articles') {
+  // Home, Journals, Stories and Articles merge standalone posts with structured works.
+  const feedCategory = opts.category || 'all';
+  if (['all', 'journals', 'stories', 'articles'].includes(feedCategory)) {
     const from = (page - 1) * pageSize;
     const { data, error } = await supabaseClient.rpc('get_stories_articles_feed', {
-      p_category: opts.category,
+      p_category: feedCategory,
       p_search: opts.search || null,
       p_sort: opts.sort || 'recent',
       p_limit: pageSize,
