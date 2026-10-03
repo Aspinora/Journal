@@ -1,0 +1,18 @@
+/* Decorations use relative widths in the editor and both readers. */
+figure.journal-element{display:block!important;max-width:60%!important;margin:0 auto 1em!important;box-sizing:border-box}
+figure.journal-element img{display:block!important;width:100%!important;max-width:100%;height:auto!important;border-radius:0!important}
+figure.journal-element.element-left{margin-left:0!important;margin-right:auto!important}
+figure.journal-element.element-right{margin-left:auto!important;margin-right:0!important}
+figure.journal-element.element-wrap.element-left{float:left;margin-right:1em!important}
+figure.journal-element.element-wrap.element-right{float:right;margin-left:1em!important}
+#editor:has(figure.journal-element),.reader:has(figure.journal-element),.article:has(figure.journal-element),#chBody:has(figure.journal-element){display:flow-root}
+#editor figure.journal-element{cursor:pointer}
+#editor figure.journal-element:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.elements-picker{width:min(320px,calc(100vw - 32px));padding:8px}
+.elements-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:240px;overflow:auto;overscroll-behavior:contain;margin-top:10px}
+.element-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;font:inherit;font-size:12px;cursor:pointer}
+.element-card:hover,.element-card:focus-visible{border-color:var(--accent)}
+.element-card img{width:58px;height:58px;object-fit:contain}
+.elements-picker .inp{width:100%;box-sizing:border-box}
+.elements-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:10px}
+.elements-controls input[type=range]{width:100%}

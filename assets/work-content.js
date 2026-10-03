@@ -41,16 +41,17 @@
   if (purifier && purifier.isSupported) {
     purifier.addHook('uponSanitizeAttribute', function (node, data) {
       if (data.attrName === 'style') {
-        data.attrValue = cleanStyle(data.attrValue);
+        const width = node.tagName === 'FIGURE' && node.classList.contains('journal-element') && node.style.width;
+        data.attrValue = cleanStyle(data.attrValue) + (width && /^\d+(?:\.\d+)?%$/.test(width) ? ';width:'+Math.max(10,Math.min(60,parseFloat(width)))+'%' : '');
         if (!data.attrValue) data.keepAttr = false;
       }
       if (data.attrName === 'class') {
-        data.keepAttr = node.tagName === 'FIGURE' && data.attrValue === 'body-img-16x9';
+        data.keepAttr = node.tagName === 'FIGURE' && (data.attrValue === 'body-img-16x9' || (global.JournalElements && /^journal-element element-(left|right|center)( element-wrap)?$/.test(data.attrValue)));
       }
       if (data.attrName === 'dir') data.keepAttr = /^(auto|ltr|rtl)$/.test(data.attrValue);
       if (data.attrName === 'data-pid') data.keepAttr = /^[a-zA-Z0-9_-]{1,100}$/.test(data.attrValue);
       if (data.attrName === 'href') data.keepAttr = /^(https?:\/\/|mailto:)/i.test(data.attrValue.trim());
-      if (data.attrName === 'src') data.keepAttr = node.tagName === 'IMG' && /^https?:\/\//i.test(data.attrValue.trim());
+      if (data.attrName === 'src') data.keepAttr = node.tagName === 'IMG' && (/^https?:\/\//i.test(data.attrValue.trim()) || !!(global.JournalElements && global.JournalElements.safeSrc(data.attrValue.trim())));
     });
     purifier.addHook('afterSanitizeAttributes', function (node) {
       if (node.tagName === 'A' && node.hasAttribute('href')) {
@@ -74,7 +75,12 @@
     if (!purifier || !purifier.isSupported) return '<p>' + escape(text).replace(/\r?\n/g, '<br>') + '</p>';
     const html = format === 'html' || (format !== 'markdown' && isHtml(text));
     const markup = html ? text : (typeof markdownRenderer === 'function' ? markdownRenderer(text) : escape(text).replace(/\r?\n/g, '<br>'));
-    return purifier.sanitize(markup, config);
+    const clean = purifier.sanitize(markup, config);
+    if (!global.JournalElements) return clean;
+    const box = global.document.createElement('template'); box.innerHTML = clean;
+    box.content.querySelectorAll('figure.journal-element').forEach(node => { const el = global.JournalElements.clean(node); if (el) { el.removeAttribute('contenteditable'); node.replaceWith(el); } else node.remove(); });
+    return box.innerHTML;
   }
   global.JournalContent = Object.freeze({render, isHtml});
 })(window);
+

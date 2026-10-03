@@ -370,6 +370,8 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 
 .inp.bad{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
 </style>
+<link rel="stylesheet" href="/assets/elements.css">
+<script src="/assets/elements.js"></script>
 </head>
 <body class="desk">
 <div id="app">
@@ -1332,7 +1334,8 @@ const Sanitize = {
     tag = this.MAP[tag] || tag;
     const kids = () => Array.from(node.childNodes).flatMap(c => this.clean(c, keepIds));
     if (!this.ALLOWED.has(tag)) return kids();
-    if (tag === 'img' || tag === 'figure') return []; // inline images are not part of the writing studio
+    if (tag === 'figure') { const e = JournalElements.clean(node); if (e && !keepIds) e.removeAttribute('data-pid'); return e ? [e] : []; }
+    if (tag === 'img') return []; // only approved catalog elements are allowed
     if (tag === 'br') return [document.createElement('br')];
     if (tag === 'hr') { const e = h('hr', { class: 'scene-break' }); const pid = node.getAttribute('data-pid'); if (keepIds && pid) e.setAttribute('data-pid', pid); return [e]; }
     const el = document.createElement(tag), { css, fmt } = this.style(node);
@@ -1376,6 +1379,8 @@ const Ed = {
     const old = this.el;
     const el = h('div', { id: 'editor', contenteditable: 'true', spellcheck: true, role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Chapter text', 'data-ph': 'Start writing…', autocapitalize: 'sentences', 'data-gramm': 'false' });
     el.addEventListener('input', e => this.onInput(e));
+    el.addEventListener('click', e => { const fig = e.target.closest('figure.journal-element'); if (fig) Elements.edit(fig); });
+    el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('figure.journal-element')) { e.preventDefault(); Elements.edit(e.target); } });
     el.addEventListener('paste', e => this.onPaste(e));
     el.addEventListener('keydown', e => this.onKey(e));
     el.addEventListener('compositionstart', () => { this.composing = true; });
@@ -1418,7 +1423,7 @@ const Ed = {
       let pid = b.getAttribute('data-pid');
       if (b.tagName !== 'HR' && b.tagName !== 'FIGURE' && b.getAttribute('dir') !== 'rtl' && b.getAttribute('dir') !== 'ltr' && b.getAttribute('dir') !== 'auto') b.setAttribute('dir', 'auto');
       if (b.tagName === 'HR' && !b.classList.contains('scene-break')) b.className = 'scene-break';
-      if (b.tagName === 'FIGURE' && b.getAttribute('contenteditable') !== 'false') b.setAttribute('contenteditable', 'false');
+      if (b.tagName === 'FIGURE') { b.setAttribute('contenteditable', 'false'); if (b.classList.contains('journal-element')) { b.setAttribute('tabindex', '0'); b.setAttribute('aria-label', 'Edit ' + (b.querySelector('img')?.alt || 'element')); } }
       if (!pid || seen.has(pid)) {
         if (pid && prev && prev.getAttribute('data-pid') === pid && this.isEmptyBlock(prev) && !this.isEmptyBlock(b)) { prev.setAttribute('data-pid', this.freshPid(seen)); pid = b.getAttribute('data-pid'); }
         else { pid = this.freshPid(seen); b.setAttribute('data-pid', pid); fixed++; }
@@ -1584,7 +1589,9 @@ const Ed = {
   updateCounts() { if (!this.el || !this.chapterId) return; const m = this.measure(); this.counts = m; UI.showCounts(m); },
   serialize() {
     this.normalizeAll();
-    let html = this.el.innerHTML.replace(/\u200B/g, '').replace(/(<img\b[^>]*?)\ssrc="[^"]*"/g, '$1').replace(/\sclass="sel"/g, '');
+    const copy = this.el.cloneNode(true);
+    copy.querySelectorAll('img').forEach(img => { if (!img.closest('figure.journal-element') || !JournalElements.safeSrc(img.getAttribute('src'))) img.removeAttribute('src'); });
+    let html = copy.innerHTML.replace(/\u200B/g, '').replace(/\sclass="sel"/g, '');
     html = html.replace(/<span[^>]*><\/span>/g, '').replace(/<span[^>]*><\/span>/g, ''); return html;
   },
   snapshot() { const m = this.measure(); return { chapterId: this.chapterId, storyId: this.storyId, html: this.serialize(), pidSeq: this.seq, words: m.words, chars: m.chars, at: Date.now() }; },
@@ -2197,7 +2204,7 @@ const Tools = {
     const moreBtn = ibtn('more', 'More formatting', { onclick: () => Pop.open(moreBtn, this.moreItems({ done: () => Pop.close() }), { align: 'end', cls: '' }) });
     UI.syncFns.push(st => { fontLbl.textContent = Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'; fontLbl.style.fontFamily = ''; if (Number.isFinite(Number(st.size))) Tools.lastSize = SIZES.reduce((best, x) => Math.abs(x - Number(st.size)) < Math.abs(best - Number(st.size)) ? x : best, SIZES[0]); sizeVal.textContent = Tools.lastSize; blockLbl.textContent = st.list ? (st.list === 'ul' ? 'Bulleted list' : 'Numbered list') : st.quote ? 'Quote' : (BLOCK_NAMES[st.block] || 'Normal'); const a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; alignBtn.replaceChildren(icon(a === 'center' ? 'alignC' : a === 'right' ? 'alignR' : a === 'justify' ? 'alignJ' : 'alignL')); colorBar.style.background = st.color || 'var(--ink)'; });
     const g = (...k) => h('div', { class: 'tg' }, ...k), sep = () => h('span', { class: 'sep' });
-    tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn);
+    tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn, h('button', { class: 'tsel', type: 'button', 'aria-label': 'Elements', 'aria-haspopup': 'dialog', onclick: e => Elements.open(e.currentTarget) }, 'Elements'));
   },
   /* ---- portrait dock */
   buildDock() {
@@ -2206,9 +2213,61 @@ const Tools = {
     const undo = ibtn('undo', 'Undo', { onclick: () => Ed.cmd('undo') }), redo = ibtn('redo', 'Redo', { onclick: () => Ed.cmd('redo') }); UI.syncFns.push(st => { undo.disabled = !st.canUndo; redo.disabled = !st.canRedo; });
     const pbtn = (name, ic, label) => { const b = ibtn(ic, label, { onclick: () => Dock.toggle(name) }); b.setAttribute('aria-pressed', 'false'); Dock.btns[name] = b; return b; };
     const addP = ibtn('plus', 'Add paragraph', { onclick: () => { const b = Ed.topBlock(Ed.currentBlock()) || (Ed.saved && Ed.topBlock(Ed.blockOf(Ed.saved.endContainer))) || (Ed.el && Ed.el.lastElementChild); Ed.addParagraphAfter(b); } });
-    bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'));
+    bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'), h('button', { class: 'ib', type: 'button', 'aria-label': 'Elements', title: 'Elements', onclick: e => Elements.open(e.currentTarget) }, '✦'));
   },
 };
+/* Catalog picker and edits use the editor's native undo stack. */
+const Elements = {
+  writable() { const f = App.story && Ed.chapterId && Model.find(App.story, Ed.chapterId); return !!(Ed.el && f && UI.mode !== 'preview' && !App.locked(f.chapter)); },
+  commit(html, figure) {
+    if (!this.writable()) return false;
+    Ed.restoreFocus();
+    const range = document.createRange();
+    if (figure) { if (!Ed.el.contains(figure)) return false; range.selectNode(figure); }
+    else { const block = Ed.topBlock(Ed.currentBlock()) || Ed.el.lastElementChild; if (block) range.setStartBefore(block); else range.selectNodeContents(Ed.el); range.collapse(true); }
+    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
+    const ok = document.execCommand('insertHTML', false, html);
+    if (ok) { Ed.normalizeAll(); Ed.saveSel(); Ed.dirtyFlag = true; Save.dirty(); Ed.afterInput('format'); }
+    return ok;
+  },
+  open(anchor) {
+    if (!this.writable()) return;
+    Ed.saveSel(); Dock.close();
+    const chapter = Ed.chapterId, grid = h('div', { class: 'elements-grid' });
+    const search = h('input', { class: 'inp', type: 'search', placeholder: 'Search elements or tags…', 'aria-label': 'Search elements' });
+    const render = () => {
+      const items = JournalElements.search(search.value);
+      grid.replaceChildren(...items.map(item => h('button', { class: 'element-card', type: 'button', onclick: () => {
+        if (Ed.chapterId !== chapter || !this.writable()) { Pop.close(); return; }
+        const fig = h('figure', { class: 'journal-element element-center', style: { width: '30%' } }, h('img', { src: item.url, alt: item.name }));
+        Pop.close(); if (!this.commit(JournalElements.clean(fig).outerHTML)) toast('Could not insert element. Try placing the cursor in a paragraph.');
+      } }, h('img', { src: item.url, alt: '', loading: 'lazy', draggable: false }), item.name)));
+      if (!items.length) grid.append(h('p', { class: 'muted', role: 'status' }, 'No matching elements.'));
+    };
+    search.addEventListener('input', render); render();
+    Pop.open(anchor, h('div', { class: 'elements-picker' }, h('div', { class: 'menu-h' }, 'Elements'), h('p', { class: 'small muted' }, 'Mock library · select to insert before the current paragraph. Click an inserted element to edit it.'), search, grid), { role: 'dialog', align: 'end' });
+  },
+  edit(figure) {
+    if (!this.writable()) return;
+    Ed.saveSel(); const chapter = Ed.chapterId;
+    let current = figure;
+    const width = h('input', { type: 'range', min: '10', max: '60', step: '1', value: parseFloat(figure.style.width) || 30, 'aria-label': 'Element width' });
+    const value = h('span', null, width.value + '%');
+    const align = selectEl([['left','Left'],['center','Center'],['right','Right']], figure.classList.contains('element-left') ? 'left' : figure.classList.contains('element-right') ? 'right' : 'center'); align.setAttribute('aria-label','Element placement');
+    const wrap = h('input', { type: 'checkbox', checked: figure.classList.contains('element-wrap'), 'aria-label': 'Wrap text' });
+    wrap.disabled = align.value === 'center';
+    width.addEventListener('input', () => { value.textContent = width.value + '%'; });
+    align.addEventListener('change', () => { wrap.disabled = align.value === 'center'; if (wrap.disabled) wrap.checked = false; });
+    const controls = h('div', { class: 'elements-picker' }, h('div', { class: 'menu-h' }, 'Edit element'), h('label', null, 'Width ', value, width), h('div', { class: 'elements-controls' }, align, h('label', null, wrap, ' Wrap text')),
+      h('div', { class: 'elements-controls' }, h('button', { class: 'btn sm primary', type: 'button', onclick: () => {
+        if (Ed.chapterId !== chapter || !Ed.el.contains(current)) { Pop.close(); return; }
+        const clone = current.cloneNode(true); clone.style.width = width.value + '%'; clone.className = 'journal-element element-'+align.value+(wrap.checked && !wrap.disabled ? ' element-wrap' : '');
+        Pop.close(); this.commit(JournalElements.clean(clone).outerHTML, current);
+      } }, 'Apply'), h('button', { class: 'btn sm', type: 'button', onclick: () => { Pop.close(); if (Ed.chapterId === chapter) this.commit('', current); } }, 'Remove')));
+    Pop.open(figure, controls, { role: 'dialog' });
+  }
+};
+
 const Dock = {
   name: null, btns: {},
   toggle(n) { this.name === n ? this.close() : this.show(n); },
@@ -2295,10 +2354,11 @@ UI.renderPreview = function () {
     $('#viewLibrary').classList.add('on'); await UI.renderLibrary();
     const openId = new URLSearchParams(location.search).get('open');
     if (openId) await App.openStory(openId);
-    window.__studio = { Ed, App, UI, Store, Save, Sim, Model, Sanitize, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools };
+    window.__studio = { Ed, App, UI, Store, Save, Sim, Model, Sanitize, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools, Elements };
   } catch (e) { console.error(e); document.body.prepend(h('div', { style: { padding: '24px' } }, 'Story Studio could not start: ' + e.message)); }
 })();
 })();
 </script>
 </body>
 </html>
+

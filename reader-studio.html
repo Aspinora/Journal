@@ -568,6 +568,8 @@ html.scroll-locked body{width:100%}
 <script>
 try{var p=JSON.parse(localStorage.getItem('journals.reader.prefs.v2')||'null'),t=p&&p.theme;if(t!=='light'&&t!=='sepia'&&t!=='dark')t='sepia';document.documentElement.dataset.theme=t}catch(e){}
 </script>
+<link rel="stylesheet" href="/assets/elements.css">
+<script src="/assets/elements.js"></script>
 </head>
 <body data-view="structure">
 <div id="app"></div>
@@ -1288,7 +1290,8 @@ function parseChapter(id,html){
     const t=el.tagName;
     if(t==='UL'||t==='OL'){list++;Array.from(el.children).forEach(li=>{if(li.tagName==='LI')push('li',li,{list:t.toLowerCase(),listIdx:list})});return}
     if(t==='HR'){out.push({type:'scene',pid:el.getAttribute('data-pid'),idx:out.length,empty:false});return}
-    if(t==='FIGURE'||t==='IMG')return;
+    if(t==='FIGURE') { const figure = JournalElements.clean(el); if (figure) out.push({type:'element',html:figure.outerHTML,pid:el.getAttribute('data-pid'),idx:out.length,empty:false}); return; }
+    if(t==='IMG')return;
     push({H1:'h1',H2:'h2',H3:'h2',H4:'h2',BLOCKQUOTE:'quote'}[t]||'p',el);
   });
   out.forEach((b,i)=>{if(!b.pid)b.pid='paragraph_x'+pad3(i+1)}); // never expected; keeps rendering safe
@@ -1435,6 +1438,7 @@ function cbtnHTML(pid,n){
 }
 const wrapAttrs=b=>`${b.align?` data-align="${b.align}"`:''}${b.mbr!=null?` style="--mbr:${b.mbr.toFixed(2)}"`:''}${b.rtl?' data-rtl="1"':''}`;
 function blockHTML(b,counts,first){
+  if(b.type==='element') { const t = document.createElement('template'); t.innerHTML = b.html; const figure = JournalElements.clean(t.content.firstElementChild); if (!figure) return ''; figure.removeAttribute('contenteditable'); return figure.outerHTML; }
   if(b.type==='scene')return`<div class="blk blk--scene" data-pid="${b.pid}"><div class="scene" role="separator" aria-hidden="true"><i></i></div></div>`;
   if(b.empty)return`<div class="blk blk--empty" data-pid="${b.pid}"${wrapAttrs(b)} aria-hidden="true"><p class="txt" dir="auto"><br></p></div>`;
   const inner=san(b.html),cb=cbtnHTML(b.pid,counts[b.pid]||0),dir=` dir="${b.dir}"`;
@@ -1525,7 +1529,7 @@ async function mountReader(r){
   if(token!==mountToken)return;
   if(err){app.innerHTML=stateHTML(c,'error');window.scrollTo(0,0);const h=$('#chTitle');h&&h.focus({preventScroll:true});return}
   await loadChapterComments(c.id);
-  const blocks=parseChapter(c.id,rec.published.html),counts=countsFor(c.id),big=blocks.length>200;
+  const blocks=parseChapter(c.id,rec.published.html),counts=countsFor(c.id),big=blocks.length>200 && !blocks.some(b=>b.type==='element');
   usedFonts=new Set();
   const bodyHTML=renderBlocks(blocks,counts);
   loadScriptFonts(blocks.map(b=>b.text||'').join(' '));usedFonts.forEach(loadFont);
@@ -1997,3 +2001,4 @@ window.__reader={chapters:CHAPTERS,images:IMG,loadWork(w){PARSED.clear();loadWor
 </script>
 </body>
 </html>
+
