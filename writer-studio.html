@@ -370,9 +370,6 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 
 .inp.bad{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
 </style>
-<link rel="stylesheet" href="/assets/elements.css">
-<script src="/assets/elements.js"></script>
-<script src="/assets/elements-editor.js"></script>
 </head>
 <body class="desk">
 <div id="app">
@@ -384,7 +381,8 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
       <nav class="hdr__tools" aria-label="Writer tools">
         <a id="libBack" class="btn ghost" href="/userpostlogin.html">&larr; Journals</a>
         <button id="libTheme" class="ib" type="button"></button>
-                <button id="libNew" class="btn primary" type="button">New story</button>
+        <button id="libDev" class="ib" type="button"></button>
+        <button id="libNew" class="btn primary" type="button">New story</button>
       </nav>
     </div></header>
     <div id="kindBar" role="tablist" aria-label="Writing type"></div>
@@ -622,7 +620,7 @@ async function treeToStory(row) {
    column) down to a public URL, without a round trip when avoidable. */
 async function resolveCoverUrl(id) {
   if (!id) return null;
-  if (id.startsWith('__url:')) return id.slice(6);
+  if (id.startsWith('__url:')) return id.replace(/^(__url:)+/, '') || null;
   if (Images.cache.has(id)) return Images.cache.get(id).public_url;
   const { data, error } = await sb.from('story_images').select('*').eq('id', id).maybeSingle();
   if (error || !data) return null;
@@ -636,7 +634,9 @@ async function resolveCoverUrl(id) {
    left off every payload here, so ON CONFLICT DO UPDATE never
    overwrites content, only structure (number/title/status). */
 async function persistTree(s) {
-  const volRows = await Promise.all(s.volumes.map(async v => ({ id: v.id, story_id: s.id, number: v.number, title: v.title || '', description: v.description || null, status: v.status, cover_url: await resolveCoverUrl(v.coverImageId), is_implicit: !!v.implicit })));
+  /* Covers are stored as public URLs (never as a story_images id or a '__url:' placeholder), so readers can show them. */
+  const volRows = [];
+  for (const v of s.volumes) volRows.push({ id: v.id, story_id: s.id, number: v.number, title: v.title || '', description: v.description || null, status: v.status, cover_url: await resolveCoverUrl(v.coverImageId), is_implicit: !!v.implicit });
   if (volRows.length) { const { error } = await sb.from('story_volumes').upsert(volRows); if (error) throwDb(error); }
   const { data: existingVols } = await sb.from('story_volumes').select('id').eq('story_id', s.id);
   const keepVolIds = new Set(s.volumes.map(v => v.id));
@@ -724,12 +724,9 @@ const Store = {
         const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', excerpt: (o.description || '').trim() || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
         const { error } = await sb.from('journals').upsert(row); if (error) throwDb(error);
       } else {
-        const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
+        const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), last_chapter_id: o.lastChapterId || null, updated_at: new Date().toISOString() };
         const { error } = await sb.from('story_works').upsert(row); if (error) throwDb(error);
         await persistTree(o);
-        // The referenced chapter must exist before setting last_chapter_id.
-        const { error: lastChapterError } = await sb.from('story_works').update({ last_chapter_id: o.lastChapterId || null }).eq('id', o.id);
-        if (lastChapterError) throwDb(lastChapterError);
       }
       return o;
     }
@@ -795,10 +792,9 @@ const Images = {
   cache: new Map(),  // story_images rows already fetched this session
   async url(id) {
     if (!id) return null;
+    if (id.startsWith('__url:')) return id.slice(6);
     if (this.urls.has(id)) return this.urls.get(id);
-    const url = id.startsWith('__url:') ? id.slice(6) : ((await this.record(id)) || {}).public_url;
-    if (url) this.urls.set(id, url);
-    return url || null;
+    const rec = await this.record(id); return rec ? rec.public_url : null;
   },
   async record(id) {
     if (!id || id.startsWith('__url:')) return null;
@@ -1147,7 +1143,7 @@ function CoverField({ spec, current, onDeleteSaved }) {
     if (url) { drop.classList.add('has'); drop.append(h('img', { src: url, alt: spec.label })); }
     else drop.append(icon('upload'), h('b', null, spec.label), h('span', { class: 'small' }, 'Recommended ratio: ' + spec.ratio), h('span', { class: 'small' }, 'Click or drop an image'));
     if (staged) meta.append(h('div', { class: 'small' }, h('b', null, 'New image ready'), h('br'), `${staged.width} × ${staged.height} · ${fmtBytes(staged.size)}`, h('br'), h('span', { class: 'faint' }, 'Uploads when you press Save')));
-    else if (cur && cur.width && cur.height) meta.append(h('div', { class: 'small muted' }, `${cur.width} × ${cur.height} · ${fmtBytes(cur.file_size)}`));
+    else if (cur) meta.append(h('div', { class: 'small muted' }, `${cur.width} × ${cur.height} · ${fmtBytes(cur.file_size)}`));
     if (url) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => input.click() }, 'Change Image'));
     if (staged && session) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => adjust() }, 'Adjust crop'));
     if (staged) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => discardStaged() }, 'Discard new image'));
@@ -1335,10 +1331,9 @@ const Sanitize = {
     tag = this.MAP[tag] || tag;
     const kids = () => Array.from(node.childNodes).flatMap(c => this.clean(c, keepIds));
     if (!this.ALLOWED.has(tag)) return kids();
-    if (tag === 'figure' || (tag === 'span' && node.classList.contains('journal-element'))) { const e = JournalElements.clean(node); if (e && !keepIds) e.removeAttribute('data-pid'); return e ? [e] : []; }
-    if (tag === 'img') return []; // only approved catalog elements are allowed
+    if (tag === 'img' || tag === 'figure') return []; // inline images are not part of the writing studio
     if (tag === 'br') return [document.createElement('br')];
-    if (tag === 'hr') { const e = h('hr', { class: node.classList.contains('journal-page-break') ? 'journal-page-break' : 'scene-break' }); const pid = node.getAttribute('data-pid'); if (keepIds && pid) e.setAttribute('data-pid', pid); return [e]; }
+    if (tag === 'hr') { const e = h('hr', { class: 'scene-break' }); const pid = node.getAttribute('data-pid'); if (keepIds && pid) e.setAttribute('data-pid', pid); return [e]; }
     const el = document.createElement(tag), { css, fmt } = this.style(node);
     if (css) el.setAttribute('style', css);
     if (keepIds && node.getAttribute('data-pid') && /^(p|h1|h2|blockquote|li)$/.test(tag)) el.setAttribute('data-pid', node.getAttribute('data-pid'));
@@ -1380,8 +1375,6 @@ const Ed = {
     const old = this.el;
     const el = h('div', { id: 'editor', contenteditable: 'true', spellcheck: true, role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Chapter text', 'data-ph': 'Start writing…', autocapitalize: 'sentences', 'data-gramm': 'false' });
     el.addEventListener('input', e => this.onInput(e));
-    el.addEventListener('click', e => { const fig = e.target.closest('.journal-element'); if (fig) Elements.edit(fig); });
-    el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.journal-element')) { e.preventDefault(); Elements.edit(e.target); } });
     el.addEventListener('paste', e => this.onPaste(e));
     el.addEventListener('keydown', e => this.onKey(e));
     el.addEventListener('compositionstart', () => { this.composing = true; });
@@ -1392,7 +1385,7 @@ const Ed = {
     el.addEventListener('focus', () => { Gutter.update(); UI.onEditorFocus(); });
     el.addEventListener('blur', () => { if (this.dirtyFlag) Save.flush(); });
     if (old) old.replaceWith(el); else $('#editorWrap').prepend(el);
-    this.el = el; Elements.bind(el); return el;
+    this.el = el; return el;
   },
   async load(rec) {
     this.mount(); this.chapterId = rec.id; this.storyId = rec.storyId; this.saved = null; this.lastBlock = null;
@@ -1400,10 +1393,10 @@ const Ed = {
     this.el.append(Sanitize.toFragment(rec.html || '', { keepIds: true }));
     if (!this.el.firstChild) this.el.append(this.newBlock());
     this.seq = rec.pidSeq || 0; this.used = new Set(); this.normalizeAll();
-    this.dirtyFlag = false; Elements.ensureIds(); Elements.syncLayout(); JournalElements.hydrate(this.el);
+    this.dirtyFlag = false;
     this.updateCounts(); Gutter.reset();
   },
-  unload() { Elements.clear(); this.chapterId = null; if (this.el) this.el.replaceChildren(); },
+  unload() { this.chapterId = null; if (this.el) this.el.replaceChildren(); },
   newBlock() { const p = document.createElement('p'); p.append(document.createElement('br')); return p; },
   nextPid() { let id; do { this.seq++; id = 'paragraph_' + String(this.seq).padStart(3, '0'); } while (this.used.has(id)); this.used.add(id); return id; },
   isEmptyBlock: b => !b.textContent.replace(/\u200B/g, '').length && !b.querySelector('img,figure'),
@@ -1419,15 +1412,12 @@ const Ed = {
     }
     if (!el.firstChild) el.append(this.newBlock());
     if (el.lastElementChild && !/^(P|H1|H2|BLOCKQUOTE|UL|OL)$/.test(el.lastElementChild.tagName)) el.append(this.newBlock());
-    // Reserve existing IDs before assigning IDs to newly inserted decorations.
-    this.used = new Set(Array.from(el.querySelectorAll(BLOCK_SEL)).map(b=>b.getAttribute('data-pid')).filter(Boolean));
     const seen = new Set(); let prev = null;
     for (const b of el.querySelectorAll(BLOCK_SEL)) {
-      if (b.classList.contains('journal-page-settings')) continue;
       let pid = b.getAttribute('data-pid');
       if (b.tagName !== 'HR' && b.tagName !== 'FIGURE' && b.getAttribute('dir') !== 'rtl' && b.getAttribute('dir') !== 'ltr' && b.getAttribute('dir') !== 'auto') b.setAttribute('dir', 'auto');
-      if (b.tagName === 'HR' && !b.classList.contains('scene-break') && !b.classList.contains('journal-page-break')) b.className = 'scene-break';
-      if (b.tagName === 'FIGURE') { b.setAttribute('contenteditable', 'false'); if (b.classList.contains('journal-element')) { b.setAttribute('tabindex', '0'); b.setAttribute('aria-label', 'Edit ' + (b.querySelector('img')?.alt || 'element')); } }
+      if (b.tagName === 'HR' && !b.classList.contains('scene-break')) b.className = 'scene-break';
+      if (b.tagName === 'FIGURE' && b.getAttribute('contenteditable') !== 'false') b.setAttribute('contenteditable', 'false');
       if (!pid || seen.has(pid)) {
         if (pid && prev && prev.getAttribute('data-pid') === pid && this.isEmptyBlock(prev) && !this.isEmptyBlock(b)) { prev.setAttribute('data-pid', this.freshPid(seen)); pid = b.getAttribute('data-pid'); }
         else { pid = this.freshPid(seen); b.setAttribute('data-pid', pid); fixed++; }
@@ -1476,25 +1466,13 @@ const Ed = {
   },
   fixSpans() {
     let hit = 0; /* execCommand may put the style on an existing <i>/<b>/<u>, not only on a <span>, so match any element */
-    const applySize = f => {
-      const s = document.createElement('span'); s.style.fontSize = this.pendingSize + 'px';
-      while (f.firstChild) s.append(f.firstChild); f.replaceWith(s);
-      s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; if (!d.getAttribute('style')) d.removeAttribute('style'); });
-      hit++;
-    };
-    this.el.querySelectorAll('font[size="7"]').forEach(applySize);
-    this.el.querySelectorAll('[style*="xxx-large"]').forEach(s => { s.style.fontSize = this.pendingSize + 'px'; s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; if (!d.getAttribute('style')) d.removeAttribute('style'); }); hit++; });
+    this.el.querySelectorAll('[style*="xxx-large"]').forEach(s => { s.style.fontSize = this.pendingSize + 'px'; s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; }); hit++; });
     this.el.querySelectorAll('[style*="rgb(1, 2, 3)"]').forEach(s => { s.style.color = 'inherit'; hit++; });
     this.el.querySelectorAll('[style*="rgb(1, 2, 4)"]').forEach(s => { s.style.backgroundColor = 'transparent'; hit++; });
-    this.el.querySelectorAll('font').forEach(f => {
-      const s = document.createElement('span'), face = f.getAttribute('face'), color = f.getAttribute('color');
-      if (face) s.style.fontFamily = face; if (color) s.style.color = color;
-      while (f.firstChild) s.append(f.firstChild); f.replaceWith(s); hit++;
-    });
+    this.el.querySelectorAll('font').forEach(f => { const s = document.createElement('span'); f.replaceWith(s); while (f.firstChild) s.append(f.firstChild); hit++; });
     this.needFix = hit ? 0 : this.needFix - 1;
   },
   onPaste(e) {
-    if (Elements.handlePaste(e)) return;
     e.preventDefault(); const cd = e.clipboardData; if (!cd) return;
     const html = cd.getData('text/html'), text = cd.getData('text/plain'); let out;
     if (html) {
@@ -1536,7 +1514,7 @@ const Ed = {
       case 'color': this.needFix = 4; this.exec('foreColor', arg || '#010203', true); break;
       case 'highlight': this.needFix = 4; this.exec('hiliteColor', arg || '#010204', true); break;
       case 'font': this.exec('fontName', Fonts.stack(arg), true); break;
-      case 'size': { const size = clamp(Number(arg) || 19, SIZES[0], SIZES[SIZES.length - 1]); this.pendingSize = size; this.needFix = 4; this.exec('fontSize', '7', false); this.fixSpans(); break; }
+      case 'size': this.pendingSize = arg; this.needFix = 4; this.exec('fontSize', '7', true); this.fixSpans(); break;
       case 'block': this.setBlock(arg); break;
       case 'align': this.exec({ left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight', justify: 'justifyFull' }[arg], null, true); break;
       case 'list': this.withPids(() => this.exec(arg === 'ol' ? 'insertOrderedList' : 'insertUnorderedList')); break;
@@ -1547,7 +1525,7 @@ const Ed = {
       case 'link': if (arg) { if (collapsed) document.execCommand('insertHTML', false, `<a href="${escHtml(arg)}">${escHtml(arg)}</a>`); else this.exec('createLink', arg); $$('a[href]', this.el).forEach(a => { a.setAttribute('rel', 'noopener noreferrer'); a.setAttribute('target', '_blank'); }); } break;
       case 'unlink': this.exec('unlink'); break;
     }
-    this.dirtyFlag = true; Save.dirty(); this.afterInput('format'); JournalElements.hydrate(this.el); Elements.draw();
+    this.dirtyFlag = true; Save.dirty(); this.afterInput('format');
   },
   setBlock(tag) {
     const cur = this.currentBlock(); if (!cur) return;
@@ -1594,12 +1572,7 @@ const Ed = {
   updateCounts() { if (!this.el || !this.chapterId) return; const m = this.measure(); this.counts = m; UI.showCounts(m); },
   serialize() {
     this.normalizeAll();
-    const copy = this.el.cloneNode(true);
-    copy.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(f => { const c=JournalElements.clean(f); if(c)f.replaceWith(c);else f.remove(); });
-    copy.querySelectorAll('[data-je-clear]').forEach(n=>n.removeAttribute('data-je-clear'));
-    copy.querySelectorAll('hr.journal-page-break').forEach(hr => hr.removeAttribute('style'));
-    copy.querySelectorAll('img').forEach(img => { if (!img.closest('.journal-element') || !JournalElements.safeSrc(img.getAttribute('src'))) img.removeAttribute('src'); });
-    let html = copy.innerHTML.replace(/\u200B/g, '').replace(/\sclass="sel"/g, '');
+    let html = this.el.innerHTML.replace(/\u200B/g, '').replace(/(<img\b[^>]*?)\ssrc="[^"]*"/g, '$1').replace(/\sclass="sel"/g, '');
     html = html.replace(/<span[^>]*><\/span>/g, '').replace(/<span[^>]*><\/span>/g, ''); return html;
   },
   snapshot() { const m = this.measure(); return { chapterId: this.chapterId, storyId: this.storyId, html: this.serialize(), pidSeq: this.seq, words: m.words, chars: m.chars, at: Date.now() }; },
@@ -1769,11 +1742,11 @@ const App = {
   async publishChapter() {
     const rec = await Store.get('chapters', Ed.chapterId); if (!rec) throw new Error('Chapter not saved yet.');
     rec.published = { html: rec.html, at: Date.now(), title: Model.find(App.story, rec.id).chapter.title }; await Store.put('chapters', rec); App.rec = rec;
-    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncPublishButton(); Panel.refresh();
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); Panel.refresh();
   },
   async unpublishChapter() {
     const rec = await Store.get('chapters', Ed.chapterId); rec.published = null; await Store.put('chapters', rec); App.rec = rec;
-    const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncPublishButton(); Panel.refresh();
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); Panel.refresh();
   },
   async publishContainer(kind, obj) {
     const chapters = (kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters).filter(c => !c.deletedAt);
@@ -1860,7 +1833,7 @@ const UI = {
   init() {
     Gutter.init();
     const set = (id, n, l) => { const b = $(id); b.replaceChildren(icon(n)); b.setAttribute('aria-label', l); b.title = l; };
-    set('#btnLeft', 'panelL', 'Show or hide story structure'); set('#btnRight', 'panelR', 'Chapter info and notes'); set('#btnFocus', 'focus', 'Focus mode');
+    set('#btnLeft', 'panelL', 'Show or hide story structure'); set('#btnRight', 'panelR', 'Chapter info and notes'); set('#btnFocus', 'focus', 'Focus mode'); set('#libDev', 'more', 'Developer tools');
     $('#btnTheme').classList.add('js-theme-btn'); $('#btnTheme').addEventListener('click', e => themeMenu(e.currentTarget));
     $('#libTheme').classList.add('js-theme-btn'); $('#libTheme').addEventListener('click', e => themeMenu(e.currentTarget));
     syncThemeButtons();
@@ -1875,7 +1848,7 @@ const UI = {
     $('#btnPreviewP').addEventListener('click', () => this.setMode(this.mode === 'preview' ? 'write' : 'preview'));
     $('#btnSaveDraft').addEventListener('click', () => App.saveDraft()); $('#btnPublish').addEventListener('click', () => this.publishDialog());
     $('#libBack').addEventListener('click', e => { try { const r = document.referrer && new URL(document.referrer); if (r && r.origin === location.origin && !/\/writer-studio(\.html)?$/.test(r.pathname) && history.length > 1) { e.preventDefault(); history.back(); } } catch (x) {} });
-    $('#libNew').addEventListener('click', () => this.newStory());
+    $('#libNew').addEventListener('click', () => this.newStory()); $('#libDev').addEventListener('click', e => this.devMenu(e.currentTarget));
     const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; if (Kind.single(App.story)) App.story.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
     t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Ed.focusForCommand(); const first = Ed.el.firstElementChild; if (first) Ed.placeCaret(first, true); } });
     this.kind = lsGet('sw_kind', 'story'); if (!KINDS[this.kind]) this.kind = 'story'; $('#btnWork').replaceChildren(icon('edit')); $('#btnWork').addEventListener('click', () => this.editStory());
@@ -1945,15 +1918,11 @@ const UI = {
     if (!Kind.hasTree(s)) this.pane = 'write';
   },
   showStudio() { this.applyKind(); $('#viewLibrary').classList.remove('on'); $('#viewStudio').classList.add('on'); this.renderTree(); this.setPane(this.portrait ? 'contents' : 'write'); this.syncCrumb(); Panel.refresh(); $('#emptyState').hidden = true; $('#writeArea').hidden = false; $('#preview').hidden = true; },
-  syncPublishButton() {
-    const f = App.story && Ed.chapterId ? Model.find(App.story, Ed.chapterId) : null, b = $('#btnPublish');
-    if (!b) return; b.textContent = f && f.chapter.status === 'published' ? 'Re-Publish' : 'Publish';
-  },
   showChapter(f) {
     $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; this.applyKind(); const st = App.story, kd = Kind.of(st); $('#chTitle').value = Kind.single(st) ? st.title : f.chapter.title; $('#chTitle').placeholder = ({ story: 'Chapter ' + f.chapter.number + ' title', journal: 'Entry title', article: 'Title', poetry: 'Title of the poem', shayari: 'Title (optional)', thought: 'Title' })[Kind.storyLike(st) ? 'story' : kd];
     const locked = App.locked(f.chapter); document.body.classList.toggle('locked-chapter', locked);
     if (Ed.el) Ed.el.contentEditable = locked ? 'false' : 'true'; $('#chTitle').disabled = locked;
-    $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = false; $('#btnPublish').disabled = locked; this.syncPublishButton(); const dock = $('#dock'); if (dock) dock.hidden = locked;
+    $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = locked; const dock = $('#dock'); if (dock) dock.hidden = locked;
     this.syncCrumb(); this.renderTree(); this.syncToolbar(); if (this.mode === 'preview') this.renderPreview();
   },
   showEmpty() {
@@ -1971,7 +1940,7 @@ const UI = {
     grid.replaceChildren();
     grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New ' + K.one.toLowerCase()), h('span', { class: 'small muted' }, 'Cover, title, tags and visibility')));
     stories.forEach(s => {
-      const url = s.coverImageId && (Images.urls.get(s.coverImageId) || (s.coverImageId.startsWith('__url:') ? s.coverImageId.slice(6) : (Images.cache.get(s.coverImageId) || {}).public_url)), chapters = Model.all(s).length, realVols = s.volumes.filter(v => !v.implicit).length;
+      const url = s.coverImageId && Images.urls.get(s.coverImageId), chapters = Model.all(s).length, realVols = s.volumes.filter(v => !v.implicit).length;
       const menuBtn = ibtn('more', 'Story actions', { class: 'ib card__more', onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
       grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
@@ -2001,8 +1970,9 @@ const UI = {
   },
   renderTree() {
     const host = $('#treeHost'), s = App.story; if (!host || !s) return; const st = host.scrollTop; host.replaceChildren();
-    const cover = s.coverImageId && (Images.urls.get(s.coverImageId) || (s.coverImageId.startsWith('__url:') ? s.coverImageId.slice(6) : (Images.cache.get(s.coverImageId) || {}).public_url));
-    host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words'))));
+    const cover = s.coverImageId && Images.urls.get(s.coverImageId);
+    host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words')),
+      ibtn('more', 'Story actions', { onclick: e => showMenu(e.currentTarget, [{ label: Kind.of(s) === 'story' ? 'Story settings…' : Kind.cfg(s).one + ' details…', icon: 'edit', onClick: () => this.editStory() }, Kind.storyLike(s) ? { label: 'Renumber everything…', icon: 'lines', onClick: () => App.renumber() } : null, '-', { label: Kind.of(s) === 'story' ? 'Back to all stories' : 'Back to all writing', icon: 'book', onClick: () => this.showLibrary() }], { align: 'end' }) })));
     const chRow = (c, list, i, v, p) => this.row({ kind: 'chapter', id: c.id, label: Model.cLabel(c), sub: c.wordCount ? (c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : String(c.wordCount)) : '', status: c.status, active: c.id === Ed.chapterId, onOpen: () => App.openChapter(c.id), menu: () => [
       App.locked(c) ? null : { label: 'Rename…', icon: 'edit', onClick: () => this.renameChapter(c) }, App.locked(c) ? null : { label: 'Edit details…', icon: 'file', onClick: () => this.editChapter(c) }, App.locked(c) ? null : '-',
       { label: 'Move up', icon: 'up', disabled: i === 0, onClick: () => App.move(list, i, -1) }, { label: 'Move down', icon: 'down', disabled: i === list.length - 1, onClick: () => App.move(list, i, 1) }, Kind.of(s) === 'journal' ? null : { label: 'Move to…', icon: 'move', onClick: () => this.moveDialog('chapter', c) }, '-',
@@ -2010,7 +1980,7 @@ const UI = {
     const addRow = (parts) => h('div', { class: 't-add' }, ...parts); const L = Kind.labels(s), isStory = Kind.storyLike(s);
     s.volumes.forEach((v, vi) => {
       if (v.deletedAt) return;
-      const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && (Images.urls.get(v.coverImageId) || (v.coverImageId.startsWith('__url:') ? v.coverImageId.slice(6) : (Images.cache.get(v.coverImageId) || {}).public_url)), vLocked = App.locked(v);
+      const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && Images.urls.get(v.coverImageId), vLocked = App.locked(v);
       if (!v.implicit) host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, status: Kind.isStory(s) ? v.status : null, menu: () => [
         vLocked ? null : { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) },
         (!vLocked && Kind.isStory(s)) ? { label: 'Publish volume…', icon: 'check', onClick: () => App.publishContainer('volume', v) } : null, '-',
@@ -2057,7 +2027,7 @@ const UI = {
   async entityDialog({ kind, entity, isNew, ctx }) {
     const wk = kind === 'story' ? Kind.of(entity) : Kind.of(App.story), plain = kind === 'story' ? wk !== 'story' : !Kind.storyLike(App.story), KN = KINDS[wk];
     const spec = kind === 'part' ? null : IMAGE_SPECS[kind + '_cover'], names = { story: KN.one.toLowerCase(), volume: 'volume', part: plain ? 'section' : 'part', chapter: (ctx && ctx.label) || (plain ? KN.unit : 'chapter') };
-    const curRec = spec && entity.coverImageId ? ((await Images.record(entity.coverImageId)) || { id: entity.coverImageId, public_url: await Images.url(entity.coverImageId), width: null, height: null, file_size: null }) : null;
+    const curRec = spec && entity.coverImageId ? await Images.record(entity.coverImageId) : null;
     const els = {}, body = h('div'); let cover = null, tags = null;
     if (spec) cover = CoverField({ spec, current: curRec, onDeleteSaved: () => deleteCover({ entity, persist: ctx.persist }) });
     const errHost = h('div');
@@ -2108,7 +2078,7 @@ const UI = {
           else if (Kind.single(entity)) entity.volumes.forEach(v => v.chapters.forEach(c => { c.title = entity.title; }));
         }
         if (cover && cover.staged) await applyCoverChange({ entity, owner: ctx.owner, type: spec.type, staged: cover.staged, persist: ctx.persist }); else await ctx.persist();
-        if (cover) cover.markSaved((await Images.record(entity.coverImageId)) || (entity.coverImageId ? { id: entity.coverImageId, public_url: await Images.url(entity.coverImageId), width: null, height: null, file_size: null } : null));
+        if (cover) cover.markSaved(await Images.record(entity.coverImageId));
         m.setDismissable(true); m.close(); await ctx.after(entity);
       } catch (e) {
         const old = JSON.parse(snap); Object.keys(entity).forEach(k => delete entity[k]); Object.assign(entity, old); if (isNew) ctx.detach();
@@ -2120,14 +2090,14 @@ const UI = {
   /* ---- publish */
   async publishDialog() {
     if (!Ed.chapterId) return; if (this.mode === 'preview') this.setMode('write');
-    const fchk = Model.find(App.story, Ed.chapterId);
+    const fchk = Model.find(App.story, Ed.chapterId); if (fchk && App.locked(fchk.chapter)) return;
     const okSave = await Save.flush(); if (!okSave) { toast('Save failed, so publishing is paused. Your text is safe; try again in a moment.', 'err'); return; }
     const items = App.validate(), fails = items.filter(i => i.level === 'fail').length, warns = items.filter(i => i.level === 'warn').length, f = Model.find(App.story, Ed.chapterId);
     const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
     const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
     const already = f.chapter.status === 'published';
-    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), already ? ' Re-Publishing…' : ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast(already ? 'Re-Published' : 'Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Re-Publish' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
-    const m = openModal({ title: already ? 'Ready to re-publish?' : 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
+    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast('Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Publish changes' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
+    const m = openModal({ title: 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
   },
   /* ---- developer tools */
   devMenu(anchor) {
@@ -2148,13 +2118,11 @@ const LINE_H = [['1.2', '1.2'], ['1.5', '1.5'], ['1.75', '1.75'], ['2.0', '2'], 
 const PARA_S = [['None', '0'], ['Tight', '0.4em'], ['Normal', '0.9em'], ['Roomy', '1.4em'], ['Wide', '2em']];
 const BLOCK_NAMES = { p: 'Normal', h1: 'Heading', h2: 'Subheading', blockquote: 'Quote', li: 'List' };
 const Tools = {
-  lastSize: 19,
   build() { this.buildToolbar(); this.buildDock(); },
   rebuildFor() { Pop.close(); Dock.close(); },
-  curSize() { const s = Ed.state(), raw = s && Number(s.size); if (Number.isFinite(raw)) this.lastSize = SIZES.reduce((best, x) => Math.abs(x - raw) < Math.abs(best - raw) ? x : best, SIZES[0]); return this.lastSize; },
-  setSize(n) { this.lastSize = n; Ed.cmd('size', n); UI.syncToolbar(); },
-  stepSize(d) { const c = this.curSize(); const n = d > 0 ? SIZES.find(x => x > c) : [...SIZES].reverse().find(x => x < c); if (n) this.setSize(n); },
-  sizeMenu(ctx) { const c = this.curSize(); return SIZES.map(s => menuItem(String(s), { on: s === c, keepOpen: true, onClick: () => { this.setSize(s); ctx.done && ctx.done(); } })); },
+  curSize() { const s = Ed.state(); return (s && s.size) || 19; },
+  stepSize(d) { const c = this.curSize(); const n = d > 0 ? SIZES.find(x => x > c) : [...SIZES].reverse().find(x => x < c); if (n) Ed.cmd('size', n); },
+  sizeMenu(ctx) { const c = this.curSize(); return SIZES.map(s => menuItem(String(s), { on: s === c, onClick: () => { Ed.cmd('size', s); ctx.done && ctx.done(); } })); },
   colorMenu(kind, ctx) {
     const isText = kind === 'color', colors = isText ? TEXT_COLORS : HL_COLORS, key = 'sw_recent_' + kind, rec = lsGet(key, []);
     const apply = c => { Ed.cmd(kind, c); if (c) lsSet(key, [c, ...rec.filter(x => x !== c)].slice(0, 8)); ctx.done && ctx.done(); };
@@ -2210,9 +2178,9 @@ const Tools = {
     const blockLbl = h('span', { class: 'nm' }, 'Normal'), blockBtn = h('button', { class: 'tsel', type: 'button', style: { minWidth: '100px', justifyContent: 'space-between' }, 'aria-label': 'Paragraph style', onclick: () => Pop.open(blockBtn, this.blockItems({ done: () => Pop.close() })) }, blockLbl, icon('chevD'));
     const alignBtn = ibtn('alignL', 'Alignment', { onclick: () => Pop.open(alignBtn, this.alignItems({ done: () => Pop.close() })) });
     const moreBtn = ibtn('more', 'More formatting', { onclick: () => Pop.open(moreBtn, this.moreItems({ done: () => Pop.close() }), { align: 'end', cls: '' }) });
-    UI.syncFns.push(st => { fontLbl.textContent = Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'; fontLbl.style.fontFamily = ''; if (Number.isFinite(Number(st.size))) Tools.lastSize = SIZES.reduce((best, x) => Math.abs(x - Number(st.size)) < Math.abs(best - Number(st.size)) ? x : best, SIZES[0]); sizeVal.textContent = Tools.lastSize; blockLbl.textContent = st.list ? (st.list === 'ul' ? 'Bulleted list' : 'Numbered list') : st.quote ? 'Quote' : (BLOCK_NAMES[st.block] || 'Normal'); const a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; alignBtn.replaceChildren(icon(a === 'center' ? 'alignC' : a === 'right' ? 'alignR' : a === 'justify' ? 'alignJ' : 'alignL')); colorBar.style.background = st.color || 'var(--ink)'; });
+    UI.syncFns.push(st => { fontLbl.textContent = Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'; fontLbl.style.fontFamily = ''; sizeVal.textContent = st.size || 19; blockLbl.textContent = st.list ? (st.list === 'ul' ? 'Bulleted list' : 'Numbered list') : st.quote ? 'Quote' : (BLOCK_NAMES[st.block] || 'Normal'); const a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; alignBtn.replaceChildren(icon(a === 'center' ? 'alignC' : a === 'right' ? 'alignR' : a === 'justify' ? 'alignJ' : 'alignL')); colorBar.style.background = st.color || 'var(--ink)'; });
     const g = (...k) => h('div', { class: 'tg' }, ...k), sep = () => h('span', { class: 'sep' });
-    tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn, h('button', { class: 'tsel', type: 'button', 'aria-label': 'Elements', 'aria-haspopup': 'dialog', onclick: e => Elements.open(e.currentTarget) }, 'Elements'));
+    tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn);
   },
   /* ---- portrait dock */
   buildDock() {
@@ -2221,11 +2189,9 @@ const Tools = {
     const undo = ibtn('undo', 'Undo', { onclick: () => Ed.cmd('undo') }), redo = ibtn('redo', 'Redo', { onclick: () => Ed.cmd('redo') }); UI.syncFns.push(st => { undo.disabled = !st.canUndo; redo.disabled = !st.canRedo; });
     const pbtn = (name, ic, label) => { const b = ibtn(ic, label, { onclick: () => Dock.toggle(name) }); b.setAttribute('aria-pressed', 'false'); Dock.btns[name] = b; return b; };
     const addP = ibtn('plus', 'Add paragraph', { onclick: () => { const b = Ed.topBlock(Ed.currentBlock()) || (Ed.saved && Ed.topBlock(Ed.blockOf(Ed.saved.endContainer))) || (Ed.el && Ed.el.lastElementChild); Ed.addParagraphAfter(b); } });
-    bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'), h('button', { class: 'ib', type: 'button', 'aria-label': 'Elements', title: 'Elements', onclick: e => Elements.open(e.currentTarget) }, '✦'));
+    bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'));
   },
 };
-/* Isolated decoration controls; no remote storage in this demo. */
-const Elements = JournalElementEditor.create({Ed,App,UI,Model,Save,Pop,h,selectEl,toast,noFocusSteal,getDock:()=>Dock});
 const Dock = {
   name: null, btns: {},
   toggle(n) { this.name === n ? this.close() : this.show(n); },
@@ -2242,7 +2208,7 @@ const Dock = {
         Tools.chipRow('Line spacing', LINE_H, v => Ed.cmd('lineHeight', v), keep), Tools.chipRow('Paragraph spacing', PARA_S, v => Ed.cmd('paraSpace', v), keep));
     } else if (n === 'more') {
       el = h('div', null, menuItem('Strikethrough', { icon: 'strike', onClick: () => Ed.cmd('strike') }), menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', onClick: () => Tools.link() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') }), h('div', { class: 'menu-sep' }),
-        menuItem('Chapter info and notes', { icon: 'info', onClick: () => { UI.openRight(); } }), menuItem('Save draft', { icon: 'save', onClick: () => App.saveDraft() }), menuItem((Model.find(App.story, Ed.chapterId) || { chapter: {} }).chapter.status === 'published' ? 'Re-Publish…' : 'Publish…', { icon: 'send', onClick: () => UI.publishDialog() }));
+        menuItem('Chapter info and notes', { icon: 'info', onClick: () => { UI.openRight(); } }), menuItem('Save draft', { icon: 'save', onClick: () => App.saveDraft() }), menuItem('Publish…', { icon: 'send', onClick: () => UI.publishDialog() }));
       el.querySelectorAll('.menu-i').forEach(b => b.addEventListener('click', () => this.close()));
     }
     panel.replaceChildren(el); panel.hidden = false; this.name = n; Object.entries(this.btns).forEach(([k, b]) => b.setAttribute('aria-pressed', String(k === n || (n === 'font' && k === 'text'))));
@@ -2266,8 +2232,8 @@ const Panel = {
     const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
     const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
     const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Copyright', (copyrightOf(App.story.copyright) || [0, 'Not chosen'])[1]], ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
-    return h('div', { style: { padding: '6px 6px 16px' } }, kv, App.locked(f.chapter) ? h('div', { style: { marginTop: '16px' } }, h('div', { class: 'banner ok', style: { marginBottom: '10px' } }, icon('check'), 'Published — this ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + ' is locked for editing. Use Re-Publish to update the published copy, or delete it.'), h('button', { class: 'btn', type: 'button', onclick: () => App.deleteChapter(f) }, 'Delete ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + '…')) :
-      h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Re-Publish' : 'Publish…'),
+    return h('div', { style: { padding: '6px 6px 16px' } }, kv, App.locked(f.chapter) ? h('div', { style: { marginTop: '16px' } }, h('div', { class: 'banner ok', style: { marginBottom: '10px' } }, icon('check'), 'Published — this ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + ' is locked and can’t be edited or republished. You can still delete it.'), h('button', { class: 'btn', type: 'button', onclick: () => App.deleteChapter(f) }, 'Delete ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + '…')) :
+      h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
       pub ? h('button', { class: 'btn', type: 'button', onclick: async () => { if (await confirmDialog({ title: 'Unpublish this chapter?', body: 'Readers will no longer see it. Your draft is kept.', confirm: 'Unpublish' })) { await App.unpublishChapter(); toast('Unpublished'); } } }, 'Unpublish') : null));
   },
   renderNotes() {
@@ -2286,7 +2252,7 @@ const Panel = {
 UI.setMode = function (m) {
   if (!Ed.chapterId || m === this.mode) return;
   const sc = $('#scroller');
-  if (m === 'preview') { Elements.clear(); Ed.saveSel(); this.scrollTop = sc.scrollTop; Pop.close(); Dock.close(); this.renderPreview(); $('#writeArea').hidden = true; $('#preview').hidden = false; }
+  if (m === 'preview') { Ed.saveSel(); this.scrollTop = sc.scrollTop; Pop.close(); Dock.close(); this.renderPreview(); $('#writeArea').hidden = true; $('#preview').hidden = false; }
   else { $('#preview').hidden = true; $('#writeArea').hidden = false; sc.scrollTop = this.scrollTop || 0; if (!this.portrait) Ed.restoreFocus(); }
   this.mode = m; document.body.classList.toggle('previewing', m === 'preview'); $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m))); this.syncCrumb();
   if (m === 'write') raf('pv', () => { this.syncToolbar(); });
@@ -2312,11 +2278,10 @@ UI.renderPreview = function () {
     $('#viewLibrary').classList.add('on'); await UI.renderLibrary();
     const openId = new URLSearchParams(location.search).get('open');
     if (openId) await App.openStory(openId);
-    window.__studio = { Ed, App, UI, Store, Save, Sim, Model, Sanitize, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools, Elements };
+    window.__studio = { Ed, App, UI, Store, Save, Sim, Model, Sanitize, Images, Objects, encodeToTarget, openCropper, decodeImage, CONFIG, Fonts, Gutter, Panel, Dock, Tools };
   } catch (e) { console.error(e); document.body.prepend(h('div', { style: { padding: '24px' } }, 'Story Studio could not start: ' + e.message)); }
 })();
 })();
 </script>
 </body>
 </html>
-
