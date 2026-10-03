@@ -1413,12 +1413,6 @@ function avatarSpanHTML(userId, name, sizeClass){
 }
 /* Avatar wrapped in a working link to that person's Portfolio — use
    this everywhere an avatar stands alone so it's always clickable. */
-function avatarHTML(userId, name, sizeClass){
-  const span = avatarSpanHTML(userId, name, sizeClass);
-  const username = authorUsername(userId);
-  if (!username) return span;
-  return '<a class="avatar-link" href="portfolio.html?u=' + encodeURIComponent(username) + '" onclick="event.stopPropagation();" style="display:inline-flex;">' + span + '</a>';
-}
 
 function formatRelativeTime(iso){
   const then = new Date(iso).getTime();
@@ -1615,7 +1609,6 @@ const FIGURE_TEXT_COLORS = [
    have its width and height tiers set independently (a real
    rectangle); circle always keeps them equal (a true circle at every
    size). */
-const SHAPE_ASPECT = { circle:[1,1], quad:[1,1] };
 
 function figureShapeOf(key){ return FIGURE_SHAPES.find(function(s){ return s.key === key; }) || FIGURE_SHAPES[1]; }
 function figureColorOf(key){ return FIGURE_COLORS.find(function(c){ return c.key === key; }) || FIGURE_COLORS[0]; }
