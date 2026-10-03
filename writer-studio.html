@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#F7F8F9">
 <title>Story Studio · Journals by Aspinora</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="apple-touch-icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
@@ -1726,14 +1728,23 @@ const App = {
     if (ids.some(x => !x) || new Set(ids).size !== ids.length) add('fail', 'Paragraph structure', 'Some paragraphs are missing unique IDs.'); else if (maxRun > 3 && !Ed.lineMode) add('warn', 'Paragraph structure', 'There are ' + maxRun + ' empty paragraphs in a row. Use a scene break instead.'); else add('ok', 'Paragraph structure', ids.length.toLocaleString() + ' paragraphs, all with permanent IDs');
     return out;
   },
+  /* There is no author-facing status for a multi-chapter work: it is simply published once it has a
+     published chapter, and a draft again when none is left. The feed and slug trigger key off this value.
+     Returns true when the status changed. */
+  syncWorkStatus() {
+    const st = App.story; if (!st || Kind.single(st)) return false;
+    const any = Model.all(st).some(x => x.chapter.status === 'published' && !x.chapter.deletedAt);
+    const next = any ? (st.status === 'draft' || !st.status ? 'published' : st.status) : (st.status === 'published' ? 'draft' : st.status);
+    if (next === st.status) return false; st.status = next; return true;
+  },
   async publishChapter() {
     const rec = await Store.get('chapters', Ed.chapterId); if (!rec) throw new Error('Chapter not saved yet.');
     rec.published = { html: rec.html, at: Date.now(), title: Model.find(App.story, rec.id).chapter.title }; await Store.put('chapters', rec); App.rec = rec;
-    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; await this.persistStory(); UI.renderTree(); Panel.refresh();
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); Panel.refresh();
   },
   async unpublishChapter() {
     const rec = await Store.get('chapters', Ed.chapterId); rec.published = null; await Store.put('chapters', rec); App.rec = rec;
-    const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; await this.persistStory(); UI.renderTree(); Panel.refresh();
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); Panel.refresh();
   },
   async publishContainer(kind, obj) {
     const chapters = (kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters).filter(c => !c.deletedAt);
@@ -1746,7 +1757,7 @@ const App = {
       c.status = 'published'; c.publishedAt = rec.published.at;
     }
     obj.status = 'published'; obj.publishedAt = Date.now();
-    await this.persistStory(); UI.renderTree(); UI.syncCrumb(); Panel.refresh(); toast('Published');
+    this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncCrumb(); Panel.refresh(); toast('Published');
   },
   async softDeleteChapter(f) {
     const words = f.chapter.wordCount || 0;
