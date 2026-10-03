@@ -746,8 +746,6 @@ body.is-reading .comment-form textarea{
 }
 @keyframes page-loader-spin{ to{ transform:rotate(360deg); } }
 </style>
-<script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
-<script src="/assets/work-content.js"></script>
 </head>
 <body>
 
@@ -909,70 +907,7 @@ body.is-reading .comment-form textarea{
   <!-- ============================================================
        WORK READING VIEW
        ============================================================ -->
-  <section class="view" id="view-read">
-    <div class="view-inner container">
-      <div class="read-shell">
-        <a href="#" class="read-back" data-nav="explore">
-          <svg viewBox="0 0 16 16" fill="none" width="15" height="15"><path d="M10 3 5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Back to Discover
-        </a>
-
-        <div class="read-cover" id="read-cover"></div>
-
-        <div class="read-header">
-          <h1 id="read-title"></h1>
-          <p class="read-subtitle" id="read-subtitle" hidden></p>
-          <div class="read-byline">
-            <span class="avatar" id="read-avatar"></span>
-            <div class="read-byline-text">
-              <div class="name" id="read-author"></div>
-              <div class="meta"><span id="read-date"></span> · <span id="read-time"></span></div>
-            </div>
-          </div>
-          <div class="content-note" id="read-content-note" hidden></div>
-          <div class="read-tags" id="read-tags"></div>
-          <div class="read-actions-top">
-            <button type="button" class="btn-icon" id="save-journal-btn" title="Preserve this Work" aria-label="Preserve this Work">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M5 3.5h10a1 1 0 0 1 1 1V17l-6-3.5L4 17V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="share-journal-btn" title="Circulate" aria-label="Circulate this Work">
-              <svg viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M6.7 9 13.3 6M6.7 11l6.6 3" stroke="currentColor" stroke-width="1.5"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="post-studio-instagram-btn" title="Create an Instagram post" aria-label="Create an Instagram post from this Work">
-              <svg viewBox="0 0 20 20" fill="none"><rect x="2.5" y="2.5" width="15" height="15" rx="4.5" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="3.6" stroke="currentColor" stroke-width="1.5"/><circle cx="14.3" cy="5.7" r="1" fill="currentColor"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="post-studio-facebook-btn" title="Create a Facebook post" aria-label="Create a Facebook post from this Work">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M12.5 6.2h-1.6c-.5 0-1 .4-1 1v1.6h2.5l-.3 2.3h-2.2V17H7.5v-6H5.8V8.8h1.7V7c0-1.9 1.2-3.3 3-3.3h2v2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="report-journal-btn" title="Report" aria-label="Report this Work">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M5 3v14M5 3h9l-2 3 2 3H5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="read-body" id="read-body"></div>
-
-        <div class="read-engage">
-          <button type="button" class="like-btn" id="like-btn">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z" stroke="currentColor" stroke-width="1.6"/></svg>
-            <span id="like-count">0</span> Appreciate
-          </button>
-          <span style="color:var(--ink-faint);font-size:.86rem;font-family:var(--font-mono);"><span id="comment-count-display">0</span> Impressions</span>
-        </div>
-
-        <div class="comments-section" id="comments-section">
-          <h2>Impressions</h2>
-          <div id="comment-form-wrap"></div>
-          <div id="comments-list"></div>
-          <div style="text-align:center;margin-top:10px;">
-            <button type="button" class="btn btn-secondary btn-sm" id="load-more-comments-btn" hidden>Show earlier Impressions</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-</main>
+  </main>
 
 <footer class="site-footer">
   <nav class="site-footer-links" aria-label="Legal and support links">
@@ -1440,13 +1375,6 @@ const CATEGORIES = [
   { id:6, slug:'articles',  name:'Articles',  color:'#3D5A73', soft:'#D8E6F0', desc:'Longer-form, explanatory writing — explained simply, still worth publishing beautifully.',
     icon:'<path d="M6.5 4h7l4 4v13h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/><path d="M9 11.5h6M9 14.3h6M9 17h3.8" stroke-linecap="round"/>' }
 ];
-const ALL_CATEGORY = { id:0, slug:'all', name:'All', color:'#5B6B4A', soft:'#DCE5D0',
-  icon:'<rect x="4.3" y="4.3" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="13.1" y="4.3" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="4.3" y="13.1" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="13.1" y="13.1" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/>' };
-const WALL_BADGE = { name:'The Wall', color:'#4A6B3D', soft:'#DCE5D0',
-  icon:'<rect x="4" y="12.5" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="10.2" y="12.5" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="16.4" y="12.5" width="3.6" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="4" y="16" width="3.6" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="8.3" y="16" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="14.5" y="16" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="4" y="19.5" width="5.5" height="1.2" fill="currentColor" stroke="none"/><rect x="10.2" y="19.5" width="5.5" height="1.2" fill="currentColor" stroke="none"/><path d="M12 12c0-1.8.5-3 .1-4.6M12 7.4c-1.3 0-2.2-.9-2.3-2.1M12 7.4c1-.2 1.8-1.1 1.8-2.3" stroke-linecap="round" fill="none"/>' };
-const UPDATES_BADGE = { name:'Updates', color:'#A35A2E', soft:'#F5DCC7',
-  icon:'<path d="M12 4.3c-2.4 0-4.1 1.9-4.1 4.4v2.8L6.4 14.6h11.2L16.1 11.5V8.7c0-2.5-1.7-4.4-4.1-4.4Z" stroke-linejoin="round"/><path d="M10.3 17.3a1.8 1.8 0 0 0 3.4 0" stroke-linecap="round"/><path d="M5 8.3c-.8.8-1.3 1.9-1.3 3.1M19 8.3c.8.8 1.3 1.9 1.3 3.1" stroke-linecap="round"/>' };
-const CREATIVE_IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
 function categoryBySlug(slug){ return CATEGORIES.find(function(c){ return c.slug === slug; }) || CATEGORIES[0]; }
 function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name === name; }) || CATEGORIES[0]; }
 function categoryById(id){ return CATEGORIES.find(function(c){ return c.id === id; }) || CATEGORIES[0]; }
@@ -1473,10 +1401,6 @@ const MOCK_AUTHORS = {
   'a7':{ id:'a7', display_name:'Zoya Khan',   username:'zoya',   creative_identity:'Shayar' },
   'demo-user-1': DEMO_USER
 };
-function mockAuthorByUsername(username){
-  return Object.keys(MOCK_AUTHORS).map(function(k){ return MOCK_AUTHORS[k]; })
-    .find(function(a){ return a.username === username; });
-}
 
 const SAMPLE_BODY = "Some mornings the library feels less like a building and more like a held breath. Rows of amber lamps, the soft click of laptop keys, a radiator ticking somewhere behind the reference shelves.\n\nI used to think studying at 2am meant something had gone wrong — that I'd failed to plan, failed to pace myself, failed at the very ordinary task of managing a week. It took a while to notice that the failure story wasn't the only one available.\n\n## What the quiet actually gave me\n\nThere is a particular kind of focus that only shows up after midnight, when the building empties out and the group-project noise disappears. Nobody is performing productivity. Nobody is comparing highlighter colours. It's just you, the material, and the strange comfort of a nearly-empty room.\n\n> The work doesn't get easier at 2am. But the noise around the work gets a lot quieter.\n\n- The vending machine hums like a small appliance choir.\n- Every chair squeak becomes a landmark you start to recognise.\n- Somewhere around page forty of the reading, you stop performing and start actually reading.\n\n## A short list of things I no longer believe\n\n1. That there's one correct number of hours to study.\n2. That tiredness always means you're doing it wrong.\n3. That the people who leave at 9pm are somehow better at this than you are.\n\n---\n\nI'm not recommending 2am as a lifestyle. I'm only saying that if you've ever felt guilty about the strange hours that actually work for your brain, you're allowed to let that guilt go. Find your library. Or your kitchen table. Or your dorm room floor. The room matters less than the honesty of showing up in it.";
 
@@ -1508,23 +1432,9 @@ const MOCK_WALL_POSTS = [
 function daysAgo(n){ return new Date(Date.now() - n*86400000).toISOString(); }
 function hoursAgo(n){ return new Date(Date.now() - n*3600000).toISOString(); }
 
-/* Mock comments, keyed by journal id. Replies live in the same flat
-   list with a parent_id pointing at their root comment. */
-let MOCK_COMMENTS = {
-  'j1': [
-    { id:'c1', journal_id:'j1', parent_id:null, author_id:'a2', body:'This is exactly how I feel about the campus library after midnight. Something about the quiet actually helps me focus.', created_at:hoursAgo(30), likes:14 },
-    { id:'c2', journal_id:'j1', parent_id:'c1', author_id:'a4', body:'Same — nobody is watching, so there is no performance left, just the work.', created_at:hoursAgo(28), likes:6 },
-    { id:'c3', journal_id:'j1', parent_id:null, author_id:'demo-user-1', body:'I used to feel guilty about this too. Reading this helped, thank you for writing it.', created_at:hoursAgo(10), likes:3 },
-    { id:'c4', journal_id:'j1', parent_id:null, author_id:'a5', body:'The vending machine line made me laugh out loud — so accurate.', created_at:hoursAgo(6), likes:9 }
-  ],
-  'j2': [
-    { id:'c5', journal_id:'j2', parent_id:null, author_id:'a1', body:'Spacing repetition changed how I study completely. Wish I had read this in my first year.', created_at:hoursAgo(50), likes:11 }
-  ]
-};
-
 /* ------------------------------------------------------------------
    DEMO PERSISTENCE
-   DEMO_MODE content (MOCK_JOURNALS, MOCK_COMMENTS, likes, bookmarks)
+   DEMO_MODE content (MOCK_JOURNALS, likes, bookmarks)
    otherwise lives only in memory, so a page refresh silently threw
    away anything you'd just published or commented on. This mirrors
    that state into localStorage so it survives reloads within the
@@ -1533,21 +1443,6 @@ let MOCK_COMMENTS = {
    ------------------------------------------------------------------ */
 const DEMO_DB_VERSION = 2;
 const DEMO_DB_KEY = 'aspinora_demo_db_v' + DEMO_DB_VERSION;
-function persistDemoDB(){
-  if (!DEMO_MODE) return;
-  try{
-    localStorage.setItem(DEMO_DB_KEY, JSON.stringify({
-      journals: MOCK_JOURNALS,
-      comments: MOCK_COMMENTS,
-      drafts: MOCK_DRAFTS,
-      wallPosts: MOCK_WALL_POSTS,
-      likedIds: Array.from(state.likedJournalIds),
-      bookmarkedIds: Array.from(state.bookmarkedIds),
-      flaggedJournalIds: Array.from(state.flaggedJournalIds),
-      flaggedCommentIds: Array.from(state.flaggedCommentIds)
-    }));
-  }catch(e){ /* storage full or unavailable — fail silently, demo still works this session */ }
-}
 function loadDemoDB(){
   if (!DEMO_MODE) return;
   try{
@@ -1555,8 +1450,6 @@ function loadDemoDB(){
     if (!raw) return;
     const db = JSON.parse(raw);
     if (Array.isArray(db.journals)) MOCK_JOURNALS.splice(0, MOCK_JOURNALS.length, ...db.journals);
-    if (db.comments) MOCK_COMMENTS = db.comments;
-    if (Array.isArray(db.drafts)) MOCK_DRAFTS = db.drafts;
     if (Array.isArray(db.wallPosts)) MOCK_WALL_POSTS.splice(0, MOCK_WALL_POSTS.length, ...db.wallPosts);
     if (Array.isArray(db.likedIds)) state.likedJournalIds = new Set(db.likedIds);
     if (Array.isArray(db.bookmarkedIds)) state.bookmarkedIds = new Set(db.bookmarkedIds);
@@ -1564,23 +1457,10 @@ function loadDemoDB(){
     if (Array.isArray(db.flaggedCommentIds)) state.flaggedCommentIds = new Set(db.flaggedCommentIds);
   }catch(e){ /* corrupt/old data — just keep the fresh seed */ }
 }
-let nextCommentId = 6;
 
-let MOCK_NOTIFICATIONS = [
-  { id:'n1', type:'like_journal', actor_id:'a2', journal_id:'j1', comment_id:null, message:null, read_at:null, created_at:hoursAgo(2) },
-  { id:'n2', type:'comment_journal', actor_id:'a5', journal_id:'j1', comment_id:'c4', message:null, read_at:null, created_at:hoursAgo(6) },
-  { id:'n3', type:'reply_comment', actor_id:'a4', journal_id:'j1', comment_id:'c2', message:null, read_at:null, created_at:hoursAgo(28) },
-  { id:'n4', type:'journal_published', actor_id:null, journal_id:'j1', comment_id:null, message:'Your journal "The Library at 2AM" is now live.', read_at:hoursAgo(140), created_at:hoursAgo(144) }
-];
 
 /* Demo drafts belonging to the demo user, so My Drafts isn't empty
    on first load. */
-let MOCK_DRAFTS = [
-  { id:'d1', author_id:'demo-user-1', category:'Thoughts', title:'On choosing a major nobody understands', subtitle:'', body:'I get the same three questions every time I mention my major, and I still don\u2019t have a tidy answer for any of them.\n\nMaybe the honest version is that I chose it because it was the only class that made me lose track of time.', tags:['career'], visibility:'public', allow_comments:true, content_note:'', status:'draft', updated_at:hoursAgo(20) },
-  { id:'d2', author_id:'demo-user-1', category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'', status:'draft', updated_at:hoursAgo(80) }
-];
-let nextDraftId = 3;
-
 /* ------------------------------------------------------------------
    5. APPLICATION STATE
    ------------------------------------------------------------------ */
@@ -1669,17 +1549,6 @@ function authorUsername(authorId){
   return '';
 }
 
-function formatRelativeTime(iso){
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const diffSec = Math.max(1, Math.round((now - then) / 1000));
-  const mins = Math.round(diffSec/60), hrs = Math.round(diffSec/3600), days = Math.round(diffSec/86400);
-  if (diffSec < 60) return 'just now';
-  if (mins < 60) return mins + (mins===1?' minute ago':' minutes ago');
-  if (hrs < 24) return hrs + (hrs===1?' hour ago':' hours ago');
-  if (days < 7) return days + (days===1?' day ago':' days ago');
-  return new Date(iso).toLocaleDateString(undefined,{ month:'short', day:'numeric', year:'numeric' });
-}
 function formatDate(iso){
   return new Date(iso).toLocaleDateString(undefined,{ month:'short', day:'numeric', year:'numeric' });
 }
@@ -1704,69 +1573,6 @@ function escapeHtml(str){
    ever execute — only the specific Markdown patterns below are turned
    back into tags. This intentionally supports only the formatting the
    writing toolbar can insert. */
-function markdownToHtml(md){
-  if (!md) return '';
-  let src = escapeHtml(md).replace(/\r\n/g, '\n');
-  const lines = src.split('\n');
-  let html = '';
-  let inList = null; // 'ul' | 'ol' | null
-  let paragraph = [];
-
-  function flushParagraph(){
-    if (paragraph.length){
-      html += '<p>' + paragraph.map(inlineMd).join('<br>') + '</p>';
-      paragraph = [];
-    }
-  }
-  function closeList(){
-    if (inList){ html += '</' + inList + '>'; inList = null; }
-  }
-  function inlineMd(text){
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/(^|[^*])\*(?!\s)(.+?)(?!\s)\*(?!\*)/g, '$1<em>$2</em>');
-    text = text.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    return text;
-  }
-
-  lines.forEach(function(line){
-    const trimmed = line.trim();
-    if (trimmed === ''){ flushParagraph(); closeList(); return; }
-    if (/^---+$/.test(trimmed)){ flushParagraph(); closeList(); html += '<hr>'; return; }
-    let m;
-    if ((m = trimmed.match(/^(#{1,3})\s+(.*)$/))){
-      flushParagraph(); closeList();
-      const level = m[1].length === 1 ? 'h2' : 'h3';
-      html += '<' + level + '>' + inlineMd(m[2]) + '</' + level + '>';
-      return;
-    }
-    if ((m = trimmed.match(/^>\s?(.*)$/))){
-      flushParagraph(); closeList();
-      html += '<blockquote>' + inlineMd(m[1]) + '</blockquote>';
-      return;
-    }
-    if ((m = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/))){
-      flushParagraph(); closeList();
-      html += '<figure class="body-img-16x9"><img src="' + m[2] + '" alt="' + m[1] + '" loading="lazy" decoding="async"></figure>';
-      return;
-    }
-    if ((m = trimmed.match(/^[-*]\s+(.*)$/))){
-      flushParagraph();
-      if (inList !== 'ul'){ closeList(); html += '<ul>'; inList = 'ul'; }
-      html += '<li>' + inlineMd(m[1]) + '</li>';
-      return;
-    }
-    if ((m = trimmed.match(/^\d+\.\s+(.*)$/))){
-      flushParagraph();
-      if (inList !== 'ol'){ closeList(); html += '<ol>'; inList = 'ol'; }
-      html += '<li>' + inlineMd(m[1]) + '</li>';
-      return;
-    }
-    closeList();
-    paragraph.push(trimmed);
-  });
-  flushParagraph(); closeList();
-  return html;
-}
 
 function wordCount(text){
   const trimmed = (text || '').trim();
@@ -1792,19 +1598,8 @@ function coverHTML(categoryName, coverUrl){
   '</div>';
 }
 /* #RRGGBB -> rgba(...) string, used for the page/header category tint. */
-function hexToRgba(hex, alpha){
-  const h = (hex || '').replace('#','');
-  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
-  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
-}
 /* Nudges a hex colour toward white by `amount` (0-1) — keeps the
    open-Work page tint soft rather than the full-strength category pastel. */
-function lightenHex(hex, amount){
-  const h = (hex || '').replace('#','');
-  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
-  const mix = function(c){ return Math.round(c + (255 - c) * amount); };
-  return '#' + [mix(r), mix(g), mix(b)].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
-}
 
 /* ---------- toasts ---------- */
 function showToast(message){
@@ -2529,51 +2324,7 @@ async function fetchCategoryCounts(){
   return counts;
 }
 
-function normalizeWallPostRow(row){
-  if (row.profiles){
-    AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name || 'Aspinora Member', username: row.profiles.username || '', avatar_url: row.profiles.avatar_url || '' };
-  }
-  return {
-    id: row.id,
-    category: categoryById(row.category_id).name,
-    body: row.body,
-    author_id: row.author_id,
-    published_at: row.published_at,
-    likes: row.likes || 0
-  };
-}
-async function fetchWallPosts(){
-  if (DEMO_MODE) return MOCK_WALL_POSTS.slice(0, 8);
-  const { data, error } = await supabaseClient.from('wall_posts')
-    .select('id, body, category_id, author_id, published_at, likes, profiles!wall_posts_author_id_fkey(display_name, username, avatar_url)')
-    .eq('status','published').order('published_at',{ ascending:false }).limit(8);
-  if (error) throw error;
-  return data.map(normalizeWallPostRow);
-}
-const WALL_WORD_LIMIT = 40;
-function wordCountOf(text){
-  const trimmed = (text || '').trim();
-  return trimmed ? trimmed.split(/\s+/).length : 0;
-}
-async function postToWall(body, categorySlug){
-  const cat = categoryBySlug(categorySlug);
-  if (DEMO_MODE){
-    const post = { id:'w' + Date.now(), category:cat.name, body:body, author_id: state.currentUser.id, published_at:new Date().toISOString(), likes:0 };
-    MOCK_WALL_POSTS.unshift(post);
-    persistDemoDB();
-    return post;
-  }
-  const { data, error } = await supabaseClient.from('wall_posts')
-    .insert({ body: body, category_id: cat.id, author_id: state.currentUser.id })
-    .select('id, body, category_id, author_id, published_at, likes').single();
-  if (error) throw error;
-  AUTHOR_CACHE[state.currentUser.id] = { id: state.currentUser.id, display_name: state.currentUser.display_name, username: state.currentUser.username, avatar_url: state.currentUser.avatar_url || '' };
-  return normalizeWallPostRow(data);
-}
 
-function findJournal(idOrSlug){
-  return MOCK_JOURNALS.find(function(j){ return j.id === idOrSlug || j.slug === idOrSlug; });
-}
 
 /* The single mutable "currently open journal" object, kept in sync in
    BOTH modes. In demo mode this points at the same object living
@@ -2583,214 +2334,27 @@ function findJournal(idOrSlug){
    instead of calling findJournal() directly, which only ever knows
    about mock data. */
 let JOURNAL_CACHE = {};
-function getCachedJournal(id){
-  return JOURNAL_CACHE[id] || (DEMO_MODE ? findJournal(id) : null);
-}
 
 /* Live "preview before publishing" journal, used by the Preview button
    in the write view — works the same way in both modes without ever
    touching MOCK_JOURNALS. */
-let PREVIEW_JOURNAL = null;
 
-async function fetchJournal(idOrSlug){
-  if (idOrSlug === '__preview__') return PREVIEW_JOURNAL;
-  if (DEMO_MODE){
-    const j = findJournal(idOrSlug);
-    if (!j) return null;
-    const isOwner = !!(state.currentUser && state.currentUser.id === j.author_id);
-    // Private: only the author can open it. Unlisted: anyone with the
-    // link can, but it's excluded from feeds/Discover/Portfolio
-    // elsewhere. Drafts are never reachable through the read view.
-    if (j.status !== 'published' && !isOwner) return null;
-    if (j.visibility === 'private' && !isOwner) return null;
-    JOURNAL_CACHE[j.id] = j;
-    return j;
-  }
-  // Routed through a SECURITY DEFINER RPC (get_journal_for_read) instead
-  // of a direct table select — same owner exception as
-  // userpostlogin.html's fetchJournal, kept in sync. See that file's
-  // longer comment: Phase 4 audit DB-5(ii) narrowed the general public
-  // RLS policy on journals to 'public' only (unlisted Works were
-  // enumerable via a plain unfiltered query before this), so an
-  // unlisted or the caller's own private Work now has to go through
-  // this RPC instead — it does the same check server-side but only
-  // returns the one row actually asked for.
-  const { data, error } = await supabaseClient.rpc('get_journal_for_read', { p_id_or_slug: idOrSlug });
-  if (error) throw error;
-  if (!data) throw Object.assign(new Error('Work not found'), { code: 'PGRST116' });
-  if (error) throw error;
-  const j = normalizeJournalRow(data);
-  JOURNAL_CACHE[j.id] = j;
-  return j;
-}
 
 /* Full, flat list of visible comments (roots + replies) for a
    journal, cached per journal id. Single source of truth in BOTH
    modes: fetchRootComments/fetchReplies/toggleCommentLike/reply-count
    display all read from this same cache, so a comment posted or
    liked from one place is instantly reflected everywhere else. */
-let COMMENT_CACHE = {};
-async function loadCommentsForJournal(journalId){
-  if (DEMO_MODE){
-    COMMENT_CACHE[journalId] = MOCK_COMMENTS[journalId] || [];
-    return COMMENT_CACHE[journalId];
-  }
-  const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username, avatar_url)')
-    .eq('journal_id', journalId).eq('status', 'visible')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  data.forEach(function(row){
-    if (row.profiles){
-      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username, avatar_url: row.profiles.avatar_url || '' };
-    }
-  });
-  COMMENT_CACHE[journalId] = data;
-  return data;
-}
-async function fetchRootComments(journalId){
-  const all = await loadCommentsForJournal(journalId);
-  return all.filter(function(c){ return !c.parent_id; }).slice(0, 10);
-}
-async function fetchReplies(journalId, parentId){
-  const all = COMMENT_CACHE[journalId] || await loadCommentsForJournal(journalId);
-  return all.filter(function(c){ return c.parent_id === parentId; });
-}
-function friendlyWriteError(err, fallback){
-  const m = (err && err.message) ? String(err.message) : '';
-  if (/restriction is active|Publishing is temporarily paused/i.test(m)) return m;
-  return fallback;
-}
-async function postComment(journalId, body, parentId){
-  let c;
-  if (DEMO_MODE){
-    c = { id:'c' + (nextCommentId++), journal_id:journalId, parent_id: parentId || null, author_id: state.currentUser.id, body: body, created_at: new Date().toISOString(), likes:0 };
-    if (!MOCK_COMMENTS[journalId]) MOCK_COMMENTS[journalId] = [];
-    MOCK_COMMENTS[journalId].push(c);
-  } else {
-    const { data, error } = await supabaseClient.from('comments').insert({
-      journal_id: journalId, author_id: state.currentUser.id, body: body, parent_id: parentId || null, status:'visible'
-    }).select().single();
-    if (error) throw error;
-    c = data;
-  }
-  if (!COMMENT_CACHE[journalId]) COMMENT_CACHE[journalId] = [];
-  COMMENT_CACHE[journalId].push(c);
-  const j = getCachedJournal(journalId); if (j) j.comments++;
-  persistDemoDB();
-  return c;
-}
-async function deleteComment(journalId, commentId){
-  if (DEMO_MODE){
-    MOCK_COMMENTS[journalId] = (MOCK_COMMENTS[journalId]||[]).filter(function(c){ return c.id !== commentId && c.parent_id !== commentId; });
-  } else {
-    const { error } = await supabaseClient.from('comments').delete().eq('id', commentId).eq('author_id', state.currentUser.id);
-    if (error) throw error;
-  }
-  COMMENT_CACHE[journalId] = (COMMENT_CACHE[journalId]||[]).filter(function(c){ return c.id !== commentId && c.parent_id !== commentId; });
-  const j = getCachedJournal(journalId); if (j) j.comments = Math.max(0, j.comments - 1);
-  persistDemoDB();
-}
-async function editComment(journalId, commentId, newBody){
-  if (DEMO_MODE){
-    const c = (MOCK_COMMENTS[journalId]||[]).find(function(x){ return x.id === commentId; });
-    if (c) c.body = newBody;
-    persistDemoDB();
-  } else {
-    const { error } = await supabaseClient.from('comments').update({ body:newBody, updated_at:new Date().toISOString() }).eq('id', commentId).eq('author_id', state.currentUser.id);
-    if (error) throw error;
-  }
-  const cached = (COMMENT_CACHE[journalId]||[]).find(function(x){ return x.id === commentId; });
-  if (cached) cached.body = newBody;
-}
 
 /* Map the app's internal draft/publish payload (category name, body)
    onto real `journals` columns (category_id, body_markdown). */
-function toSupabaseJournalRow(payload){
-  const cat = payload.category ? categoryByName(payload.category) : null;
-  return {
-    title: payload.title || '',
-    subtitle: payload.subtitle || null,
-    excerpt: payload.excerpt || payload.subtitle || (payload.body || '').slice(0,140),
-    body_markdown: payload.body || '',
-    category_id: cat ? cat.id : null,
-    script: payload.script || null,
-    tags: payload.tags || [],
-    visibility: payload.visibility || 'public',
-    allow_comments: payload.allow_comments !== false,
-    content_note: payload.content_note || null
-  };
-}
 /* Reverse of the above — turns a raw `journals` row back into the
    {category, body, ...} shape the write view's writeDraft uses. */
-function fromSupabaseJournalRow(row){
-  return {
-    id: row.id,
-    category: categoryById(row.category_id).name,
-    script: row.script || null,
-    title: row.title || '',
-    subtitle: row.subtitle || '',
-    body: row.body_markdown || '',
-    tags: row.tags || [],
-    visibility: row.visibility || 'public',
-    allow_comments: row.allow_comments !== false,
-    content_note: row.content_note || '',
-    updated_at: row.updated_at
-  };
-}
 
-async function fetchDrafts(){
-  if (DEMO_MODE){
-    return MOCK_DRAFTS.filter(function(d){ return d.author_id === state.currentUser.id; })
-      .sort(function(a,b){ return new Date(b.updated_at) - new Date(a.updated_at); }).slice(0,20);
-  }
-  const { data, error } = await supabaseClient.from('journals')
-    .select('*').eq('author_id', state.currentUser.id).eq('status','draft')
-    .order('updated_at',{ ascending:false }).limit(20);
-  if (error) throw error;
-  return data.map(function(row){
-    const d = fromSupabaseJournalRow(row);
-    d.author_id = row.author_id;
-    return d;
-  });
-}
-async function fetchPublished(){
-  if (DEMO_MODE){
-    return MOCK_JOURNALS.filter(function(j){ return j.author_id === state.currentUser.id && j.status === 'published'; });
-  }
-  const { data, error } = await supabaseClient.from('journals')
-    .select(JOURNAL_CARD_FIELDS)
-    .eq('author_id', state.currentUser.id).eq('status','published').order('published_at',{ ascending:false });
-  if (error) throw error;
-  return data.map(normalizeJournalRow);
-}
 
-async function fetchNotifications(){
-  if (DEMO_MODE) return MOCK_NOTIFICATIONS.slice(0,30).sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); });
-  const { data, error } = await supabaseClient.from('notifications')
-    .select('*').eq('recipient_id', state.currentUser.id).order('created_at',{ ascending:false }).limit(30);
-  if (error) throw error;
-  return data;
-}
-async function markAllNotificationsRead(){
-  if (DEMO_MODE){ MOCK_NOTIFICATIONS.forEach(function(n){ if (!n.read_at) n.read_at = new Date().toISOString(); }); return; }
-  const { error } = await supabaseClient.from('notifications').update({ read_at:new Date().toISOString() }).eq('recipient_id', state.currentUser.id).is('read_at', null);
-  if (error) throw error;
-}
 /* Marks a single notification read — used when the person opens/views
    it individually, as opposed to the bulk "Mark all as read" action
    above. Safe to call on an already-read notification (no-op). */
-async function markNotificationRead(notifId){
-  if (!notifId) return;
-  if (DEMO_MODE){
-    const n = MOCK_NOTIFICATIONS.find(function(x){ return x.id === notifId; });
-    if (n && !n.read_at) n.read_at = new Date().toISOString();
-    return;
-  }
-  const { error } = await supabaseClient.from('notifications').update({ read_at:new Date().toISOString() })
-    .eq('id', notifId).eq('recipient_id', state.currentUser.id).is('read_at', null);
-  if (error) console.warn('Could not mark notification read:', error);
-}
 /* fetchNotifications() only returns the bare notifications rows (no
    profile join), so the actor's name/username previously only showed
    up if some other query (a journal or comment list) had already
@@ -2798,28 +2362,6 @@ async function markNotificationRead(notifId){
    on the "Aspinora Member" fallback forever, not just "slowly". This
    fetches exactly the missing profiles in one batched query so every
    notification actually resolves a name. */
-async function ensureAuthorsCached(authorIds){
-  if (DEMO_MODE || !supabaseClient) return;
-  const missing = Array.from(new Set((authorIds||[]).filter(Boolean))).filter(function(id){ return !AUTHOR_CACHE[id]; });
-  if (!missing.length) return;
-  try{
-    const { data, error } = await supabaseClient.from('profiles').select('id, display_name, username, avatar_url').in('id', missing);
-    if (error || !data) return;
-    data.forEach(function(p){
-      AUTHOR_CACHE[p.id] = { id: p.id, display_name: p.display_name || 'Aspinora Member', username: p.username || '', avatar_url: p.avatar_url || '' };
-    });
-  }catch(e){ console.warn('Could not load notification authors:', e); }
-}
-async function unreadNotifCount(){
-  if (DEMO_MODE) return MOCK_NOTIFICATIONS.filter(function(n){ return !n.read_at; }).length;
-  if (!state.currentUser) return 0;
-  const { count, error } = await supabaseClient.from('notifications')
-    .select('id', { count:'exact', head:true })
-    .eq('recipient_id', state.currentUser.id)
-    .is('read_at', null);
-  if (error) return 0;
-  return count || 0;
-}
 
 /* ------------------------------------------------------------------
    9. LIKES, BOOKMARKS, DRAFTS, PUBLISHING
@@ -2828,194 +2370,20 @@ async function unreadNotifCount(){
    explicit reads count for every entry, so this derives a stable
    placeholder from likes until a real count exists on the row. Once
    `j.reads` is set (by recordRead below), that's used instead. */
-function readsFor(j){ return (j.reads != null) ? j.reads : Math.round((j.likes||0) * 4.5) + 60; }
-function recordRead(j){
-  if (!DEMO_MODE || !j) return;
-  // A real backend should count reads server-side (e.g. an RPC call)
-  // so this can't be trivially inflated by refreshing; the localStorage
-  // "seen" set here just keeps the demo from re-counting the same
-  // browser opening the same Work over and over.
-  try{
-    const seenKey = 'aspinora_reads_seen';
-    const seen = new Set(JSON.parse(localStorage.getItem(seenKey) || '[]'));
-    if (seen.has(j.id)) return;
-    seen.add(j.id);
-    localStorage.setItem(seenKey, JSON.stringify(Array.from(seen)));
-    j.reads = readsFor(j) + 1;
-    persistDemoDB();
-  }catch(e){ /* localStorage unavailable — reads just won't tick up this session */ }
-}
-async function toggleJournalLike(journalId){
-  const j = getCachedJournal(journalId);
-  const already = state.likedJournalIds.has(journalId);
-  // optimistic UI update
-  if (already){ state.likedJournalIds.delete(journalId); if (j) j.likes--; }
-  else { state.likedJournalIds.add(journalId); if (j) j.likes++; }
-  if (DEMO_MODE){ persistDemoDB(); return; }
-  try{
-    // Supabase resolves a failed write ({error}) rather than throwing —
-    // an unchecked error here would silently leave the optimistic like
-    // showing with nothing actually saved server-side.
-    let error;
-    if (already){
-      ({ error } = await supabaseClient.from('journal_likes').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id));
-    } else {
-      ({ error } = await supabaseClient.from('journal_likes').insert({ journal_id: journalId, user_id: state.currentUser.id }));
-      // 👉 SUPABASE: creating the "someone appreciated your journal"
-      // notification is best done with a database trigger on insert,
-      // not from this frontend code.
-    }
-    if (error) throw error;
-  }catch(err){
-    // roll back optimistic update on failure
-    if (already){ state.likedJournalIds.add(journalId); if (j) j.likes++; } else { state.likedJournalIds.delete(journalId); if (j) j.likes--; }
-    showToast("Couldn't update that — please try again.");
-  }
-}
 
-async function toggleBookmark(journalId){
-  const already = state.bookmarkedIds.has(journalId);
-  if (already) state.bookmarkedIds.delete(journalId); else state.bookmarkedIds.add(journalId);
-  if (DEMO_MODE){ persistDemoDB(); return; }
-  try{
-    let error;
-    if (already) ({ error } = await supabaseClient.from('bookmarks').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id));
-    else ({ error } = await supabaseClient.from('bookmarks').insert({ journal_id: journalId, user_id: state.currentUser.id }));
-    if (error) throw error;
-  }catch(err){
-    if (already) state.bookmarkedIds.add(journalId); else state.bookmarkedIds.delete(journalId);
-    showToast("Couldn't update that — please try again.");
-  }
-}
 
 /* Flagging is a simple client-side toggle for now — tap to flag, tap
    again to remove the flag. A real backend should additionally record
    each flag as a row in a `reports` table (reporter_id + target_id +
    created_at) for moderators to review; see the RLS notes at the
    bottom of this file. Returns the new flagged state. */
-function toggleFlagJournal(journalId){
-  const already = state.flaggedJournalIds.has(journalId);
-  if (already) state.flaggedJournalIds.delete(journalId); else state.flaggedJournalIds.add(journalId);
-  if (DEMO_MODE) persistDemoDB();
-  return !already;
-}
-function toggleFlagComment(commentId){
-  const already = state.flaggedCommentIds.has(commentId);
-  if (already) state.flaggedCommentIds.delete(commentId); else state.flaggedCommentIds.add(commentId);
-  if (DEMO_MODE) persistDemoDB();
-  return !already;
-}
 
-async function toggleCommentLike(journalId, commentId){
-  const key = commentId;
-  const already = state.likedCommentIds.has(key);
-  const list = COMMENT_CACHE[journalId] || [];
-  const c = list.find(function(x){ return x.id === commentId; });
-  if (already){ state.likedCommentIds.delete(key); if (c) c.likes--; }
-  else { state.likedCommentIds.add(key); if (c) c.likes++; }
-  if (DEMO_MODE) return;
-  try{
-    let error;
-    if (already) ({ error } = await supabaseClient.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', state.currentUser.id));
-    else ({ error } = await supabaseClient.from('comment_likes').insert({ comment_id: commentId, user_id: state.currentUser.id }));
-    if (error) throw error;
-  }catch(err){
-    // roll back optimistic update on failure (this function previously
-    // never checked for an error, so a failed write left a like showing
-    // that was never actually saved, and never rolled back either)
-    if (already){ state.likedCommentIds.add(key); if (c) c.likes++; } else { state.likedCommentIds.delete(key); if (c) c.likes--; }
-    showToast("Couldn't update that — please try again.");
-  }
-}
-
-/* ---------- drafts ---------- */
-function currentDraft(){
-  return MOCK_DRAFTS.find(function(d){ return d.id === state.currentDraftId; });
-}
-function draftHasContent(d){
-  return (d.title && d.title.trim()) || (d.body && d.body.trim().length > 0);
-}
-async function persistDraft(draftPayload, showSavingState){
-  if (showSavingState) setSaveStatus('saving');
-  if (DEMO_MODE){
-    await new Promise(function(r){ setTimeout(r, 250); }); // simulate network latency
-    let d = currentDraft();
-    if (!d){
-      // Do not create a database row until there is meaningful content.
-      if (!draftHasContent(draftPayload)) { setSaveStatus('unsaved'); return null; }
-      if (MOCK_DRAFTS.filter(function(x){return x.author_id===state.currentUser.id;}).length >= 20){
-        showToast('You have reached the 20-draft limit. Delete an old draft first.');
-        setSaveStatus('unsaved');
-        return null;
-      }
-      d = Object.assign({ id:'d'+(nextDraftId++), author_id:state.currentUser.id, status:'draft' }, draftPayload, { updated_at:new Date().toISOString() });
-      MOCK_DRAFTS.push(d);
-      state.currentDraftId = d.id;
-    } else {
-      Object.assign(d, draftPayload, { updated_at:new Date().toISOString() });
-    }
-    setSaveStatus('saved');
-    persistDemoDB();
-    return d;
-  }
-  // 👉 SUPABASE: upsert the draft journal row for this user.
-  try{
-    const row = Object.assign({ author_id: state.currentUser.id, status:'draft' }, toSupabaseJournalRow(draftPayload));
-    let result;
-    if (state.currentDraftId) result = await supabaseClient.from('journals').update(row).eq('id', state.currentDraftId).select().single();
-    else result = await supabaseClient.from('journals').insert(row).select().single();
-    if (result.error) throw result.error;
-    state.currentDraftId = result.data.id;
-    setSaveStatus('saved');
-    return result.data;
-  }catch(err){
-    setSaveStatus('unsaved');
-    showToast(friendlyWriteError(err, "Couldn't save your draft — check your connection."));
-    return null;
-  }
-}
-async function deleteDraft(draftId){
-  if (DEMO_MODE){ MOCK_DRAFTS = MOCK_DRAFTS.filter(function(d){ return d.id !== draftId; }); persistDemoDB(); }
-  else { await supabaseClient.from('journals').delete().eq('id', draftId).eq('author_id', state.currentUser.id); }
-  localStorage.removeItem('aspinora_draft_' + draftId);
-}
-function slugify(title){
-  return (title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') + '-' + Math.floor(Math.random()*900+100);
-}
-async function publishJournal(payload){
-  if (DEMO_MODE){
-    let d = currentDraft();
-    const words = wordCount(payload.body);
-    const journal = Object.assign({
-      id: d ? d.id : 'j'+(Date.now()),
-      slug: slugify(payload.title),
-      author_id: state.currentUser.id, status:'published', likes:0, comments:0,
-      published_at:new Date().toISOString(), reading_time: readingTimeMinutes(words), featured:false
-    }, payload, { excerpt: payload.subtitle || (payload.body.slice(0,140) + '…') });
-    if (d) MOCK_DRAFTS = MOCK_DRAFTS.filter(function(x){ return x.id !== d.id; });
-    MOCK_JOURNALS.unshift(journal);
-    localStorage.removeItem('aspinora_draft_' + (d ? d.id : 'new'));
-    persistDemoDB();
-    return journal;
-  }
-  const row = Object.assign(
-    { author_id: state.currentUser.id, status:'published', published_at:new Date().toISOString(), slug: slugify(payload.title) },
-    toSupabaseJournalRow(payload)
-  );
-  let result;
-  if (state.currentDraftId) result = await supabaseClient.from('journals').update(row).eq('id', state.currentDraftId).select().single();
-  else result = await supabaseClient.from('journals').insert(row).select().single();
-  if (result.error) throw result.error;
-  return normalizeJournalRow(result.data);
-}
 
 /* ------------------------------------------------------------------
    10. NAVIGATION
    ------------------------------------------------------------------ */
-/* Simple views map straight onto a fixed path; 'read' and 'portfolio'
-   build their path once the actual journal/author is known (see
-   renderReadView and renderPortfolioView), since they need data that
-   isn't available synchronously here. */
+/* Simple views map straight onto a fixed path. Works and portfolios open on
+   their own pages (reader-demo.html, portfolio.html), so they have no path here. */
 const VIEW_PATHS = { home:'/', explore:'/', drafts:'/drafts', published:'/published', saved:'/saved', notifications:'/notifications', wall:'/wall' };
 function setPath(path, replace){
   if (!path || window.location.pathname === path) return;
@@ -3049,14 +2417,8 @@ function navigateTo(view, params){
   if (targetEl) targetEl.classList.add('active');
   qsa('[data-nav]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-nav') === view); });
   window.scrollTo({ top:0, behavior:'auto' });
-  document.body.classList.toggle('is-reading', view === 'read');
-  if (view !== 'read'){
-    document.body.style.removeProperty('--page-tint-bg');
-    document.body.style.removeProperty('--page-tint-nav');
-  }
 
   if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
-  if (view === 'read') renderReadView(params.journalId, replace);
   if (view === 'portfolio'){ window.location.href = '/portfolio.html?u=' + encodeURIComponent(params.username || ''); }
   if (view === 'home' || view === 'explore') renderHomeStatic();
   if (view === 'explore'){
@@ -3142,50 +2504,10 @@ async function renderLatestFeed(){
   }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load Works right now.</p>'; }
 }
 
-function wallNoteHTML(w){
-  const cat = categoryByName(w.category);
-  return '<div class="wall-note">' +
-    '<span class="wn-tag" style="color:' + cat.color + '">' + w.category + '</span>' +
-    '<p>' + escapeHtml(w.body) + '</p>' +
-    '<div class="wn-meta"><span class="wn-meta-left">' + avatarHTML(w.author_id, authorName(w.author_id)) + escapeHtml(authorName(w.author_id)) + '</span>' +
-    '<span>♥ ' + w.likes + ' · ' + formatRelativeTime(w.published_at) + '</span></div>' +
-  '</div>';
-}
-async function renderWallView(){
-  const grid = qs('#wall-grid');
-  try{
-    const rows = await fetchWallPosts();
-    grid.innerHTML = rows.map(wallNoteHTML).join('');
-  }catch(e){ grid.innerHTML = ''; }
-}
 
 /* Member (logged-in) home shares the same categories, but presents
    them as a horizontally-scrollable icon row instead of the public
    chip row, and drives the page title instead of a static heading. */
-const CREATE_PROMPTS = {
-  all: 'Write your own Journal…',
-  journals: 'Write your own Journal…',
-  stories: 'Write your own Story…',
-  poetry: 'Write your own Poem…',
-  shayari: 'Write your own Shayari…',
-  thoughts: 'Share a thought…',
-  articles: 'Write your own Article…'
-};
-function updateCreateBarPrompt(){
-  const slug = state.activeFilter || 'all';
-  qs('#mh-create-text').textContent = CREATE_PROMPTS[slug] || CREATE_PROMPTS.all;
-}
-function renderMemberCategoryRow(){
-  const row = qs('#mh-category-row');
-  const all = [ALL_CATEGORY].concat(CATEGORIES);
-  row.innerHTML = all.map(function(c){
-    return '<button type="button" class="mh-cat-chip' + (state.activeFilter===c.slug?' is-active':'') + '" data-filter-chip="' + c.slug + '">' +
-      categoryBadgeHTML(c, 46) + '<span>' + c.name + '</span></button>';
-  }).join('');
-  qs('#mh-title').textContent = state.activeFilter && state.activeFilter !== 'all' ? categoryBySlug(state.activeFilter).name : 'Journals';
-  qs('#mh-subtitle').hidden = !!(state.activeFilter && state.activeFilter !== 'all');
-  updateCreateBarPrompt();
-}
 
 /* Logged-in visitors are redirected to userpostlogin.html (see init()
    and routeFromPath()) before this ever renders, so this page only
@@ -3203,704 +2525,9 @@ function renderHomeStatic(){
 /* ------------------------------------------------------------------
    12. READING VIEW + COMMENTS
    ------------------------------------------------------------------ */
-async function renderReadView(journalId, replace){
-  state.currentJournalId = journalId;
-  state.visibleRootComments = 10;
-  const j = await fetchJournal(journalId);
-  if (!j){ navigateTo('home'); return; }
 
-  // Reflect the clean, shareable URL for this Work once we actually
-  // know it (never blocks the reading view over a URL nicety).
-  const authorRow = MOCK_AUTHORS[j.author_id];
-  if (DEMO_MODE && authorRow && authorRow.username && j.slug){
-    setPath('/' + authorRow.username + '/' + j.slug, !!replace);
-  }
-  recordRead(j);
 
-  qs('#read-cover').innerHTML = coverHTML(j.category, j.cover_url);
-  const readCat = categoryByName(j.category);
-  document.body.style.setProperty('--page-tint-bg', lightenHex(readCat.soft, 0.2));
-  document.body.style.setProperty('--page-tint-nav', hexToRgba(readCat.soft, .85));
-  qs('#read-title').textContent = j.title;
-  const sub = qs('#read-subtitle');
-  if (j.subtitle){ sub.textContent = j.subtitle; sub.hidden = false; } else { sub.hidden = true; }
-  qs('#read-avatar').outerHTML = avatarHTML(j.author_id, authorName(j.author_id)).replace('<span class="avatar"','<span class="avatar" id="read-avatar"');
-  qs('#read-author').textContent = authorName(j.author_id);
-  qs('#read-date').textContent = formatDate(j.published_at);
-  qs('#read-time').textContent = (j.reading_time || readingTimeMinutes(wordCount(j.body))) + ' min read';
 
-  const noteEl = qs('#read-content-note');
-  if (j.content_note){
-    noteEl.hidden = false;
-    noteEl.innerHTML = '⚠ ' + (j.content_note === 'heavy' ? 'Heavy emotional topic' : 'Sensitive personal topic');
-  } else { noteEl.hidden = true; }
-
-  qs('#read-tags').innerHTML = (j.tags||[]).map(function(t){ return '<span class="read-tag">#' + escapeHtml(t) + '</span>'; }).join('');
-  const bodyEl = qs('#read-body');
-  bodyEl.innerHTML = JournalContent.render(j.body, markdownToHtml);
-  bodyEl.classList.toggle('is-shayari', j.category === 'Shayari');
-  if (j.script){ bodyEl.setAttribute('data-script', j.script); } else { bodyEl.removeAttribute('data-script'); }
-
-  const likeBtn = qs('#like-btn');
-  const liked = state.likedJournalIds.has(j.id);
-  likeBtn.classList.toggle('is-liked', liked);
-  qs('#like-count').textContent = j.likes;
-  likeBtn.onclick = function(){
-    requireAuth('Log in to appreciate this Work.', async function(){
-      await toggleJournalLike(j.id);
-      likeBtn.classList.toggle('is-liked');
-      qs('#like-count').textContent = getCachedJournal(j.id).likes;
-    });
-  };
-
-  const saveBtn = qs('#save-journal-btn');
-  saveBtn.classList.toggle('is-active', state.bookmarkedIds.has(j.id));
-  saveBtn.onclick = function(){
-    requireAuth('Log in to preserve this Work.', async function(){
-      await toggleBookmark(j.id);
-      saveBtn.classList.toggle('is-active');
-      showToast(state.bookmarkedIds.has(j.id) ? 'Preserved to your Archive.' : 'Removed from Archive.');
-    });
-  };
-
-  qs('#share-journal-btn').onclick = async function(){
-    const username = authorUsername(j.author_id);
-    const url = username && j.slug
-      ? window.location.origin + '/' + username + '/' + j.slug
-      : window.location.href.split('#')[0];
-    if (navigator.share){ try{ await navigator.share({ title:j.title, url:url }); }catch(e){} }
-    else{ await navigator.clipboard.writeText(url); showToast('Link copied to clipboard.'); }
-  };
-  const reportBtn = qs('#report-journal-btn');
-  reportBtn.classList.toggle('is-flagged', state.flaggedJournalIds.has(j.id));
-  reportBtn.onclick = function(){
-    requireAuth('Log in to report a Work.', function(){
-      const flagged = toggleFlagJournal(j.id);
-      reportBtn.classList.toggle('is-flagged', flagged);
-      showToast(flagged ? 'Flagged — our moderators will take a look.' : 'Flag removed.');
-    });
-  };
-
-  qs('#comment-count-display').textContent = j.comments;
-  await renderComments(j);
-}
-
-function commentActionsHTML(journalId, c, isReply){
-  const isOwn = state.currentUser && c.author_id === state.currentUser.id;
-  const liked = state.likedCommentIds.has(c.id);
-  return '<div class="comment-actions">' +
-    '<button type="button" class="comment-action-btn' + (liked?' is-liked':'') + '" data-like-comment="' + c.id + '" data-like-journal="' + journalId + '">' +
-      '<svg viewBox="0 0 20 20" fill="' + (liked?'currentColor':'none') + '"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z" stroke="currentColor" stroke-width="1.5"/></svg> ' + c.likes +
-    '</button>' +
-    (isReply ? '' : '<button type="button" class="comment-action-btn" data-reply-to="' + c.id + '" data-reply-name="' + escapeHtml(authorName(c.author_id)) + '">Response</button>') +
-    (isOwn ? '<button type="button" class="comment-action-btn" data-edit-comment="' + c.id + '">Edit</button>' : '') +
-    (isOwn ? '<button type="button" class="comment-action-btn" data-delete-comment="' + c.id + '">Delete</button>' : '') +
-    (isOwn ? '' : '<button type="button" class="comment-action-btn' + (state.flaggedCommentIds.has(c.id)?' is-flagged':'') + '" data-report-comment="' + c.id + '">' + (state.flaggedCommentIds.has(c.id)?'Flagged':'Report') + '</button>') +
-  '</div>';
-}
-function commentItemHTML(journalId, c){
-  return '<div class="comment-item" data-comment-id="' + c.id + '">' + avatarHTML(c.author_id, authorName(c.author_id)) +
-    '<div class="comment-main">' +
-      '<div class="comment-head"><span class="name">' + escapeHtml(authorName(c.author_id)) + '</span><span class="time">' + formatRelativeTime(c.created_at) + '</span></div>' +
-      '<div class="comment-body-text" data-comment-body>' + escapeHtml(c.body) + '</div>' +
-      commentActionsHTML(journalId, c, false) +
-      '<button type="button" class="comment-action-btn" data-view-replies="' + c.id + '" data-journal="' + journalId + '" hidden></button>' +
-      '<div class="replies-wrap" id="replies-' + c.id + '" hidden></div>' +
-      '<div class="reply-compose" id="reply-compose-' + c.id + '" hidden></div>' +
-    '</div></div>';
-}
-function replyItemHTML(journalId, r){
-  return '<div class="reply-item" data-comment-id="' + r.id + '">' + avatarHTML(r.author_id, authorName(r.author_id), '') +
-    '<div class="comment-main">' +
-      '<div class="comment-head"><span class="name">' + escapeHtml(authorName(r.author_id)) + '</span><span class="time">' + formatRelativeTime(r.created_at) + '</span></div>' +
-      '<div class="comment-body-text" data-comment-body>' + escapeHtml(r.body) + '</div>' +
-      commentActionsHTML(journalId, r, true) +
-    '</div></div>';
-}
-
-async function renderComments(j){
-  const wrap = qs('#comment-form-wrap');
-  if (!j.allow_comments){
-    wrap.innerHTML = '<p class="guest-cta">The author has turned off Impressions for this Work.</p>';
-    qs('#comments-list').innerHTML = '';
-    return;
-  }
-  if (!state.currentUser){
-    wrap.innerHTML = '<div class="guest-cta">Log in to leave an Impression.<br><br>' +
-      '<button type="button" class="btn btn-primary btn-sm" data-open-auth="login">Log In</button></div>';
-  } else {
-    wrap.innerHTML =
-      '<div class="comment-form">' + avatarHTML(state.currentUser.id, state.currentUser.display_name) +
-      '<div class="comment-form-body">' +
-        '<textarea class="textarea" id="new-comment-text" maxlength="1500" placeholder="Respond thoughtfully…" aria-label="Leave an Impression"></textarea>' +
-        '<div class="comment-form-actions"><span class="count"><span id="new-comment-count">0</span>/1500</span>' +
-        '<button type="button" class="btn btn-primary btn-sm" id="submit-comment-btn">Leave Impression</button></div>' +
-      '</div></div>';
-    qs('#new-comment-text').addEventListener('input', function(){ qs('#new-comment-count').textContent = this.value.length; });
-    qs('#submit-comment-btn').addEventListener('click', async function(){
-      const text = qs('#new-comment-text').value.trim();
-      if (!text) return;
-      try{ await postComment(j.id, text, null); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Impression — please try again.")); return; }
-      qs('#new-comment-text').value = '';
-      await renderComments(j);
-      qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
-    });
-  }
-
-  const roots = await fetchRootComments(j.id);
-  const list = qs('#comments-list');
-  if (!roots.length){
-    list.innerHTML = '<p class="empty-state" style="padding:30px 0;">No one has responded yet — be the first to say something.</p>';
-    return;
-  }
-  list.innerHTML = roots.map(function(c){ return commentItemHTML(j.id, c); }).join('');
-
-  roots.forEach(function(c){
-    const replies = (COMMENT_CACHE[j.id]||[]).filter(function(x){ return x.parent_id === c.id; });
-    if (replies.length){
-      const btn = qs('[data-view-replies="' + c.id + '"]');
-      btn.hidden = false;
-      btn.textContent = 'View Responses (' + replies.length + ')';
-    }
-  });
-  wireCommentEvents(j);
-}
-
-function wireCommentEvents(j){
-  qsa('[data-like-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      requireAuth('Log in to appreciate Impressions.', async function(){
-        await toggleCommentLike(this.getAttribute('data-like-journal'), this.getAttribute('data-like-comment'));
-        renderComments(j);
-      }.bind(this));
-    };
-  });
-  qsa('[data-view-replies]').forEach(function(btn){
-    btn.onclick = async function(){
-      const cid = this.getAttribute('data-view-replies');
-      const wrap = qs('#replies-' + cid);
-      if (!wrap.hidden){ wrap.hidden = true; return; }
-      const replies = await fetchReplies(j.id, cid);
-      wrap.innerHTML = replies.map(function(r){ return replyItemHTML(j.id, r); }).join('');
-      wrap.hidden = false;
-      wireCommentEvents(j);
-    };
-  });
-  qsa('[data-reply-to]').forEach(function(btn){
-    btn.onclick = function(){
-      requireAuth('Log in to leave a Response.', function(){
-        const cid = btn.getAttribute('data-reply-to');
-        const name = btn.getAttribute('data-reply-name');
-        const box = qs('#reply-compose-' + cid);
-        if (!box.hidden){ box.hidden = true; return; }
-        box.hidden = false;
-        box.innerHTML = '<div class="replying-to">Replying to ' + escapeHtml(name) + '</div>' +
-          '<textarea class="textarea" maxlength="1500" placeholder="Write a reply…" style="min-height:60px;"></textarea>' +
-          '<div class="comment-form-actions" style="margin-top:8px;"><span></span><button type="button" class="btn btn-primary btn-sm">Response</button></div>';
-        box.querySelector('button').onclick = async function(){
-          const text = box.querySelector('textarea').value.trim();
-          if (!text) return;
-          try{ await postComment(j.id, text, cid); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Response — please try again.")); return; }
-          box.hidden = true;
-          qs('[data-view-replies="' + cid + '"]').hidden = false;
-          const replies = await fetchReplies(j.id, cid);
-          qs('[data-view-replies="' + cid + '"]').textContent = 'View Responses (' + replies.length + ')';
-          qs('#replies-' + cid).innerHTML = replies.map(function(r){ return replyItemHTML(j.id, r); }).join('');
-          qs('#replies-' + cid).hidden = false;
-          qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
-          wireCommentEvents(j);
-        };
-      });
-    };
-  });
-  qsa('[data-delete-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      const cid = this.getAttribute('data-delete-comment');
-      if (!confirm('Delete this comment? This can\'t be undone.')) return;
-      deleteComment(j.id, cid).then(function(){ renderComments(j); });
-    };
-  });
-  qsa('[data-edit-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      const item = this.closest('[data-comment-id]');
-      const bodyEl = item.querySelector('[data-comment-body]');
-      const current = bodyEl.textContent;
-      bodyEl.innerHTML = '<textarea class="textarea comment-edit-textarea" maxlength="1500">' + escapeHtml(current) + '</textarea>' +
-        '<div class="comment-form-actions" style="margin-top:8px;"><span></span><button type="button" class="btn btn-secondary btn-sm" data-cancel-edit>Cancel</button> <button type="button" class="btn btn-primary btn-sm" data-save-edit>Save</button></div>';
-      bodyEl.querySelector('[data-cancel-edit]').onclick = function(){ renderComments(j); };
-      bodyEl.querySelector('[data-save-edit]').onclick = async function(){
-        const newText = bodyEl.querySelector('textarea').value.trim();
-        if (!newText) return;
-        await editComment(j.id, this.closest('[data-comment-id]').getAttribute('data-comment-id'), newText);
-        renderComments(j);
-      };
-    };
-  });
-  qsa('[data-report-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      const commentId = this.getAttribute('data-report-comment');
-      requireAuth('Log in to report an Impression.', function(){
-        const flagged = toggleFlagComment(commentId);
-        btn.classList.toggle('is-flagged', flagged);
-        btn.textContent = flagged ? 'Flagged' : 'Report';
-        showToast(flagged ? 'Flagged — our moderators will take a look.' : 'Flag removed.');
-      });
-    };
-  });
-  qsa('[data-open-auth]').forEach(function(btn){
-    btn.onclick = function(){ openAuthModal(btn.getAttribute('data-open-auth')); };
-  });
-}
-
-/* ------------------------------------------------------------------
-   13. DRAFTS / PUBLISHED / SAVED / NOTIFICATIONS
-   ------------------------------------------------------------------ */
-async function renderDraftsView(){
-  const list = qs('#drafts-list');
-  if (!state.currentUser){
-    list.innerHTML = '<div class="empty-state"><p>Log in to see your drafts.</p><button class="btn btn-primary" data-open-auth="login">Log In</button></div>';
-    wireGenericButtons(); return;
-  }
-  const drafts = await fetchDrafts();
-  if (!drafts.length){
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 20 20" fill="none" width="24" height="24"><path d="M5 4h8l3 3v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5"/></svg></div>' +
-      '<p>Your unfinished thoughts will wait here.</p><button type="button" class="btn btn-primary" data-nav="write">Start writing</button></div>';
-    wireGenericButtons(); return;
-  }
-  list.innerHTML = drafts.map(function(d){
-    const cat = d.category ? categoryByName(d.category) : { color:'#948B7C' };
-    const words = wordCount(d.body);
-    return '<div class="draft-card">' +
-      '<div class="draft-strip" style="background:' + cat.color + '"></div>' +
-      '<div class="draft-info"><h3>' + escapeHtml(d.title || 'Untitled Work') + '</h3>' +
-      '<p>' + escapeHtml((d.body||'').slice(0,120) || 'Nothing written yet.') + (d.body && d.body.length>120?'…':'') + '</p>' +
-      '<div class="draft-meta"><span>Saved ' + formatRelativeTime(d.updated_at) + '</span><span>' + words + ' words</span></div>' +
-      '<div class="draft-actions"><button type="button" class="btn btn-secondary btn-sm" data-continue-draft="' + d.id + '">Continue writing</button>' +
-      '<button type="button" class="btn btn-danger btn-sm" data-delete-draft="' + d.id + '">Delete</button></div></div></div>';
-  }).join('');
-  qsa('[data-continue-draft]').forEach(function(b){ b.onclick = function(){ navigateTo('write', { draftId:b.getAttribute('data-continue-draft') }); }; });
-  qsa('[data-delete-draft]').forEach(function(b){
-    b.onclick = async function(){
-      if (!confirm('Delete this draft? This can\'t be undone.')) return;
-      await deleteDraft(b.getAttribute('data-delete-draft'));
-      renderDraftsView();
-      showToast('Draft deleted.');
-    };
-  });
-}
-
-async function renderPublishedView(){
-  const grid = qs('#published-grid');
-  if (!state.currentUser){ grid.innerHTML = '<div class="empty-state"><p>Log in to see your Works.</p></div>'; return; }
-  const rows = await fetchPublished();
-  grid.innerHTML = rows.length ? rows.map(journalCardHTML).join('') :
-    '<div class="empty-state" style="grid-column:1/-1;"><p>You haven\'t published a Work yet.</p><button type="button" class="btn btn-primary" data-nav="write">Start writing</button></div>';
-  wireGenericButtons();
-}
-
-async function fetchSavedJournals(){
-  if (DEMO_MODE){
-    return MOCK_JOURNALS.filter(function(j){ return state.bookmarkedIds.has(j.id); });
-  }
-  const { data, error } = await supabaseClient.from('bookmarks')
-    .select('journal_id, journals!bookmarks_journal_id_fkey(' + JOURNAL_CARD_FIELDS + ')')
-    .eq('user_id', state.currentUser.id);
-  if (error) throw error;
-  return data.map(function(row){ return normalizeJournalRow(row.journals); }).filter(Boolean);
-}
-async function renderSavedView(){
-  const list = qs('#saved-list');
-  if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your Archive.</p></div>'; return; }
-  const rows = await fetchSavedJournals();
-  if (!rows.length){
-    list.innerHTML = '<div class="empty-state"><p>Preserve Works that you want to return to.</p></div>';
-    return;
-  }
-  list.innerHTML = rows.map(function(j){
-    return '<div class="saved-card"><div class="saved-thumb">' + coverHTML(j.category, j.cover_url) + '</div>' +
-      '<div class="draft-info"><h3>' + escapeHtml(j.title) + '</h3><p>' + escapeHtml(j.excerpt) + '</p>' +
-      '<div class="draft-meta"><span>' + authorName(j.author_id) + '</span></div>' +
-      '<div class="draft-actions"><button type="button" class="btn btn-primary btn-sm" data-open-journal="' + j.id + '">Read Work</button>' +
-      '<button type="button" class="btn btn-secondary btn-sm" data-unsave="' + j.id + '">Remove bookmark</button></div></div></div>';
-  }).join('');
-  qsa('[data-unsave]').forEach(function(b){ b.onclick = async function(){ await toggleBookmark(b.getAttribute('data-unsave')); renderSavedView(); }; });
-  wireGenericButtons();
-}
-
-const NOTIF_COPY = {
-  like_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> appreciated your Work.'; },
-  comment_journal: function(n){ return '<b>' + authorName(n.actor_id) + '</b> left an Impression on your Work.'; },
-  reply_comment: function(n){ return '<b>' + authorName(n.actor_id) + '</b> left a Response to your Impression.'; },
-  journal_published: function(n){ return n.message || 'Your Work was published.'; }
-};
-async function renderNotificationsView(){
-  const list = qs('#notifications-list');
-  if (!state.currentUser){ list.innerHTML = '<div class="empty-state"><p>Log in to see your Updates.</p></div>'; return; }
-  const rows = await fetchNotifications();
-  await ensureAuthorsCached(rows.map(function(n){ return n.actor_id; }));
-  if (!rows.length){
-    list.innerHTML = '<div class="empty-state"><p>No new updates from the community yet.</p></div>';
-    wireGenericButtons();
-    return;
-  }
-  list.innerHTML = rows.map(function(n){
-    const copyFn = NOTIF_COPY[n.type] || function(){ return 'You have a new update.'; };
-    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-id="' + n.id + '" data-notif-journal="' + (n.journal_id||'') + '">' +
-      (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:var(--ink-faint)">✦</span>') +
-      '<div><div class="n-msg">' + copyFn(n) + '</div><div class="n-time">' + formatRelativeTime(n.created_at) + '</div></div>' +
-      (!n.read_at ? '<span class="notif-dot"></span>' : '') +
-    '</div>';
-  }).join('');
-  renderNotifBadge();
-  wireGenericButtons();
-  /* Opening/viewing a notification marks it read individually, not
-     just via the bulk "Mark all as read" button. */
-  qsa('[data-notif-id]').forEach(function(el){
-    el.style.cursor = 'pointer';
-    el.onclick = function(){
-      const notifId = this.getAttribute('data-notif-id');
-      const jid = this.getAttribute('data-notif-journal');
-      if (this.classList.contains('is-unread')){
-        this.classList.remove('is-unread');
-        const dot = this.querySelector('.notif-dot');
-        if (dot) dot.remove();
-        markNotificationRead(notifId).then(renderNotifBadge);
-      }
-      if (jid) navigateTo('read', { journalId: jid });
-    };
-  });
-}
-async function renderNotifBadge(){
-  const n = state.currentUser ? await unreadNotifCount() : 0;
-  const text = n > 99 ? '99+' : n;
-  ['#nav-notif-badge', '#mh-notif-badge'].forEach(function(sel){
-    const badge = qs(sel);
-    if (!badge) return;
-    badge.textContent = text;
-    badge.hidden = n === 0;
-  });
-}
-
-function wireGenericButtons(){
-  qsa('[data-open-journal]').forEach(function(el){
-    el.onclick = function(e){ e.preventDefault(); navigateTo('read', { journalId: this.getAttribute('data-open-journal') }); };
-  });
-  qsa('[data-open-auth]').forEach(function(el){ el.onclick = function(){ openAuthModal(this.getAttribute('data-open-auth')); }; });
-  qsa('[data-filter-category]').forEach(function(el){
-    el.onclick = function(){
-      state.activeFilter = this.getAttribute('data-filter-category');
-      state.latestPage = 1;
-      renderFilterRow(); renderLatestFeed(); wireGenericButtons();
-      qs('#explore-section').scrollIntoView({ behavior:'smooth' });
-    };
-  });
-  const markAllBtn = qs('#mark-all-read-btn');
-  if (markAllBtn) markAllBtn.onclick = async function(){
-    if (!state.currentUser) return;
-    await markAllNotificationsRead();
-    await renderNotificationsView();
-    renderNotifBadge();
-  };
-}
-
-/* ------------------------------------------------------------------
-   14. WRITE VIEW (the writing workspace)
-   ------------------------------------------------------------------ */
-let writeDraft = { category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'' };
-
-function localDraftKey(){ return 'aspinora_draft_' + (state.currentDraftId || 'new'); }
-function saveDraftToLocalStorage(){
-  try{ localStorage.setItem(localDraftKey(), JSON.stringify(writeDraft)); }catch(e){}
-}
-function loadDraftFromLocalStorage(key){
-  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
-}
-
-function setSaveStatus(kind){
-  const el = qs('#save-status');
-  el.classList.remove('is-saving','is-saved','is-unsaved');
-  const textEl = qs('#save-status-text');
-  if (kind === 'saving'){ el.classList.add('is-saving'); textEl.textContent = 'Saving…'; }
-  else if (kind === 'saved'){ el.classList.add('is-saved'); textEl.textContent = 'Saved just now'; }
-  else { el.classList.add('is-unsaved'); textEl.textContent = 'Unsaved changes'; }
-}
-
-async function renderWriteView(draftId){
-  state.currentDraftId = draftId;
-  let existing = null;
-  if (draftId){
-    if (DEMO_MODE){
-      existing = MOCK_DRAFTS.find(function(d){ return d.id === draftId; });
-    } else {
-      try{
-        const { data, error } = await supabaseClient.from('journals').select('*')
-          .eq('id', draftId).eq('author_id', state.currentUser.id).eq('status','draft').single();
-        if (!error && data) existing = fromSupabaseJournalRow(data);
-      }catch(e){ /* fall back to local copy below */ }
-    }
-  }
-  const localCopy = loadDraftFromLocalStorage('aspinora_draft_' + (draftId || 'new'));
-  writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'' });
-
-  qs('#write-title').value = writeDraft.title || '';
-  qs('#write-subtitle').value = writeDraft.subtitle || '';
-  qs('#write-body').value = writeDraft.body || '';
-  state.writeMdHistory = [writeDraft.body || ''];
-  state.writeMdHistoryIndex = 0;
-
-  renderCatPicker();
-  renderTagChips();
-  syncSettingsRadios();
-  updateWriteFooterCounts();
-  qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
-  setSaveStatus(draftHasContent(writeDraft) ? 'saved' : 'unsaved');
-  clearWriteErrors();
-}
-
-function renderCatPicker(){
-  const wrap = qs('#write-cat-picker');
-  wrap.innerHTML = CATEGORIES.map(function(c){
-    const active = writeDraft.category === c.name;
-    return '<button type="button" class="cat-chip-btn' + (active?' is-active':'') + '" data-pick-category="' + c.name + '" style="color:' + c.color + '">' +
-      '<span class="dot" style="background:' + c.color + '"></span>' + c.name + '</button>';
-  }).join('');
-  qsa('[data-pick-category]').forEach(function(b){
-    b.onclick = function(){ writeDraft.category = this.getAttribute('data-pick-category'); renderCatPicker(); scheduleAutosave(); };
-  });
-}
-
-function renderTagChips(){
-  const row = qs('#tag-input-row');
-  const input = qs('#tag-text-input');
-  qsa('.tag-chip', row).forEach(function(el){ el.remove(); });
-  writeDraft.tags.forEach(function(tag){
-    const chip = document.createElement('span');
-    chip.className = 'tag-chip';
-    chip.innerHTML = escapeHtml(tag) + ' <button type="button" aria-label="Remove tag ' + escapeHtml(tag) + '">×</button>';
-    chip.querySelector('button').onclick = function(){
-      writeDraft.tags = writeDraft.tags.filter(function(t){ return t !== tag; });
-      renderTagChips(); scheduleAutosave();
-    };
-    row.insertBefore(chip, input);
-  });
-}
-
-const VISIBILITY_HINTS = {
-  private: 'Private Works are only ever visible to you.',
-  unlisted: 'Unlisted Works are reachable via their direct link, but won\u2019t appear on your Portfolio or in Discover.',
-  public: 'Public Works appear on your Portfolio and can be discovered by readers.'
-};
-function syncSettingsRadios(){
-  qsa('input[name="visibility"]').forEach(function(r){ r.checked = r.value === writeDraft.visibility; r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
-  const hint = qs('#visibility-hint');
-  if (hint) hint.textContent = VISIBILITY_HINTS[writeDraft.visibility] || VISIBILITY_HINTS.public;
-  qsa('input[name="comments"]').forEach(function(r){ r.checked = (r.value === 'on') === writeDraft.allow_comments; r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
-  qsa('input[name="content_note"]').forEach(function(r){ r.checked = r.value === (writeDraft.content_note || ''); r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
-}
-
-function updateWriteFooterCounts(){
-  const words = wordCount(writeDraft.body);
-  qs('#fb-words').textContent = words + (words===1?' word':' words');
-  qs('#fb-read').textContent = readingTimeMinutes(words) + ' min read';
-  qs('#fb-chars').textContent = writeDraft.body.length.toLocaleString() + '/30,000 characters';
-  qs('#title-count').textContent = writeDraft.title.length;
-  qs('#subtitle-count').textContent = writeDraft.subtitle.length;
-  qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
-}
-
-function clearWriteErrors(){ ['category','title','body'].forEach(function(k){ qs('#err-'+k).hidden = true; }); }
-
-const scheduleAutosave = debounce(async function(){
-  if (!state.currentUser) return;
-  saveDraftToLocalStorage();
-  if (!draftHasContent(writeDraft)) { setSaveStatus('unsaved'); return; }
-  await persistDraft(Object.assign({}, writeDraft), true);
-  qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
-}, 1200);
-
-function markUnsavedImmediately(){
-  saveDraftToLocalStorage();
-  setSaveStatus('unsaved');
-  scheduleAutosave();
-}
-
-/* ------------------------------------------------------------------
-   15. WRITE VIEW — EVENT WIRING
-   ------------------------------------------------------------------ */
-function initWriteViewEvents(){
-  qs('#write-title').addEventListener('input', function(){
-    writeDraft.title = this.value.slice(0,140);
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  });
-  qs('#write-subtitle').addEventListener('input', function(){
-    writeDraft.subtitle = this.value.slice(0,240);
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  });
-  const bodyArea = qs('#write-body');
-  bodyArea.addEventListener('input', function(){
-    writeDraft.body = this.value.slice(0,30000);
-    if (state.writeMdHistory[state.writeMdHistoryIndex] !== writeDraft.body){
-      state.writeMdHistory = state.writeMdHistory.slice(0, state.writeMdHistoryIndex+1);
-      state.writeMdHistory.push(writeDraft.body);
-      state.writeMdHistoryIndex = state.writeMdHistory.length - 1;
-    }
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  });
-
-  qs('#tag-text-input').addEventListener('keydown', function(e){
-    if (e.key === 'Enter' || e.key === ','){
-      e.preventDefault();
-      const val = this.value.trim().replace(/,$/,'').slice(0,30);
-      if (!val) return;
-      if (writeDraft.tags.length >= 3){ showToast('You can add up to 3 tags.'); return; }
-      if (writeDraft.tags.some(function(t){ return t.toLowerCase() === val.toLowerCase(); })){ showToast('That tag is already added.'); return; }
-      writeDraft.tags.push(val);
-      this.value = '';
-      renderTagChips();
-      markUnsavedImmediately();
-    }
-  });
-
-  document.getElementById('visibility-row').addEventListener('change', function(e){
-    writeDraft.visibility = e.target.value; syncSettingsRadios(); markUnsavedImmediately();
-  });
-  document.getElementById('comments-row').addEventListener('change', function(e){
-    writeDraft.allow_comments = e.target.value === 'on'; syncSettingsRadios(); markUnsavedImmediately();
-  });
-  document.getElementById('note-row').addEventListener('change', function(e){
-    writeDraft.content_note = e.target.value; syncSettingsRadios(); markUnsavedImmediately();
-  });
-
-  /* ---- markdown toolbar: wraps or inserts syntax around the
-     current textarea selection, beginner-friendly and dependency-free ---- */
-  const MD_ACTIONS = {
-    bold:   function(sel){ return { before:'**', after:'**', placeholder:'bold text' }; },
-    italic: function(sel){ return { before:'*', after:'*', placeholder:'italic text' }; },
-    heading:function(sel){ return { linePrefix:'## ' }; },
-    quote:  function(sel){ return { linePrefix:'> ' }; },
-    ul:     function(sel){ return { linePrefix:'- ' }; },
-    ol:     function(sel){ return { linePrefix:'1. ' }; },
-    divider:function(sel){ return { insertBlock:'\n\n---\n\n' }; },
-    link:   function(sel){ return { before:'[', after:'](https://)', placeholder:'link text' }; }
-  };
-  qsa('[data-md]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      applyMarkdownAction(this.getAttribute('data-md'), MD_ACTIONS);
-    });
-  });
-  function applyMarkdownAction(kind, ACTIONS){
-    const ta = bodyArea;
-    const start = ta.selectionStart, end = ta.selectionEnd;
-    const value = ta.value;
-    const selected = value.slice(start, end);
-    const action = ACTIONS[kind]();
-    let newValue, newStart, newEnd;
-    if (action.linePrefix){
-      const lineStart = value.lastIndexOf('\n', start-1) + 1;
-      newValue = value.slice(0, lineStart) + action.linePrefix + value.slice(lineStart);
-      newStart = start + action.linePrefix.length; newEnd = end + action.linePrefix.length;
-    } else if (action.insertBlock){
-      newValue = value.slice(0, start) + action.insertBlock + value.slice(end);
-      newStart = newEnd = start + action.insertBlock.length;
-    } else {
-      const text = selected || action.placeholder;
-      newValue = value.slice(0, start) + action.before + text + action.after + value.slice(end);
-      newStart = start + action.before.length;
-      newEnd = newStart + text.length;
-    }
-    ta.value = newValue;
-    ta.focus();
-    ta.setSelectionRange(newStart, newEnd);
-    writeDraft.body = newValue.slice(0,30000);
-    state.writeMdHistory = state.writeMdHistory.slice(0, state.writeMdHistoryIndex+1);
-    state.writeMdHistory.push(writeDraft.body);
-    state.writeMdHistoryIndex = state.writeMdHistory.length - 1;
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  }
-
-  qs('#undo-btn').addEventListener('click', function(){
-    if (state.writeMdHistoryIndex > 0){
-      state.writeMdHistoryIndex--;
-      writeDraft.body = state.writeMdHistory[state.writeMdHistoryIndex];
-      bodyArea.value = writeDraft.body;
-      updateWriteFooterCounts(); markUnsavedImmediately();
-    }
-  });
-  qs('#redo-btn').addEventListener('click', function(){
-    if (state.writeMdHistoryIndex < state.writeMdHistory.length - 1){
-      state.writeMdHistoryIndex++;
-      writeDraft.body = state.writeMdHistory[state.writeMdHistoryIndex];
-      bodyArea.value = writeDraft.body;
-      updateWriteFooterCounts(); markUnsavedImmediately();
-    }
-  });
-
-  qs('#save-draft-btn').addEventListener('click', async function(){
-    if (!draftHasContent(writeDraft)){ showToast('Write a little something before saving.'); return; }
-    this.disabled = true;
-    await persistDraft(Object.assign({}, writeDraft), true);
-    this.disabled = false;
-    showToast('Draft saved.');
-  });
-
-  qs('#preview-btn').addEventListener('click', function(){
-    saveDraftToLocalStorage();
-    PREVIEW_JOURNAL = Object.assign({ id:'__preview__', author_id: state.currentUser ? state.currentUser.id : 'demo-user-1',
-      published_at:new Date().toISOString(), likes:0, comments:0, status:'draft', reading_time: readingTimeMinutes(wordCount(writeDraft.body)) },
-      writeDraft, { excerpt: writeDraft.subtitle || (writeDraft.body||'').slice(0,140) });
-    JOURNAL_CACHE['__preview__'] = PREVIEW_JOURNAL;
-    navigateTo('read', { journalId:'__preview__' });
-    showToast('This is a preview — it hasn\'t been published.');
-  });
-
-  qs('#publish-btn').addEventListener('click', function(){
-    clearWriteErrors();
-    let ok = true;
-    if (!writeDraft.category){ qs('#err-category').hidden = false; ok = false; }
-    if (!writeDraft.title.trim()){ qs('#err-title').hidden = false; ok = false; }
-    if (writeDraft.body.trim().length < 1 || writeDraft.body.length > 30000){ qs('#err-body').hidden = false; ok = false; }
-    if (!ok){ showToast('Please fix the highlighted fields first.'); return; }
-    openPublishModal();
-  });
-}
-
-function openPublishModal(){
-  const words = wordCount(writeDraft.body);
-  qs('#publish-summary').innerHTML = [
-    ['Title', writeDraft.title],
-    ['Category', writeDraft.category],
-    ['Reading time', readingTimeMinutes(words) + ' min'],
-    ['Visibility', writeDraft.visibility === 'public' ? 'Public 🌍' : writeDraft.visibility === 'unlisted' ? 'Unlisted 🔗' : 'Private 🔒'],
-    ['Comments', writeDraft.allow_comments ? 'Allowed' : 'Turned off'],
-    ['Excerpt', (writeDraft.subtitle || writeDraft.body.slice(0,110) + '…')]
-  ].map(function(row){ return '<div class="publish-summary-row"><span class="k">' + row[0] + '</span><span class="v">' + escapeHtml(String(row[1])) + '</span></div>'; }).join('');
-  openModal('publish-modal-scrim');
-}
-
-async function doPublish(){
-  const btn = qs('#publish-confirm-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Publishing…';
-  try{
-    const journal = await publishJournal(Object.assign({}, writeDraft));
-    localStorage.removeItem(localDraftKey());
-    closeModal('publish-modal-scrim');
-    const msg = journal.visibility === 'private' ? 'Saved privately — only you can see this Work.'
-      : journal.visibility === 'unlisted' ? 'Published — reachable by its link, not listed on your Portfolio.'
-      : 'Your Work is live on your Portfolio.';
-    showToast(msg);
-    navigateTo('read', { journalId: journal.id });
-  }catch(e){
-    showToast(friendlyWriteError(e, "Couldn't publish — please try again."));
-  }finally{
-    btn.disabled = false;
-    btn.textContent = 'Publish';
-  }
-}
 
 /* ------------------------------------------------------------------
    16. GLOBAL NAVIGATION + MODAL WIRING
@@ -4317,11 +2944,6 @@ function initGuestModal(){
   qs('#guest-modal-cancel').addEventListener('click', function(){ closeModal('guest-modal-scrim'); });
 }
 
-function initPublishModal(){
-  qs('#publish-modal-close').addEventListener('click', function(){ closeModal('publish-modal-scrim'); });
-  qs('#publish-go-back-btn').addEventListener('click', function(){ closeModal('publish-modal-scrim'); });
-  qs('#publish-confirm-btn').addEventListener('click', doPublish);
-}
 
 qsa('.modal-scrim').forEach(function(scrim){
   if (scrim.id === 'username-modal-scrim' || scrim.id === 'recovery-modal-scrim') return; // mandatory — no click-outside dismiss
@@ -4337,44 +2959,6 @@ function initHomeControls(){
   qs('#load-more-btn').addEventListener('click', function(){ state.latestPage++; renderLatestFeed(); });
 }
 
-function initWallCompose(){
-  const catSelect = qs('#wall-compose-category');
-  catSelect.innerHTML = CATEGORIES.map(function(c){ return '<option value="' + c.slug + '">' + c.name + '</option>'; }).join('');
-
-  const body = qs('#wall-compose-body');
-  const count = qs('#wall-compose-count');
-  const submitBtn = qs('#wall-compose-submit');
-  function updateCount(){
-    const n = wordCountOf(body.value);
-    count.textContent = n + ' / ' + WALL_WORD_LIMIT + ' words';
-    const over = n > WALL_WORD_LIMIT;
-    count.classList.toggle('is-over', over);
-    submitBtn.disabled = over || n === 0;
-  }
-  body.addEventListener('input', updateCount);
-  updateCount();
-
-  qs('#wall-compose-form').addEventListener('submit', function(e){
-    e.preventDefault();
-    requireAuth('Log in to pin a thought to the Wall.', async function(){
-      const text = body.value.trim();
-      const n = wordCountOf(text);
-      if (!text || n > WALL_WORD_LIMIT){ updateCount(); return; }
-      submitBtn.disabled = true;
-      try{
-        await postToWall(text, catSelect.value);
-        body.value = '';
-        updateCount();
-        showToast('Pinned to the Wall.');
-        renderWallView();
-      }catch(err){
-        showToast(err.message || "Couldn't pin that — please try again.");
-      }finally{
-        submitBtn.disabled = false;
-      }
-    });
-  });
-}
 
 /* Filter chips and category-grid clicks and journal-card clicks are
    re-rendered dynamically, so they're wired via delegated listeners
@@ -4519,52 +3103,6 @@ async function routeFromPath(replace){
   navigateTo('home', { replace: replace });
 }
 
-async function loadJournalByUsernameAndSlug(username, slug, replace) {
-  try {
-    if (DEMO_MODE){
-      const author = mockAuthorByUsername(username);
-      if (!author){
-        showToast('Work not found');
-        navigateTo('home', { replace: replace });
-        return;
-      }
-      const isOwner = !!(state.currentUser && state.currentUser.id === author.id);
-      const journal = MOCK_JOURNALS.find(function(j){
-        return j.author_id === author.id && j.slug === slug && j.status === 'published' &&
-               (j.visibility !== 'private' || isOwner);
-      });
-      if (!journal){
-        showToast('Work not found');
-        navigateTo('home', { replace: replace });
-        return;
-      }
-      navigateTo('read', { journalId: journal.id, replace: replace });
-      return;
-    }
-
-    // One SECURITY DEFINER RPC (get_journal_by_username_slug) replaces
-    // the old profile-then-journal two-step lookup (Phase 4 audit
-    // DB-5(ii) — see userpostlogin.html's fetchJournal for the longer
-    // explanation). "No such username", "no such slug for that
-    // author", and "private and not the owner" all still collapse to
-    // the same "Work not found" this always showed for all three.
-    const { data: journal, error } = await supabaseClient.rpc('get_journal_by_username_slug', { p_username: username, p_slug: slug });
-
-    if (error || !journal) {
-      showToast('Work not found');
-      navigateTo('home');
-      return;
-    }
-
-    const normalized = normalizeJournalRow(journal);
-    JOURNAL_CACHE[normalized.id] = normalized;
-    navigateTo('read', { journalId: normalized.id });
-  } catch (err) {
-    console.error(err);
-    showToast('Error loading Work');
-    navigateTo('home');
-  }
-}
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
