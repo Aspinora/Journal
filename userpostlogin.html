@@ -237,6 +237,9 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
   font-family:var(--font-mono); font-size:9.5px; display:inline-flex; align-items:center; justify-content:center;
   margin-left:4px;
 }
+.avatar-wrap{ position:relative; display:inline-flex; flex-shrink:0; }
+.avatar-dot{ position:absolute; top:-2px; right:-2px; width:10px; height:10px; border-radius:50%; background:#E5342B; border:2px solid #FBF5EA; pointer-events:none; }
+.avatar-dot[hidden]{ display:none; }
 .nav-hamburger{ display:none; background:none; border:none; width:40px; height:40px; align-items:center; justify-content:center; }
 .nav-hamburger span, .nav-hamburger::before, .nav-hamburger::after{ content:''; display:block; width:20px; height:2px; background:var(--ink); border-radius:2px; }
 .nav-hamburger{ flex-direction:column; gap:5px; }
@@ -998,7 +1001,7 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
 
       <div class="nav-user" id="nav-user">
         <button type="button" class="nav-user-trigger" id="nav-user-trigger" aria-haspopup="true" aria-expanded="false">
-          <span class="avatar" id="nav-user-avatar"></span>
+          <span class="avatar-wrap"><span class="avatar" id="nav-user-avatar"></span><span class="avatar-dot" id="nav-avatar-dot" hidden aria-label="New notifications"></span></span>
           <span class="nav-user-name" id="nav-user-name"></span>
         </button>
         <div class="nav-dropdown" id="nav-dropdown" role="menu">
@@ -2548,6 +2551,7 @@ function syncAuthUI(){
   renderNotifBadge();
   renderMessagesBadge();
   subscribeMessagesRealtime();
+  subscribeNotifRealtime();
   refreshStaffStatus();
   showRestrictionBanner();
 }
@@ -3571,7 +3575,23 @@ async function renderNotifBadge(){
     badge.textContent = text;
     badge.hidden = n === 0;
   });
+  const dot = qs('#nav-avatar-dot');
+  if (dot) dot.hidden = n === 0;
 }
+/* Live: a new notification row for me lights the avatar dot right away;
+   it clears when the list is opened (markAllNotificationsRead). */
+let notifRealtimeChannel = null;
+function subscribeNotifRealtime(){
+  if (DEMO_MODE || !state.currentUser || !supabaseClient || notifRealtimeChannel) return;
+  notifRealtimeChannel = supabaseClient.channel('notif-dot-' + state.currentUser.id)
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'notifications', filter:'recipient_id=eq.' + state.currentUser.id }, function(){
+      renderNotifBadge();
+    })
+    .subscribe();
+}
+/* Safety net if realtime drops: re-check when the tab regains focus or the page is restored from cache. */
+document.addEventListener('visibilitychange', function(){ if (!document.hidden && state.currentUser) renderNotifBadge(); });
+window.addEventListener('pageshow', function(e){ if (e.persisted && state.currentUser) renderNotifBadge(); });
 
 function wireGenericButtons(){
   // [data-open-journal] is deliberately NOT bound here — it's handled
