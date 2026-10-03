@@ -984,15 +984,6 @@ function renderCrop(src, r, outW, outH) {
 }
 const toJpeg = (canvas, q) => new Promise((res, rej) => canvas.toBlob(b => b ? res(b) : rej(new StudioError('encode', 'The browser could not encode this image.')), 'image/jpeg', q));
 /* Highest quality under the limit: coarse steps down from 0.95, then 0.01 refinement upward. */
-async function compressUnder(canvas, { limit, minQ = 0.62, onStep }) {
-  let ok = null, failQ = null, smallest = null;
-  for (let q = 0.95; q >= minQ - 1e-6; q -= 0.03) {
-    const qq = +q.toFixed(2), b = await toJpeg(canvas, qq); onStep && onStep(qq, b.size); smallest = { blob: b, q: qq };
-    if (b.size <= limit) { ok = { blob: b, q: qq }; break; } failQ = qq;
-  }
-  if (ok && failQ != null) for (let q = ok.q + 0.01; q < failQ - 1e-6; q += 0.01) { const qq = +q.toFixed(2), b = await toJpeg(canvas, qq); if (b.size <= limit) ok = { blob: b, q: qq }; else break; }
-  return { ok, smallest };
-}
 /* Highest JPEG quality (0.01 steps) that fits under the limit, or null if even minQ is too big.
    Always encodes from the raw canvas pixels, never from an earlier JPEG. */
 async function bestQuality(canvas, limit, minQ, onStep) {
@@ -1821,49 +1812,6 @@ const App = {
 };
 
 /* ---------- sample data + stress-test generator */
-const Seed = {
-  para: (id, html, attrs = '') => `<p data-pid="${id}"${attrs}>${html}</p>`,
-  async ensure() {
-    if ((await Store.all('stories')).length) return;
-    const s = Model.newStory(); Object.assign(s, { title: 'The Last Voyage', description: 'A lighthouse keeper, a stranger with salt-stained hands, and a door that was never on the map.', category: 'Adventure', tags: ['sea', 'mystery'], status: 'ongoing', copyright: 'exclusive' });
-    const mk = (n, t) => Object.assign(Model.newChapter(s), { number: n, title: t });
-    const v1 = Object.assign(Model.newVolume(s), { title: 'The Awakening' }), p1 = Object.assign(Model.newPart(v1), { title: 'The Beginning' });
-    p1.chapters.push(mk(1, 'The Arrival'), mk(2, 'The Stranger'), mk(3, 'The Door')); const p2 = Object.assign(Model.newPart(v1), { number: 2, title: 'The Discovery' }); p2.chapters.push(mk(4, ''), mk(5, ''));
-    v1.parts.push(p1, p2); const v2 = Object.assign(Model.newVolume(s), { number: 2, title: 'The Journey' }); v2.number = 2; const p3 = Object.assign(Model.newPart(v2), { title: 'Into the Unknown' }); v2.parts.push(p3);
-    s.volumes.push(v1, v2); s.lastChapterId = p1.chapters[2].id;
-    const P = this.para, ch3 = [
-      '<h2 data-pid="paragraph_001">Before the storm</h2>',
-      P('paragraph_002', 'The lamp had burned for eleven years without a single night of rest, and Mara had begun to think of it as a <b>living thing</b> — patient, hungry, and faintly ashamed of its own light.'),
-      P('paragraph_003', 'The stranger stood at the bottom of the spiral stair, one hand on the cold iron rail. “You’ve never asked what’s behind it,” he said. It wasn’t a question.'),
-      '<blockquote data-pid="paragraph_004">Some doors are built to keep things out. Others are built to remind you that you can be left.</blockquote>',
-      '<hr class="scene-break" data-pid="paragraph_005">',
-      P('paragraph_006', 'By morning the fog had come in from the east, <i>thick as wool</i>, and the sea below had gone quiet in the way that always meant listening.'),
-      P('paragraph_007', 'Mara wrote two words in the logbook, crossed out one, and then — for the first time in eleven years — <span style="color:#B23A31">left the page unfinished</span>.'),
-    ].join('');
-    const recs = [{ id: p1.chapters[0].id, html: [P('paragraph_001', 'The ferry left Harrow Point an hour late, and the harbour master swore it was the last one the season would allow.')].join(''), pid: 1 }, { id: p1.chapters[1].id, html: P('paragraph_001', 'He arrived with the tide and no luggage, and Mara knew from the way he stood that he had come a long way to be disappointed.'), pid: 1 }, { id: p1.chapters[2].id, html: ch3, pid: 7 }];
-    for (const r of recs) { const c = Model.find(s, r.id).chapter; const wc = r.html.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length; c.wordCount = wc; await Store.put('chapters', { id: r.id, storyId: s.id, html: r.html, pidSeq: r.pid, wordCount: wc, charCount: 0, updatedAt: Date.now(), published: null }); }
-    await Store.put('stories', s);
-    await Store.put('notes', { id: uid(), storyId: s.id, chapterId: p1.chapters[2].id, text: 'Check chapter ending — does Mara leave the lamp?', done: false, createdAt: Date.now() });
-    await Store.put('notes', { id: uid(), storyId: s.id, chapterId: null, text: 'Fix timeline: the ferry can’t arrive before the storm in Vol. I.', done: false, createdAt: Date.now() });
-  },
-  words: 'harbour lantern salt ledger thunder orchard whisper copper meridian kestrel embers corridor tide compass vellum glacier saffron ember lantern quiet river marble harvest signal thread shadow anchor market mirror winter island engine letter bridge garden forge silence'.split(' '),
-  sentence(r) { const n = 8 + Math.floor(r() * 12), w = []; for (let i = 0; i < n; i++) w.push(this.words[Math.floor(r() * this.words.length)]); const s = w.join(' '); return s[0].toUpperCase() + s.slice(1) + '.'; },
-  async stress(totalWords = 120000) {
-    let seed = 7; const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    const s = Model.newStory(); Object.assign(s, { title: 'Stress Test Saga', description: 'Generated content for performance testing.', status: 'draft' });
-    let words = 0, n = 0; const perChapter = 6000;
-    for (let vi = 0; vi < 2; vi++) {
-      const v = Object.assign(Model.newVolume(s), { title: 'Volume ' + (vi + 1) }); s.volumes.push(v);
-      for (let pi = 0; pi < 2; pi++) { const p = Object.assign(Model.newPart(v), { title: 'Part ' + (pi + 1) }); v.parts.push(p);
-        for (let ci = 0; ci < 5 && words < totalWords; ci++) {
-          const c = Object.assign(Model.newChapter(s), { number: ++n, title: 'Chapter ' + n }); p.chapters.push(c);
-          let html = '', pid = 0, cw = 0; while (cw < perChapter) { const k = 3 + Math.floor(r() * 4); let t = ''; for (let i = 0; i < k; i++) t += this.sentence(r) + ' '; cw += t.split(' ').length - 1; html += `<p data-pid="paragraph_${String(++pid).padStart(3, '0')}">${t.trim()}</p>`; }
-          c.wordCount = cw; words += cw; await Store.put('chapters', { id: c.id, storyId: s.id, html, pidSeq: pid, wordCount: cw, updatedAt: Date.now(), published: null });
-        } }
-    }
-    s.lastChapterId = Model.all(s)[0].chapter.id; await Store.put('stories', s); return s;
-  },
-};
 /* =====================================================================
    14. UI CORE
    ===================================================================== */
