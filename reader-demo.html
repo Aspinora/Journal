@@ -553,8 +553,9 @@ async function normalizePost(row){
   // single-chapter story_works row falls straight through to the
   // normal full-render path below (get_work_for_read already returned
   // its one chapter's HTML as body_markdown in that case).
-  const isMultiChapterStory = row.kind === 'story' && (row.chapter_count || 0) > 1;
-  if (isMultiChapterStory){
+  // Multipart journals always preview their description, even with one published entry.
+  const isStructuredPreview = row.is_multipart === true || (row.kind === 'story' && (row.chapter_count || 0) > 1);
+  if (isStructuredPreview){
     return {
       id: row.id, slug: row.slug, authorId: row.author_id,
       type: cat.name, title: row.title,
@@ -564,7 +565,7 @@ async function normalizePost(row){
       grad: 'linear-gradient(135deg,' + cat.color + ',#20140c)',
       teaserExcerpt: row.excerpt || '',
       isTeaser: true,
-      readWholeLabel: row.category_id === 6 ? 'Read whole Article' : 'Read whole Story'
+      readWholeLabel: row.is_multipart === true ? 'Read whole Journal' : (row.category_id === 6 ? 'Read whole Article' : 'Read whole Story')
     };
   }
   const words = wordCount(row.body_markdown || '');
