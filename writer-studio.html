@@ -381,8 +381,7 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
       <nav class="hdr__tools" aria-label="Writer tools">
         <a id="libBack" class="btn ghost" href="/userpostlogin.html">&larr; Journals</a>
         <button id="libTheme" class="ib" type="button"></button>
-        <button id="libDev" class="ib" type="button"></button>
-        <button id="libNew" class="btn primary" type="button">New story</button>
+                <button id="libNew" class="btn primary" type="button">New story</button>
       </nav>
     </div></header>
     <div id="kindBar" role="tablist" aria-label="Writing type"></div>
@@ -1515,7 +1514,7 @@ const Ed = {
       case 'color': this.needFix = 4; this.exec('foreColor', arg || '#010203', true); break;
       case 'highlight': this.needFix = 4; this.exec('hiliteColor', arg || '#010204', true); break;
       case 'font': this.exec('fontName', Fonts.stack(arg), true); break;
-      case 'size': this.pendingSize = arg; this.needFix = 4; this.exec('fontSize', '7', true); this.fixSpans(); break;
+      case 'size': { const size = clamp(Number(arg) || 19, SIZES[0], SIZES[SIZES.length - 1]); this.pendingSize = size; this.needFix = 4; this.exec('fontSize', '7', true); this.fixSpans(); this.pendingSize = null; break; }
       case 'block': this.setBlock(arg); break;
       case 'align': this.exec({ left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight', justify: 'justifyFull' }[arg], null, true); break;
       case 'list': this.withPids(() => this.exec(arg === 'ol' ? 'insertOrderedList' : 'insertUnorderedList')); break;
@@ -1834,7 +1833,7 @@ const UI = {
   init() {
     Gutter.init();
     const set = (id, n, l) => { const b = $(id); b.replaceChildren(icon(n)); b.setAttribute('aria-label', l); b.title = l; };
-    set('#btnLeft', 'panelL', 'Show or hide story structure'); set('#btnRight', 'panelR', 'Chapter info and notes'); set('#btnFocus', 'focus', 'Focus mode'); set('#libDev', 'more', 'Developer tools');
+    set('#btnLeft', 'panelL', 'Show or hide story structure'); set('#btnRight', 'panelR', 'Chapter info and notes'); set('#btnFocus', 'focus', 'Focus mode');
     $('#btnTheme').classList.add('js-theme-btn'); $('#btnTheme').addEventListener('click', e => themeMenu(e.currentTarget));
     $('#libTheme').classList.add('js-theme-btn'); $('#libTheme').addEventListener('click', e => themeMenu(e.currentTarget));
     syncThemeButtons();
@@ -1849,7 +1848,7 @@ const UI = {
     $('#btnPreviewP').addEventListener('click', () => this.setMode(this.mode === 'preview' ? 'write' : 'preview'));
     $('#btnSaveDraft').addEventListener('click', () => App.saveDraft()); $('#btnPublish').addEventListener('click', () => this.publishDialog());
     $('#libBack').addEventListener('click', e => { try { const r = document.referrer && new URL(document.referrer); if (r && r.origin === location.origin && !/\/writer-studio(\.html)?$/.test(r.pathname) && history.length > 1) { e.preventDefault(); history.back(); } } catch (x) {} });
-    $('#libNew').addEventListener('click', () => this.newStory()); $('#libDev').addEventListener('click', e => this.devMenu(e.currentTarget));
+    $('#libNew').addEventListener('click', () => this.newStory());
     const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; if (Kind.single(App.story)) App.story.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
     t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Ed.focusForCommand(); const first = Ed.el.firstElementChild; if (first) Ed.placeCaret(first, true); } });
     this.kind = lsGet('sw_kind', 'story'); if (!KINDS[this.kind]) this.kind = 'story'; $('#btnWork').replaceChildren(icon('edit')); $('#btnWork').addEventListener('click', () => this.editStory());
@@ -1923,7 +1922,7 @@ const UI = {
     $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; this.applyKind(); const st = App.story, kd = Kind.of(st); $('#chTitle').value = Kind.single(st) ? st.title : f.chapter.title; $('#chTitle').placeholder = ({ story: 'Chapter ' + f.chapter.number + ' title', journal: 'Entry title', article: 'Title', poetry: 'Title of the poem', shayari: 'Title (optional)', thought: 'Title' })[Kind.storyLike(st) ? 'story' : kd];
     const locked = App.locked(f.chapter); document.body.classList.toggle('locked-chapter', locked);
     if (Ed.el) Ed.el.contentEditable = locked ? 'false' : 'true'; $('#chTitle').disabled = locked;
-    $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = locked; const dock = $('#dock'); if (dock) dock.hidden = locked;
+    $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = false; $('#btnPublish').disabled = locked; $('#btnPublish').textContent = f.chapter.status === 'published' ? 'Re-Publish' : 'Publish'; const dock = $('#dock'); if (dock) dock.hidden = locked;
     this.syncCrumb(); this.renderTree(); this.syncToolbar(); if (this.mode === 'preview') this.renderPreview();
   },
   showEmpty() {
@@ -1941,7 +1940,7 @@ const UI = {
     grid.replaceChildren();
     grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New ' + K.one.toLowerCase()), h('span', { class: 'small muted' }, 'Cover, title, tags and visibility')));
     stories.forEach(s => {
-      const url = s.coverImageId && Images.urls.get(s.coverImageId), chapters = Model.all(s).length, realVols = s.volumes.filter(v => !v.implicit).length;
+      const url = s.coverImageId && (Images.urls.get(s.coverImageId) || (s.coverImageId.startsWith('__url:') ? s.coverImageId.slice(6) : (Images.cache.get(s.coverImageId) || {}).public_url)), chapters = Model.all(s).length, realVols = s.volumes.filter(v => !v.implicit).length;
       const menuBtn = ibtn('more', 'Story actions', { class: 'ib card__more', onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
       grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
@@ -1971,7 +1970,7 @@ const UI = {
   },
   renderTree() {
     const host = $('#treeHost'), s = App.story; if (!host || !s) return; const st = host.scrollTop; host.replaceChildren();
-    const cover = s.coverImageId && Images.urls.get(s.coverImageId);
+    const cover = s.coverImageId && (Images.urls.get(s.coverImageId) || (s.coverImageId.startsWith('__url:') ? s.coverImageId.slice(6) : (Images.cache.get(s.coverImageId) || {}).public_url));
     host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words')),
       ibtn('more', 'Story actions', { onclick: e => showMenu(e.currentTarget, [{ label: Kind.of(s) === 'story' ? 'Story settings…' : Kind.cfg(s).one + ' details…', icon: 'edit', onClick: () => this.editStory() }, Kind.storyLike(s) ? { label: 'Renumber everything…', icon: 'lines', onClick: () => App.renumber() } : null, '-', { label: Kind.of(s) === 'story' ? 'Back to all stories' : 'Back to all writing', icon: 'book', onClick: () => this.showLibrary() }], { align: 'end' }) })));
     const chRow = (c, list, i, v, p) => this.row({ kind: 'chapter', id: c.id, label: Model.cLabel(c), sub: c.wordCount ? (c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : String(c.wordCount)) : '', status: c.status, active: c.id === Ed.chapterId, onOpen: () => App.openChapter(c.id), menu: () => [
@@ -1981,7 +1980,7 @@ const UI = {
     const addRow = (parts) => h('div', { class: 't-add' }, ...parts); const L = Kind.labels(s), isStory = Kind.storyLike(s);
     s.volumes.forEach((v, vi) => {
       if (v.deletedAt) return;
-      const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && Images.urls.get(v.coverImageId), vLocked = App.locked(v);
+      const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && (Images.urls.get(v.coverImageId) || (v.coverImageId.startsWith('__url:') ? v.coverImageId.slice(6) : (Images.cache.get(v.coverImageId) || {}).public_url)), vLocked = App.locked(v);
       if (!v.implicit) host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, status: Kind.isStory(s) ? v.status : null, menu: () => [
         vLocked ? null : { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) },
         (!vLocked && Kind.isStory(s)) ? { label: 'Publish volume…', icon: 'check', onClick: () => App.publishContainer('volume', v) } : null, '-',
@@ -2091,13 +2090,13 @@ const UI = {
   /* ---- publish */
   async publishDialog() {
     if (!Ed.chapterId) return; if (this.mode === 'preview') this.setMode('write');
-    const fchk = Model.find(App.story, Ed.chapterId); if (fchk && App.locked(fchk.chapter)) return;
+    const fchk = Model.find(App.story, Ed.chapterId);
     const okSave = await Save.flush(); if (!okSave) { toast('Save failed, so publishing is paused. Your text is safe; try again in a moment.', 'err'); return; }
     const items = App.validate(), fails = items.filter(i => i.level === 'fail').length, warns = items.filter(i => i.level === 'warn').length, f = Model.find(App.story, Ed.chapterId);
     const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
     const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
     const already = f.chapter.status === 'published';
-    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast('Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Publish changes' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
+    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast('Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Re-Publish' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
     const m = openModal({ title: 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
   },
   /* ---- developer tools */
@@ -2121,7 +2120,7 @@ const BLOCK_NAMES = { p: 'Normal', h1: 'Heading', h2: 'Subheading', blockquote: 
 const Tools = {
   build() { this.buildToolbar(); this.buildDock(); },
   rebuildFor() { Pop.close(); Dock.close(); },
-  curSize() { const s = Ed.state(); return (s && s.size) || 19; },
+  curSize() { const s = Ed.state(); const raw = s && Number(s.size); if (!Number.isFinite(raw)) return 19; return SIZES.reduce((best, x) => Math.abs(x - raw) < Math.abs(best - raw) ? x : best, SIZES[0]); },
   stepSize(d) { const c = this.curSize(); const n = d > 0 ? SIZES.find(x => x > c) : [...SIZES].reverse().find(x => x < c); if (n) Ed.cmd('size', n); },
   sizeMenu(ctx) { const c = this.curSize(); return SIZES.map(s => menuItem(String(s), { on: s === c, onClick: () => { Ed.cmd('size', s); ctx.done && ctx.done(); } })); },
   colorMenu(kind, ctx) {
@@ -2233,8 +2232,8 @@ const Panel = {
     const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
     const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
     const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Copyright', (copyrightOf(App.story.copyright) || [0, 'Not chosen'])[1]], ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
-    return h('div', { style: { padding: '6px 6px 16px' } }, kv, App.locked(f.chapter) ? h('div', { style: { marginTop: '16px' } }, h('div', { class: 'banner ok', style: { marginBottom: '10px' } }, icon('check'), 'Published — this ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + ' is locked and can’t be edited or republished. You can still delete it.'), h('button', { class: 'btn', type: 'button', onclick: () => App.deleteChapter(f) }, 'Delete ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + '…')) :
-      h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Publish changes' : 'Publish…'),
+    return h('div', { style: { padding: '6px 6px 16px' } }, kv, App.locked(f.chapter) ? h('div', { style: { marginTop: '16px' } }, h('div', { class: 'banner ok', style: { marginBottom: '10px' } }, icon('check'), 'Published — this ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + ' is locked for editing. Use Re-Publish to update the published copy, or delete it.'), h('button', { class: 'btn', type: 'button', onclick: () => App.deleteChapter(f) }, 'Delete ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + '…')) :
+      h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Re-Publish' : 'Publish…'),
       pub ? h('button', { class: 'btn', type: 'button', onclick: async () => { if (await confirmDialog({ title: 'Unpublish this chapter?', body: 'Readers will no longer see it. Your draft is kept.', confirm: 'Unpublish' })) { await App.unpublishChapter(); toast('Unpublished'); } } }, 'Unpublish') : null));
   },
   renderNotes() {
