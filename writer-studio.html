@@ -722,9 +722,12 @@ const Store = {
         const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', excerpt: (o.description || '').trim() || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
         const { error } = await sb.from('journals').upsert(row); if (error) throwDb(error);
       } else {
-        const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), last_chapter_id: o.lastChapterId || null, updated_at: new Date().toISOString() };
+        const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
         const { error } = await sb.from('story_works').upsert(row); if (error) throwDb(error);
         await persistTree(o);
+        // The referenced chapter must exist before setting last_chapter_id.
+        const { error: lastChapterError } = await sb.from('story_works').update({ last_chapter_id: o.lastChapterId || null }).eq('id', o.id);
+        if (lastChapterError) throwDb(lastChapterError);
       }
       return o;
     }
