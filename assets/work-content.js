@@ -7,7 +7,7 @@
   const tags = ['p','div','h1','h2','h3','h4','h5','h6','blockquote','ul','ol','li','hr','br','strong','b','em','i','u','s','del','span','mark','a','figure','figcaption','img','pre','code','sub','sup'];
   const config = {
     ALLOWED_TAGS: tags,
-    ALLOWED_ATTR: ['href','src','alt','title','style','dir','data-pid','loading','decoding','class','target','rel'],
+    ALLOWED_ATTR: ['href','src','alt','title','style','dir','data-pid','loading','decoding','class','target','rel','data-element','data-layout'],
     ALLOW_DATA_ATTR: false,
     ALLOW_ARIA_ATTR: false,
     FORBID_TAGS: ['script','style','iframe','object','embed','svg','math','form','input','button','template'],
@@ -46,8 +46,9 @@
         if (!data.attrValue) data.keepAttr = false;
       }
       if (data.attrName === 'class') {
-        data.keepAttr = node.tagName === 'FIGURE' && (data.attrValue === 'body-img-16x9' || (global.JournalElements && /^journal-element element-(left|right|center)( element-wrap)?$/.test(data.attrValue)));
+        data.keepAttr = (node.tagName === 'HR' && data.attrValue === 'journal-page-break') || ['FIGURE','SPAN'].includes(node.tagName) && (data.attrValue === 'body-img-16x9' || (global.JournalElements && (data.attrValue.split(/\s+/).includes('journal-element') || data.attrValue === 'journal-page-settings')));
       }
+      if (data.attrName === 'data-element' || data.attrName === 'data-layout') data.keepAttr = ['FIGURE','SPAN'].includes(node.tagName) && data.attrValue.length <= 3000 && !!global.JournalElements;
       if (data.attrName === 'dir') data.keepAttr = /^(auto|ltr|rtl)$/.test(data.attrValue);
       if (data.attrName === 'data-pid') data.keepAttr = /^[a-zA-Z0-9_-]{1,100}$/.test(data.attrValue);
       if (data.attrName === 'href') data.keepAttr = /^(https?:\/\/|mailto:)/i.test(data.attrValue.trim());
@@ -78,7 +79,7 @@
     const clean = purifier.sanitize(markup, config);
     if (!global.JournalElements) return clean;
     const box = global.document.createElement('template'); box.innerHTML = clean;
-    box.content.querySelectorAll('figure.journal-element').forEach(node => { const el = global.JournalElements.clean(node); if (el) { el.removeAttribute('contenteditable'); node.replaceWith(el); } else node.remove(); });
+    box.content.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(node => { const el = global.JournalElements.clean(node); if (el) { el.removeAttribute('contenteditable'); node.replaceWith(el); } else node.remove(); });
     return box.innerHTML;
   }
   global.JournalContent = Object.freeze({render, isHtml});

@@ -1260,6 +1260,7 @@ function walk(node){
   Array.from(node.childNodes).forEach(ch=>{
     if(ch.nodeType===3)return;
     if(ch.nodeType!==1){ch.remove();return}
+    if(ch.classList.contains('journal-element')){const el=JournalElements.clean(ch);if(el)ch.replaceWith(el);else ch.remove();return;}
     walk(ch);
     const tag=ch.tagName;
     if(!ALLOW.has(tag)){while(ch.firstChild)ch.parentNode.insertBefore(ch.firstChild,ch);ch.remove();return}
@@ -1289,8 +1290,8 @@ function parseChapter(id,html){
   Array.from(doc.body.children).forEach(el=>{
     const t=el.tagName;
     if(t==='UL'||t==='OL'){list++;Array.from(el.children).forEach(li=>{if(li.tagName==='LI')push('li',li,{list:t.toLowerCase(),listIdx:list})});return}
-    if(t==='HR'){out.push({type:'scene',pid:el.getAttribute('data-pid'),idx:out.length,empty:false});return}
-    if(t==='FIGURE') { const figure = JournalElements.clean(el); if (figure) out.push({type:'element',html:figure.outerHTML,pid:el.getAttribute('data-pid'),idx:out.length,empty:false}); return; }
+    if(t==='HR'){out.push({type:el.classList.contains('journal-page-break')?'pagebreak':'scene',pid:el.getAttribute('data-pid'),idx:out.length,empty:false});return}
+    if(t==='FIGURE') { const figure = JournalElements.clean(el); if (figure) out.push({type:figure.classList.contains('journal-page-settings')?'layout':'element',html:figure.outerHTML,pid:el.getAttribute('data-pid'),idx:out.length,empty:false}); return; }
     if(t==='IMG')return;
     push({H1:'h1',H2:'h2',H3:'h2',H4:'h2',BLOCKQUOTE:'quote'}[t]||'p',el);
   });
@@ -1438,7 +1439,8 @@ function cbtnHTML(pid,n){
 }
 const wrapAttrs=b=>`${b.align?` data-align="${b.align}"`:''}${b.mbr!=null?` style="--mbr:${b.mbr.toFixed(2)}"`:''}${b.rtl?' data-rtl="1"':''}`;
 function blockHTML(b,counts,first){
-  if(b.type==='element') { const t = document.createElement('template'); t.innerHTML = b.html; const figure = JournalElements.clean(t.content.firstElementChild); if (!figure) return ''; figure.removeAttribute('contenteditable'); return figure.outerHTML; }
+  if(b.type==='pagebreak')return '<hr class="journal-page-break">';
+  if(b.type==='element' || b.type==='layout') { const t = document.createElement('template'); t.innerHTML = b.html; const figure = JournalElements.clean(t.content.firstElementChild); if (!figure) return ''; figure.removeAttribute('contenteditable'); return figure.outerHTML; }
   if(b.type==='scene')return`<div class="blk blk--scene" data-pid="${b.pid}"><div class="scene" role="separator" aria-hidden="true"><i></i></div></div>`;
   if(b.empty)return`<div class="blk blk--empty" data-pid="${b.pid}"${wrapAttrs(b)} aria-hidden="true"><p class="txt" dir="auto"><br></p></div>`;
   const inner=san(b.html),cb=cbtnHTML(b.pid,counts[b.pid]||0),dir=` dir="${b.dir}"`;
@@ -1529,7 +1531,7 @@ async function mountReader(r){
   if(token!==mountToken)return;
   if(err){app.innerHTML=stateHTML(c,'error');window.scrollTo(0,0);const h=$('#chTitle');h&&h.focus({preventScroll:true});return}
   await loadChapterComments(c.id);
-  const blocks=parseChapter(c.id,rec.published.html),counts=countsFor(c.id),big=blocks.length>200 && !blocks.some(b=>b.type==='element');
+  const blocks=parseChapter(c.id,rec.published.html),counts=countsFor(c.id),big=blocks.length>200 && !blocks.some(b=>b.type==='element'||b.type==='layout');
   usedFonts=new Set();
   const bodyHTML=renderBlocks(blocks,counts);
   loadScriptFonts(blocks.map(b=>b.text||'').join(' '));usedFonts.forEach(loadFont);
@@ -1541,13 +1543,14 @@ async function mountReader(r){
     </article></main></div>${commentsOn()?cpanelHTML()+'<div class="cscrim" id="cscrim" data-action="close-comments"></div>':''}</div>
     <button class="skip" data-action="skip">Skip to ${unitLabel(false,true)} text</button>`;
   document.title=`${STORY.single?STORY.title:unitLabel()+' '+c.number+': '+chName(c)+' — '+STORY.title}`;
+  JournalElements.hydrate($('#chBody'));
   R={id:c.id,token,c,blocks:$$('.blk',$('#chBody')),article:$('#article'),fill:$('#progFill'),bar:$('#progBar'),
      pct:0,shown:-1,done:chStatus(c.id)==='done',touched:false,saveT:null,doneT:null,io:null};
   window.scrollTo(0,0);
   let target=r.pid;
   if(!target){const p=data.progress[c.id];if(p&&!p.done&&p.pct>=.02&&p.pid)target=p.pid}
   if(target&&!R.blocks.some(b=>b.dataset.pid===target))target=null;   // paragraph no longer exists → start at the top
-  const firstPid=blocks.length?blocks[0].pid:null;
+  const firstPid=(blocks.find(b=>!['element','layout','pagebreak','scene'].includes(b.type))||{}).pid||null;
   data.position={chapterId:c.id,paragraphId:target||firstPid,ts:Date.now()};saveData();
   if(target)requestAnimationFrame(()=>{scrollToPid(target);updateScroll()});else updateScroll();
   if(target&&document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(R&&R.token===token&&!R.touched){scrollToPid(target);updateScroll()}});

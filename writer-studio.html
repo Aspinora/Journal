@@ -372,6 +372,7 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 </style>
 <link rel="stylesheet" href="/assets/elements.css">
 <script src="/assets/elements.js"></script>
+<script src="/assets/elements-editor.js"></script>
 </head>
 <body class="desk">
 <div id="app">
@@ -1334,10 +1335,10 @@ const Sanitize = {
     tag = this.MAP[tag] || tag;
     const kids = () => Array.from(node.childNodes).flatMap(c => this.clean(c, keepIds));
     if (!this.ALLOWED.has(tag)) return kids();
-    if (tag === 'figure') { const e = JournalElements.clean(node); if (e && !keepIds) e.removeAttribute('data-pid'); return e ? [e] : []; }
+    if (tag === 'figure' || (tag === 'span' && node.classList.contains('journal-element'))) { const e = JournalElements.clean(node); if (e && !keepIds) e.removeAttribute('data-pid'); return e ? [e] : []; }
     if (tag === 'img') return []; // only approved catalog elements are allowed
     if (tag === 'br') return [document.createElement('br')];
-    if (tag === 'hr') { const e = h('hr', { class: 'scene-break' }); const pid = node.getAttribute('data-pid'); if (keepIds && pid) e.setAttribute('data-pid', pid); return [e]; }
+    if (tag === 'hr') { const e = h('hr', { class: node.classList.contains('journal-page-break') ? 'journal-page-break' : 'scene-break' }); const pid = node.getAttribute('data-pid'); if (keepIds && pid) e.setAttribute('data-pid', pid); return [e]; }
     const el = document.createElement(tag), { css, fmt } = this.style(node);
     if (css) el.setAttribute('style', css);
     if (keepIds && node.getAttribute('data-pid') && /^(p|h1|h2|blockquote|li)$/.test(tag)) el.setAttribute('data-pid', node.getAttribute('data-pid'));
@@ -1379,8 +1380,8 @@ const Ed = {
     const old = this.el;
     const el = h('div', { id: 'editor', contenteditable: 'true', spellcheck: true, role: 'textbox', 'aria-multiline': 'true', 'aria-label': 'Chapter text', 'data-ph': 'Start writing…', autocapitalize: 'sentences', 'data-gramm': 'false' });
     el.addEventListener('input', e => this.onInput(e));
-    el.addEventListener('click', e => { const fig = e.target.closest('figure.journal-element'); if (fig) Elements.edit(fig); });
-    el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('figure.journal-element')) { e.preventDefault(); Elements.edit(e.target); } });
+    el.addEventListener('click', e => { const fig = e.target.closest('.journal-element'); if (fig) Elements.edit(fig); });
+    el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.journal-element')) { e.preventDefault(); Elements.edit(e.target); } });
     el.addEventListener('paste', e => this.onPaste(e));
     el.addEventListener('keydown', e => this.onKey(e));
     el.addEventListener('compositionstart', () => { this.composing = true; });
@@ -1391,7 +1392,7 @@ const Ed = {
     el.addEventListener('focus', () => { Gutter.update(); UI.onEditorFocus(); });
     el.addEventListener('blur', () => { if (this.dirtyFlag) Save.flush(); });
     if (old) old.replaceWith(el); else $('#editorWrap').prepend(el);
-    this.el = el; return el;
+    this.el = el; Elements.bind(el); return el;
   },
   async load(rec) {
     this.mount(); this.chapterId = rec.id; this.storyId = rec.storyId; this.saved = null; this.lastBlock = null;
@@ -1399,10 +1400,10 @@ const Ed = {
     this.el.append(Sanitize.toFragment(rec.html || '', { keepIds: true }));
     if (!this.el.firstChild) this.el.append(this.newBlock());
     this.seq = rec.pidSeq || 0; this.used = new Set(); this.normalizeAll();
-    this.dirtyFlag = false;
+    this.dirtyFlag = false; Elements.ensureIds(); Elements.syncLayout(); JournalElements.hydrate(this.el);
     this.updateCounts(); Gutter.reset();
   },
-  unload() { this.chapterId = null; if (this.el) this.el.replaceChildren(); },
+  unload() { Elements.clear(); this.chapterId = null; if (this.el) this.el.replaceChildren(); },
   newBlock() { const p = document.createElement('p'); p.append(document.createElement('br')); return p; },
   nextPid() { let id; do { this.seq++; id = 'paragraph_' + String(this.seq).padStart(3, '0'); } while (this.used.has(id)); this.used.add(id); return id; },
   isEmptyBlock: b => !b.textContent.replace(/\u200B/g, '').length && !b.querySelector('img,figure'),
@@ -1418,11 +1419,14 @@ const Ed = {
     }
     if (!el.firstChild) el.append(this.newBlock());
     if (el.lastElementChild && !/^(P|H1|H2|BLOCKQUOTE|UL|OL)$/.test(el.lastElementChild.tagName)) el.append(this.newBlock());
+    // Reserve existing IDs before assigning IDs to newly inserted decorations.
+    this.used = new Set(Array.from(el.querySelectorAll(BLOCK_SEL)).map(b=>b.getAttribute('data-pid')).filter(Boolean));
     const seen = new Set(); let prev = null;
     for (const b of el.querySelectorAll(BLOCK_SEL)) {
+      if (b.classList.contains('journal-page-settings')) continue;
       let pid = b.getAttribute('data-pid');
       if (b.tagName !== 'HR' && b.tagName !== 'FIGURE' && b.getAttribute('dir') !== 'rtl' && b.getAttribute('dir') !== 'ltr' && b.getAttribute('dir') !== 'auto') b.setAttribute('dir', 'auto');
-      if (b.tagName === 'HR' && !b.classList.contains('scene-break')) b.className = 'scene-break';
+      if (b.tagName === 'HR' && !b.classList.contains('scene-break') && !b.classList.contains('journal-page-break')) b.className = 'scene-break';
       if (b.tagName === 'FIGURE') { b.setAttribute('contenteditable', 'false'); if (b.classList.contains('journal-element')) { b.setAttribute('tabindex', '0'); b.setAttribute('aria-label', 'Edit ' + (b.querySelector('img')?.alt || 'element')); } }
       if (!pid || seen.has(pid)) {
         if (pid && prev && prev.getAttribute('data-pid') === pid && this.isEmptyBlock(prev) && !this.isEmptyBlock(b)) { prev.setAttribute('data-pid', this.freshPid(seen)); pid = b.getAttribute('data-pid'); }
@@ -1490,6 +1494,7 @@ const Ed = {
     this.needFix = hit ? 0 : this.needFix - 1;
   },
   onPaste(e) {
+    if (Elements.handlePaste(e)) return;
     e.preventDefault(); const cd = e.clipboardData; if (!cd) return;
     const html = cd.getData('text/html'), text = cd.getData('text/plain'); let out;
     if (html) {
@@ -1542,7 +1547,7 @@ const Ed = {
       case 'link': if (arg) { if (collapsed) document.execCommand('insertHTML', false, `<a href="${escHtml(arg)}">${escHtml(arg)}</a>`); else this.exec('createLink', arg); $$('a[href]', this.el).forEach(a => { a.setAttribute('rel', 'noopener noreferrer'); a.setAttribute('target', '_blank'); }); } break;
       case 'unlink': this.exec('unlink'); break;
     }
-    this.dirtyFlag = true; Save.dirty(); this.afterInput('format');
+    this.dirtyFlag = true; Save.dirty(); this.afterInput('format'); JournalElements.hydrate(this.el); Elements.draw();
   },
   setBlock(tag) {
     const cur = this.currentBlock(); if (!cur) return;
@@ -1590,7 +1595,10 @@ const Ed = {
   serialize() {
     this.normalizeAll();
     const copy = this.el.cloneNode(true);
-    copy.querySelectorAll('img').forEach(img => { if (!img.closest('figure.journal-element') || !JournalElements.safeSrc(img.getAttribute('src'))) img.removeAttribute('src'); });
+    copy.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(f => { const c=JournalElements.clean(f); if(c)f.replaceWith(c);else f.remove(); });
+    copy.querySelectorAll('[data-je-clear]').forEach(n=>n.removeAttribute('data-je-clear'));
+    copy.querySelectorAll('hr.journal-page-break').forEach(hr => hr.removeAttribute('style'));
+    copy.querySelectorAll('img').forEach(img => { if (!img.closest('.journal-element') || !JournalElements.safeSrc(img.getAttribute('src'))) img.removeAttribute('src'); });
     let html = copy.innerHTML.replace(/\u200B/g, '').replace(/\sclass="sel"/g, '');
     html = html.replace(/<span[^>]*><\/span>/g, '').replace(/<span[^>]*><\/span>/g, ''); return html;
   },
@@ -2216,58 +2224,8 @@ const Tools = {
     bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'), h('button', { class: 'ib', type: 'button', 'aria-label': 'Elements', title: 'Elements', onclick: e => Elements.open(e.currentTarget) }, '✦'));
   },
 };
-/* Catalog picker and edits use the editor's native undo stack. */
-const Elements = {
-  writable() { const f = App.story && Ed.chapterId && Model.find(App.story, Ed.chapterId); return !!(Ed.el && f && UI.mode !== 'preview' && !App.locked(f.chapter)); },
-  commit(html, figure) {
-    if (!this.writable()) return false;
-    Ed.restoreFocus();
-    const range = document.createRange();
-    if (figure) { if (!Ed.el.contains(figure)) return false; range.selectNode(figure); }
-    else { const block = Ed.topBlock(Ed.currentBlock()) || Ed.el.lastElementChild; if (block) range.setStartBefore(block); else range.selectNodeContents(Ed.el); range.collapse(true); }
-    const selection = getSelection(); selection.removeAllRanges(); selection.addRange(range);
-    const ok = document.execCommand('insertHTML', false, html);
-    if (ok) { Ed.normalizeAll(); Ed.saveSel(); Ed.dirtyFlag = true; Save.dirty(); Ed.afterInput('format'); }
-    return ok;
-  },
-  open(anchor) {
-    if (!this.writable()) return;
-    Ed.saveSel(); Dock.close();
-    const chapter = Ed.chapterId, grid = h('div', { class: 'elements-grid' });
-    const search = h('input', { class: 'inp', type: 'search', placeholder: 'Search elements or tags…', 'aria-label': 'Search elements' });
-    const render = () => {
-      const items = JournalElements.search(search.value);
-      grid.replaceChildren(...items.map(item => h('button', { class: 'element-card', type: 'button', onclick: () => {
-        if (Ed.chapterId !== chapter || !this.writable()) { Pop.close(); return; }
-        const fig = h('figure', { class: 'journal-element element-center', style: { width: '30%' } }, h('img', { src: item.url, alt: item.name }));
-        Pop.close(); if (!this.commit(JournalElements.clean(fig).outerHTML)) toast('Could not insert element. Try placing the cursor in a paragraph.');
-      } }, h('img', { src: item.url, alt: '', loading: 'lazy', draggable: false }), item.name)));
-      if (!items.length) grid.append(h('p', { class: 'muted', role: 'status' }, 'No matching elements.'));
-    };
-    search.addEventListener('input', render); render();
-    Pop.open(anchor, h('div', { class: 'elements-picker' }, h('div', { class: 'menu-h' }, 'Elements'), h('p', { class: 'small muted' }, 'Mock library · select to insert before the current paragraph. Click an inserted element to edit it.'), search, grid), { role: 'dialog', align: 'end' });
-  },
-  edit(figure) {
-    if (!this.writable()) return;
-    Ed.saveSel(); const chapter = Ed.chapterId;
-    let current = figure;
-    const width = h('input', { type: 'range', min: '10', max: '60', step: '1', value: parseFloat(figure.style.width) || 30, 'aria-label': 'Element width' });
-    const value = h('span', null, width.value + '%');
-    const align = selectEl([['left','Left'],['center','Center'],['right','Right']], figure.classList.contains('element-left') ? 'left' : figure.classList.contains('element-right') ? 'right' : 'center'); align.setAttribute('aria-label','Element placement');
-    const wrap = h('input', { type: 'checkbox', checked: figure.classList.contains('element-wrap'), 'aria-label': 'Wrap text' });
-    wrap.disabled = align.value === 'center';
-    width.addEventListener('input', () => { value.textContent = width.value + '%'; });
-    align.addEventListener('change', () => { wrap.disabled = align.value === 'center'; if (wrap.disabled) wrap.checked = false; });
-    const controls = h('div', { class: 'elements-picker' }, h('div', { class: 'menu-h' }, 'Edit element'), h('label', null, 'Width ', value, width), h('div', { class: 'elements-controls' }, align, h('label', null, wrap, ' Wrap text')),
-      h('div', { class: 'elements-controls' }, h('button', { class: 'btn sm primary', type: 'button', onclick: () => {
-        if (Ed.chapterId !== chapter || !Ed.el.contains(current)) { Pop.close(); return; }
-        const clone = current.cloneNode(true); clone.style.width = width.value + '%'; clone.className = 'journal-element element-'+align.value+(wrap.checked && !wrap.disabled ? ' element-wrap' : '');
-        Pop.close(); this.commit(JournalElements.clean(clone).outerHTML, current);
-      } }, 'Apply'), h('button', { class: 'btn sm', type: 'button', onclick: () => { Pop.close(); if (Ed.chapterId === chapter) this.commit('', current); } }, 'Remove')));
-    Pop.open(figure, controls, { role: 'dialog' });
-  }
-};
-
+/* Isolated decoration controls; no remote storage in this demo. */
+const Elements = JournalElementEditor.create({Ed,App,UI,Model,Save,Pop,h,selectEl,toast,noFocusSteal,getDock:()=>Dock});
 const Dock = {
   name: null, btns: {},
   toggle(n) { this.name === n ? this.close() : this.show(n); },
@@ -2328,7 +2286,7 @@ const Panel = {
 UI.setMode = function (m) {
   if (!Ed.chapterId || m === this.mode) return;
   const sc = $('#scroller');
-  if (m === 'preview') { Ed.saveSel(); this.scrollTop = sc.scrollTop; Pop.close(); Dock.close(); this.renderPreview(); $('#writeArea').hidden = true; $('#preview').hidden = false; }
+  if (m === 'preview') { Elements.clear(); Ed.saveSel(); this.scrollTop = sc.scrollTop; Pop.close(); Dock.close(); this.renderPreview(); $('#writeArea').hidden = true; $('#preview').hidden = false; }
   else { $('#preview').hidden = true; $('#writeArea').hidden = false; sc.scrollTop = this.scrollTop || 0; if (!this.portrait) Ed.restoreFocus(); }
   this.mode = m; document.body.classList.toggle('previewing', m === 'preview'); $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m))); this.syncCrumb();
   if (m === 'write') raf('pv', () => { this.syncToolbar(); });
