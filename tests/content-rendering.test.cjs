@@ -14,15 +14,13 @@ function setup(file) {
   const start=source.indexOf('function markdownToHtml(md)');
   const end=source.indexOf('\n  return html;\n}',start)+'\n  return html;\n}'.length;
   win.eval("function escapeHtml(s){return String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));} var esc=escapeHtml;" );
-  if(file!=='index.html'){
-    const inline=source.indexOf('function inlineMd(text)');
-    const inlineEnd=source.indexOf('\n}',inline)+2;
-    win.eval(source.slice(inline,inlineEnd));
-  }
+  const inline=source.indexOf('function inlineMd(text)');
+  const inlineEnd=source.indexOf('\n}',inline)+2;
+  win.eval(source.slice(inline,inlineEnd));
   win.eval(source.slice(start,end));
   return {win,render:s=>win.JournalContent.render(s,win.markdownToHtml),parse:s=>new win.DOMParser().parseFromString(s,'text/html').body};
 }
-for(const file of ['index.html','userpostlogin.html','reader-demo.html']) {
+for(const file of ['reader-demo.html']) {
  test(`${file}: Writer HTML becomes formatted paragraphs`,()=>{
   const {render,parse}=setup(file);
   const body=parse(render('<p data-pid="paragraph_002" dir="auto" style="text-align:center"><span style="font-size:17px;color:rgb(31, 32, 33)">Hello <b>world</b></span></p><p><br></p><p dir="rtl">ایک سطر</p>'));

@@ -56,7 +56,7 @@ for (const file of ['index.html', 'userpostlogin.html']) {
     const s = read(file);
     const i = s.indexOf('function navigateTo(');
     const head = s.slice(i, i + 1400);
-    const guard = head.indexOf("view === 'read' && params.journalId && params.journalId !== '__preview__'");
+    const guard = head.indexOf("view === 'read' && params.journalId");
     assert.ok(guard > -1, 'read intercept missing');
     assert.ok(head.indexOf('goToReader(', guard) > guard);
     assert.ok(head.indexOf("qsa('.view')") === -1 || head.indexOf("qsa('.view')") > guard, 'intercept must come before views change');

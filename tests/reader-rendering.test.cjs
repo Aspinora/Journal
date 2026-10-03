@@ -8,7 +8,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 
-const SANITIZER_PAGES = ['index.html', 'userpostlogin.html', 'reader-demo.html'];
+const SANITIZER_PAGES = ['reader-demo.html'];
 const SUPABASE_PAGES = ['admin_dashboard.html', 'index.html', 'portfolio.html', 'reader-demo.html',
   'reader-studio.html', 'thewall.html', 'usermessages.html', 'userpostlogin.html', 'writer-studio.html'];
 
@@ -26,7 +26,7 @@ for (const file of SANITIZER_PAGES) {
 }
 
 test('readers never feed a post body straight to markdownToHtml', () => {
-  for (const file of ['userpostlogin.html', 'reader-demo.html']) {
+  for (const file of ['reader-demo.html']) {
     const s = read(file);
     assert.doesNotMatch(s, /innerHTML\s*=\s*markdownToHtml\(/, `${file}: raw markdownToHtml into innerHTML`);
     assert.doesNotMatch(s, /['"]\s*\+\s*markdownToHtml\(/, `${file}: raw markdownToHtml in a template`);
@@ -52,4 +52,17 @@ test('config.js is the only place holding the URL, and holds no secret keys', ()
   assert.match(s, /SUPABASE_URL/);
   assert.match(s, /SUPABASE_ANON_KEY/);
   assert.equal(/service_role|secret/i.test(s.replace(/\/\*[\s\S]*?\*\//, '')), false, 'config.js must not hold secrets');
+});
+
+test('index.html has no in-page reader any more (guests read in reader-demo)', () => {
+  const s = read('index.html');
+  for (const gone of ['renderReadView', 'view-read', 'wireCommentEvents', 'markdownToHtml'])
+    assert.equal(s.includes(gone), false, `index.html still contains ${gone}`);
+});
+
+test('userpostlogin.html has no in-page reader or writing view any more', () => {
+  const s = read('userpostlogin.html');
+  for (const gone of ['renderReadView', 'renderWriteView', 'view-write', 'view-read', 'publish-modal', 'persistDraft',
+    'publishJournal', 'wireCommentEvents', 'markdownToHtml', 'JournalContent', 'is-reading'])
+    assert.equal(s.includes(gone), false, `userpostlogin.html still contains ${gone}`);
 });
