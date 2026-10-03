@@ -839,176 +839,21 @@ ${frame(800,1200,P.ink)}<rect width="800" height="1200" fill="url(#vg${u})"/><re
    (chapterId + paragraphId).
    ========================================================= */
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const md=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\*(.+?)\*/g,'<i>$1</i>');
-const pad2=n=>String(n).padStart(2,'0'),pad3=n=>String(n).padStart(3,'0');
+const pad3=n=>String(n).padStart(3,'0');
 const roman=n=>{const m=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];let s='';n=Math.max(1,n|0);for(const [v,c] of m)while(n>=v){s+=c;n-=v}return s};
-const plain=h=>{const t=document.createElement('template');t.innerHTML=h;return (t.content.textContent||'').replace(/\s+/g,' ').trim()};
 
-const TX={
-1:[
-`The letter came on a Tuesday, folded inside a bill from the water company, and Wren Alder almost threw it away with the rest. It was the handwriting that stopped her — narrow, upright, pressed so hard into the paper that the pen had nearly cut through. She had not seen it in eleven years, but her hand knew it before her mind did.`,
-`*Wren,* it began, and nothing else on that line. No apology, no *dear.* Her grandfather had never wasted words on the things people expected him to say. He had saved them, she used to think, for the sea, which was the only thing he ever seemed to want to talk to.`,
-`The office around her hummed with its usual afternoon business: printers, a radiator that knocked twice before it warmed, someone laughing at the far end of the floor. Wren sat very still in the middle of it, a cartographer’s pencil forgotten behind her ear, and read the first paragraph again.`,
-`The Harbour Board had voted. On the first night of winter, the lamp at Meridian would be put out for good, and no keeper would be appointed after him. *I thought you should hear it from someone who loves the thing,* he wrote, *rather than from the newspaper, which does not.*`,
-`She folded the page along its old creases, and unfolded it, and folded it again. Outside the window the city went about its grey business, four hundred miles from the nearest tide. By evening she had told herself twice that she would not go. By midnight she had stopped lying.`],
-2:[
-`Halvern sat on a river the colour of pewter, and every morning for nine years Wren had crossed it on the same tram, at the same hour, carrying the same maps. On the morning after the letter, she rode straight past her stop and got off at the bridge instead.`,
-`The water moved beneath her with a slow, thick purpose. It was going to the sea, she thought; everything here was, eventually. She had drawn that river a hundred times — every bend, every sandbar, every ferry landing — and had never once followed it to where the line ran out.`,
-`Her supervisor, Mr. Osei, took the news the way he took all news: by removing his glasses and cleaning them. “Winter is a strange time to visit the coast,” he said. “It is a stranger time to leave a job.” But he signed the leave form, and slid a small brass compass across the desk. “For accuracy,” he said.`,
-`She packed light: two coats, a folding rule, her pencils, and the letter. In the drawer beneath her bed she found the other thing she had not looked at in years — a photograph of a tall lighthouse with a child on its lowest step, squinting, gap-toothed, holding a jar of something that had once been alive.`,
-`That night the rain began, thin and persistent, and Wren lay awake listening to it drum on the roof of a city that had forgotten the sea. She did not know yet that she was listening to the first weather of a very long season.`],
-3:[
-`The last train west left Halvern at nine minutes past eleven, and it was nearly empty. Wren took a compartment to herself and sat with her bag upright on her knees, like a passenger who had not yet agreed to the journey. The platform slid away, and with it the only life she had ever mapped.`,
-`The conductor, a heavy man with a voice like a closing door, punched her ticket and studied the destination. “Meridian,” he said. “Haven’t punched one of those in a fortnight.” He said it without curiosity, the way a man reports the weather.`,
-`She read the letter again under the flickering lamp. There was a line on the back that she had missed, written small and slanted, as if added late: *Bring your instruments. The coast has moved, and no one has drawn it since I stopped being able to climb down.*`,
-`Somewhere past midnight the train began to climb, and the rhythm of the wheels slowed to something almost like breathing. She slept in pieces. In one dream she was nine again, counting stairs, and every time she reached the top there was one more.`],
-4:[
-`Dawn found her on the platform at Hollin Junction, where the night train ended and the coastal line began, and where a wind was already coming in off the sea like a rumour. The next connection, according to a chalkboard hung by a single chain, was delayed “owing to conditions.” No one on the platform seemed to think this unusual.`,
-`The rain arrived without preamble, sideways, and Wren discovered that her second-best coat was not a coat for this country. She was standing in the lee of the ticket office, calculating the cost of a cab, when an umbrella opened over her head with a soft mechanical cough.`,
-`“You’ll want to be somewhere drier than this,” said the man holding it. He was perhaps sixty, weathered as a fence post, with a canvas satchel and the calm manner of someone paid by the hour to be patient. “Jonah Pell. I keep the ferry at Merrow Cross, when there’s a ferry to keep.”`,
-`He did not ask where she was going. He looked instead at the folding rule sticking from her bag, and the pencil behind her ear, and something in his face rearranged itself. “Alder,” he said quietly. “You’d be the granddaughter. He said you might come. I told him he was a fool to hope it, and I’m glad he’s given me cause to be wrong.”`,
-`The coastal train came at last, rattling and forty minutes late. Jonah folded his umbrella, tipped it to her like a hat, and did not board. “Tell him Pell says the north shoals have shifted again,” he said. “He’ll know what it means. He always did.”`],
-5:[
-`The coastal line ran through the country of her work, and for the first hour Wren knew every feature of it: canals ruled straight as pencil lines, orchards in their ranks, pylons marching toward a horizon that had been surveyed before she was born.`,
-`Then the hills began to fold, and the map in her head stopped matching the world outside. She kept catching herself reaching for a scale bar, a north arrow, some reassurance that the ground beneath the train was accountable to someone.`,
-`A woman across the aisle offered her half a pear. “You’re going to the coast,” she said, not asking. “You’ve got the look. Everyone who goes in winter does — like you’re carrying something to return.” Wren said she was visiting family. The woman nodded slowly, as if that were a diagnosis.`,
-`By noon the sky had lowered into a single sheet of cloud, and the light took on a peculiar silver quality she associated with old photographs. At each small station the names on the platform signs grew shorter and stranger — Ost, Hallow, Merrow Cross — as though the language itself were being worn smooth by wind.`],
-6:[
-`She was asleep when the line crested its last hill; she woke only because the carriage fell quiet. Passengers had risen and turned toward the western windows like a congregation. Wren wiped the glass with her sleeve.`,
-`Far off, where the land gave out, lay a thin bright seam, and above it — small, precise, unmistakable — a single pale point of light. It pulsed once, held, and vanished, then came again with the patience of a heartbeat. She counted the interval without meaning to: eleven seconds.`,
-`She had not forgotten it, then. Eleven years of cities, and her body still kept the count. She thought of the child on the lowest step, jar in hand, and of a voice calling down the stairwell: *That’s the sea saying we’re still here, Wren.*`,
-`The train descended into Meridian through a cutting of black rock, and the light slid out of sight behind the roofs. At the platform, no one waited for her. The wind that met her carried salt and coal smoke and a cold so clean it felt like being forgiven. She stepped down anyway, and behind her, something quietly closed.`],
-7:[
-`Meridian was a town built by people who expected to be surprised. Its houses leaned inland, shoulders braced. Its streets ran downhill toward the harbour in narrow stone gullies, so that on wet days the whole town seemed to pour itself toward the water. It was raining, of course.`,
-`Wren followed the harbour road with her bag against her chest, past shuttered chandlers and a bakery already lit against the gloom. A boy in an oilskin watched her from a doorway with frank interest. “You’re the Keeper’s,” he said. She had not said anything to anyone. “Everyone knows. It’s a small town.”`,
-`The lamp was visible from everywhere — she had forgotten that. It stood on the western headland, a white tower banded in red, and even in daylight its glass caught the grey and held it. Beneath it the cliff fell sheer to a churn of black water. She looked at it for a long moment and then made herself look at something else.`,
-`At the harbour office, a clerk with an ink-stained cuff informed her that the Harbour Board met on Thursdays, that the matter of the lamp was “settled in principle,” and that visitors to the headland required a permit. “Which I’m afraid,” he said, “only the Keeper can sign.” Wren almost laughed. “Then I know where to start.”`],
-8:[
-`The cottage stood at the foot of the headland path with its back to the wind: whitewashed, low, its windows small and deep like the eyes of a patient animal. Smoke rose from the chimney in a thin line. Someone was alive inside, then. She had not let herself be sure.`,
-`The door opened before she could knock. Tobias Alder was smaller than she remembered — the years had planed him down — but the eyes were exactly the same, pale and unblinking as tide pools. “You’re late,” he said. “Not by much. By about eleven years.”`,
-`She had rehearsed a dozen speeches on the train and they all deserted her at once. He stepped aside, and the warmth of a peat fire and boiled tea came out to meet her. On the mantel sat a row of brass lamp-parts, cleaned and labelled, and a barometer whose needle trembled toward *Change.*`,
-`They did not speak of the past. They spoke, instead, of the lamp: of its Fresnel lens, ground in Paris the year the tower was raised; of the clockwork that turned it, and the weights that must be wound every four hours through the night. “Someone has to climb,” he said. “I can’t any longer. My knees have opinions.”`,
-`Later, alone in her mother’s old room, Wren set Mr. Osei’s brass compass on the windowsill and watched the needle swing and settle. It pointed, unmistakably, not north but a few degrees west of it — toward the tower. She told herself it was the iron in the cliff.`],
-9:[
-`The logbooks were kept in the tower’s lowest room, in oak cabinets that smelled of lamp oil and old rain. Two hundred and eleven years of nights, each recorded in the keeper’s own hand: weather, visibility, ships sighted, hours of burn. Wren opened the first volume and felt the specific vertigo of a cartographer given a primary source.`,
-`Her grandfather’s entries were spare. *Wind SW, fresh. Fog after midnight. Lamp lit 4:52. Two coasters, one trawler.* Nothing more. But in the margins, over years, she began to find small notations in pencil — numbers, bearings, tidal figures — that did not belong in any keeper’s ledger.`,
-`She spread them on the table and, by the second night, she had translated them into a chart. It was crude, and it was terrifying. The shoals off the north headland, drawn on every official map as a stable bar, had been migrating half a cable a year toward the shipping channel. The Board’s charts were twenty years out of date.`,
-`“Nobody wants to know,” her grandfather said from the doorway. He had climbed, after all — as far as the first landing — and was gripping the rail, grey with effort. “The light shows ships where the rocks are. If the rocks have moved, someone must say so. But if you say so, they’ll ask who’s to pay. And the answer, always, is that no one will.”`],
-10:[
-`The Harbour Board met in a room above the fish market, under a portrait of a founder who looked as though he had never once been wet. Nine members sat at a horseshoe of tables. Wren sat in the public gallery, three rows of folding chairs, with a rolled chart across her knees like a weapon.`,
-`The chairwoman, Adelheid Crane, spoke with the smooth economy of someone who had chaired a hundred such evenings. The lamp, she explained, cost eleven thousand pounds a year to maintain. Modern beacons cost a fraction. The vote, she said gently, was a formality; the resolution would stand.`,
-`Wren rose before she could reconsider. She unrolled the chart across the nearest table, weighted it with a teacup and a stapler, and explained the shoals. She spoke for six minutes. She was aware that she was shaking, and aware that she was not stopping.`,
-`When she had finished there was a silence in which the rain could be heard on the roof. Then Crane smiled, thinly, as at a talented child. “A remarkable piece of draughtsmanship, Miss Alder. Independent verification will, of course, be required.” She said *independent* the way other people say *impossible.*`,
-`Afterwards, on the stairs, a man in a good grey coat caught her elbow. “Be careful whose charts you contradict,” he murmured — and was gone into the fish-smelling dark before she could see his face.`],
-11:[
-`It was three days later, on the wettest night of the season, that the coaster *Calloway* struck the northern shoals. Wren was in the tower when the maroons went up — two short reports, a pause, two more — and she felt the sound in her breastbone before she understood what it meant.`,
-`The town poured down to the harbour in oilskins and lanterns. The lifeboat went out with eight men at the oars and Jonah Pell, who had come from Merrow Cross at the first rumour, steering. Wren stood on the slipway with her chart soaked to pulp in her hands, knowing precisely where the ship had gone aground, and precisely how long it had been known.`,
-`They brought thirteen people ashore. Two were not brought back at all. The *Calloway’s* captain sat wrapped in a blanket on the harbour steps, staring at his own hands, and when Wren crouched beside him he said, in a voice scraped raw, “The light was out. For a minute. Maybe two. I swear it, miss, it went dark.”`,
-`She looked up at the headland. The tower stood against the storm, dim, its beam sweeping steadily. It had not gone out; she had watched it. But she did not say so. She only put her hand on the man’s shoulder and thought of eleven seconds — of an interval that had, at some point that night, stretched.`],
-12:[
-`In the morning she climbed the tower for the first time in eleven years. Two hundred and eleven steps, each worn into a shallow dish at its centre by two centuries of keepers’ boots. By the hundredth she was counting aloud. By the hundred and fiftieth she had stopped, because her breath was needed for the stairs.`,
-`The lamp room was smaller than memory had made it, and stranger: a cage of glass and brass with the great lens standing at its heart like a captured star. Everything was polished. Everything, she saw, had been polished by someone who could no longer easily reach it, and had done it anyway.`,
-`It took her an hour to find the fault. A worn gear in the clockwork, its teeth ground down on one side, was slipping every few hundred rotations — a hesitation almost too brief to see. The light did not fail; it stumbled. For the length of a held breath it stood still, and that was long enough to lose a ship.`,
-`There was no spare. There had been no spare for years, and she found the requisitions, each in her grandfather’s hand, each returned from the Board with the same stamp: *Not Approved — Structure Scheduled for Decommission.* She sat in the sunless glass room and read them all, and understood what the winter would be.`],
-14:[
-`There were people on the stairs. That was the first thing Wren understood, at dusk on the second-to-last day: that they had begun to come, one by one, in ones and twos, the way people go to a bedside. The baker’s widow with a tin of shortbread. A pair of old trawlermen who wouldn’t meet her eyes. Children, whose parents let them climb.`,
-`She stopped trying to turn them away. Her grandfather received them in the lamp room, in a chair carried up by four men who would not be thanked. He told each of them the same thing — that a light is not a machine but a promise — and each of them nodded, and looked at the lens, and went down changed by something they could not have said.`,
-`Jonah Pell arrived last, soaked to the bone, carrying under his coat a gear: brass, the width of a saucer, teeth new and sharp. “Made it in my shed,” he said gruffly. “Off your grandfather’s old drawings. I’ve not slept. It might fit. It might not.”`,
-`She held it to the lamp. It fit — almost. A hair too tight, a whisper too proud, but with a file and an hour it would seat. She turned to look at the room full of people, and the old man in his chair, and the dusk settling like ash on the glass, and said, “Everyone out. I need the room to work.”`],
-15:[
-`It was past midnight before the gear was seated, and she sat back on her heels with oil to the elbows and the great lens turning above her without a hitch. Her grandfather watched from his chair with an expression she couldn’t read. “Now,” he said. “I’ll tell you why I wrote.”`,
-`He had known about the shoals for a decade. He had known, too, that the Board’s engineers had seen his margin-notes and quietly filed them, because a moving shoal meant an expensive channel, and an expensive channel meant the harbour would not survive its own bills. It was cheaper to close the light than to admit what it had been warning them about.`,
-`“I couldn’t prove it,” he said. “I’m a keeper. I keep a lamp. But you draw things, Wren, and drawings can be believed in a way an old man’s grumbling can’t. I thought — I hoped — you might finish what I started.” He was quiet for a while. “I was wrong to wait so long. I was afraid you’d say no.”`,
-`She did not say yes. She took the pencil from behind her ear and turned to a clean page in the logbook, and in her grandfather’s tower, in the small hours, began to draw the coast as it truly was.`],
-16:[
-`The last storm of the season came out of the south-west on the final night, and it came with a purpose. By evening the sea had gone the colour of slate, and the waves were breaking clean over the harbour wall. Every boat in Meridian was tied down twice. Every door was barred. Only the lamp burned.`,
-`From the gallery outside the lamp room, Wren could see the whole shape of the weather. Two ships were out there in the dark — a fishing smack that had misjudged the tide, and, behind it, a big grey freighter riding low, whose captain had not heard about the northern shoals because no one had ever been made to tell him.`,
-`She radioed the harbour office and got the clerk, who said, in a thin high voice, that the Board had gone home. She radioed the freighter and got static. She stood with the handset in her hand and understood that this was the entire remaining inventory of her options: a lamp, a chart, and eleven seconds.`,
-`“The gear will hold,” her grandfather said behind her. He had come up the last flight on his own — all two hundred and eleven steps — and stood swaying in the doorway, lit gold by the lens. “But it needs turning by hand, if you want more than the beam. If you want to *speak.*”`],
-17:[
-`They took turns at the shutter. The old man knew the code as he knew his own pulse, and taught it to her in the space of a single breath — dot, dash, the long shudder of the bar — and she flashed it out over the heaving water: DANGER. SHOAL. TURN WEST. The freighter did not answer.`,
-`She sent it again. And again. Her fingers cramped; her grandfather’s voice steadied her, counting the beat. Down in the harbour, lights began to come on one by one, windows kindling along the hillside, until the whole town seemed to be lit in solidarity — and then, unbidden, lanterns began to climb the path.`,
-`Jonah Pell was first at the tower door, with a dozen trawlermen behind him and a searchlight from the lifeboat house. Together they carried it up the stairs, all of them, two hundred and eleven steps, and bolted it to the gallery rail. Now there were two lights, pointing out over the water, saying the same thing.`,
-`At ten minutes past four in the morning, a small green light on the freighter’s bridge blinked twice. Then the great grey shape swung — slowly, enormously, like a door on a hinge — and turned its bow west, toward deep water, and passed the northern shoals by the length of a church.`],
-18:[
-`Dawn came up over Meridian the colour of a pearl. The sea lay flat and exhausted; the wind had died to a whisper. On the harbour steps, people sat wrapped in blankets and each other’s coats, saying nothing, watching the empty water where the freighter had been. No one wanted to be the first to go home.`,
-`Adelheid Crane arrived at seven, in the same good grey coat Wren had seen on the stairs, though now it was wet and rumpled. She stood at the bottom of the headland path for a long time. When Wren came down she did not look like a chairwoman at all. “I’ve read your chart,” she said. “Every line. There is a great deal to be done.”`,
-`The Board reversed its vote the following Thursday, by a margin of eight to one. The lamp would not go dark. The channel would be surveyed and the shoals properly marked. A new keeper would be appointed — not immediately, not without process, but the process had begun. Wren, when asked her opinion, said only that the gear would need replacing.`,
-`Her grandfather died in the spring, quietly, in his chair at the lamp-room window with the sun on the lens. They buried him on the headland, and every keeper’s descendant in town climbed the hill to see it done. That evening, at the hour of sunset, someone had to light the lamp. It took Wren a moment to realise it was her.`,
-`She climbed the two hundred and eleven steps without counting. At the top she wound the weights and struck the match, and the great lens took the flame and made of it a star. Out over the water, eleven seconds later, the beam swung round again. *We’re still here,* it said to the sea. And, for the first time in a very long while, the sea seemed to answer.`]
-};
 
 /* ---------- Block list → the Writing Studio's saved HTML ---------- */
-function toHtml(blocks){
-  let n=0;const pid=()=>'paragraph_'+pad3(++n);
-  const st=o=>o&&o.align?` style="text-align:${o.align}"`:'';
-  return blocks.map(([t,x,o])=>{
-    if(t==='hr')return`<hr class="scene-break" data-pid="${pid()}">`;
-    if(t==='ul'||t==='ol')return`<${t}>${x.map(i=>`<li data-pid="${pid()}" dir="auto">${i}</li>`).join('')}</${t}>`;
-    const tag={p:'p',h1:'h1',h2:'h2',quote:'blockquote'}[t];
-    return`<${tag} data-pid="${pid()}" dir="auto"${st(o)}>${x}</${tag}>`;
-  }).join('');
-}
 
 /* Chapter 13 — rich-text showcase: bold, italic, underline, strike, link, font, size, colour,
    highlight, headings, quote, both list types, scene breaks and all four alignments. */
-const B13=[
-['p',`There is a particular quality of light in the hour before a season ends. Wren had noticed it in the cartographer’s studio for years — the way late afternoons thicken and go amber, as though the day were being poured slowly into a glass. Here, on the headland, it was almost unbearable.`],
-['p',`The notice had been nailed to the cottage door that morning, on cream paper, in the Board’s careful type. <b><span style="font-family: &quot;Playfair Display&quot;, serif;">By order of the Harbour Board,</span></b> it read, <i>the lamp at Meridian will be extinguished at sunset on the first day of winter, and the structure secured.</i> Below, in smaller print, a single sentence thanked Mr. T. Alder for his long service. A leaflet from <a href="https://example.org/meridian-light-trust" rel="noopener noreferrer" target="_blank">the Meridian Light Trust</a> had been pinned beneath it, offering “support and advice” for what it called the transition.`],
-['p',`Her grandfather had read it twice, folded it into quarters, and used it to light the stove.`],
-['p',`He cooked that evening, which he did rarely and badly. There was a fish stew, <s>ambitious</s> <u>honest</u>, in a pot older than she was; bread that had chosen its own shape; and a bottle of something amber and cloudy that he described only as <i>from the good years.</i> They ate at the table by the window, with the lamp’s slow beam crossing the glass every eleven seconds like a hand passing over a face.`],
-['quote',`A keeper’s first duty is not to the ships. It is to the <i>next</i> keeper. The ships you may never see; the next keeper you will spend your life preparing for.<br>— Ambrose Marrin, first keeper of Meridian, 1815`],
-['p',`“That’s from the flyleaf of the first log,” Tobias said. “Marrin wrote it in his first winter. I used to read it aloud to your mother when she was small. She hated it.”`],
-['p',`“Why?” Wren asked. He turned the bottle a quarter turn on the cloth. “Because she understood it,” he said. “That is the terrible thing about it.”`],
-['p',`“You never wrote back,” Wren said, when the stew was gone. It was not what she had meant to say. It was simply the thing that had been waiting longest.`],
-['p',`Tobias turned his glass in his fingers. “I wrote eleven letters,” he said. “One a year, on your birthday. I never posted them. I told myself you would come back when you were ready, and that a letter would only rush you.” He smiled faintly at his own folly. “A keeper should know better. A light does not wait for ships to be ready. It simply shines.”`],
-['p',`She looked at the wax-spotted cloth, at his hands with their knotted, careful knuckles. “I would have read them,” she said. “Every one.” “I know,” he said. “That was the trouble. I knew.”`],
-['hr'],
-['h2',`Inventory of a Life`],
-['ul',[`One <b>first-order Fresnel lens</b>, ground in Paris, 1814`,`Three brass weights, each wound every four hours through the night`,`Two hundred and eleven steps, worn unevenly by two centuries of boots`,`A logbook for every year since the first, in the keepers’ own hands`]],
-['p',`Wren made her own list that night, in pencil, at the back of her notebook. She did not show it to him. She knew what he would say about it — that a list was only a map of what you were afraid to forget.`],
-['ol',[`Photograph every page of the logbooks, especially the margins.`,`Copy the shoal charts twice: once for the Board, once for herself.`,`Find out who signed the requisitions — and who stopped them.`,`Ask him about her mother, <span style="color: rgb(180, 83, 42); font-size: 22px;">before</span> the first day of winter.`]],
-['p',`She had always believed that maps were arguments against the unknown: a way of saying <i>here, and here, and here,</i> and refusing the dark between. But the lamp made a different argument. It did not claim the water. It only said, once every eleven seconds, that <span style="background-color: rgb(243, 217, 122);">somebody was awake</span> — that whoever was out there in the black was not entirely alone. She thought of her grandfather, who had kept that argument going for forty years without once being asked to, and she felt something she could not draw: <span style="color: #8C3B1F;">the shape of a debt.</span>`,{align:'justify'}],
-['p',`<span style="font-size: 21px;"><i>Eleven seconds between one heartbeat of the light and the next.</i></span>`,{align:'center'}],
-['p',`<i>— from Wren’s notebook, that night</i>`,{align:'right'}],
-['hr'],
-['h1',`After Midnight`,{align:'center'}],
-['p',`She could not sleep. At a quarter past midnight she pulled on both coats and climbed the tower, one hand on the cold rail, the other holding a torch she did not need. The lamp room was warm with the breath of the flame, and the great lens turned above her, unhurried, sorting the dark into light and not-light.`],
-['p',`In the lowest cabinet, beneath the logbooks for the years she had missed, she found something that did not belong: a small blue envelope, unsealed, softened with handling. On the front, in a hand she had last seen on a birthday card, was a single word. <i>Wren.</i>`],
-['p',`She did not open it. Not yet. She sat on the cold iron floor with the envelope pressed between her palms and watched the light go round, and round, and round, and thought that a person could spend a lifetime learning how to leave a thing, and still not know how to be left.`]
-];
 
 /* ---------- Images table (coverImageId → image) ---------- */
 const IMG={img_story:{art:'story'},img_v1:{art:'vol1'},img_v2:{art:'vol2'},img_v3:{art:'vol3'}};
 const PROFILES={u_ilse:{id:'u_ilse',name:'Ilse Varrow'}};
 
 /* ---------- Work: volumes → (direct chapters | parts → chapters) ---------- */
-const NOW0=Date.now(),CHAPTERS={};
-const wcHtml=h=>plain(h).split(/\s+/).filter(Boolean).length;
-function mkCh(title,n,draft){
-  const id='ch'+pad2(n),blocks=n===13?B13:TX[n]?TX[n].map(t=>['p',md(t)]):[['p','An unfinished scene, still in draft.']];
-  const html=toHtml(blocks),wc=wcHtml(html),at=NOW0-(40-n)*864e5;
-  CHAPTERS[id]={id,storyId:'story_meridian',html,pidSeq:(html.match(/data-pid=/g)||[]).length,wordCount:wc,updatedAt:NOW0,published:draft?null:{html,at,title}};
-  return{id,number:n,title,status:draft?'draft':'published',wordCount:wc,updatedAt:NOW0,publishedAt:draft?null:at};
-}
-const DEF=[
-{title:'The Beginning',desc:`A letter arrives in a city that has forgotten the sea. Wren Alder leaves the life she has drawn for herself to answer a grandfather she has not seen in eleven years — and a light she has never quite stopped counting.`,
- parts:[{title:'Before the Storm',ch:[['The Letter',1],['Across the River',2],['The Night Train',3]]},{title:'The Road West',ch:[['A Stranger’s Umbrella',4],['The Salt Road',5],['First Sight of the Sea',6]]}]},
-{title:'The Long Dark',desc:`Meridian keeps its lights low and its secrets lower. As the autumn storms close in, Wren learns why the great lamp has begun to stumble — and who has been counting on it to fail.`,
- parts:[{title:'The Harbour Town',ch:[['Meridian in Rain',7],['The Keeper’s Cottage',8],['What the Logbooks Kept',9]]},{title:'Salt and Iron',ch:[['The Council Meets',10],['The Wreck of the Calloway',11],['The Lamp Fails',12]]}]},
-{title:'The Last Light',desc:`One night remains before the lamp is put out for good. What Wren finds in the tower will decide whether Meridian is remembered for its light, or for the dark it chose.`,
- direct:[['The Last Evening',13]],
- parts:[{title:'The Keeper’s Tower',ch:[['Two Hundred and Eleven Steps',14],['What Tobias Knew',15]]},{title:'Dawn',ch:[['The Storm Turns',16],['Lamp and Lens',17],['The Morning Tide',18],['Epilogue',19,true]]}]}
-];
-const WORK={
-  id:'story_meridian',kind:'story',structure:null,visibility:'public',allowImpressions:true,ownerId:'u_ilse',
-  title:'The Last Light of Meridian',
-  description:`For two hundred years the lamp at Meridian has burned every night without fail. When the Harbour Board votes to put it out, Wren Alder — a cartographer who has spent her life avoiding the coast — receives a letter from the grandfather who kept it. Over one hard winter she must decide what a light is worth, and what she owes the people it has always guided home.`,
-  category:'Adventure',tags:['lighthouse','sea','family','mystery'],status:'ongoing',coverImageId:'img_story',
-  volumes:DEF.map((d,i)=>({id:'vol'+(i+1),number:i+1,title:d.title,description:d.desc,status:'published',coverImageId:'img_v'+(i+1),
-    chapters:(d.direct||[]).map(([t,n])=>mkCh(t,n)),
-    parts:d.parts.map((p,j)=>({id:`part${i+1}_${j+1}`,number:j+1,title:p.title,description:'',chapters:p.ch.map(([t,n,dr])=>mkCh(t,n,dr))}))}))
-};
+const CHAPTERS={};
 
 /* ---------- Demo people & seeded comments (reader-side data, separate from the work) ---------- */
 let ME={id:null,name:'Reader',handle:'',avatarUrl:null};
@@ -1022,33 +867,6 @@ const USERS={
   u_petra:{id:'u_petra',name:'Petra Nowak',handle:'petranowak'},
   u_callum:{id:'u_callum',name:'Callum Ash',handle:'callumash'}
 };
-function seedComments(now){
-  const H=3600e3;
-  const C=(id,chapterId,paragraphId,parent,user,body,likes,ago)=>({id,chapterId,paragraphId,parent,user,body,likes,ts:now-ago*H});
-  return [
-    C('cm_001','ch13','paragraph_002',null,'u_marg',`“In the Board’s careful type” — there’s no villain here, just paperwork. That’s what makes it so cruel. Nobody ever has to raise their voice to close a lighthouse.`,12,52),
-    C('cm_002','ch13','paragraph_002','cm_001','u_elias',`And the thank-you line at the bottom! Somehow worse than an insult.`,7,47),
-    C('cm_003','ch13','paragraph_002',null,'u_dara',`The Trust leaflet offering “support and advice for the transition” made me laugh out loud, and then feel awful about it.`,4,30),
-    C('cm_004','ch13','paragraph_004',null,'u_dara',`“Ambitious” crossed out for “honest.” I love how much of Wren’s voice lives inside a single strikethrough.`,5,26),
-    C('cm_005','ch13','paragraph_005',null,'u_elias',`This is the whole book in three sentences. “The ships you may never see; the next keeper you will spend your life preparing for.”`,18,30),
-    C('cm_006','ch13','paragraph_005','cm_005','u_petra',`Rereading Volume I with this in mind changes everything about why Tobias wrote that letter.`,9,22),
-    C('cm_007','ch13','paragraph_005','cm_005','u_me',`Agreed — and “the next keeper” is doing so much work here. It could just as easily be Wren.`,3,6),
-    C('cm_008','ch13','paragraph_005',null,'u_callum',`Wait, Marrin is the first keeper? I completely missed that in Volume II.`,2,14),
-    C('cm_009','ch13','paragraph_009',null,'u_ines',`I had to put my phone down after this. A man who writes eleven letters and posts none is a man who mistook waiting for love, and then mistook love for safety. What breaks me is that he says it so gently, like he’s describing the weather. And the line about the light not waiting for ships to be ready… I’ve been that ship. I’ve also been that light. I suspect most of us are both.`,21,40),
-    C('cm_010','ch13','paragraph_009','cm_009','u_marg',`Yes. And the quiet tragedy is that Wren has been doing the same thing for eleven years, just from the other end.`,8,33),
-    C('cm_011','ch13','paragraph_009',null,'u_me',`“It simply shines.” I keep reading that line out loud.`,6,5),
-    C('cm_012','ch13','paragraph_014',null,'u_toby',`Reading this inventory like a eulogy. “Wound every four hours through the night” — that’s a whole life.`,5,20),
-    C('cm_013','ch13','paragraph_023',null,'u_toby',`I counted while reading. It really is eleven.`,4,18),
-    C('cm_014','ch13','paragraph_023',null,'u_petra',`Chills, every single time this comes back.`,6,9),
-    C('cm_015','ch13','paragraph_028',null,'u_callum',`NO. Do not stop here. Absolutely not.`,14,12),
-    C('cm_016','ch13','paragraph_028','cm_015','u_elias',`The cliffhanger is cruel and I respect it.`,3,10),
-    C('cm_017','ch13','paragraph_028',null,'u_marg',`Whose handwriting is it, though? “A hand she had last seen on a birthday card” — surely her mother’s?`,9,8),
-    /* same paragraph ids as chapter 13 on purpose: comments are scoped to the chapter, never to the id alone */
-    C('cm_018','ch01','paragraph_004',null,'u_ines',`“From someone who loves the thing, rather than from the newspaper, which does not.” Tobias in a single sentence.`,11,140),
-    C('cm_019','ch01','paragraph_004',null,'u_dara',`The quiet dryness of his voice is already so vivid on page one.`,3,120),
-    C('cm_020','ch12','paragraph_003',null,'u_toby',`A gear that stumbles for the length of a held breath. That is such a precise, terrifying image.`,7,70)
-  ];
-}
 
 /* =========================================================
    SECOND DEMO STORY — "The Clockmaker of Halcyon Row"
@@ -1062,115 +880,8 @@ Object.assign(IMG,{
 });
 PROFILES.u_cassian={id:'u_cassian',name:'Cassian Vale'};
 
-const TX2={
-1:[
-`The great clock of Verrin stopped at seventeen minutes past four, on a Thursday morning in the last week of October, and nobody in the city noticed for almost an hour. Bakers went on baking by feel. Ferrymen went on ferrying by the tide. Only the clockmakers of Halcyon Row woke, all at once, as if a hand had closed around the same thought.`,
-`Isolde Fenn was seventeen and asleep above the shop when the silence woke her. It was not an absence of sound so much as an absence of pattern: the forty-one clocks downstairs had all begun to tick a little out of step, the way a choir falters when its conductor collapses. She lay still, counting, and reached eleven before she understood what was wrong.`,
-`Master Corrow’s chair was empty. His spectacles lay folded on the bench beside a half-finished watch, and his coat still hung on its peg, which was strange, because the old man had not gone anywhere without that coat in the forty years she had known him. She called his name once. The clocks, in their small disordered chorus, answered for him.`,
-`By the time the sun came up over the river, the whole Row had gathered in the street in their nightclothes, looking up at the tower of the Guildhall, where the great clock’s hands stood together at seventeen past four, like two fingers held to a lip. Nobody spoke. Somewhere a shutter banged. A child asked what time it was, and for the first time in living memory no one could say.`],
-3:[
-`Inside the case lay a single watch, plain as a pebble and warm as a hand. Its face had no numerals, only a ring of small dark holes, and its second hand moved backward, gathering seconds up instead of spending them. Isolde held it to her ear. It was not ticking. It was listening.`,
-`She should have closed the lid. Every instinct the master had drilled into her said so. Instead she found herself reaching for the loupe, then the tiny screwdriver, then the notebook in which Corrow had recorded every job for forty years. Under the last entry, dated the night before, three words had been written in an unsteady hand: *It has begun.*`,
-`The bell above the door rang. A woman stood there in a grey coat too heavy for the season, holding an umbrella that had plainly never been opened. She looked at the open case, and at the watch, and at Isolde, and for a moment her face held the expression of someone who has been running for a very long time and has just been told she may stop. “Who cut the thread?” she asked.`,
-`“I did.” Isolde did not know why she said it so steadily. “Then you had better close the shop,” said the woman, “and put the kettle on. We have about nine minutes, and after that I am afraid the story becomes rather more difficult to tell.”`],
-4:[
-`Her name, she said, was Perrin Quill, and she had been a Warden of the Guild of Hours until the previous winter, when she had discovered what the Guild was actually guarding. She did not say what that was. She looked at the kettle as though it might be listening.`,
-`The water boiled. Isolde poured, hands not quite steady. Quill drank hers standing, watching the street through the window, where the neighbours still loitered beneath the stopped tower. “Time in Verrin is not what you think,” she said. “It is rationed. Every clock in the city draws from a common store, laid down two hundred years ago by people who believed it would last for ever.”`,
-`“And it hasn’t?” “It has been running low for a decade. The Guild hid that by slowing the tower a little each year, a minute here, a minute there, so that no one noticed the days growing shorter. Ansel Corrow noticed. He was the only one who kept a true accounting, and last night he took it to the Guildhall to make them stop.”`,
-`Isolde set down her cup. “And the tower stopped.” “The tower stopped,” said Quill gently, “because there was nothing left to run it. And your master has not come back because he stayed behind to hold the last of it in his own two hands.”`],
-5:[
-`The watch in the black case, Quill explained, was a reserve: one minute, sealed by Corrow decades ago, never spent, never lent, never entered in any ledger. A minute that belonged to nobody. “Which makes it,” she said, “the most valuable object in Verrin, and the only thing the Guild cannot account for.”`,
-`Isolde turned it over. The backward second hand ticked once, delicately, and the light in the shop seemed to lean toward it, the way a room leans toward a fire. Forty-one clocks fell silent. It was not frightening. It was more like being noticed by something that had been patient for a very long time.`,
-`“If I wind it,” she said, “what happens?” “A minute happens.” Quill smiled without warmth. “One minute in which nothing anywhere in Verrin is late. Long enough, perhaps, to walk into a stopped tower and start it again. Not long enough, I think, to walk out.” Outside, the Row began, one door at a time, to close its shutters.`,
-`Isolde hung the master’s coat on her own peg, pinned the watch inside her waistcoat, and chalked one more line beneath the rules: *Never leave a job half done.* Then she went to find the stair that Corrow had always said did not exist.`],
-6:[
-`It was behind the shelf of stopped pocket-watches, exactly where a careful person would never think to look, and it went down for far longer than the building above had any right to be tall. The steps were worn into shallow dishes. Isolde counted them out of habit and lost the number at two hundred, when the air began to smell of oil and cold iron.`,
-`The walls sweated. Somewhere below, something enormous turned with a sound like a slow, deep breath, and the light of her lantern, when it fell on the stone, seemed to arrive a moment late, as though even light had to queue. Quill followed a few steps behind, silent, her closed umbrella tapping every seventh stair.`,
-`“Nobody comes down here,” Quill said. “The Guild believes the works are automatic. They are not. They are kept.” “By whom?” “By whoever is still willing to.” A door of green-black bronze appeared in the lantern-light, taller than a house, its surface crowded with tiny engraved dials, each stopped at a different hour. Isolde put her palm against it and felt the metal hum.`,
-`It opened before she pushed. On the other side, the dark was full of small, patient lights.`],
-7:[
-`Beneath Verrin there was another Verrin, and it was made entirely of clockwork. Streets of brass rail wound between towers of interlocking wheels, each as wide as a market square, turning against one another so slowly that whole minutes passed between one tooth and the next. Lamps burned in their hubs. Small figures crossed the bridges between them, carrying oilcans and lanterns.`,
-`They were the Winders: hundreds of them, gaunt, grey-handed, older than they looked, who had tended the city’s time for generations and were paid, Quill said, in the only currency the Guild would spare them: a little extra of it. Nobody up above had ever asked who kept the seconds turning. Nobody had ever thought the seconds needed keeping.`,
-`A girl no older than Isolde met them on the third bridge, wiping her palms on an apron black with grease. “You’re the one with the spare,” she said, and it was not a question. “I’m Wick. Master Corrow came through an hour before the tower failed. He left something for you at the Long Wheel. He said you’d be either very clever or very foolish, and that it would come to the same thing.”`,
-`The Long Wheel turned at the centre of the city, wider than the cathedral above it, and at its rim, chained to a spoke, stood a small brass automaton with Ansel Corrow’s spectacles balanced on its nose.`],
-8:[
-`The automaton spoke in the old man’s voice, cracked and dry, recorded onto a wax cylinder in its chest. “If you are hearing this, Isolde, the tower has stopped and I have been foolish. Do not weep. Do not wind the watch yet. First, go up and find out who profits.” There was a long pause full of hiss. “And eat something. You never do.”`,
-`Wick unchained it. It followed them to the surface on stiff brass legs, ticking gently, and by the time they emerged into the shop the sky over Verrin had gone the colour of pewter. Three carriages stood in the Row. The Guild’s crest, an hourglass held in a gauntlet, gleamed on their doors.`,
-`The Masters of the Guild of Hours received her in the shop as if it had always belonged to them. There were five, in long coats the colour of dust, and the eldest laid a ledger on the counter and opened it with one gloved finger. “Every minute in this city,” he said, “is entered here. Yours, mine, the baker’s, the child’s. Master Corrow has been overdrawn for thirty years.”`,
-`“Overdrawn,” Isolde repeated. “It is a technical term,” said the Master. “It means that what he owes can only be repaid by the person who inherits his shop.” He smiled, and it was the smile of a man setting a table. “Which, Miss Fenn, is you.”`],
-9:[
-`They gave her until evening. The Masters withdrew to the tavern at the end of the Row and left a clerk at the door, and Isolde sat on the workbench with the automaton on her knee, reading her master’s accounts by candle. Every page confirmed it: the store was failing, the Guild knew, and the debt they meant her to inherit was the debt of the whole city.`,
-`Wick and Quill arrived at dusk, bringing bread. They ate in silence, three conspirators and a machine. “There is one thing they cannot do,” Quill said at last. “They cannot stop the spare from being spent. It belongs to no ledger. If the tower is restarted on a minute nobody owns, then for that minute the Guild has no power at all.”`,
-`The clerk knocked at eight. The eldest Master had returned, alone, hat in hand, a different man in a different voice. “Miss Fenn. I have been unkind. Let me put it plainly. Give us the watch. The Guild will forgive the debt, fund the shop, and make you a Master before you are twenty. Refuse, and the tower stays stopped, and Verrin learns what it costs to lose an hour.”`,
-`Isolde looked at the small brass face in her lap, at Ansel Corrow’s spectacles winking in the candlelight, and understood, quite calmly, that she was being offered the thing she had always wanted at the exact price of everything she believed. “May I have until midnight?” she asked. The Master bowed. Behind him, the tower said nothing at all.`],
-10:[
-`The Guildhall tower had ninety-nine steps and a sign at the bottom forbidding anyone to climb them. Isolde climbed them at eleven o’clock, by lantern-light, with Wick behind her and the automaton clicking at her heels, while below in the square the whole of Verrin stood silent in the dark with candles, waiting for something they could not name.`,
-`On the fortieth step she stopped to breathe. Through a slit in the stone she could see the Row, a crooked line of small lit windows, and beyond it the river, and beyond that the smooth black hills. It occurred to her that she had never once looked at the city from above, and that from here it looked almost exactly like the inside of a watch.`,
-`On the seventieth step Quill caught her up, breathing hard, umbrella furled. “They are on their way,” she said. “Five minutes behind. They will not risk being seen on the stairs, but they will be waiting at the top.” “Then we do it before they arrive,” said Isolde, and found that her voice no longer shook. The last stretch she climbed two at a time.`,
-`The door at the top was not locked. It swung inward onto a room full of the sound of a slowly beating heart, and there, in the dark at the centre of the great clock’s works, sat Ansel Corrow, very small, holding a length of chain in both hands as if it were a rope thrown to a drowning man.`],
-11:[
-`“You took your time,” said Corrow, and grinned, and his face was so much thinner than she remembered that for a moment she could not answer. He had been holding the failing mainspring together for twenty hours with nothing but his own attention, and his knuckles were white as candle wax. “Don’t hug me. If I let go, the day ends.”`,
-`She knelt beside him. The works of the great clock towered above them, wheels the size of carriage-wheels, escapements like iron flowers, all of it motionless except for one great arbor turning by a fraction of a degree every few seconds under the old man’s straining hands. “How long can you hold?” “Long enough for you to say yes or no,” said Corrow. “I am aware that it is not long.”`,
-`She told him everything: the ledger, the offer, the watch. He listened with his eyes closed. “The Masters were not always wicked,” he said. “They were afraid. It is very hard to admit that something you love is ending. So they hid it, and the hiding became a kind of theft, and the theft became a habit. That is how most wickedness starts, Isolde. Mind you don’t inherit it.”`,
-`“Then what do I do?” He opened his eyes. They were the same pale grey they had always been, the colour of a winter morning just before it decides. “The only thing a clockmaker can,” he said. “Wind it. Honestly. And tell everyone how much is left.”`],
-12:[
-`She took the spare minute from her waistcoat at four seconds to midnight. It was warm in her palm, and heavier than any watch had a right to be, and when she opened its case the ring of dark holes along its rim began, one by one, to glow. Below, the whole city inhaled. She fitted the watch into the heart of the mechanism, where the old mainspring had been, and turned the key.`,
-`Nothing happened for a very long time, which was about eleven seconds. Then the great arbor shuddered, and the wheels remembered themselves, and the ninety-nine steps rang like a struck bell from the roof to the cellar as every clock in Verrin, all at once, caught up. Forty-one on Halcyon Row. Thousands more across the river. The hands of the great face swept from seventeen past four to midnight in a single silver breath.`,
-`The bells began. Twelve slow strokes, each one a small, clear, ordinary miracle: a tower, ringing, precisely on time. In the square the candles guttered and rose. Someone started to laugh. Someone else, a long way down, began to cry, and both sounds came up the stairwell together like a single kind of relief.`,
-`The Masters arrived on the twelfth stroke and stopped in the doorway. They looked at the turning wheels, and at the old man asleep in the corner with his head on Wick’s shoulder, and at Isolde, who stood with her hands still on the key. No one said anything. On the far side of the room the great clock ticked, and ticked, and ticked.`],
-13:[
-`It could not last. Isolde knew that, and so did they all: one minute of borrowed time had bought a single night, and a night is a very small thing to set against a city’s debt. But she had done what Corrow asked. She had wound it honestly. And in the square below, with the whole of Verrin looking up at the tower, she told them exactly how much was left.`,
-`It was not quite a speech. It was more like an accounting: how many years, by the old master’s measure, remained in the store; how the Winders had kept it turning in the dark; what the Guild had hidden and why. The crowd did not riot. They listened, the way people listen when someone finally says aloud what they have privately known for years, and by morning the Masters had unlocked the ledgers.`,
-`It took a long time to mend, and it is not mended yet. There are new clocks in Verrin, slower, kinder, built to be wound by hand, and every family on the Row keeps one. The Winders are paid in daylight. The tower runs a minute slow, by decree, to remind the city that time is something you are lent. Ansel Corrow lived to see the first spring, and slept through most of it.`,
-`Corrow & Fenn still stands on Halcyon Row, and the sign has been repainted a third time. The rules are chalked on the wall behind the counter, in two hands now, and the last of them reads: *Never leave a job half done.* Beneath it, in smaller letters, someone has added, *Or a minute unspent.* Nobody on the Row will say who, but the chalk is always fresh.`]
-};
 /* Chapter 2 uses the richer blocks: list, quote and a scene break */
-const B2=[
-['p',`Halcyon Row was barely a street at all, more a crooked lane of forty-odd shopfronts leaning toward one another over the cobbles like old men sharing a secret. Every door had a clock above it, and no two clocks agreed, which was, the Row liked to say, the whole point. Agreement was for institutions. Accuracy was for people who could afford it.`],
-['p',`Corrow &amp; Fenn — the sign had been repainted twice, and Isolde’s half of the name was still the newer one — sold watches, repaired everything, and asked no questions of anyone who arrived with a stopped heart in a velvet pouch. Its rules were chalked on the wall behind the counter, in the master’s cramped hand:`],
-['ul',[`Never force a spring that does not wish to move.`,`Never tell a customer how long a repair will take.`,`Never wind a clock that is not yours.`,`Never, under any circumstances, open the case marked with a blue thread.`]],
-['p',`Isolde had obeyed the first three for six years and wondered about the fourth for all of them. The case sat on the top shelf behind the counter, small and black and tied shut with a length of blue thread, humming very faintly, the way a kettle hums an hour before it boils.`],
-['quote',`Time is not kept. It is borrowed, and the interest is paid in attention.<br>— chalked above the workbench, Ansel Corrow`],
-['hr'],
-['p',`That morning she took the chalk in her hand and, for the first time, rubbed out a word. The list now read <i>Never, under any circumstances, open the case.</i> The blue thread lay on the counter where she had cut it. Nothing happened. Then, very softly, from inside the black case, something began to count.`]
-];
 
-const DEF2=[
-{title:'The Stopped Hour',desc:`The great clock of Verrin stops at 4:17, and the man who kept the Row’s true time is missing. An apprentice with one forbidden case on a high shelf discovers that a city’s hours are not free.`,img:'img2_v1',
- direct:[['4:17',1]],
- parts:[{title:'The Shop on Halcyon Row',ch:[['The Shop on Halcyon Row',2],['What the Case Held',3]]},{title:'The Apprentice',ch:[['A Visitor from the Guild',4],['The Spare Minute',5]]}]},
-{title:'The Long Minute',desc:`Beneath the shop, a second city of brass and oil keeps the seconds turning. The Guild of Hours comes calling with a ledger, an offer, and a debt that belongs to everyone.`,img:'img2_v2',
- parts:[{title:'Verrin Below',ch:[['The Stair Beneath the Shop',6],['The City of Gears',7]]},{title:'The Guild of Hours',ch:[['Masters and Rations',8],['An Offer at Dusk',9]]}]},
-{title:'The Turning',desc:`Ninety-nine steps, one borrowed minute, and a choice between the thing Isolde has always wanted and everything she believes. Midnight comes to Verrin, twice.`,img:'img2_v3',
- parts:[{title:'The Great Clock',ch:[['Ninety-Nine Steps',10],['The Face of Old Patience',11]]},{title:'Midnight, Again',ch:[['The Hour Returns',12],['What Isolde Kept',13]]}]}
-];
-function mkCh2(title,n){
-  const id='hc'+pad2(n),blocks=n===2?B2:TX2[n].map(t=>['p',md(t)]);
-  const html=toHtml(blocks),wc=wcHtml(html),at=NOW0-(20-n)*864e5;
-  CHAPTERS[id]={id,storyId:'story_clockmaker',html,pidSeq:(html.match(/data-pid=/g)||[]).length,wordCount:wc,updatedAt:NOW0,published:{html,at,title}};
-  return{id,number:n,title,status:'published',wordCount:wc,updatedAt:NOW0,publishedAt:at};
-}
-const WORK2={
-  id:'story_clockmaker',kind:'story',structure:null,visibility:'public',allowImpressions:true,ownerId:'u_cassian',
-  title:'The Clockmaker of Halcyon Row',
-  description:`In the river city of Verrin every hour is rationed, and the only people who know it are the clockmakers of one crooked street. When the great clock stops at 4:17 and her master vanishes, seventeen-year-old Isolde Fenn is left with forty-one restless clocks, a forbidden case, and one minute that belongs to nobody.`,
-  category:'Fantasy',tags:['clocks','mystery','apprentice','city'],status:'ongoing',coverImageId:'img2_story',
-  volumes:DEF2.map((d,i)=>({id:'hv'+(i+1),number:i+1,title:d.title,description:d.desc,status:'published',coverImageId:d.img.replace('img2_','img2_'),
-    chapters:(d.direct||[]).map(([t,n])=>mkCh2(t,n)),
-    parts:d.parts.map((p,j)=>({id:`hp${i+1}_${j+1}`,number:j+1,title:p.title,description:'',chapters:p.ch.map(([t,n])=>mkCh2(t,n))}))}))
-};
-function seedComments2(now){
-  const H=3600e3,C=(id,chapterId,paragraphId,parent,user,body,likes,ago)=>({id,chapterId,paragraphId,parent,user,body,likes,ts:now-ago*H});
-  return [
-    C('hm_001','hc01','paragraph_003',null,'u_ines',`The coat still on its peg. Forty years, and the one detail that tells you everything is wrong.`,9,30),
-    C('hm_002','hc01','paragraph_003','hm_001','u_elias',`And the clocks “answering for him” — chills.`,4,26),
-    C('hm_003','hc01','paragraph_004',null,'u_dara',`A child asks what time it is and nobody can say. What a way to end a chapter.`,6,22),
-    C('hm_004','hc02','paragraph_008',null,'u_petra',`“Time is not kept. It is borrowed, and the interest is paid in attention.” I’m stealing that for my wall.`,13,18),
-    C('hm_005','hc02','paragraph_004',null,'u_callum',`I love that the fourth rule is the only one anybody ever wants to break.`,5,15),
-    C('hm_006','hc03','paragraph_003',null,'u_marg',`The umbrella that has never been opened. Perrin Quill is going to be a favourite.`,7,12),
-    C('hm_007','hc12','paragraph_003',null,'u_toby',`Twelve strokes, each a small ordinary miracle. I re-read this paragraph three times.`,11,4)
-  ];
-}
 
 /* =========================================================
    APP
@@ -1433,25 +1144,11 @@ function loadWork(work){
   });
   STORY=S;
 }
-let DEMO_I=0; // set below, once DEMOS exists
 const volLabel=v=>'Volume '+roman(v.number);
 const partLabel=p=>'Part '+roman(p.number);
 const chName=c=>c.title||('Chapter '+c.number);
 
 /* ---------- Reader-side state (progress, bookmarks, comments) — separate from the work ---------- */
-const NOW=Date.now();
-function seedData(){
-  const progress={};
-  const DAY=24*3600e3;
-  const spread=[0,0,1,1,2,5,9,14,21,30,45,60]; // days ago — gives a realistic Today/Yesterday/date mix in the demo
-  FLAT.forEach((c,i)=>{if(c.number<=12)progress[c.id]={pct:1,done:true,pid:null,ts:NOW-spread[i]*DAY-i*3600e3}});
-  progress.ch13={pct:.66,done:false,pid:'paragraph_017',ts:NOW-2*3600e3};
-  return{progress,position:{chapterId:'ch13',paragraphId:'paragraph_017',ts:NOW-2*3600e3},
-    bookmarks:[
-      {id:'bm_s2',chapterId:'ch09',paragraphId:'paragraph_003',excerpt:excerptOf('ch09','paragraph_003'),ts:NOW-30*3600e3},
-      {id:'bm_s1',chapterId:'ch04',paragraphId:'paragraph_003',excerpt:excerptOf('ch04','paragraph_003'),ts:NOW-90*3600e3}]};
-}
-function seedCms(){return{items:seedComments(NOW),likes:{cm_001:true,cm_005:true},reported:{}}}
 let data,cms; // initialised by initState(), once the chapter parser exists
 /* Drop reader records that point at chapters that are no longer published/available. */
 function pruneData(){
@@ -1603,10 +1300,6 @@ function excerptOf(chId,pid,n){
 /* ---------- Demo stories + reader-side state (needs the parser for demo excerpts) ---------- */
 const emptyData=()=>({progress:{},position:null,bookmarks:[]});
 const emptyCms=()=>({items:[],likes:{},reported:{}});
-const DEMOS=[
-  {work:WORK,seedData:seedData,seedCms:seedCms},
-  {work:WORK2,seedData:emptyData,seedCms:()=>({items:seedComments2(NOW),likes:{},reported:{}})}
-];
 function initState(){
   data=ls.get(kData())||emptyData();
   data.progress=data.progress||{};data.bookmarks=data.bookmarks||[];
@@ -1969,26 +1662,12 @@ function bookmarksHTML(){
     return`<li class="bm"><button class="bm__go" data-action="goto-bm" data-ch="${b.chapterId}" data-pid="${b.paragraphId||''}"><span class="bm__w">Chapter ${c.number} · Vol. ${roman(c.vol.number)} · ${ago(b.ts)}</span><span class="bm__t">${esc(chName(c))}</span>${b.excerpt?`<span class="bm__x">${esc(b.excerpt)}</span>`:''}</button><button class="ibtn bm__rm" data-action="rm-bm" data-id="${b.id}" aria-label="Remove bookmark: ${esc(chName(c))}">${ic('x')}</button></li>`}).join('')}</ul>`
   :`<div class="empty"><b>No bookmarks yet</b>Tap the bookmark icon while reading to save your place.</div>`);
 }
-const countPub=w=>w.volumes.reduce((n,v)=>n+(v.chapters||[]).concat(...(v.parts||[]).map(p=>p.chapters||[])).filter(isPub).length,0);
-function storiesHTML(){
-  return`${grab}<div class="pop__h"><span id="popT">Demo stories</span><button class="ibtn" data-action="close-pop" aria-label="Close">${ic('x')}</button></div>
-  <ul class="bm-list">${DEMOS.map((d,i)=>{const w=d.work,au=api.getAuthor(w.ownerId),on=i===DEMO_I;
-    return`<li class="bm bm--one"><button class="bm__go st" data-action="switch-demo" data-i="${i}"${on?' aria-current="true"':''}><span class="st__cov">${coverHTML(api.getImage(w.coverImageId),'cover--land','')}</span><span class="st__txt"><span class="bm__t">${esc(w.title)}</span><span class="bm__w">${au?'by '+esc(au.name)+' · ':''}${w.volumes.length} volumes · ${countPub(w)} chapters</span>${on?'<span class="st__on">Currently open</span>':''}</span></button></li>`}).join('')}</ul>`;
-}
-function switchDemo(i){
-  if(i===DEMO_I){closePop();return}
-  if(R){saveReadingState();teardownReader()}
-  DEMO_I=i;ls.set(K.demo,i);
-  PARSED.clear();loadWork(DEMOS[i].work);initState();
-  closePop(false);LAST_READ=null;toast('Now showing “'+STORY.title+'”');
-  go('#/');
-}
 function openPop(kind,trigger){
   if(POP.kind===kind){closePop();return}
   closePop(false);
   if(panelMode()!=='dock')closeCP(false);
   const el=$('#pop');
-  el.innerHTML=kind==='settings'?settingsHTML():kind==='stories'?storiesHTML():bookmarksHTML();
+  el.innerHTML=kind==='settings'?settingsHTML():bookmarksHTML();
   POP={kind,trigger};
   el.classList.add('open');$('#popScrim').classList.add('open');
   if(trigger)trigger.setAttribute('aria-expanded','true');
@@ -2233,8 +1912,6 @@ document.addEventListener('click',e=>{
       const f=$('#pop button');f&&f.focus();break}
     case'reset-prefs':withAnchor(()=>{prefs=cleanPrefs({theme:prefs.theme});savePrefs();applyPrefs()});syncSettings();break;
     case'reset-demo':ls.del(kData());ls.del(kCm());initState();LAST_READ=null;toast('Demo data reset');render();break;
-    case'stories':openPop('stories',a);break;
-    case'switch-demo':switchDemo(+a.dataset.i);break;
     case'retry':render();break;
     case'skip':{const b=$('#chBody');window.scrollTo(0,Math.max(0,absTop(b)-headerH()-16));b.setAttribute('tabindex','-1');b.focus({preventScroll:true});break}
   }
@@ -2304,7 +1981,7 @@ async function boot(){
 }
 boot();
 /* Test/integration hook: swap in another work (same shape as the Writing Studio's) without touching the page. */
-window.__reader={chapters:CHAPTERS,images:IMG,demos:DEMOS,switchDemo,loadWork(w){PARSED.clear();loadWork(w);data=emptyData();cms=emptyCms();render()},get story(){return STORY}};
+window.__reader={chapters:CHAPTERS,images:IMG,loadWork(w){PARSED.clear();loadWork(w);data=emptyData();cms=emptyCms();render()},get story(){return STORY}};
 
 })();
 </script>
