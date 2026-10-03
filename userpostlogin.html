@@ -2716,12 +2716,17 @@ async function fetchLatestJournals(opts){
     else list.sort(function(a,b){ return new Date(b.published_at) - new Date(a.published_at); });
     return { rows: list.slice(0, page * pageSize), total: list.length };
   }
-  // Home, Journals, Stories and Articles merge standalone posts with structured works.
-  const feedCategory = opts.category || 'all';
-  if (['all', 'journals', 'stories', 'articles'].includes(feedCategory)) {
+  // Stories/Articles show a merged journals+story_works feed (Option A)
+  // — everything a Story/Article-in-progress in Writer Studio produces
+  // once it has 2+ published chapters/parts/volumes lives in story_works,
+  // not journals, so those two category chips need their own RPC-backed
+  // query instead of the plain .from('journals') path below. Every other
+  // category (Journals/Poetry/Shayari/Thoughts) and Home/All are
+  // untouched — they never touch story_works.
+  if (opts.category === 'stories' || opts.category === 'articles') {
     const from = (page - 1) * pageSize;
     const { data, error } = await supabaseClient.rpc('get_stories_articles_feed', {
-      p_category: feedCategory,
+      p_category: opts.category,
       p_search: opts.search || null,
       p_sort: opts.sort || 'recent',
       p_limit: pageSize,
@@ -2730,6 +2735,20 @@ async function fetchLatestJournals(opts){
     if (error) throw error;
     const total = (data && data.length) ? data[0].total_count : 0;
     return { rows: (data || []).map(normalizeMergedFeedRow), total };
+  }
+  // Home / All: journals of every category merged with multi-chapter Stories and Articles (story_works),
+  // which never live in `journals`, so the plain query below would leave them out of Home.
+  if (!opts.category || opts.category === 'all') {
+    const fromH = (page - 1) * pageSize;
+    const { data, error } = await supabaseClient.rpc('get_home_feed', {
+      p_search: (opts.search || '').replace(/[%,()]/g, ' ').trim() || null,
+      p_sort: opts.sort || 'recent',
+      p_limit: pageSize,
+      p_offset: fromH
+    });
+    if (error) throw error;
+    const totalH = (data && data.length) ? data[0].total_count : 0;
+    return { rows: (data || []).map(normalizeMergedFeedRow), total: totalH };
   }
   // 👉 SUPABASE: range-based pagination, never a single unlimited select.
   let query = supabaseClient
