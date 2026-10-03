@@ -633,7 +633,7 @@ async function resolveCoverUrl(id) {
    left off every payload here, so ON CONFLICT DO UPDATE never
    overwrites content, only structure (number/title/status). */
 async function persistTree(s) {
-  const volRows = s.volumes.map(v => ({ id: v.id, story_id: s.id, number: v.number, title: v.title || '', description: v.description || null, status: v.status, cover_url: v.coverImageId, is_implicit: !!v.implicit }));
+  const volRows = await Promise.all(s.volumes.map(async v => ({ id: v.id, story_id: s.id, number: v.number, title: v.title || '', description: v.description || null, status: v.status, cover_url: await resolveCoverUrl(v.coverImageId), is_implicit: !!v.implicit })));
   if (volRows.length) { const { error } = await sb.from('story_volumes').upsert(volRows); if (error) throwDb(error); }
   const { data: existingVols } = await sb.from('story_volumes').select('id').eq('story_id', s.id);
   const keepVolIds = new Set(s.volumes.map(v => v.id));
@@ -641,7 +641,7 @@ async function persistTree(s) {
   if (goneVolIds.length) { const { error } = await sb.from('story_volumes').delete().in('id', goneVolIds); if (error) throwDb(error); }
 
   const partRows = [], keepPartIds = new Set();
-  for (const v of s.volumes) for (const p of (v.parts || [])) { partRows.push({ id: p.id, volume_id: v.id, number: p.number, title: p.title || '', description: p.description || null, status: p.status, cover_url: p.coverImageId, published_at: p.publishedAt ? new Date(p.publishedAt).toISOString() : null }); keepPartIds.add(p.id); }
+  for (const v of s.volumes) for (const p of (v.parts || [])) { partRows.push({ id: p.id, volume_id: v.id, number: p.number, title: p.title || '', description: p.description || null, status: p.status, cover_url: await resolveCoverUrl(p.coverImageId), published_at: p.publishedAt ? new Date(p.publishedAt).toISOString() : null }); keepPartIds.add(p.id); }
   if (partRows.length) { const { error } = await sb.from('story_parts').upsert(partRows); if (error) throwDb(error); }
   if (keepVolIds.size) {
     const { data: existingParts } = await sb.from('story_parts').select('id').in('volume_id', [...keepVolIds]);
@@ -792,9 +792,10 @@ const Images = {
   cache: new Map(),  // story_images rows already fetched this session
   async url(id) {
     if (!id) return null;
-    if (id.startsWith('__url:')) return id.slice(6);
     if (this.urls.has(id)) return this.urls.get(id);
-    const rec = await this.record(id); return rec ? rec.public_url : null;
+    const url = id.startsWith('__url:') ? id.slice(6) : ((await this.record(id)) || {}).public_url;
+    if (url) this.urls.set(id, url);
+    return url || null;
   },
   async record(id) {
     if (!id || id.startsWith('__url:')) return null;
@@ -1143,7 +1144,7 @@ function CoverField({ spec, current, onDeleteSaved }) {
     if (url) { drop.classList.add('has'); drop.append(h('img', { src: url, alt: spec.label })); }
     else drop.append(icon('upload'), h('b', null, spec.label), h('span', { class: 'small' }, 'Recommended ratio: ' + spec.ratio), h('span', { class: 'small' }, 'Click or drop an image'));
     if (staged) meta.append(h('div', { class: 'small' }, h('b', null, 'New image ready'), h('br'), `${staged.width} × ${staged.height} · ${fmtBytes(staged.size)}`, h('br'), h('span', { class: 'faint' }, 'Uploads when you press Save')));
-    else if (cur) meta.append(h('div', { class: 'small muted' }, `${cur.width} × ${cur.height} · ${fmtBytes(cur.file_size)}`));
+    else if (cur && cur.width && cur.height) meta.append(h('div', { class: 'small muted' }, `${cur.width} × ${cur.height} · ${fmtBytes(cur.file_size)}`));
     if (url) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => input.click() }, 'Change Image'));
     if (staged && session) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => adjust() }, 'Adjust crop'));
     if (staged) meta.append(h('button', { class: 'btn sm', type: 'button', onclick: () => discardStaged() }, 'Discard new image'));
@@ -1466,10 +1467,21 @@ const Ed = {
   },
   fixSpans() {
     let hit = 0; /* execCommand may put the style on an existing <i>/<b>/<u>, not only on a <span>, so match any element */
-    this.el.querySelectorAll('[style*="xxx-large"]').forEach(s => { s.style.fontSize = this.pendingSize + 'px'; s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; }); hit++; });
+    const applySize = f => {
+      const s = document.createElement('span'); s.style.fontSize = this.pendingSize + 'px';
+      while (f.firstChild) s.append(f.firstChild); f.replaceWith(s);
+      s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; if (!d.getAttribute('style')) d.removeAttribute('style'); });
+      hit++;
+    };
+    this.el.querySelectorAll('font[size="7"]').forEach(applySize);
+    this.el.querySelectorAll('[style*="xxx-large"]').forEach(s => { s.style.fontSize = this.pendingSize + 'px'; s.querySelectorAll('[style*="font-size"]').forEach(d => { d.style.fontSize = ''; if (!d.getAttribute('style')) d.removeAttribute('style'); }); hit++; });
     this.el.querySelectorAll('[style*="rgb(1, 2, 3)"]').forEach(s => { s.style.color = 'inherit'; hit++; });
     this.el.querySelectorAll('[style*="rgb(1, 2, 4)"]').forEach(s => { s.style.backgroundColor = 'transparent'; hit++; });
-    this.el.querySelectorAll('font').forEach(f => { const s = document.createElement('span'); f.replaceWith(s); while (f.firstChild) s.append(f.firstChild); hit++; });
+    this.el.querySelectorAll('font').forEach(f => {
+      const s = document.createElement('span'), face = f.getAttribute('face'), color = f.getAttribute('color');
+      if (face) s.style.fontFamily = face; if (color) s.style.color = color;
+      while (f.firstChild) s.append(f.firstChild); f.replaceWith(s); hit++;
+    });
     this.needFix = hit ? 0 : this.needFix - 1;
   },
   onPaste(e) {
@@ -1514,7 +1526,7 @@ const Ed = {
       case 'color': this.needFix = 4; this.exec('foreColor', arg || '#010203', true); break;
       case 'highlight': this.needFix = 4; this.exec('hiliteColor', arg || '#010204', true); break;
       case 'font': this.exec('fontName', Fonts.stack(arg), true); break;
-      case 'size': { const size = clamp(Number(arg) || 19, SIZES[0], SIZES[SIZES.length - 1]); this.pendingSize = size; this.needFix = 4; this.exec('fontSize', '7', true); this.fixSpans(); this.pendingSize = null; break; }
+      case 'size': { const size = clamp(Number(arg) || 19, SIZES[0], SIZES[SIZES.length - 1]); this.pendingSize = size; this.needFix = 4; this.exec('fontSize', '7', false); this.fixSpans(); break; }
       case 'block': this.setBlock(arg); break;
       case 'align': this.exec({ left: 'justifyLeft', center: 'justifyCenter', right: 'justifyRight', justify: 'justifyFull' }[arg], null, true); break;
       case 'list': this.withPids(() => this.exec(arg === 'ol' ? 'insertOrderedList' : 'insertUnorderedList')); break;
@@ -1742,11 +1754,11 @@ const App = {
   async publishChapter() {
     const rec = await Store.get('chapters', Ed.chapterId); if (!rec) throw new Error('Chapter not saved yet.');
     rec.published = { html: rec.html, at: Date.now(), title: Model.find(App.story, rec.id).chapter.title }; await Store.put('chapters', rec); App.rec = rec;
-    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); Panel.refresh();
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncPublishButton(); Panel.refresh();
   },
   async unpublishChapter() {
     const rec = await Store.get('chapters', Ed.chapterId); rec.published = null; await Store.put('chapters', rec); App.rec = rec;
-    const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); Panel.refresh();
+    const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncPublishButton(); Panel.refresh();
   },
   async publishContainer(kind, obj) {
     const chapters = (kind === 'volume' ? [...obj.chapters, ...obj.parts.flatMap(p => p.chapters)] : obj.chapters).filter(c => !c.deletedAt);
@@ -1918,11 +1930,15 @@ const UI = {
     if (!Kind.hasTree(s)) this.pane = 'write';
   },
   showStudio() { this.applyKind(); $('#viewLibrary').classList.remove('on'); $('#viewStudio').classList.add('on'); this.renderTree(); this.setPane(this.portrait ? 'contents' : 'write'); this.syncCrumb(); Panel.refresh(); $('#emptyState').hidden = true; $('#writeArea').hidden = false; $('#preview').hidden = true; },
+  syncPublishButton() {
+    const f = App.story && Ed.chapterId ? Model.find(App.story, Ed.chapterId) : null, b = $('#btnPublish');
+    if (!b) return; b.textContent = f && f.chapter.status === 'published' ? 'Re-Publish' : 'Publish';
+  },
   showChapter(f) {
     $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; this.applyKind(); const st = App.story, kd = Kind.of(st); $('#chTitle').value = Kind.single(st) ? st.title : f.chapter.title; $('#chTitle').placeholder = ({ story: 'Chapter ' + f.chapter.number + ' title', journal: 'Entry title', article: 'Title', poetry: 'Title of the poem', shayari: 'Title (optional)', thought: 'Title' })[Kind.storyLike(st) ? 'story' : kd];
     const locked = App.locked(f.chapter); document.body.classList.toggle('locked-chapter', locked);
     if (Ed.el) Ed.el.contentEditable = locked ? 'false' : 'true'; $('#chTitle').disabled = locked;
-    $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = false; $('#btnPublish').disabled = locked; $('#btnPublish').textContent = f.chapter.status === 'published' ? 'Re-Publish' : 'Publish'; const dock = $('#dock'); if (dock) dock.hidden = locked;
+    $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = false; $('#btnPublish').disabled = locked; this.syncPublishButton(); const dock = $('#dock'); if (dock) dock.hidden = locked;
     this.syncCrumb(); this.renderTree(); this.syncToolbar(); if (this.mode === 'preview') this.renderPreview();
   },
   showEmpty() {
@@ -1971,8 +1987,7 @@ const UI = {
   renderTree() {
     const host = $('#treeHost'), s = App.story; if (!host || !s) return; const st = host.scrollTop; host.replaceChildren();
     const cover = s.coverImageId && (Images.urls.get(s.coverImageId) || (s.coverImageId.startsWith('__url:') ? s.coverImageId.slice(6) : (Images.cache.get(s.coverImageId) || {}).public_url));
-    host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words')),
-      ibtn('more', 'Story actions', { onclick: e => showMenu(e.currentTarget, [{ label: Kind.of(s) === 'story' ? 'Story settings…' : Kind.cfg(s).one + ' details…', icon: 'edit', onClick: () => this.editStory() }, Kind.storyLike(s) ? { label: 'Renumber everything…', icon: 'lines', onClick: () => App.renumber() } : null, '-', { label: Kind.of(s) === 'story' ? 'Back to all stories' : 'Back to all writing', icon: 'book', onClick: () => this.showLibrary() }], { align: 'end' }) })));
+    host.append(h('div', { class: 't-story' }, h('div', { class: 'th' }, cover ? h('img', { src: cover, alt: '' }) : null), h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, s.title || 'Untitled story'), h('span', { class: 'small muted' }, Model.words(s).toLocaleString() + ' words'))));
     const chRow = (c, list, i, v, p) => this.row({ kind: 'chapter', id: c.id, label: Model.cLabel(c), sub: c.wordCount ? (c.wordCount >= 1000 ? (c.wordCount / 1000).toFixed(1) + 'k' : String(c.wordCount)) : '', status: c.status, active: c.id === Ed.chapterId, onOpen: () => App.openChapter(c.id), menu: () => [
       App.locked(c) ? null : { label: 'Rename…', icon: 'edit', onClick: () => this.renameChapter(c) }, App.locked(c) ? null : { label: 'Edit details…', icon: 'file', onClick: () => this.editChapter(c) }, App.locked(c) ? null : '-',
       { label: 'Move up', icon: 'up', disabled: i === 0, onClick: () => App.move(list, i, -1) }, { label: 'Move down', icon: 'down', disabled: i === list.length - 1, onClick: () => App.move(list, i, 1) }, Kind.of(s) === 'journal' ? null : { label: 'Move to…', icon: 'move', onClick: () => this.moveDialog('chapter', c) }, '-',
@@ -2027,7 +2042,7 @@ const UI = {
   async entityDialog({ kind, entity, isNew, ctx }) {
     const wk = kind === 'story' ? Kind.of(entity) : Kind.of(App.story), plain = kind === 'story' ? wk !== 'story' : !Kind.storyLike(App.story), KN = KINDS[wk];
     const spec = kind === 'part' ? null : IMAGE_SPECS[kind + '_cover'], names = { story: KN.one.toLowerCase(), volume: 'volume', part: plain ? 'section' : 'part', chapter: (ctx && ctx.label) || (plain ? KN.unit : 'chapter') };
-    const curRec = spec && entity.coverImageId ? await Images.record(entity.coverImageId) : null;
+    const curRec = spec && entity.coverImageId ? ((await Images.record(entity.coverImageId)) || { id: entity.coverImageId, public_url: await Images.url(entity.coverImageId), width: null, height: null, file_size: null }) : null;
     const els = {}, body = h('div'); let cover = null, tags = null;
     if (spec) cover = CoverField({ spec, current: curRec, onDeleteSaved: () => deleteCover({ entity, persist: ctx.persist }) });
     const errHost = h('div');
@@ -2078,7 +2093,7 @@ const UI = {
           else if (Kind.single(entity)) entity.volumes.forEach(v => v.chapters.forEach(c => { c.title = entity.title; }));
         }
         if (cover && cover.staged) await applyCoverChange({ entity, owner: ctx.owner, type: spec.type, staged: cover.staged, persist: ctx.persist }); else await ctx.persist();
-        if (cover) cover.markSaved(await Images.record(entity.coverImageId));
+        if (cover) cover.markSaved((await Images.record(entity.coverImageId)) || (entity.coverImageId ? { id: entity.coverImageId, public_url: await Images.url(entity.coverImageId), width: null, height: null, file_size: null } : null));
         m.setDismissable(true); m.close(); await ctx.after(entity);
       } catch (e) {
         const old = JSON.parse(snap); Object.keys(entity).forEach(k => delete entity[k]); Object.assign(entity, old); if (isNew) ctx.detach();
@@ -2096,8 +2111,8 @@ const UI = {
     const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
     const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
     const already = f.chapter.status === 'published';
-    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast('Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Re-Publish' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
-    const m = openModal({ title: 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
+    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), already ? ' Re-Publishing…' : ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast(already ? 'Re-Published' : 'Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Re-Publish' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
+    const m = openModal({ title: already ? 'Ready to re-publish?' : 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
   },
   /* ---- developer tools */
   devMenu(anchor) {
@@ -2118,11 +2133,13 @@ const LINE_H = [['1.2', '1.2'], ['1.5', '1.5'], ['1.75', '1.75'], ['2.0', '2'], 
 const PARA_S = [['None', '0'], ['Tight', '0.4em'], ['Normal', '0.9em'], ['Roomy', '1.4em'], ['Wide', '2em']];
 const BLOCK_NAMES = { p: 'Normal', h1: 'Heading', h2: 'Subheading', blockquote: 'Quote', li: 'List' };
 const Tools = {
+  lastSize: 19,
   build() { this.buildToolbar(); this.buildDock(); },
   rebuildFor() { Pop.close(); Dock.close(); },
-  curSize() { const s = Ed.state(); const raw = s && Number(s.size); if (!Number.isFinite(raw)) return 19; return SIZES.reduce((best, x) => Math.abs(x - raw) < Math.abs(best - raw) ? x : best, SIZES[0]); },
-  stepSize(d) { const c = this.curSize(); const n = d > 0 ? SIZES.find(x => x > c) : [...SIZES].reverse().find(x => x < c); if (n) Ed.cmd('size', n); },
-  sizeMenu(ctx) { const c = this.curSize(); return SIZES.map(s => menuItem(String(s), { on: s === c, onClick: () => { Ed.cmd('size', s); ctx.done && ctx.done(); } })); },
+  curSize() { const s = Ed.state(), raw = s && Number(s.size); if (Number.isFinite(raw)) this.lastSize = SIZES.reduce((best, x) => Math.abs(x - raw) < Math.abs(best - raw) ? x : best, SIZES[0]); return this.lastSize; },
+  setSize(n) { this.lastSize = n; Ed.cmd('size', n); UI.syncToolbar(); },
+  stepSize(d) { const c = this.curSize(); const n = d > 0 ? SIZES.find(x => x > c) : [...SIZES].reverse().find(x => x < c); if (n) this.setSize(n); },
+  sizeMenu(ctx) { const c = this.curSize(); return SIZES.map(s => menuItem(String(s), { on: s === c, keepOpen: true, onClick: () => { this.setSize(s); ctx.done && ctx.done(); } })); },
   colorMenu(kind, ctx) {
     const isText = kind === 'color', colors = isText ? TEXT_COLORS : HL_COLORS, key = 'sw_recent_' + kind, rec = lsGet(key, []);
     const apply = c => { Ed.cmd(kind, c); if (c) lsSet(key, [c, ...rec.filter(x => x !== c)].slice(0, 8)); ctx.done && ctx.done(); };
@@ -2178,7 +2195,7 @@ const Tools = {
     const blockLbl = h('span', { class: 'nm' }, 'Normal'), blockBtn = h('button', { class: 'tsel', type: 'button', style: { minWidth: '100px', justifyContent: 'space-between' }, 'aria-label': 'Paragraph style', onclick: () => Pop.open(blockBtn, this.blockItems({ done: () => Pop.close() })) }, blockLbl, icon('chevD'));
     const alignBtn = ibtn('alignL', 'Alignment', { onclick: () => Pop.open(alignBtn, this.alignItems({ done: () => Pop.close() })) });
     const moreBtn = ibtn('more', 'More formatting', { onclick: () => Pop.open(moreBtn, this.moreItems({ done: () => Pop.close() }), { align: 'end', cls: '' }) });
-    UI.syncFns.push(st => { fontLbl.textContent = Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'; fontLbl.style.fontFamily = ''; sizeVal.textContent = st.size || 19; blockLbl.textContent = st.list ? (st.list === 'ul' ? 'Bulleted list' : 'Numbered list') : st.quote ? 'Quote' : (BLOCK_NAMES[st.block] || 'Normal'); const a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; alignBtn.replaceChildren(icon(a === 'center' ? 'alignC' : a === 'right' ? 'alignR' : a === 'justify' ? 'alignJ' : 'alignL')); colorBar.style.background = st.color || 'var(--ink)'; });
+    UI.syncFns.push(st => { fontLbl.textContent = Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'; fontLbl.style.fontFamily = ''; if (Number.isFinite(Number(st.size))) Tools.lastSize = SIZES.reduce((best, x) => Math.abs(x - Number(st.size)) < Math.abs(best - Number(st.size)) ? x : best, SIZES[0]); sizeVal.textContent = Tools.lastSize; blockLbl.textContent = st.list ? (st.list === 'ul' ? 'Bulleted list' : 'Numbered list') : st.quote ? 'Quote' : (BLOCK_NAMES[st.block] || 'Normal'); const a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; alignBtn.replaceChildren(icon(a === 'center' ? 'alignC' : a === 'right' ? 'alignR' : a === 'justify' ? 'alignJ' : 'alignL')); colorBar.style.background = st.color || 'var(--ink)'; });
     const g = (...k) => h('div', { class: 'tg' }, ...k), sep = () => h('span', { class: 'sep' });
     tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn);
   },
@@ -2208,7 +2225,7 @@ const Dock = {
         Tools.chipRow('Line spacing', LINE_H, v => Ed.cmd('lineHeight', v), keep), Tools.chipRow('Paragraph spacing', PARA_S, v => Ed.cmd('paraSpace', v), keep));
     } else if (n === 'more') {
       el = h('div', null, menuItem('Strikethrough', { icon: 'strike', onClick: () => Ed.cmd('strike') }), menuItem('Scene break', { icon: 'divider', onClick: () => Ed.cmd('divider') }), menuItem('Link…', { icon: 'link', onClick: () => Tools.link() }), menuItem('Clear formatting', { icon: 'clear', onClick: () => Ed.cmd('clear') }), h('div', { class: 'menu-sep' }),
-        menuItem('Chapter info and notes', { icon: 'info', onClick: () => { UI.openRight(); } }), menuItem('Save draft', { icon: 'save', onClick: () => App.saveDraft() }), menuItem('Publish…', { icon: 'send', onClick: () => UI.publishDialog() }));
+        menuItem('Chapter info and notes', { icon: 'info', onClick: () => { UI.openRight(); } }), menuItem('Save draft', { icon: 'save', onClick: () => App.saveDraft() }), menuItem((Model.find(App.story, Ed.chapterId) || { chapter: {} }).chapter.status === 'published' ? 'Re-Publish…' : 'Publish…', { icon: 'send', onClick: () => UI.publishDialog() }));
       el.querySelectorAll('.menu-i').forEach(b => b.addEventListener('click', () => this.close()));
     }
     panel.replaceChildren(el); panel.hidden = false; this.name = n; Object.entries(this.btns).forEach(([k, b]) => b.setAttribute('aria-pressed', String(k === n || (n === 'font' && k === 'text'))));
