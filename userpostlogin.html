@@ -51,8 +51,6 @@
      ============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
-<script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
-<script src="/assets/work-content.js"></script>
 
 <style>
 /* ============================================================
@@ -185,18 +183,6 @@ h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; line-height:1.12;
   border-bottom:1px solid var(--line);
   transition:background .35s ease;
 }
-/* ============ CATEGORY PAGE TINT (open-Work theming) ============
-   Set on <body> from renderReadView via --page-tint-bg / --page-tint-nav
-   (derived from the Work's category colour). Cleared on any other view. */
-body.is-reading{
-  background:
-    radial-gradient(1100px 650px at 108% -8%, color-mix(in srgb, white 30%, var(--page-tint-bg, var(--cream))) 0%, transparent 60%),
-    radial-gradient(950px 620px at -8% 106%, color-mix(in srgb, white 12%, var(--page-tint-bg, var(--cream))) 0%, transparent 55%),
-    linear-gradient(180deg, color-mix(in srgb, white 22%, var(--page-tint-bg, var(--cream))) 0%, var(--page-tint-bg, var(--cream-deep)) 100%);
-  transition:background .35s ease;
-}
-body.is-reading .navbar{ background:var(--page-tint-nav, rgba(251,245,234,.92)); }
-body.is-reading .write-header{ background:var(--page-tint-bg, var(--cream)); }
 .nav-inner{ display:flex; align-items:center; justify-content:space-between; gap:24px; padding:14px 0; }
 .nav-brand{ display:flex; align-items:center; gap:10px; }
 .nav-logo{ width:38px; height:38px; border-radius:11px; overflow:hidden; flex-shrink:0; }
@@ -386,9 +372,6 @@ section{ padding:36px 0; }
   margin:40px 0 0; padding:26px 7%; text-align:center;
   border-top:1px solid var(--line); background:linear-gradient(180deg,var(--cream) 0%,var(--cream-deep) 100%);
 }
-body.is-reading .site-footer{
-  background:linear-gradient(180deg, color-mix(in srgb, var(--page-tint-bg, var(--cream)) 35%, var(--cream)) 0%, var(--cream-deep) 100%);
-}
 
 /* ============ CATEGORY DECORATIVE WATERMARKS ============
    Faint category artwork in the empty side margins on wide screens
@@ -422,10 +405,6 @@ body.is-reading .site-footer{
 @media (prefers-reduced-motion: reduce){
   .decor-icon-left, .decor-icon-right{ animation:none; }
 }
-/* Reading mode: recede a little so they don't compete with the text,
-   but stay clearly visible rather than fading to near-nothing. */
-body.is-reading .decor-icon-left{ opacity:.14; }
-body.is-reading .decor-icon-right{ opacity:.22; }
 
 body[data-cat-icon="thoughts"] .decor-icon-left,
 body[data-cat-icon="thoughts"] .decor-icon-right{ background-image:var(--icon-thoughts); }
@@ -675,16 +654,6 @@ body[data-cat-icon="shayari"] .decor-icon-right{ background-image:var(--icon-sha
   18%{ transform:translate(-50%,-50%) scale(1.15); opacity:1; }
   32%{ transform:translate(-50%,-50%) scale(.95); opacity:1; }
   100%{ transform:translate(-50%,-50%) scale(1); opacity:0; }
-}
-/* While a Work is open, the action icons/like button/comment box pick up
-   a soft wash of the category colour instead of sitting as flat white
-   cards on a now-colourful page. */
-body.is-reading .btn-icon,
-body.is-reading .like-btn:not(.is-liked),
-body.is-reading .guest-cta,
-body.is-reading .comment-form textarea{
-  background:color-mix(in srgb, var(--page-tint-bg, var(--paper)) 42%, var(--paper));
-  border-color:color-mix(in srgb, var(--page-tint-bg, var(--paper)) 55%, var(--line-strong));
 }
 
 /* ============ COMMENTS ============ */
@@ -1075,124 +1044,7 @@ body.is-reading .comment-form textarea{
   <!-- ============================================================
        START WRITING VIEW
        ============================================================ -->
-  <section class="view" id="view-write">
-    <div class="write-header">
-      <div class="container write-header-inner">
-        <div class="write-header-left">
-          <button type="button" class="btn btn-ghost" data-nav="home">← Back</button>
-          <span class="write-title-preview" id="write-title-preview">New Work</span>
-          <span class="save-status" id="save-status"><span class="dot"></span> <span id="save-status-text">Not saved yet</span></span>
-        </div>
-        <div class="write-header-right">
-          <button type="button" class="btn btn-secondary" id="preview-btn">Preview</button>
-          <button type="button" class="btn btn-secondary" id="save-draft-btn">Save Draft</button>
-          <button type="button" class="btn btn-primary" id="publish-btn">Publish</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="view-inner container">
-      <div class="write-shell">
-
-        <div class="field">
-          <label>Category</label>
-          <div class="cat-picker" id="write-cat-picker"></div>
-          <div class="error-msg" id="err-category" hidden>Please choose a category for this Work.</div>
-        </div>
-
-        <div class="field" id="write-cover-field">
-          <label>Cover image <span style="font-weight:400;color:var(--ink-faint);">(optional)</span></label>
-          <div class="cover-upload-box" id="cover-upload-box" role="button" tabindex="0" aria-label="Add a cover image">
-            <div class="cu-empty" id="cu-empty-state">
-              <svg viewBox="0 0 20 20" fill="none" width="26" height="26"><rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="7" cy="8.2" r="1.3" stroke="currentColor" stroke-width="1.4"/><path d="M3.8 14.5 8 10.3l2.4 2.3 2.2-2.2 3.6 3.6" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-              <span>Add a cover image</span>
-            </div>
-          </div>
-          <input type="file" id="cover-file-input" accept="image/*" hidden>
-        </div>
-
-        <div class="field">
-          <input type="text" id="write-title" class="field-title-input" placeholder="Give your thought a title" maxlength="140" aria-label="Work title">
-          <span class="count"><span id="title-count">0</span>/140</span>
-          <div class="error-msg" id="err-title" hidden>A title is required.</div>
-        </div>
-
-        <div class="field">
-          <input type="text" id="write-subtitle" class="field-subtitle-input" placeholder="A short line that invites people in — optional" maxlength="240" aria-label="Work subtitle">
-          <span class="count"><span id="subtitle-count">0</span>/240</span>
-        </div>
-
-        <div class="field">
-          <div class="editor-toolbar" id="write-toolbar" role="toolbar" aria-label="Formatting toolbar">
-            <button type="button" data-md="bold" title="Bold" aria-label="Bold"><svg viewBox="0 0 20 20" fill="none"><path d="M6 4h5a3 3 0 0 1 0 6H6V4Zm0 6h6a3 3 0 0 1 0 6H6v-6Z" stroke="currentColor" stroke-width="1.6"/></svg></button>
-            <button type="button" data-md="italic" title="Italic" aria-label="Italic"><svg viewBox="0 0 20 20" fill="none"><path d="M9 4h6M5 16h6M11 4 9 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="heading" title="Heading" aria-label="Heading"><svg viewBox="0 0 20 20" fill="none"><path d="M5 4v12M13 4v12M5 10h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="quote" title="Quote" aria-label="Quote"><svg viewBox="0 0 20 20" fill="none"><path d="M5 5h4v5H6c0 2-1 3-3 3M11 5h4v5h-3c0 2-1 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></button>
-            <button type="button" data-md="ul" title="Bullet list" aria-label="Bullet list"><svg viewBox="0 0 20 20" fill="none"><circle cx="4" cy="5" r="1.2" fill="currentColor"/><circle cx="4" cy="10" r="1.2" fill="currentColor"/><circle cx="4" cy="15" r="1.2" fill="currentColor"/><path d="M8 5h8M8 10h8M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="ol" title="Numbered list" aria-label="Numbered list"><svg viewBox="0 0 20 20" fill="none"><text x="2" y="7" font-size="5" fill="currentColor">1</text><text x="2" y="12" font-size="5" fill="currentColor">2</text><path d="M8 5h8M8 10h8M8 15h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="divider" title="Divider" aria-label="Divider"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
-            <button type="button" data-md="link" title="Link" aria-label="Link"><svg viewBox="0 0 20 20" fill="none"><path d="M8 12l4-4M7 13a3 3 0 0 1 0-4l2-2a3 3 0 0 1 4 4M13 7a3 3 0 0 1 0 4l-2 2a3 3 0 0 1-4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
-            <span class="tb-sep"></span>
-            <button type="button" id="undo-btn" title="Undo" aria-label="Undo"><svg viewBox="0 0 20 20" fill="none"><path d="M7 5 3 9l4 4M3 9h9a4 4 0 0 1 0 8h-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-            <button type="button" id="redo-btn" title="Redo" aria-label="Redo"><svg viewBox="0 0 20 20" fill="none"><path d="M13 5l4 4-4 4M17 9H8a4 4 0 0 0 0 8h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          </div>
-          <textarea id="write-body" class="editor-textarea" placeholder="Start wherever you are. A thought, a question, a moment worth keeping…" aria-label="Work body"></textarea>
-          <div class="block-editor" id="block-editor" hidden aria-label="Paragraphs and images"></div>
-          <p class="ai-image-note" id="ai-image-note" hidden>Please only add AI-generated images you have the rights to use — no copyrighted or downloaded photos.</p>
-          <div class="error-msg" id="err-body" hidden>Your Work can't be empty.</div>
-          <input type="file" id="paragraph-file-input" accept="image/*" hidden>
-        </div>
-
-        <div class="field">
-          <label for="tag-text-input">Tags <span style="font-weight:400;color:var(--ink-faint);">(up to 3)</span></label>
-          <div class="tag-input-row" id="tag-input-row">
-            <input type="text" id="tag-text-input" placeholder="Add a tag and press Enter" maxlength="30" aria-label="Add a tag">
-          </div>
-        </div>
-
-        <div class="settings-panel">
-          <div class="settings-heading">Work settings</div>
-          <div class="settings-body open" id="settings-body">
-            <div>
-              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Visibility</label>
-              <div class="radio-row" id="visibility-row">
-                <label class="radio-pill"><input type="radio" name="visibility" value="private">Private 🔒</label>
-                <label class="radio-pill"><input type="radio" name="visibility" value="unlisted">Unlisted 🔗</label>
-                <label class="radio-pill is-active"><input type="radio" name="visibility" value="public" checked>Public 🌍</label>
-              </div>
-              <p style="margin:8px 0 0;font-size:.78rem;color:var(--ink-faint);line-height:1.5;" id="visibility-hint">Public Works appear on your Portfolio and can be discovered by readers.</p>
-            </div>
-            <div>
-              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Impressions</label>
-              <div class="radio-row" id="comments-row">
-                <label class="radio-pill is-active"><input type="radio" name="comments" value="on" checked>Allow Impressions</label>
-                <label class="radio-pill"><input type="radio" name="comments" value="off">Turn off Impressions</label>
-              </div>
-            </div>
-            <div>
-              <label style="display:block;font-weight:700;font-size:.82rem;margin-bottom:8px;">Content note</label>
-              <div class="radio-row" id="note-row">
-                <label class="radio-pill is-active"><input type="radio" name="content_note" value="" checked>No content note</label>
-                <label class="radio-pill"><input type="radio" name="content_note" value="sensitive">Sensitive personal topic</label>
-                <label class="radio-pill"><input type="radio" name="content_note" value="heavy">Heavy emotional topic</label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="write-footer-bar">
-          <div class="fb-stats">
-            <span id="fb-words">0 words</span>
-            <span id="fb-read">0 min read</span>
-            <span id="fb-chars">0/30,000 characters</span>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
+    <!-- ============================================================
        MY DRAFTS VIEW
        ============================================================ -->
   <section class="view" id="view-drafts">
@@ -1226,70 +1078,7 @@ body.is-reading .comment-form textarea{
   <!-- ============================================================
        WORK READING VIEW
        ============================================================ -->
-  <section class="view" id="view-read">
-    <div class="view-inner container">
-      <div class="read-shell">
-        <a href="#" class="read-back" data-nav="explore">
-          <svg viewBox="0 0 16 16" fill="none" width="15" height="15"><path d="M10 3 5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Back to Discover
-        </a>
-
-        <div class="read-cover" id="read-cover"></div>
-
-        <div class="read-header">
-          <h1 id="read-title"></h1>
-          <p class="read-subtitle" id="read-subtitle" hidden></p>
-          <div class="read-byline">
-            <span class="avatar" id="read-avatar"></span>
-            <div class="read-byline-text">
-              <div class="name" id="read-author"></div>
-              <div class="meta"><span id="read-date"></span> · <span id="read-time"></span></div>
-            </div>
-          </div>
-          <div class="content-note" id="read-content-note" hidden></div>
-          <div class="read-tags" id="read-tags"></div>
-          <div class="read-actions-top">
-            <button type="button" class="btn-icon" id="save-journal-btn" title="Preserve this Work" aria-label="Preserve this Work">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M5 3.5h10a1 1 0 0 1 1 1V17l-6-3.5L4 17V4.5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="share-journal-btn" title="Circulate" aria-label="Circulate this Work">
-              <svg viewBox="0 0 20 20" fill="none"><circle cx="15" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="5" cy="10" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M6.7 9 13.3 6M6.7 11l6.6 3" stroke="currentColor" stroke-width="1.5"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="post-studio-instagram-btn" title="Create an Instagram post" aria-label="Create an Instagram post from this Work">
-              <svg viewBox="0 0 20 20" fill="none"><rect x="2.5" y="2.5" width="15" height="15" rx="4.5" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="3.6" stroke="currentColor" stroke-width="1.5"/><circle cx="14.3" cy="5.7" r="1" fill="currentColor"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="post-studio-facebook-btn" title="Create a Facebook post" aria-label="Create a Facebook post from this Work">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M12.5 6.2h-1.6c-.5 0-1 .4-1 1v1.6h2.5l-.3 2.3h-2.2V17H7.5v-6H5.8V8.8h1.7V7c0-1.9 1.2-3.3 3-3.3h2v2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
-            </button>
-            <button type="button" class="btn-icon" id="report-journal-btn" title="Report" aria-label="Report this Work">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M5 3v14M5 3h9l-2 3 2 3H5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="read-body" id="read-body"></div>
-
-        <div class="read-engage">
-          <button type="button" class="like-btn" id="like-btn">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z" stroke="currentColor" stroke-width="1.6"/></svg>
-            <span id="like-count">0</span> Appreciate
-          </button>
-          <span style="color:var(--ink-faint);font-size:.86rem;font-family:var(--font-mono);"><span id="comment-count-display">0</span> Impressions</span>
-        </div>
-
-        <div class="comments-section" id="comments-section">
-          <h2>Impressions</h2>
-          <div id="comment-form-wrap"></div>
-          <div id="comments-list"></div>
-          <div style="text-align:center;margin-top:10px;">
-            <button type="button" class="btn btn-secondary btn-sm" id="load-more-comments-btn" hidden>Show earlier Impressions</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============================================================
+    <!-- ============================================================
        NOTIFICATIONS VIEW
        ============================================================ -->
   <section class="view" id="view-notifications">
@@ -1407,21 +1196,6 @@ body.is-reading .comment-form textarea{
 <!-- ============================================================
      PUBLISH CONFIRMATION MODAL
      ============================================================ -->
-<div class="modal-scrim" id="publish-modal-scrim">
-  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="publish-modal-title">
-    <button type="button" class="modal-close" id="publish-modal-close" aria-label="Close">
-      <svg viewBox="0 0 20 20" fill="none" width="20" height="20"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-    </button>
-    <h2 id="publish-modal-title">Ready to publish this Work?</h2>
-    <div class="publish-summary" id="publish-summary"></div>
-    <p class="publish-reminder">Please publish only your own writing and keep the community respectful.</p>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-secondary" id="publish-go-back-btn">Go back</button>
-      <button type="button" class="btn btn-primary" id="publish-confirm-btn">Publish</button>
-    </div>
-  </div>
-</div>
-
 <!-- ============================================================
 <!-- ============================================================
      USERNAME ONBOARDING MODAL
@@ -1616,13 +1390,6 @@ const CATEGORIES = [
   { id:6, slug:'articles',  name:'Articles',  color:'#3D5A73', soft:'#D8E6F0', desc:'Longer-form, explanatory writing — explained simply, still worth publishing beautifully.',
     icon:'<path d="M6.5 4h7l4 4v13h-11V4Z" stroke-linejoin="round"/><path d="M13.5 4v4h4" stroke-linejoin="round"/><path d="M9 11.5h6M9 14.3h6M9 17h3.8" stroke-linecap="round"/>' }
 ];
-const ALL_CATEGORY = { id:0, slug:'all', name:'All', color:'#5B6B4A', soft:'#DCE5D0',
-  icon:'<rect x="4.3" y="4.3" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="13.1" y="4.3" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="4.3" y="13.1" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/><rect x="13.1" y="13.1" width="6.6" height="6.6" rx="1.8" fill="currentColor" stroke="none"/>' };
-const WALL_BADGE = { name:'The Wall', color:'#4A6B3D', soft:'#DCE5D0',
-  icon:'<rect x="4" y="12.5" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="10.2" y="12.5" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="16.4" y="12.5" width="3.6" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="4" y="16" width="3.6" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="8.3" y="16" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="14.5" y="16" width="5.5" height="2.8" rx="0.4" fill="currentColor" stroke="none"/><rect x="4" y="19.5" width="5.5" height="1.2" fill="currentColor" stroke="none"/><rect x="10.2" y="19.5" width="5.5" height="1.2" fill="currentColor" stroke="none"/><path d="M12 12c0-1.8.5-3 .1-4.6M12 7.4c-1.3 0-2.2-.9-2.3-2.1M12 7.4c1-.2 1.8-1.1 1.8-2.3" stroke-linecap="round" fill="none"/>' };
-const UPDATES_BADGE = { name:'Updates', color:'#A35A2E', soft:'#F5DCC7',
-  icon:'<path d="M12 4.3c-2.4 0-4.1 1.9-4.1 4.4v2.8L6.4 14.6h11.2L16.1 11.5V8.7c0-2.5-1.7-4.4-4.1-4.4Z" stroke-linejoin="round"/><path d="M10.3 17.3a1.8 1.8 0 0 0 3.4 0" stroke-linecap="round"/><path d="M5 8.3c-.8.8-1.3 1.9-1.3 3.1M19 8.3c.8.8 1.3 1.9 1.3 3.1" stroke-linecap="round"/>' };
-const CREATIVE_IDENTITIES = ['Author','Writer','Poet','Shayar','Storyteller'];
 function categoryBySlug(slug){ return CATEGORIES.find(function(c){ return c.slug === slug; }) || CATEGORIES[0]; }
 function categoryByName(name){ return CATEGORIES.find(function(c){ return c.name === name; }) || CATEGORIES[0]; }
 function categoryById(id){
@@ -1638,11 +1405,6 @@ function categoryById(id){
 }
 /* Renders one of the category-badge objects above as a self-contained
    circular icon: <span class="cat-badge" style="--bg:..;--fg:..">svg</span> */
-function categoryBadgeHTML(cat, size){
-  size = size || 44;
-  return '<span class="cat-badge" style="--badge-bg:' + cat.soft + ';--badge-fg:' + cat.color + ';width:' + size + 'px;height:' + size + 'px;">' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:' + cat.color + ';width:56%;height:56%;">' + cat.icon + '</svg></span>';
-}
 
 /* ------------------------------------------------------------------
    4. MOCK DATA (used only while DEMO_MODE is true)
@@ -1659,10 +1421,6 @@ const MOCK_AUTHORS = {
   'a7':{ id:'a7', display_name:'Zoya Khan',   username:'zoya',   creative_identity:'Shayar' },
   'demo-user-1': DEMO_USER
 };
-function mockAuthorByUsername(username){
-  return Object.keys(MOCK_AUTHORS).map(function(k){ return MOCK_AUTHORS[k]; })
-    .find(function(a){ return a.username === username; });
-}
 
 const SAMPLE_BODY = "Some mornings the library feels less like a building and more like a held breath. Rows of amber lamps, the soft click of laptop keys, a radiator ticking somewhere behind the reference shelves.\n\nI used to think studying at 2am meant something had gone wrong — that I'd failed to plan, failed to pace myself, failed at the very ordinary task of managing a week. It took a while to notice that the failure story wasn't the only one available.\n\n## What the quiet actually gave me\n\nThere is a particular kind of focus that only shows up after midnight, when the building empties out and the group-project noise disappears. Nobody is performing productivity. Nobody is comparing highlighter colours. It's just you, the material, and the strange comfort of a nearly-empty room.\n\n> The work doesn't get easier at 2am. But the noise around the work gets a lot quieter.\n\n- The vending machine hums like a small appliance choir.\n- Every chair squeak becomes a landmark you start to recognise.\n- Somewhere around page forty of the reading, you stop performing and start actually reading.\n\n## A short list of things I no longer believe\n\n1. That there's one correct number of hours to study.\n2. That tiredness always means you're doing it wrong.\n3. That the people who leave at 9pm are somehow better at this than you are.\n\n---\n\nI'm not recommending 2am as a lifestyle. I'm only saying that if you've ever felt guilty about the strange hours that actually work for your brain, you're allowed to let that guilt go. Find your library. Or your kitchen table. Or your dorm room floor. The room matters less than the honesty of showing up in it.";
 
@@ -1750,7 +1508,6 @@ function loadDemoDB(){
     if (Array.isArray(db.flaggedCommentIds)) state.flaggedCommentIds = new Set(db.flaggedCommentIds);
   }catch(e){ /* corrupt/old data — just keep the fresh seed */ }
 }
-let nextCommentId = 6;
 
 let MOCK_NOTIFICATIONS = [
   { id:'n1', type:'like_journal', actor_id:'a2', journal_id:'j1', comment_id:null, message:null, read_at:null, created_at:hoursAgo(2) },
@@ -1765,7 +1522,6 @@ let MOCK_DRAFTS = [
   { id:'d1', author_id:'demo-user-1', category:'Thoughts', title:'On choosing a major nobody understands', subtitle:'', body:'I get the same three questions every time I mention my major, and I still don\u2019t have a tidy answer for any of them.\n\nMaybe the honest version is that I chose it because it was the only class that made me lose track of time.', tags:['career'], visibility:'public', allow_comments:true, content_note:'', status:'draft', updated_at:hoursAgo(20) },
   { id:'d2', author_id:'demo-user-1', category:'', title:'', subtitle:'', body:'', tags:[], visibility:'public', allow_comments:true, content_note:'', status:'draft', updated_at:hoursAgo(80) }
 ];
-let nextDraftId = 3;
 
 /* ------------------------------------------------------------------
    5. APPLICATION STATE
@@ -1779,7 +1535,6 @@ const state = {
   latestPage: 1,
   latestPageSize: 6,
   latestFeedToken: 0,   // guards against a stale renderLatestFeed() call overwriting a newer one
-  readRequestToken: 0,  // guards against a stale renderReadView() call overwriting a newer one
   routeToken: 0,        // bumped by every navigation; lets a slow route load (see loadJournalByUsernameAndSlug) notice it was superseded
   // The infinite-scroll IntersectionObserver (see wireInfiniteScroll)
   // is wired up on DOMContentLoaded, which fires and can trigger the
@@ -1881,7 +1636,7 @@ function authorNameHTML(authorId){
 
 /* reader-demo.html is a completely separate file/page from this SPA
    (never merged) — opening a Work now hands off to it via a real page
-   navigation instead of the old internal #view-read route. Prefers the
+   navigation instead of an internal reader view. Prefers the
    clean username+slug query pair (reader-demo.html resolves that via
    the same get_journal_by_username_slug RPC loadJournalByUsernameAndSlug
    already uses); falls back to ?id= for any caller that doesn't have
@@ -1930,14 +1685,10 @@ function escapeHtml(str){
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
-/* Inline Markdown (bold/italic/link) → safe HTML. Lifted out of
-   markdownToHtml() below (where it used to live as a private nested
-   function) so it can also be reused for card excerpts, which is the
-   fix for cards showing literal *asterisks* instead of real
-   italic/bold — same escaping contract as before: the caller must
-   HTML-escape the text FIRST (markdownToHtml does this once for the
-   whole body; journalCardHTML() below does it per-excerpt), and this
-   function only ever turns specific Markdown-marker patterns into
+/* Inline Markdown (bold/italic/link) → safe HTML, used for card excerpts
+   so they show real italic/bold instead of literal *asterisks*. The caller
+   must HTML-escape the text FIRST (journalCardHTML() does this per excerpt);
+   this function only ever turns specific Markdown-marker patterns into
    tags, never raw text into markup. */
 function inlineMd(text){
   text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
@@ -1950,83 +1701,11 @@ function inlineMd(text){
    ever execute — only the specific Markdown patterns below are turned
    back into tags. This intentionally supports only the formatting the
    writing toolbar can insert. */
-function markdownToHtml(md){
-  if (!md) return '';
-  let src = escapeHtml(md).replace(/\r\n/g, '\n');
-  const lines = src.split('\n');
-  let html = '';
-  let inList = null; // 'ul' | 'ol' | null
-  let paragraph = [];
-
-  function flushParagraph(){
-    if (paragraph.length){
-      html += '<p>' + paragraph.map(inlineMd).join('<br>') + '</p>';
-      paragraph = [];
-    }
-  }
-  function closeList(){
-    if (inList){ html += '</' + inList + '>'; inList = null; }
-  }
-
-  lines.forEach(function(line){
-    const trimmed = line.trim();
-    if (trimmed === ''){ flushParagraph(); closeList(); return; }
-    if (/^---+$/.test(trimmed)){ flushParagraph(); closeList(); html += '<hr>'; return; }
-    let m;
-    if ((m = trimmed.match(/^(#{1,3})\s+(.*)$/))){
-      flushParagraph(); closeList();
-      const level = m[1].length === 1 ? 'h2' : 'h3';
-      html += '<' + level + '>' + inlineMd(m[2]) + '</' + level + '>';
-      return;
-    }
-    if ((m = trimmed.match(/^>\s?(.*)$/))){
-      flushParagraph(); closeList();
-      html += '<blockquote>' + inlineMd(m[1]) + '</blockquote>';
-      return;
-    }
-    /* A whole line that's just `![alt](https://...)` is a 16:9 inline
-       paragraph image (inserted via the toolbar's image button) —
-       distinct from an inline link, which can't take up a whole line
-       on its own in normal writing. */
-    if ((m = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/))){
-      flushParagraph(); closeList();
-      html += '<figure class="body-img-16x9"><img src="' + m[2] + '" alt="' + m[1] + '" loading="lazy" decoding="async"></figure>';
-      return;
-    }
-    if ((m = trimmed.match(/^[-*]\s+(.*)$/))){
-      flushParagraph();
-      if (inList !== 'ul'){ closeList(); html += '<ul>'; inList = 'ul'; }
-      html += '<li>' + inlineMd(m[1]) + '</li>';
-      return;
-    }
-    if ((m = trimmed.match(/^\d+\.\s+(.*)$/))){
-      flushParagraph();
-      if (inList !== 'ol'){ closeList(); html += '<ol>'; inList = 'ol'; }
-      html += '<li>' + inlineMd(m[1]) + '</li>';
-      return;
-    }
-    closeList();
-    paragraph.push(trimmed);
-  });
-  flushParagraph(); closeList();
-  return html;
-}
 
 /* #RRGGBB -> rgba(...) string, used for the page/header category tint. */
-function hexToRgba(hex, alpha){
-  const h = (hex || '').replace('#','');
-  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
-  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
-}
 /* Nudges a hex colour toward white by `amount` (0-1) — used to keep the
    open-Work page tint soft rather than the full-strength category
    pastel, which read a touch heavy across a whole page. */
-function lightenHex(hex, amount){
-  const h = (hex || '').replace('#','');
-  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
-  const mix = function(c){ return Math.round(c + (255 - c) * amount); };
-  return '#' + [mix(r), mix(g), mix(b)].map(function(v){ return v.toString(16).padStart(2,'0'); }).join('');
-}
 function wordCount(text){
   const trimmed = (text || '').trim();
   return trimmed ? trimmed.split(/\s+/).length : 0;
@@ -2247,12 +1926,6 @@ async function cleanupOrphanedImages(coverUrl, coverThumbUrl, bodyMarkdown, dele
    used to generate the 3:2 card thumbnail from the same region the
    person framed as the 5:2 cover, rather than a second independent
    crop (which could show something they never chose to feature). */
-function deriveNarrowerCropRect(cropRect, ratioW, ratioH){
-  const targetRatio = ratioW / ratioH;
-  const sw = cropRect.sh * targetRatio;
-  if (sw >= cropRect.sw) return cropRect; // target isn't actually narrower — reuse as-is
-  return { sx: cropRect.sx + (cropRect.sw - sw) / 2, sy: cropRect.sy, sw: sw, sh: cropRect.sh };
-}
 async function processAndUploadImage(img, ratioW, ratioH, purpose, cropRect, maxLongEdge){
   const canvas = cropToCanvas(img, ratioW, ratioH, maxLongEdge || 1600, cropRect);
   const blob = await canvasToCompressedImage(canvas, MEDIA_TARGET_BYTES);
@@ -3016,23 +2689,6 @@ function normalizeMergedFeedRow(row){
 
 const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, cover_thumb_url, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
-async function fetchFeaturedJournals(){
-  if (DEMO_MODE){
-    return MOCK_JOURNALS.filter(function(j){ return j.featured && j.status === 'published' && j.visibility === 'public'; }).slice(0,3);
-  }
-  // 👉 SUPABASE: only card fields, never the full body.
-  const { data, error } = await supabaseClient
-    .from('journals')
-    .select(JOURNAL_CARD_FIELDS)
-    .eq('status', 'published')
-    .eq('visibility', 'public')
-    .eq('featured', true)
-    .order('published_at', { ascending: false })
-    .limit(3);
-
-  if (error) throw error;
-  return data.map(normalizeJournalRow);
-}
 
 async function fetchLatestJournals(opts){
   opts = opts || {};
@@ -3132,36 +2788,6 @@ async function fetchLatestJournals(opts){
   return { rows: data.map(normalizeJournalRow), total: count };
 }
 
-async function fetchCategoryCounts(){
-  if (DEMO_MODE){
-    const counts = {};
-    MOCK_JOURNALS.filter(function(j){ return j.status === 'published' && j.visibility === 'public'; })
-      .forEach(function(j){ counts[j.category] = (counts[j.category]||0) + 1; });
-    return counts;
-  }
-  // 👉 SUPABASE: tally published+public journals per category_id
-  // client-side — avoids depending on a separate database view.
-  const { data, error } = await supabaseClient.from('journals')
-    .select('category_id').eq('status', 'published').eq('visibility', 'public');
-  if (error) throw error;
-  const counts = {};
-  data.forEach(function(row){
-    const name = categoryById(row.category_id).name;
-    counts[name] = (counts[name] || 0) + 1;
-  });
-  // Option A: Stories/Articles counts must also include story_works
-  // rows (published/ongoing/completed/hiatus, per the same visibility
-  // rule the merged feed RPC uses), not just plain journals rows.
-  const { data: storyRows, error: storyErr } = await supabaseClient.from('story_works')
-    .select('kind').in('status', ['published','ongoing','completed','hiatus']).eq('visibility', 'public');
-  if (!storyErr && storyRows){
-    storyRows.forEach(function(row){
-      const name = row.kind === 'article' ? 'Articles' : 'Stories';
-      counts[name] = (counts[name] || 0) + 1;
-    });
-  }
-  return counts;
-}
 
 function findJournal(idOrSlug){
   return MOCK_JOURNALS.find(function(j){ return j.id === idOrSlug || j.slug === idOrSlug; });
@@ -3182,144 +2808,16 @@ function getCachedJournal(id){
 /* Live "preview before publishing" journal, used by the Preview button
    in the write view — works the same way in both modes without ever
    touching MOCK_JOURNALS. */
-let PREVIEW_JOURNAL = null;
 
-async function fetchJournal(idOrSlug){
-  if (idOrSlug === '__preview__') return PREVIEW_JOURNAL;
-  if (DEMO_MODE){
-    const j = findJournal(idOrSlug);
-    if (!j) return null;
-    const isOwner = !!(state.currentUser && state.currentUser.id === j.author_id);
-    // Private: only the author can open it. Unlisted: anyone with the
-    // link can, but it's excluded from feeds/Discover/Portfolio
-    // elsewhere. Drafts are never reachable through the read view.
-    if (j.status !== 'published' && !isOwner) return null;
-    if (j.visibility === 'private' && !isOwner) return null;
-    JOURNAL_CACHE[j.id] = j;
-    return j;
-  }
-  // Routed through a SECURITY DEFINER RPC (get_journal_for_read) instead
-  // of a direct table select. Phase 4 audit DB-5(ii): the general public
-  // RLS policy on journals used to allow visibility IN
-  // ('public','unlisted') to anyone with NO id/slug filter required, so
-  // an unlisted Work — meant to be reachable only by direct link, never
-  // listed anywhere — was actually enumerable via a plain unfiltered
-  // REST query. That policy now only allows 'public'; this RPC does the
-  // same status/visibility/owner check server-side (SECURITY DEFINER,
-  // so it can still see an unlisted or the caller's own private row)
-  // but only ever returns the ONE row matching the exact id/slug asked
-  // for — so a direct link still works, but nothing can be listed.
-  // Throws a PGRST116-coded error on no-match, same as the .single()
-  // call this replaced, so callers that already branch on that code
-  // (or just catch generically, like this function's own caller) don't
-  // need to change.
-  const { data, error } = await supabaseClient.rpc('get_journal_for_read', { p_id_or_slug: idOrSlug });
-  if (error) throw error;
-  if (!data) throw Object.assign(new Error('Work not found'), { code: 'PGRST116' });
-  const j = normalizeJournalRow(data);
-  JOURNAL_CACHE[j.id] = j;
-  return j;
-}
 
 /* Full, flat list of visible comments (roots + replies) for a
    journal, cached per journal id. Single source of truth in BOTH
    modes: fetchRootComments/fetchReplies/toggleCommentLike/reply-count
    display all read from this same cache, so a comment posted or
    liked from one place is instantly reflected everywhere else. */
-let COMMENT_CACHE = {};
-async function loadCommentsForJournal(journalId){
-  if (DEMO_MODE){
-    COMMENT_CACHE[journalId] = MOCK_COMMENTS[journalId] || [];
-    return COMMENT_CACHE[journalId];
-  }
-  const { data, error } = await supabaseClient.from('comments')
-    .select('id, journal_id, parent_id, author_id, body, created_at, likes, status, profiles!comments_author_id_fkey(display_name, username, avatar_url)')
-    .eq('journal_id', journalId).eq('status', 'visible')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  data.forEach(function(row){
-    if (row.profiles){
-      AUTHOR_CACHE[row.author_id] = { id: row.author_id, display_name: row.profiles.display_name, username: row.profiles.username, avatar_url: row.profiles.avatar_url || null };
-    }
-  });
-  COMMENT_CACHE[journalId] = data;
-  return data;
-}
-async function fetchRootComments(journalId){
-  const all = await loadCommentsForJournal(journalId);
-  return all.filter(function(c){ return !c.parent_id; }).slice(0, 10);
-}
-async function fetchReplies(journalId, parentId){
-  const all = COMMENT_CACHE[journalId] || await loadCommentsForJournal(journalId);
-  return all.filter(function(c){ return c.parent_id === parentId; });
-}
-function friendlyWriteError(err, fallback){
-  const m = (err && err.message) ? String(err.message) : '';
-  if (/restriction is active|Publishing is temporarily paused/i.test(m)) return m;
-  return fallback;
-}
-async function postComment(journalId, body, parentId){
-  let c;
-  if (DEMO_MODE){
-    c = { id:'c' + (nextCommentId++), journal_id:journalId, parent_id: parentId || null, author_id: state.currentUser.id, body: body, created_at: new Date().toISOString(), likes:0 };
-    if (!MOCK_COMMENTS[journalId]) MOCK_COMMENTS[journalId] = [];
-    MOCK_COMMENTS[journalId].push(c);
-  } else {
-    const { data, error } = await supabaseClient.from('comments').insert({
-      journal_id: journalId, author_id: state.currentUser.id, body: body, parent_id: parentId || null, status:'visible'
-    }).select().single();
-    if (error) throw error;
-    c = data;
-  }
-  if (!COMMENT_CACHE[journalId]) COMMENT_CACHE[journalId] = [];
-  COMMENT_CACHE[journalId].push(c);
-  const j = getCachedJournal(journalId); if (j) j.comments++;
-  persistDemoDB();
-  return c;
-}
-async function deleteComment(journalId, commentId){
-  if (DEMO_MODE){
-    MOCK_COMMENTS[journalId] = (MOCK_COMMENTS[journalId]||[]).filter(function(c){ return c.id !== commentId && c.parent_id !== commentId; });
-  } else {
-    const { error } = await supabaseClient.from('comments').delete().eq('id', commentId).eq('author_id', state.currentUser.id);
-    if (error) throw error;
-  }
-  COMMENT_CACHE[journalId] = (COMMENT_CACHE[journalId]||[]).filter(function(c){ return c.id !== commentId && c.parent_id !== commentId; });
-  const j = getCachedJournal(journalId); if (j) j.comments = Math.max(0, j.comments - 1);
-  persistDemoDB();
-}
-async function editComment(journalId, commentId, newBody){
-  if (DEMO_MODE){
-    const c = (MOCK_COMMENTS[journalId]||[]).find(function(x){ return x.id === commentId; });
-    if (c) c.body = newBody;
-    persistDemoDB();
-  } else {
-    const { error } = await supabaseClient.from('comments').update({ body:newBody, updated_at:new Date().toISOString() }).eq('id', commentId).eq('author_id', state.currentUser.id);
-    if (error) throw error;
-  }
-  const cached = (COMMENT_CACHE[journalId]||[]).find(function(x){ return x.id === commentId; });
-  if (cached) cached.body = newBody;
-}
 
 /* Map the app's internal draft/publish payload (category name, body)
    onto real `journals` columns (category_id, body_markdown). */
-function toSupabaseJournalRow(payload){
-  const cat = payload.category ? categoryByName(payload.category) : null;
-  return {
-    title: payload.title || '',
-    subtitle: payload.subtitle || null,
-    excerpt: payload.excerpt || payload.subtitle || (payload.body || '').slice(0,220),
-    body_markdown: payload.body || '',
-    cover_url: payload.cover_url || null,
-    cover_thumb_url: payload.cover_thumb_url || null,
-    category_id: cat ? cat.id : null,
-    script: payload.script || null,
-    tags: payload.tags || [],
-    visibility: payload.visibility || 'public',
-    allow_comments: payload.allow_comments !== false,
-    content_note: payload.content_note || null
-  };
-}
 /* Reverse of the above — turns a raw `journals` row back into the
    {category, body, ...} shape the write view's writeDraft uses. */
 function fromSupabaseJournalRow(row){
@@ -3337,16 +2835,10 @@ function fromSupabaseJournalRow(row){
     allow_comments: row.allow_comments !== false,
     content_note: row.content_note || '',
     updated_at: row.updated_at,
-    // Needed so publishJournal() can tell "already has a slug" (an
-    // in-place edit of an already-published Work) from "never
-    // published" (a draft) — see slugify()/generateUniqueSlug() below.
+    // slug lets goToReader() build the clean /reader-demo.html?u=…&s=… address.
     slug: row.slug || null,
     status: row.status || null,
-    // Same reason as slug above: without this, publishJournal() has no
-    // way to know the Work already had a real publish date, so it was
-    // unconditionally stamping "now" on every save — silently bumping
-    // an edited Work back to the top of every published_at-ordered
-    // feed/portfolio as if it were brand new.
+    // the real publish date, used for feed/Saved/Published ordering
     published_at: row.published_at || null
   };
 }
@@ -3457,23 +2949,6 @@ async function unreadNotifCount(){
    explicit reads count for every entry, so this derives a stable
    placeholder from likes until a real count exists on the row. Once
    `j.reads` is set (by recordRead below), that's used instead. */
-function readsFor(j){ return (j.reads != null) ? j.reads : Math.round((j.likes||0) * 4.5) + 60; }
-function recordRead(j){
-  if (!DEMO_MODE || !j) return;
-  // A real backend should count reads server-side (e.g. an RPC call)
-  // so this can't be trivially inflated by refreshing; the localStorage
-  // "seen" set here just keeps the demo from re-counting the same
-  // browser opening the same Work over and over.
-  try{
-    const seenKey = 'aspinora_reads_seen';
-    const seen = new Set(JSON.parse(localStorage.getItem(seenKey) || '[]'));
-    if (seen.has(j.id)) return;
-    seen.add(j.id);
-    localStorage.setItem(seenKey, JSON.stringify(Array.from(seen)));
-    j.reads = readsFor(j) + 1;
-    persistDemoDB();
-  }catch(e){ /* localStorage unavailable — reads just won't tick up this session */ }
-}
 async function toggleJournalLike(journalId){
   const j = getCachedJournal(journalId);
   const already = state.likedJournalIds.has(journalId);
@@ -3595,110 +3070,9 @@ async function toggleBookmark(journalId){
    each flag as a row in a `reports` table (reporter_id + target_id +
    created_at) for moderators to review; see the RLS notes at the
    bottom of this file. Returns the new flagged state. */
-function toggleFlagJournal(journalId){
-  const already = state.flaggedJournalIds.has(journalId);
-  if (already) state.flaggedJournalIds.delete(journalId); else state.flaggedJournalIds.add(journalId);
-  if (DEMO_MODE) persistDemoDB();
-  return !already;
-}
-function toggleFlagComment(commentId){
-  const already = state.flaggedCommentIds.has(commentId);
-  if (already) state.flaggedCommentIds.delete(commentId); else state.flaggedCommentIds.add(commentId);
-  if (DEMO_MODE) persistDemoDB();
-  return !already;
-}
 
-async function toggleCommentLike(journalId, commentId){
-  const key = commentId;
-  const already = state.likedCommentIds.has(key);
-  const list = COMMENT_CACHE[journalId] || [];
-  const c = list.find(function(x){ return x.id === commentId; });
-  if (already){ state.likedCommentIds.delete(key); if (c) c.likes--; }
-  else { state.likedCommentIds.add(key); if (c) c.likes++; }
-  if (DEMO_MODE) return;
-  try{
-    let error;
-    if (already) ({ error } = await supabaseClient.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', state.currentUser.id));
-    else ({ error } = await supabaseClient.from('comment_likes').insert({ comment_id: commentId, user_id: state.currentUser.id }));
-    if (error) throw error;
-  }catch(err){
-    // roll back optimistic update on failure (this function previously
-    // never checked for an error, so a failed write left a like showing
-    // that was never actually saved, and never rolled back either)
-    if (already){ state.likedCommentIds.add(key); if (c) c.likes++; } else { state.likedCommentIds.delete(key); if (c) c.likes--; }
-    showToast("Couldn't update that — please try again.");
-  }
-}
 
 /* ---------- drafts ---------- */
-function currentDraft(){
-  return MOCK_DRAFTS.find(function(d){ return d.id === state.currentDraftId; });
-}
-function draftHasContent(d){
-  return (d.title && d.title.trim()) || (d.body && d.body.trim().length > 0);
-}
-async function persistDraft(draftPayload, showSavingState){
-  if (showSavingState) setSaveStatus('saving');
-  if (DEMO_MODE){
-    await new Promise(function(r){ setTimeout(r, 250); }); // simulate network latency
-    // Editing an already-published Work in place: update it directly
-    // rather than routing it through MOCK_DRAFTS (which would leave it
-    // unpublished until Publish is pressed again).
-    const existingJournal = state.currentDraftId ? MOCK_JOURNALS.find(function(j){ return j.id === state.currentDraftId; }) : null;
-    if (existingJournal){
-      Object.assign(existingJournal, draftPayload, { updated_at:new Date().toISOString() });
-      setSaveStatus('saved');
-      persistDemoDB();
-      return existingJournal;
-    }
-    let d = currentDraft();
-    if (!d){
-      // Do not create a database row until there is meaningful content.
-      if (!draftHasContent(draftPayload)) { setSaveStatus('unsaved'); return null; }
-      if (MOCK_DRAFTS.filter(function(x){return x.author_id===state.currentUser.id;}).length >= 20){
-        showToast('You have reached the 20-draft limit. Delete an old draft first.');
-        setSaveStatus('unsaved');
-        return null;
-      }
-      d = Object.assign({ id:'d'+(nextDraftId++), author_id:state.currentUser.id, status:'draft' }, draftPayload, { updated_at:new Date().toISOString() });
-      MOCK_DRAFTS.push(d);
-      state.currentDraftId = d.id;
-      // Same URL fix as the live branch below — see its comment.
-      setPath('/write/' + d.id, true);
-    } else {
-      Object.assign(d, draftPayload, { updated_at:new Date().toISOString() });
-    }
-    setSaveStatus('saved');
-    persistDemoDB();
-    return d;
-  }
-  // 👉 SUPABASE: upsert the draft journal row for this user.
-  try{
-    const isNewRow = !state.currentDraftId;
-    const row = Object.assign({ author_id: state.currentUser.id }, toSupabaseJournalRow(draftPayload), isNewRow ? { status:'draft' } : {});
-    let result;
-    if (state.currentDraftId) result = await supabaseClient.from('journals').update(row).eq('id', state.currentDraftId).select().single();
-    else result = await supabaseClient.from('journals').insert(row).select().single();
-    if (result.error) throw result.error;
-    state.currentDraftId = result.data.id;
-    // The URL stayed at plain /write for a brand-new draft even after
-    // this first save gave it a real id — so a refresh (or a tab
-    // restored later) re-ran routeFromParts('write') with no draftId,
-    // opened a blank write view, and silently orphaned the just-saved
-    // content (still a real row in the DB, just no longer reachable
-    // from where the person was — they'd only find it again via My
-    // Drafts). Bring the address bar in line with state.currentDraftId
-    // the same way navigateTo('write', ...) already does, so a refresh
-    // right after the first autosave keeps editing the same draft.
-    if (isNewRow) setPath('/write/' + result.data.id, true);
-    setSaveStatus('saved');
-    return result.data;
-  }catch(err){
-    setSaveStatus('unsaved');
-    showToast(friendlyWriteError(err, "Couldn't save your draft — check your connection."));
-    return null;
-  }
-}
 async function deleteDraft(draftId){
   if (DEMO_MODE){
     MOCK_DRAFTS = MOCK_DRAFTS.filter(function(d){ return d.id !== draftId; });
@@ -3716,98 +3090,11 @@ async function deleteDraft(draftId){
   }
   localStorage.removeItem('aspinora_draft_' + draftId);
 }
-function slugify(title){
-  return (title || 'untitled').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-}
-/* Root cause of non-unique/unstable Work URLs: slugify() used to
-   tack on a bare random 3-digit number with no check that it wasn't
-   already taken by another Work of this author's — a real (if
-   infrequent) collision risk, especially for repeated/common titles.
-   Worse, the old publishJournal() called slugify() again on every
-   single publish, including re-publishing an already-published Work
-   after an edit — silently changing its slug (and therefore its
-   public URL) out from under anyone who'd already saved/shared the
-   old link. Fixed on both counts: only ever called when a Work
-   doesn't already have a slug (see publishJournal below), and checked
-   against the database (or MOCK_JOURNALS in demo mode) before being
-   accepted, retrying on an actual collision instead of trusting
-   randomness alone. */
-async function generateUniqueSlug(title, authorId, excludeId){
-  const base = slugify(title);
-  if (DEMO_MODE){
-    const taken = new Set(MOCK_JOURNALS.filter(function(j){
-      return j.author_id === authorId && j.id !== excludeId;
-    }).map(function(j){ return j.slug; }));
-    for (let i = 0; i < 20; i++){
-      const candidate = base + '-' + Math.floor(Math.random()*900+100);
-      if (!taken.has(candidate)) return candidate;
-    }
-    return base + '-' + Date.now().toString(36); // guaranteed-unique last resort
-  }
-  for (let i = 0; i < 8; i++){
-    const candidate = base + '-' + Math.floor(Math.random()*900+100);
-    let q = supabaseClient.from('journals').select('id').eq('author_id', authorId).eq('slug', candidate).limit(1);
-    if (excludeId) q = q.neq('id', excludeId);
-    const { data, error } = await q;
-    if (!error && (!data || data.length === 0)) return candidate;
-  }
-  return base + '-' + Date.now().toString(36); // guaranteed-unique last resort
-}
-async function publishJournal(payload){
-  if (DEMO_MODE){
-    let d = currentDraft();
-    const existingJournal = !d && state.currentDraftId ? MOCK_JOURNALS.find(function(j){ return j.id === state.currentDraftId; }) : null;
-    const words = wordCount(payload.body);
-    if (existingJournal){
-      Object.assign(existingJournal, payload, {
-        status:'published', reading_time: readingTimeMinutes(words),
-        excerpt: payload.subtitle || (payload.body.slice(0,140) + '…')
-      });
-      persistDemoDB();
-      return existingJournal;
-    }
-    const journal = Object.assign({
-      id: d ? d.id : 'j'+(Date.now()),
-      slug: await generateUniqueSlug(payload.title, state.currentUser.id, d ? d.id : null),
-      author_id: state.currentUser.id, status:'published', likes:0, comments:0,
-      published_at:new Date().toISOString(), reading_time: readingTimeMinutes(words), featured:false
-    }, payload, { excerpt: payload.subtitle || (payload.body.slice(0,140) + '…') });
-    if (d) MOCK_DRAFTS = MOCK_DRAFTS.filter(function(x){ return x.id !== d.id; });
-    MOCK_JOURNALS.unshift(journal);
-    localStorage.removeItem('aspinora_draft_' + (d ? d.id : 'new'));
-    persistDemoDB();
-    return journal;
-  }
-  // Reuse the existing slug (already-published Work being edited in
-  // place) instead of generating a new one, so its URL never changes
-  // out from under a shared link; only a Work with no slug yet (a
-  // first-ever publish) gets a freshly generated, uniqueness-checked one.
-  const slug = payload.slug || await generateUniqueSlug(payload.title, state.currentUser.id, state.currentDraftId);
-  // Same principle as the slug reuse above: only a genuine first-ever
-  // publish (payload.status isn't already 'published', or it is but the
-  // fetched row somehow had no date) gets today's date. Re-saving an
-  // already-published Work keeps its original published_at.
-  const publishedAt = (payload.status === 'published' && payload.published_at)
-    ? payload.published_at
-    : new Date().toISOString();
-  const row = Object.assign(
-    { author_id: state.currentUser.id, status:'published', published_at: publishedAt, slug: slug },
-    toSupabaseJournalRow(payload)
-  );
-  let result;
-  if (state.currentDraftId) result = await supabaseClient.from('journals').update(row).eq('id', state.currentDraftId).select().single();
-  else result = await supabaseClient.from('journals').insert(row).select().single();
-  if (result.error) throw result.error;
-  return normalizeJournalRow(result.data);
-}
-
 /* ------------------------------------------------------------------
    10. NAVIGATION
    ------------------------------------------------------------------ */
-/* Simple views map straight onto a fixed path; 'read' and 'portfolio'
-   build their path once the actual journal/author is known (see
-   renderReadView and renderPortfolioView), since they need data that
-   isn't available synchronously here. */
+/* Simple views map straight onto a fixed path. Works and portfolios open on
+   their own pages (reader-demo.html, portfolio.html), so they have no path here. */
 const VIEW_PATHS = { drafts:'/drafts', published:'/published', saved:'/saved', notifications:'/notifications' };
 function setPath(path, replace){
   if (!path) return;
@@ -3844,9 +3131,8 @@ function navigateTo(view, params){
   const replace = !!params.replace;
   // Any navigation supersedes a route load that is still waiting on the network.
   state.routeToken++;
-  // Every Work opens in the reader page (reader-demo.html). The old in-page reader below is retired
-  // and removed in Step 8; '__preview__' belongs to the retired write view and is never a real Work.
-  if (view === 'read' && params.journalId && params.journalId !== '__preview__'){
+  // Every Work opens in the reader page (reader-demo.html); this page has no reader of its own.
+  if (view === 'read' && params.journalId){
     goToReader(params.journalId, { replace: replace, preloadedJournal: params.preloadedJournal });
     return;
   }
@@ -3881,24 +3167,15 @@ function navigateTo(view, params){
   targetEl.classList.add('active');
   qsa('[data-nav]').forEach(function(b){ b.classList.toggle('is-active', b.getAttribute('data-nav') === view); });
   window.scrollTo({ top:0, behavior:'auto' });
-  /* Category-colour page theming only applies while an actual Work is
-     open; leaving the read view always resets it. */
-  document.body.classList.toggle('is-reading', view === 'read');
-  if (view !== 'read'){
-    document.body.style.removeProperty('--page-tint-bg');
-    document.body.style.removeProperty('--page-tint-nav');
-  }
-  if (view !== 'read' && view !== 'home' && view !== 'explore') updateDecorIcon(null);
+  if (view !== 'home' && view !== 'explore') updateDecorIcon(null);
   /* Keeps the header's section row (including The Wall) highlighting
      the right item no matter which view the person lands on. */
   renderTopNav();
 
   if (view === 'home' || view === 'explore') syncSectionPath(replace);
   else if (VIEW_PATHS[view]) setPath(VIEW_PATHS[view], replace);
-  if (view === 'write'){ setPath(params.draftId ? '/write/' + params.draftId : '/write', replace); renderWriteView(params.draftId || null, params.category || null); }
   if (view === 'drafts') renderDraftsView();
   if (view === 'published') renderPublishedView();
-  if (view === 'read') renderReadView(params.journalId, replace, params.preloadedJournal);
   if (view === 'notifications') renderNotificationsView();
   if (view === 'saved') renderSavedView();
   if (view === 'home' || view === 'explore'){
@@ -3977,33 +3254,7 @@ function journalCardHTML(j){
     '</div></article>';
 }
 
-async function renderFeatured(){
-  const grid = qs('#featured-grid');
-  grid.innerHTML = '<div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div>';
-  try{
-    const rows = await fetchFeaturedJournals();
-    grid.innerHTML = rows.map(journalCardHTML).join('');
-  }catch(e){ grid.innerHTML = '<p class="empty-state">Couldn\'t load featured Works right now.</p>'; }
-}
 
-async function renderCategoryGrid(){
-  const grid = qs('#category-grid');
-  let counts = {};
-  try{
-    counts = await fetchCategoryCounts();
-  }catch(e){
-    grid.innerHTML = '<p class="empty-state">Couldn\'t load categories right now.</p>';
-    return;
-  }
-  grid.innerHTML = CATEGORIES.map(function(c){
-    const count = counts[c.name] || 0;
-    return '<button type="button" class="cat-card" data-filter-category="' + c.slug + '">' +
-      categoryBadgeHTML(c, 52) +
-      '<h3>' + c.name + '</h3><p>' + c.desc + '</p>' +
-      '<span class="cat-count">' + count + (count===1?' Work':' Works') + '</span>' +
-    '</button>';
-  }).join('');
-}
 
 const DECOR_ICON_CATEGORIES = ['thoughts','poetry','shayari'];
 /* Swaps the faint side-margin watermark to match whichever of the
@@ -4163,326 +3414,9 @@ function renderHomeStatic(){
 /* ------------------------------------------------------------------
    12. READING VIEW + COMMENTS
    ------------------------------------------------------------------ */
-async function renderReadView(journalId, replace, preloadedJournal){
-  // Guards against two problems at once: (1) the previous post staying
-  // visible while the next one is still loading, and (2) an older,
-  // slower-resolving fetch (from rapidly opening several posts in a
-  // row) rendering after a newer one already has — this token makes a
-  // stale response a no-op instead of clobbering the current post.
-  const myReadToken = ++state.readRequestToken;
-  state.currentJournalId = journalId;
-  state.visibleRootComments = 10;
 
-  // Immediately clear the previous post out of the reader and show the
-  // app's existing shimmer loading state, before the async fetch even
-  // starts, so the old content can never linger on screen mid-navigation.
-  qs('#read-cover').innerHTML = '<div class="skeleton" style="position:absolute;inset:0;"></div>';
-  qs('#read-title').textContent = '';
-  qs('#read-subtitle').hidden = true;
-  qs('#read-body').innerHTML = '<div class="skeleton" style="height:1.1em;margin-bottom:12px;"></div>' +
-    '<div class="skeleton" style="height:1.1em;margin-bottom:12px;width:94%;"></div>' +
-    '<div class="skeleton" style="height:1.1em;width:78%;"></div>';
 
-  // Root cause of "direct post URL hangs when already logged in":
-  // loadJournalByUsernameAndSlug() fetches with an isOwner exception
-  // that allows a private Work through for its own author, then handed
-  // off only the journalId — which meant this line used to always call
-  // fetchJournal() again on its own, and fetchJournal()'s query
-  // unconditionally excludes visibility 'private' with no owner
-  // exception. So an author opening their own private Work's direct
-  // link would get a row here, then get zero rows there, throwing
-  // (uncaught) and leaving the skeleton above on screen forever.
-  // preloadedJournal (passed through navigateTo() from
-  // loadJournalByUsernameAndSlug) reuses the copy that was already
-  // correctly fetched and permission-checked, instead of re-fetching it
-  // through a narrower filter. Every other caller of navigateTo('read',
-  // ...) doesn't pass this, so they're unaffected and still fetch here
-  // exactly as before.
-  let j;
-  try {
-    j = preloadedJournal || await fetchJournal(journalId);
-  } catch (err) {
-    console.error(err);
-    if (myReadToken === state.readRequestToken){ showToast('Error loading Work'); navigateTo('home'); }
-    return;
-  }
-  if (myReadToken !== state.readRequestToken) return; // superseded by a newer navigation
-  if (!j){ navigateTo('home'); return; }
 
-  // Reflect the clean, shareable URL for this Work once we actually
-  // know it (never blocks the reading view over a URL nicety). This
-  // used to only run in DEMO_MODE, so the address bar never reflected
-  // the real post's URL for actual (non-demo) Works — which is also
-  // why a copied/shared link and a plain page refresh weren't reliable:
-  // authorUsername() already resolves correctly in both modes.
-  const shareUsername = authorUsername(j.author_id);
-  if (shareUsername && j.slug){
-    setPath('/' + shareUsername + '/' + j.slug, !!replace);
-  }
-  recordRead(j);
-
-  qs('#read-cover').innerHTML = coverHTML(j.category, j.cover_url);
-  const readCat = categoryByName(j.category);
-  document.body.style.setProperty('--page-tint-bg', lightenHex(readCat.soft, 0.2));
-  document.body.style.setProperty('--page-tint-nav', hexToRgba(readCat.soft, .85));
-  updateDecorIcon(readCat.slug);
-  qs('#read-title').textContent = j.title;
-  const sub = qs('#read-subtitle');
-  if (j.subtitle){ sub.textContent = j.subtitle; sub.hidden = false; } else { sub.hidden = true; }
-  qs('#read-avatar').outerHTML = avatarHTML(j.author_id, authorName(j.author_id)).replace('<span class="avatar"','<span class="avatar" id="read-avatar"');
-  qs('#read-author').innerHTML = authorNameHTML(j.author_id);
-  qs('#read-date').textContent = formatDate(j.published_at);
-  qs('#read-time').textContent = (j.reading_time || readingTimeMinutes(wordCount(j.body))) + ' min read';
-
-  const noteEl = qs('#read-content-note');
-  if (j.content_note){
-    noteEl.hidden = false;
-    noteEl.innerHTML = '⚠ ' + (j.content_note === 'heavy' ? 'Heavy emotional topic' : 'Sensitive personal topic');
-  } else { noteEl.hidden = true; }
-
-  qs('#read-tags').innerHTML = (j.tags||[]).map(function(t){ return '<span class="read-tag">#' + escapeHtml(t) + '</span>'; }).join('');
-  const bodyEl = qs('#read-body');
-  bodyEl.innerHTML = JournalContent.render(j.body, markdownToHtml);
-  bodyEl.classList.toggle('is-shayari', j.category === 'Shayari');
-  if (j.script){ bodyEl.setAttribute('data-script', j.script); } else { bodyEl.removeAttribute('data-script'); }
-
-  const likeBtn = qs('#like-btn');
-  const liked = state.likedJournalIds.has(j.id);
-  likeBtn.classList.toggle('is-liked', liked);
-  qs('#like-count').textContent = j.likes;
-  likeBtn.onclick = function(){
-    requireAuth('Log in to appreciate this Work.', async function(){
-      await toggleJournalLike(j.id);
-      likeBtn.classList.toggle('is-liked');
-      qs('#like-count').textContent = getCachedJournal(j.id).likes;
-    });
-  };
-
-  const saveBtn = qs('#save-journal-btn');
-  saveBtn.classList.toggle('is-active', state.bookmarkedIds.has(j.id));
-  saveBtn.onclick = function(){
-    requireAuth('Log in to preserve this Work.', async function(){
-      await toggleBookmark(j.id);
-      saveBtn.classList.toggle('is-active');
-      showToast(state.bookmarkedIds.has(j.id) ? 'Preserved to your Archive.' : 'Removed from Archive.');
-    });
-  };
-
-  qs('#share-journal-btn').onclick = async function(){
-    const username = authorUsername(j.author_id);
-    const url = username && j.slug
-      ? window.location.origin + '/' + username + '/' + j.slug
-      : window.location.href.split('#')[0];
-    if (navigator.share){
-      try{ await navigator.share({ title:j.title, url:url }); return; }
-      catch(e){ if (e && e.name === 'AbortError') return; /* user cancelled the share sheet — not a failure */ }
-    }
-    // Fall back to copying the link — try the modern Clipboard API first,
-    // but it can throw (insecure context, permissions policy, older
-    // browsers), so fall back further to a manual copy rather than
-    // leaving the click looking like it did nothing.
-    try{
-      await navigator.clipboard.writeText(url);
-      showToast('Link copied to clipboard.');
-    }catch(e){
-      try{
-        const ta = document.createElement('textarea');
-        ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.focus(); ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        showToast('Link copied to clipboard.');
-      }catch(e2){
-        showToast('Couldn\'t copy automatically — here\'s the link: ' + url);
-      }
-    }
-  };
-  const reportBtn = qs('#report-journal-btn');
-  reportBtn.classList.toggle('is-flagged', state.flaggedJournalIds.has(j.id));
-  reportBtn.onclick = function(){
-    requireAuth('Log in to report a Work.', function(){
-      const flagged = toggleFlagJournal(j.id);
-      reportBtn.classList.toggle('is-flagged', flagged);
-      showToast(flagged ? 'Flagged — our moderators will take a look.' : 'Flag removed.');
-    });
-  };
-
-  qs('#comment-count-display').textContent = j.comments;
-  await renderComments(j);
-}
-
-function commentActionsHTML(journalId, c, isReply){
-  const isOwn = state.currentUser && c.author_id === state.currentUser.id;
-  const liked = state.likedCommentIds.has(c.id);
-  return '<div class="comment-actions">' +
-    '<button type="button" class="comment-action-btn' + (liked?' is-liked':'') + '" data-like-comment="' + c.id + '" data-like-journal="' + journalId + '">' +
-      '<svg viewBox="0 0 20 20" fill="' + (liked?'currentColor':'none') + '"><path d="M10 17s-6-4.2-6-8.6C4 5.5 6 4 8 4c1 0 2 .5 2 1.8C10 4.5 11 4 12 4c2 0 4 1.5 4 4.4C16 12.8 10 17 10 17Z" stroke="currentColor" stroke-width="1.5"/></svg> ' + c.likes +
-    '</button>' +
-    (isReply ? '' : '<button type="button" class="comment-action-btn" data-reply-to="' + c.id + '" data-reply-name="' + escapeHtml(authorName(c.author_id)) + '">Response</button>') +
-    (isOwn ? '<button type="button" class="comment-action-btn" data-edit-comment="' + c.id + '">Edit</button>' : '') +
-    (isOwn ? '<button type="button" class="comment-action-btn" data-delete-comment="' + c.id + '">Delete</button>' : '') +
-    (isOwn ? '' : '<button type="button" class="comment-action-btn' + (state.flaggedCommentIds.has(c.id)?' is-flagged':'') + '" data-report-comment="' + c.id + '">' + (state.flaggedCommentIds.has(c.id)?'Flagged':'Report') + '</button>') +
-  '</div>';
-}
-function commentItemHTML(journalId, c){
-  return '<div class="comment-item" data-comment-id="' + c.id + '">' + avatarHTML(c.author_id, authorName(c.author_id)) +
-    '<div class="comment-main">' +
-      '<div class="comment-head"><span class="name">' + authorNameHTML(c.author_id) + '</span><span class="time">' + formatRelativeTime(c.created_at) + '</span></div>' +
-      '<div class="comment-body-text" data-comment-body>' + escapeHtml(c.body) + '</div>' +
-      commentActionsHTML(journalId, c, false) +
-      '<button type="button" class="comment-action-btn" data-view-replies="' + c.id + '" data-journal="' + journalId + '" hidden></button>' +
-      '<div class="replies-wrap" id="replies-' + c.id + '" hidden></div>' +
-      '<div class="reply-compose" id="reply-compose-' + c.id + '" hidden></div>' +
-    '</div></div>';
-}
-function replyItemHTML(journalId, r){
-  return '<div class="reply-item" data-comment-id="' + r.id + '">' + avatarHTML(r.author_id, authorName(r.author_id), '') +
-    '<div class="comment-main">' +
-      '<div class="comment-head"><span class="name">' + authorNameHTML(r.author_id) + '</span><span class="time">' + formatRelativeTime(r.created_at) + '</span></div>' +
-      '<div class="comment-body-text" data-comment-body>' + escapeHtml(r.body) + '</div>' +
-      commentActionsHTML(journalId, r, true) +
-    '</div></div>';
-}
-
-async function renderComments(j){
-  // Captured now, checked again after the await below — if a newer Work
-  // navigation supersedes this call while fetchRootComments() is still in
-  // flight (renderReadView() bumps readRequestToken on every navigation),
-  // this stale response must not overwrite a newer Work's comment list.
-  const myToken = state.readRequestToken;
-  const wrap = qs('#comment-form-wrap');
-  if (!j.allow_comments){
-    wrap.innerHTML = '<p class="guest-cta">The author has turned off Impressions for this Work.</p>';
-    qs('#comments-list').innerHTML = '';
-    return;
-  }
-  if (!state.currentUser){
-    wrap.innerHTML = '<div class="guest-cta">Log in to leave an Impression.<br><br>' +
-      '<button type="button" class="btn btn-primary btn-sm" data-open-auth="login">Log In</button></div>';
-  } else {
-    wrap.innerHTML =
-      '<div class="comment-form">' + avatarHTML(state.currentUser.id, state.currentUser.display_name) +
-      '<div class="comment-form-body">' +
-        '<textarea class="textarea" id="new-comment-text" maxlength="1500" placeholder="Respond thoughtfully…" aria-label="Leave an Impression"></textarea>' +
-        '<div class="comment-form-actions"><span class="count"><span id="new-comment-count">0</span>/1500</span>' +
-        '<button type="button" class="btn btn-primary btn-sm" id="submit-comment-btn">Leave Impression</button></div>' +
-      '</div></div>';
-    qs('#new-comment-text').addEventListener('input', function(){ qs('#new-comment-count').textContent = this.value.length; });
-    qs('#submit-comment-btn').addEventListener('click', async function(){
-      const text = qs('#new-comment-text').value.trim();
-      if (!text) return;
-      try{ await postComment(j.id, text, null); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Impression — please try again.")); return; }
-      qs('#new-comment-text').value = '';
-      await renderComments(j);
-      qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
-    });
-  }
-
-  const roots = await fetchRootComments(j.id);
-  if (myToken !== state.readRequestToken) return; // superseded — a newer Work is on screen now
-  const list = qs('#comments-list');
-  if (!roots.length){
-    list.innerHTML = '<p class="empty-state" style="padding:30px 0;">No one has responded yet — be the first to say something.</p>';
-    return;
-  }
-  list.innerHTML = roots.map(function(c){ return commentItemHTML(j.id, c); }).join('');
-
-  roots.forEach(function(c){
-    const replies = (COMMENT_CACHE[j.id]||[]).filter(function(x){ return x.parent_id === c.id; });
-    if (replies.length){
-      const btn = qs('[data-view-replies="' + c.id + '"]');
-      btn.hidden = false;
-      btn.textContent = 'View Responses (' + replies.length + ')';
-    }
-  });
-  wireCommentEvents(j);
-}
-
-function wireCommentEvents(j){
-  qsa('[data-like-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      requireAuth('Log in to appreciate Impressions.', async function(){
-        await toggleCommentLike(this.getAttribute('data-like-journal'), this.getAttribute('data-like-comment'));
-        renderComments(j);
-      }.bind(this));
-    };
-  });
-  qsa('[data-view-replies]').forEach(function(btn){
-    btn.onclick = async function(){
-      const cid = this.getAttribute('data-view-replies');
-      const wrap = qs('#replies-' + cid);
-      if (!wrap.hidden){ wrap.hidden = true; return; }
-      const replies = await fetchReplies(j.id, cid);
-      wrap.innerHTML = replies.map(function(r){ return replyItemHTML(j.id, r); }).join('');
-      wrap.hidden = false;
-      wireCommentEvents(j);
-    };
-  });
-  qsa('[data-reply-to]').forEach(function(btn){
-    btn.onclick = function(){
-      requireAuth('Log in to leave a Response.', function(){
-        const cid = btn.getAttribute('data-reply-to');
-        const name = btn.getAttribute('data-reply-name');
-        const box = qs('#reply-compose-' + cid);
-        if (!box.hidden){ box.hidden = true; return; }
-        box.hidden = false;
-        box.innerHTML = '<div class="replying-to">Replying to ' + escapeHtml(name) + '</div>' +
-          '<textarea class="textarea" maxlength="1500" placeholder="Write a reply…" style="min-height:60px;"></textarea>' +
-          '<div class="comment-form-actions" style="margin-top:8px;"><span></span><button type="button" class="btn btn-primary btn-sm">Response</button></div>';
-        box.querySelector('button').onclick = async function(){
-          const text = box.querySelector('textarea').value.trim();
-          if (!text) return;
-          try{ await postComment(j.id, text, cid); }catch(e){ showToast(friendlyWriteError(e, "Couldn't post your Response — please try again.")); return; }
-          box.hidden = true;
-          qs('[data-view-replies="' + cid + '"]').hidden = false;
-          const replies = await fetchReplies(j.id, cid);
-          qs('[data-view-replies="' + cid + '"]').textContent = 'View Responses (' + replies.length + ')';
-          qs('#replies-' + cid).innerHTML = replies.map(function(r){ return replyItemHTML(j.id, r); }).join('');
-          qs('#replies-' + cid).hidden = false;
-          qs('#comment-count-display').textContent = getCachedJournal(j.id).comments;
-          wireCommentEvents(j);
-        };
-      });
-    };
-  });
-  qsa('[data-delete-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      const cid = this.getAttribute('data-delete-comment');
-      if (!confirm('Delete this comment? This can\'t be undone.')) return;
-      deleteComment(j.id, cid).then(function(){ renderComments(j); });
-    };
-  });
-  qsa('[data-edit-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      const item = this.closest('[data-comment-id]');
-      const bodyEl = item.querySelector('[data-comment-body]');
-      const current = bodyEl.textContent;
-      bodyEl.innerHTML = '<textarea class="textarea comment-edit-textarea" maxlength="1500">' + escapeHtml(current) + '</textarea>' +
-        '<div class="comment-form-actions" style="margin-top:8px;"><span></span><button type="button" class="btn btn-secondary btn-sm" data-cancel-edit>Cancel</button> <button type="button" class="btn btn-primary btn-sm" data-save-edit>Save</button></div>';
-      bodyEl.querySelector('[data-cancel-edit]').onclick = function(){ renderComments(j); };
-      bodyEl.querySelector('[data-save-edit]').onclick = async function(){
-        const newText = bodyEl.querySelector('textarea').value.trim();
-        if (!newText) return;
-        await editComment(j.id, this.closest('[data-comment-id]').getAttribute('data-comment-id'), newText);
-        renderComments(j);
-      };
-    };
-  });
-  qsa('[data-report-comment]').forEach(function(btn){
-    btn.onclick = function(){
-      const commentId = this.getAttribute('data-report-comment');
-      requireAuth('Log in to report an Impression.', function(){
-        const flagged = toggleFlagComment(commentId);
-        btn.classList.toggle('is-flagged', flagged);
-        btn.textContent = flagged ? 'Flagged' : 'Report';
-        showToast(flagged ? 'Flagged — our moderators will take a look.' : 'Flag removed.');
-      });
-    };
-  });
-  qsa('[data-open-auth]').forEach(function(btn){
-    btn.onclick = function(){ openAuthModal(btn.getAttribute('data-open-auth')); };
-  });
-}
 
 /* ------------------------------------------------------------------
    13. DRAFTS / PUBLISHED / SAVED / NOTIFICATIONS
@@ -4672,15 +3606,11 @@ function wireGenericButtons(){
    14. WRITE VIEW (the writing workspace)
    ------------------------------------------------------------------ */
 let writeDraft = { category:'', title:'', subtitle:'', body:'', cover_url:null, cover_thumb_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' };
-const PARAGRAPH_IMAGE_CATEGORIES = ['Journals','Stories','Articles'];
 const MAX_INLINE_IMAGES = 5;
 
 function localDraftKey(){ return 'aspinora_draft_' + (state.currentDraftId || 'new'); }
 function saveDraftToLocalStorage(){
   try{ localStorage.setItem(localDraftKey(), JSON.stringify(writeDraft)); }catch(e){}
-}
-function loadDraftFromLocalStorage(key){
-  try{ const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
 }
 
 function setSaveStatus(kind){
@@ -4692,46 +3622,6 @@ function setSaveStatus(kind){
   else { el.classList.add('is-unsaved'); textEl.textContent = 'Unsaved changes'; }
 }
 
-async function renderWriteView(draftId, presetCategory){
-  state.currentDraftId = draftId;
-  let existing = null;
-  if (draftId){
-    if (DEMO_MODE){
-      existing = MOCK_DRAFTS.find(function(d){ return d.id === draftId; }) ||
-        MOCK_JOURNALS.find(function(j){ return j.id === draftId && j.author_id === state.currentUser.id; });
-    } else {
-      try{
-        // No status filter here: this row may be a draft, or it may be
-        // an already-published Work the person is editing in place.
-        const { data, error } = await supabaseClient.from('journals').select('*')
-          .eq('id', draftId).eq('author_id', state.currentUser.id).single();
-        if (!error && data) existing = fromSupabaseJournalRow(data);
-      }catch(e){ /* fall back to local copy below */ }
-    }
-  }
-  const localCopy = loadDraftFromLocalStorage('aspinora_draft_' + (draftId || 'new'));
-  writeDraft = existing ? Object.assign({}, existing) : (localCopy || { category:'', title:'', subtitle:'', body:'', cover_url:null, cover_thumb_url:null, tags:[], visibility:'public', allow_comments:true, content_note:'' });
-  if (writeDraft.cover_url === undefined) writeDraft.cover_url = null;
-  if (writeDraft.cover_thumb_url === undefined) writeDraft.cover_thumb_url = null;
-  if (!existing && presetCategory) writeDraft.category = presetCategory;
-  writeDraft.blocks = null; // rebuilt fresh from body by updateEditorModeUI below
-
-  qs('#write-title').value = writeDraft.title || '';
-  qs('#write-subtitle').value = writeDraft.subtitle || '';
-  qs('#write-body').value = writeDraft.body || '';
-  state.writeMdHistory = [writeDraft.body || ''];
-  state.writeMdHistoryIndex = 0;
-
-  renderCatPicker();
-  renderTagChips();
-  syncSettingsRadios();
-  updateWriteFooterCounts();
-  renderCoverUploadBox();
-  updateEditorModeUI();
-  qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
-  setSaveStatus(draftHasContent(writeDraft) ? 'saved' : 'unsaved');
-  clearWriteErrors();
-}
 
 /* ---------- cover image box (write view) ---------- */
 function renderCoverUploadBox(){
@@ -4801,20 +3691,6 @@ function confirmAiOnlyImages(){
    that translate between the two shapes. */
 let blockIdCounter = 0;
 function newBlockId(){ return 'blk' + (++blockIdCounter) + '_' + Date.now().toString(36); }
-function bodyToBlocks(body){
-  const blocks = [];
-  const re = /!\[.*?\]\((https?:\/\/[^\s)]+)\)/g;
-  let lastIndex = 0, m;
-  while ((m = re.exec(body || '')) !== null){
-    const textChunk = body.slice(lastIndex, m.index).replace(/^\n+|\n+$/g, '');
-    if (textChunk.trim()) blocks.push({ type:'text', id:newBlockId(), content:textChunk });
-    blocks.push({ type:'image', id:newBlockId(), url:m[1] });
-    lastIndex = m.index + m[0].length;
-  }
-  const rest = (body || '').slice(lastIndex).replace(/^\n+|\n+$/g, '');
-  if (rest.trim() || blocks.length === 0) blocks.push({ type:'text', id:newBlockId(), content:rest });
-  return blocks;
-}
 function blocksToBody(blocks){
   return (blocks || []).map(function(b){
     return b.type === 'image' ? '![](' + b.url + ')' : (b.content || '').trim();
@@ -4823,31 +3699,10 @@ function blocksToBody(blocks){
 function inlineImageCount(){
   return (writeDraft.blocks || []).filter(function(b){ return b.type === 'image'; }).length;
 }
-function isParagraphCategory(){ return PARAGRAPH_IMAGE_CATEGORIES.indexOf(writeDraft.category) !== -1; }
 /* Switches the write view between the single free-form textarea
    (Poetry/Shayari/Thoughts/…) and the paragraph+image block editor
    (Journals/Stories/Articles), converting writeDraft.body <-> .blocks
    as needed so nothing typed is lost when the category changes. */
-function updateEditorModeUI(){
-  const legacyArea = qs('#write-body');
-  const toolbar = qs('#write-toolbar');
-  const blockContainer = qs('#block-editor');
-  const aiNote = qs('#ai-image-note');
-  const blockMode = isParagraphCategory();
-  if (blockMode){
-    if (!writeDraft.blocks) writeDraft.blocks = bodyToBlocks(writeDraft.body);
-    if (legacyArea) legacyArea.hidden = true;
-    if (toolbar) toolbar.hidden = true;
-    if (blockContainer) blockContainer.hidden = false;
-    if (aiNote) aiNote.hidden = false;
-    renderBlockEditor();
-  } else {
-    if (legacyArea){ legacyArea.hidden = false; legacyArea.value = writeDraft.body || ''; }
-    if (toolbar) toolbar.hidden = false;
-    if (blockContainer) blockContainer.hidden = true;
-    if (aiNote) aiNote.hidden = true;
-  }
-}
 function renderBlockEditor(){
   const container = qs('#block-editor');
   if (!container) return;
@@ -4937,49 +3792,8 @@ function renderBlockEditor(){
   });
 })();
 
-function renderCatPicker(){
-  const wrap = qs('#write-cat-picker');
-  /* Always show every category, with the one the user arrived with (or
-     already picked) highlighted as the default — never locked, so it
-     stays a one-click change. */
-  wrap.innerHTML = CATEGORIES.map(function(c){
-    const active = writeDraft.category === c.name;
-    return '<button type="button" class="cat-chip-btn' + (active?' is-active':'') + '" data-pick-category="' + c.name + '" style="color:' + c.color + '">' +
-      '<span class="dot" style="background:' + c.color + '"></span>' + c.name + '</button>';
-  }).join('');
-  qsa('[data-pick-category]').forEach(function(b){
-    b.onclick = function(){ writeDraft.category = this.getAttribute('data-pick-category'); renderCatPicker(); updateEditorModeUI(); scheduleAutosave(); };
-  });
-}
 
-function renderTagChips(){
-  const row = qs('#tag-input-row');
-  const input = qs('#tag-text-input');
-  qsa('.tag-chip', row).forEach(function(el){ el.remove(); });
-  writeDraft.tags.forEach(function(tag){
-    const chip = document.createElement('span');
-    chip.className = 'tag-chip';
-    chip.innerHTML = escapeHtml(tag) + ' <button type="button" aria-label="Remove tag ' + escapeHtml(tag) + '">×</button>';
-    chip.querySelector('button').onclick = function(){
-      writeDraft.tags = writeDraft.tags.filter(function(t){ return t !== tag; });
-      renderTagChips(); scheduleAutosave();
-    };
-    row.insertBefore(chip, input);
-  });
-}
 
-const VISIBILITY_HINTS = {
-  private: 'Private Works are only ever visible to you.',
-  unlisted: 'Unlisted Works are reachable via their direct link, but won\u2019t appear on your Portfolio or in Discover.',
-  public: 'Public Works appear on your Portfolio and can be discovered by readers.'
-};
-function syncSettingsRadios(){
-  qsa('input[name="visibility"]').forEach(function(r){ r.checked = r.value === writeDraft.visibility; r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
-  const hint = qs('#visibility-hint');
-  if (hint) hint.textContent = VISIBILITY_HINTS[writeDraft.visibility] || VISIBILITY_HINTS.public;
-  qsa('input[name="comments"]').forEach(function(r){ r.checked = (r.value === 'on') === writeDraft.allow_comments; r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
-  qsa('input[name="content_note"]').forEach(function(r){ r.checked = r.value === (writeDraft.content_note || ''); r.closest('.radio-pill').classList.toggle('is-active', r.checked); });
-}
 
 function updateWriteFooterCounts(){
   const words = wordCount(writeDraft.body);
@@ -4991,7 +3805,6 @@ function updateWriteFooterCounts(){
   qs('#write-title-preview').textContent = writeDraft.title || 'New Journal';
 }
 
-function clearWriteErrors(){ ['category','title','body'].forEach(function(k){ qs('#err-'+k).hidden = true; }); }
 
 /* Only the explicit "Save Draft" button (and Publish) writes to the
    server now — typing/editing no longer silently persists to Supabase
@@ -5011,180 +3824,8 @@ function markUnsavedImmediately(){
 /* ------------------------------------------------------------------
    15. WRITE VIEW — EVENT WIRING
    ------------------------------------------------------------------ */
-function initWriteViewEvents(){
-  qs('#write-title').addEventListener('input', function(){
-    writeDraft.title = this.value.slice(0,140);
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  });
-  qs('#write-subtitle').addEventListener('input', function(){
-    writeDraft.subtitle = this.value.slice(0,240);
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  });
-  const bodyArea = qs('#write-body');
-  bodyArea.addEventListener('input', function(){
-    writeDraft.body = this.value.slice(0,30000);
-    if (state.writeMdHistory[state.writeMdHistoryIndex] !== writeDraft.body){
-      state.writeMdHistory = state.writeMdHistory.slice(0, state.writeMdHistoryIndex+1);
-      state.writeMdHistory.push(writeDraft.body);
-      state.writeMdHistoryIndex = state.writeMdHistory.length - 1;
-    }
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  });
 
-  qs('#tag-text-input').addEventListener('keydown', function(e){
-    if (e.key === 'Enter' || e.key === ','){
-      e.preventDefault();
-      const val = this.value.trim().replace(/,$/,'').slice(0,30);
-      if (!val) return;
-      if (writeDraft.tags.length >= 3){ showToast('You can add up to 3 tags.'); return; }
-      if (writeDraft.tags.some(function(t){ return t.toLowerCase() === val.toLowerCase(); })){ showToast('That tag is already added.'); return; }
-      writeDraft.tags.push(val);
-      this.value = '';
-      renderTagChips();
-      markUnsavedImmediately();
-    }
-  });
 
-  document.getElementById('visibility-row').addEventListener('change', function(e){
-    writeDraft.visibility = e.target.value; syncSettingsRadios(); markUnsavedImmediately();
-  });
-  document.getElementById('comments-row').addEventListener('change', function(e){
-    writeDraft.allow_comments = e.target.value === 'on'; syncSettingsRadios(); markUnsavedImmediately();
-  });
-  document.getElementById('note-row').addEventListener('change', function(e){
-    writeDraft.content_note = e.target.value; syncSettingsRadios(); markUnsavedImmediately();
-  });
-
-  /* ---- markdown toolbar: wraps or inserts syntax around the
-     current textarea selection, beginner-friendly and dependency-free ---- */
-  const MD_ACTIONS = {
-    bold:   function(sel){ return { before:'**', after:'**', placeholder:'bold text' }; },
-    italic: function(sel){ return { before:'*', after:'*', placeholder:'italic text' }; },
-    heading:function(sel){ return { linePrefix:'## ' }; },
-    quote:  function(sel){ return { linePrefix:'> ' }; },
-    ul:     function(sel){ return { linePrefix:'- ' }; },
-    ol:     function(sel){ return { linePrefix:'1. ' }; },
-    divider:function(sel){ return { insertBlock:'\n\n---\n\n' }; },
-    link:   function(sel){ return { before:'[', after:'](https://)', placeholder:'link text' }; }
-  };
-  qsa('[data-md]').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      applyMarkdownAction(this.getAttribute('data-md'), MD_ACTIONS);
-    });
-  });
-  function applyMarkdownAction(kind, ACTIONS){
-    const ta = bodyArea;
-    const start = ta.selectionStart, end = ta.selectionEnd;
-    const value = ta.value;
-    const selected = value.slice(start, end);
-    const action = ACTIONS[kind]();
-    let newValue, newStart, newEnd;
-    if (action.linePrefix){
-      const lineStart = value.lastIndexOf('\n', start-1) + 1;
-      newValue = value.slice(0, lineStart) + action.linePrefix + value.slice(lineStart);
-      newStart = start + action.linePrefix.length; newEnd = end + action.linePrefix.length;
-    } else if (action.insertBlock){
-      newValue = value.slice(0, start) + action.insertBlock + value.slice(end);
-      newStart = newEnd = start + action.insertBlock.length;
-    } else {
-      const text = selected || action.placeholder;
-      newValue = value.slice(0, start) + action.before + text + action.after + value.slice(end);
-      newStart = start + action.before.length;
-      newEnd = newStart + text.length;
-    }
-    ta.value = newValue;
-    ta.focus();
-    ta.setSelectionRange(newStart, newEnd);
-    writeDraft.body = newValue.slice(0,30000);
-    state.writeMdHistory = state.writeMdHistory.slice(0, state.writeMdHistoryIndex+1);
-    state.writeMdHistory.push(writeDraft.body);
-    state.writeMdHistoryIndex = state.writeMdHistory.length - 1;
-    updateWriteFooterCounts();
-    markUnsavedImmediately();
-  }
-
-  qs('#undo-btn').addEventListener('click', function(){
-    if (state.writeMdHistoryIndex > 0){
-      state.writeMdHistoryIndex--;
-      writeDraft.body = state.writeMdHistory[state.writeMdHistoryIndex];
-      bodyArea.value = writeDraft.body;
-      updateWriteFooterCounts(); markUnsavedImmediately();
-    }
-  });
-  qs('#redo-btn').addEventListener('click', function(){
-    if (state.writeMdHistoryIndex < state.writeMdHistory.length - 1){
-      state.writeMdHistoryIndex++;
-      writeDraft.body = state.writeMdHistory[state.writeMdHistoryIndex];
-      bodyArea.value = writeDraft.body;
-      updateWriteFooterCounts(); markUnsavedImmediately();
-    }
-  });
-
-  qs('#save-draft-btn').addEventListener('click', async function(){
-    if (!draftHasContent(writeDraft)){ showToast('Write a little something before saving.'); return; }
-    this.disabled = true;
-    await persistDraft(Object.assign({}, writeDraft), true);
-    this.disabled = false;
-    showToast('Draft saved.');
-  });
-
-  qs('#preview-btn').addEventListener('click', function(){
-    saveDraftToLocalStorage();
-    PREVIEW_JOURNAL = Object.assign({ id:'__preview__', author_id: state.currentUser ? state.currentUser.id : 'demo-user-1',
-      published_at:new Date().toISOString(), likes:0, comments:0, status:'draft', reading_time: readingTimeMinutes(wordCount(writeDraft.body)) },
-      writeDraft, { excerpt: writeDraft.subtitle || (writeDraft.body||'').slice(0,140) });
-    JOURNAL_CACHE['__preview__'] = PREVIEW_JOURNAL;
-    navigateTo('read', { journalId:'__preview__' });
-    showToast('This is a preview — it hasn\'t been published.');
-  });
-
-  qs('#publish-btn').addEventListener('click', function(){
-    clearWriteErrors();
-    let ok = true;
-    if (!writeDraft.category){ qs('#err-category').hidden = false; ok = false; }
-    if (!writeDraft.title.trim()){ qs('#err-title').hidden = false; ok = false; }
-    if (writeDraft.body.trim().length < 1 || writeDraft.body.length > 30000){ qs('#err-body').hidden = false; ok = false; }
-    if (!ok){ showToast('Please fix the highlighted fields first.'); return; }
-    openPublishModal();
-  });
-}
-
-function openPublishModal(){
-  const words = wordCount(writeDraft.body);
-  qs('#publish-summary').innerHTML = [
-    ['Title', writeDraft.title],
-    ['Category', writeDraft.category],
-    ['Reading time', readingTimeMinutes(words) + ' min'],
-    ['Visibility', writeDraft.visibility === 'public' ? 'Public 🌍' : writeDraft.visibility === 'unlisted' ? 'Unlisted 🔗' : 'Private 🔒'],
-    ['Comments', writeDraft.allow_comments ? 'Allowed' : 'Turned off'],
-    ['Excerpt', (writeDraft.subtitle || writeDraft.body.slice(0,110) + '…')]
-  ].map(function(row){ return '<div class="publish-summary-row"><span class="k">' + row[0] + '</span><span class="v">' + escapeHtml(String(row[1])) + '</span></div>'; }).join('');
-  openModal('publish-modal-scrim');
-}
-
-async function doPublish(){
-  const btn = qs('#publish-confirm-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Publishing…';
-  try{
-    const journal = await publishJournal(Object.assign({}, writeDraft));
-    localStorage.removeItem(localDraftKey());
-    closeModal('publish-modal-scrim');
-    const msg = journal.visibility === 'private' ? 'Saved privately — only you can see this Work.'
-      : journal.visibility === 'unlisted' ? 'Published — reachable by its link, not listed on your Portfolio.'
-      : 'Your Work is live on your Portfolio.';
-    showToast(msg);
-    navigateTo('read', { journalId: journal.id });
-  }catch(e){
-    showToast(friendlyWriteError(e, "Couldn't publish — please try again."));
-  }finally{
-    btn.disabled = false;
-    btn.textContent = 'Publish';
-  }
-}
 
 /* ------------------------------------------------------------------
    16. GLOBAL NAVIGATION + MODAL WIRING
@@ -5251,13 +3892,11 @@ async function completeLoginSuccess(form, result){
     const action = state.pendingAuthAction;
     state.pendingAuthAction = null;
     action();
-  } else if (state.currentView === 'write'){
-    renderWriteView(state.currentDraftId);
   } else if (state.currentView === 'home'){
     state.latestPage = 1;
     renderHomeStatic();
-  } else if (['drafts','notifications','saved','published','read'].indexOf(state.currentView) !== -1){
-    navigateTo(state.currentView, { journalId: state.currentJournalId });
+  } else if (['drafts','notifications','saved','published'].indexOf(state.currentView) !== -1){
+    navigateTo(state.currentView);
   }
 }
 
@@ -5396,11 +4035,6 @@ function initGuestModal(){
   qs('#guest-modal-cancel').addEventListener('click', function(){ closeModal('guest-modal-scrim'); });
 }
 
-function initPublishModal(){
-  qs('#publish-modal-close').addEventListener('click', function(){ closeModal('publish-modal-scrim'); });
-  qs('#publish-go-back-btn').addEventListener('click', function(){ closeModal('publish-modal-scrim'); });
-  qs('#publish-confirm-btn').addEventListener('click', doPublish);
-}
 
 qsa('.modal-scrim').forEach(function(scrim){
   scrim.addEventListener('click', function(e){ if (e.target === scrim) closeAllModals(); });
@@ -5653,9 +4287,7 @@ async function init(){
     initAuthModal();
     initUsernameOnboardingModal();
     initGuestModal();
-    initPublishModal();
     initHomeControls();
-    initWriteViewEvents();
     initMobileSwipeNav();
 
     // This page is for logged-in members only. Restore the session first;
@@ -5763,7 +4395,7 @@ function parseRoute(pathname, search){
 }
 async function applyRoute(route, opts){
   opts = opts || {};
-  const myToken = ++state.routeToken;
+  state.routeToken++;
   // 'explore' (Home + scroll down to the sections) is only for landing on a
   // ?category= link from another page; back/forward to the same URL is plain Home.
   if (route.type === 'home'){
@@ -5780,72 +4412,6 @@ async function applyRoute(route, opts){
   navigateTo('home', { replace: true });
 }
 
-async function loadJournalByUsernameAndSlug(username, slug, replace, token) {
-  // True once a newer navigation (back/forward, a click...) has started while this was still loading.
-  const stale = function(){ return token !== undefined && token !== state.routeToken; };
-  try {
-    if (DEMO_MODE){
-      const author = mockAuthorByUsername(username);
-      if (!author){
-        showToast('Work not found');
-        navigateTo('home', { replace: replace });
-        return;
-      }
-      const isOwner = !!(state.currentUser && state.currentUser.id === author.id);
-      const journal = MOCK_JOURNALS.find(function(j){
-        return j.author_id === author.id && j.slug === slug && j.status === 'published' &&
-               (j.visibility !== 'private' || isOwner);
-      });
-      if (!journal){
-        showToast('Work not found');
-        navigateTo('home', { replace: replace });
-        return;
-      }
-      navigateTo('read', { journalId: journal.id, replace: replace });
-      return;
-    }
-
-    // One SECURITY DEFINER RPC (get_journal_by_username_slug) replaces
-    // the old profile-then-journal two-step lookup — see fetchJournal's
-    // comment for why this had to move off a direct table select (Phase
-    // 4 audit DB-5(ii)). "No such username", "no such slug for that
-    // author", and "private and not the owner" all correctly collapse
-    // to the same null result the old two-step lookup already produced
-    // for all three cases — this isn't a narrower check, just one round
-    // trip doing what used to take two.
-    const { data: journal, error } = await supabaseClient.rpc('get_journal_by_username_slug', { p_username: username, p_slug: slug });
-    if (stale()) return;
-
-    // Both failure branches below REPLACE their own history entry with
-    // Home (instead of pushing Home on top of it): otherwise Back
-    // returned to the dead link, which failed again and pushed Home
-    // again — a back-button trap.
-    if (error) {
-      console.error('Failed to load Work:', error);
-      showToast("Couldn't load that — check your connection and try again.");
-      navigateTo('home', { replace: true });
-      return;
-    }
-    if (!journal) {
-      showToast('Work not found');
-      navigateTo('home', { replace: true });
-      return;
-    }
-
-    const normalized = normalizeJournalRow(journal);
-    JOURNAL_CACHE[normalized.id] = normalized;
-    // Pass the journal we already fetched (and already visibility-checked
-    // with the isOwner exception above) straight through, instead of
-    // letting the read view re-fetch it itself — see renderReadView's
-    // own comment on preloadedJournal for why that re-fetch was the bug.
-    navigateTo('read', { journalId: normalized.id, preloadedJournal: normalized, replace: replace });
-  } catch (err) {
-    console.error(err);
-    if (stale()) return;
-    showToast('Error loading Work');
-    navigateTo('home', { replace: true });
-  }
-}
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
