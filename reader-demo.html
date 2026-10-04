@@ -76,7 +76,7 @@ body{background:radial-gradient(ellipse at 50% -10%, var(--env2), var(--env));co
 .cover .type-chip{position:absolute;top:14px;left:14px;font-family:var(--sans);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.32);backdrop-filter:blur(2px);padding:5px 10px;border-radius:20px}
 
 .meta{padding:22px 26px 0}
-h1.title{font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,32px);line-height:1.18;margin:2px 0 6px;color:var(--ink)}
+h1.title{text-align:center;font-family:var(--serif-lit);font-weight:600;font-size:clamp(24px,4vw,32px);line-height:1.18;margin:2px 0 6px;color:var(--ink)}
 .subtitle{font-family:var(--serif-mod);font-style:italic;color:var(--soft);font-size:15px;line-height:1.5;margin:0 0 16px}
 .byline{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:18px}
 .meta-divider{height:1px;background:var(--border);margin:16px 0 18px}
@@ -209,7 +209,7 @@ a.byline-link{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:
 #readerLayouts .je-design-controls{margin:0;flex-wrap:nowrap}
 #readerLayouts[hidden]{display:none}
 .article:not(.je-design-host),.teaser-article{max-width:760px;margin-inline:auto}
-.article.je-design-host{padding-inline:clamp(16px,4vw,40px)!important}
+.article.je-design-host.je-design-host{padding-inline:clamp(16px,4vw,40px)!important}
 .je-reading-output{max-width:680px;margin-inline:auto}
 @media(max-width:480px){.topbar{padding-inline:4px}.iconbtn{padding:8px 6px;font-size:12px}#readerLayouts button{font-size:11px;padding:6px;min-height:40px}}
 </style>
@@ -638,22 +638,37 @@ async function normalizePost(row){
   post.comments = await fetchCommentsTree(post.id);
   return post;
 }
+function compareWorkOrder(a,b){
+  const precision = value => Number(((String(value).match(/\.(\d+)/)||[])[1]||'').slice(3,6).padEnd(3,'0'));
+  return Date.parse(a.published_at)-Date.parse(b.published_at) || precision(a.published_at)-precision(b.published_at) || String(a.id).localeCompare(String(b.id));
+}
 async function fetchAdjacentRef(post, dir){
   if (!post || !post.publishedAt) return null;
-  let q = supabaseClient.from('journals')
-    .select('id, slug, title, category_id, cover_url, author_id, published_at, profiles!journals_author_id_fkey(display_name, username)')
-    .eq('status','published').eq('visibility','public');
-  if (dir === 1) q = q.lt('published_at', post.publishedAt).order('published_at', {ascending:false}).order('id', {ascending:false});
-  else q = q.gt('published_at', post.publishedAt).order('published_at', {ascending:true}).order('id', {ascending:true});
-  const { data, error } = await q.limit(1);
-  if (error || !data || !data.length) return null;
-  const row = data[0];
-  const cat = categoryById(row.category_id);
+  const older=dir===1,op=older?'lt':'gt';
+  const candidates=await Promise.all(['journals','story_works'].map(async function(table){
+    const structured=table==='story_works';
+    let q=supabaseClient.from(table)
+      .select('id, slug, title, '+(structured?'kind':'category_id')+', cover_url, author_id, published_at, profiles!'+(structured?'story_works_author_id_fkey':'journals_author_id_fkey')+'(display_name, username)')
+      .eq('visibility','public');
+    q=structured?q.in('status',['published','ongoing','completed','hiatus']):q.eq('status','published');
+    // Match feed ordering, including works sharing the same publication timestamp.
+    if(/^[0-9a-f-]{36}$/i.test(post.id)&&/^[\dT:.+\-Z ]+$/.test(post.publishedAt)){
+      q=q.or('published_at.'+op+'.'+post.publishedAt+',and(published_at.eq.'+post.publishedAt+',id.'+op+'.'+post.id+')');
+    }else q=older?q.lt('published_at',post.publishedAt):q.gt('published_at',post.publishedAt);
+    const {data,error}=await q.order('published_at',{ascending:!older}).order('id',{ascending:!older}).limit(1);
+    if(error){console.warn('Reader neighbor lookup failed:',table,error);return null;}
+    if(!data?.length)return null;
+    const row=data[0];
+    return structured?{...row,category_id:row.kind==='journal'?1:row.kind==='article'?6:2}:row;
+  }));
+  const rows=candidates.filter(Boolean).sort((a,b)=>older?-compareWorkOrder(a,b):compareWorkOrder(a,b));
+  if(!rows.length)return null;
+  const row=rows[0],cat=categoryById(row.category_id);
   return {
-    id: row.id, slug: row.slug, title: row.title, type: cat.name,
-    coverUrl: row.cover_url || null, grad: 'linear-gradient(135deg,' + cat.color + ',#20140c)',
-    authorId: row.author_id, author: (row.profiles && row.profiles.display_name) || 'Aspinora Member',
-    username: (row.profiles && row.profiles.username) || '', publishedAt: row.published_at
+    id:row.id,slug:row.slug,title:row.title,type:cat.name,
+    coverUrl:row.cover_url||null,grad:'linear-gradient(135deg,'+cat.color+',#20140c)',
+    authorId:row.author_id,author:row.profiles?.display_name||'Aspinora Member',
+    username:row.profiles?.username||'',publishedAt:row.published_at
   };
 }
 async function loadNeighbors(post){
