@@ -19,7 +19,11 @@ const root=path.join(__dirname,'..');
  await page.locator('.page-scroll').evaluate(n=>{n.scrollLeft=100;n.scrollTop=300;});
  await touch('touchstart',[[250,600]]);await touch('touchmove',[[150,450]]);
  assert(await page.locator('.page-scroll').evaluate(n=>n.scrollLeft>=190&&n.scrollTop>=440),'mobile pan failed');
- await touch('touchcancel',[]);await page.evaluate(()=>__reader.goTo(1));assert.equal(await page.evaluate(()=>__reader.S.state),'idle');
+ await touch('touchcancel',[]);
+ // WebViews may provide pointer dragging after their pinch gesture, without TouchEvents.
+ await page.locator('.page-scroll').evaluate(n=>{n.scrollLeft=50;n.scrollTop=300;const fire=(type,x,y)=>n.dispatchEvent(new PointerEvent(type,{bubbles:true,cancelable:true,pointerType:'touch',pointerId:77,clientX:x,clientY:y}));const capture=n.setPointerCapture;n.setPointerCapture=()=>{};fire('pointerdown',250,600);fire('pointermove',150,450);fire('pointerup',150,450);n.setPointerCapture=capture;});
+ assert(await page.locator('.page-scroll').evaluate(n=>n.scrollLeft>=140&&n.scrollTop>=440),'touch pointer pan failed');
+ await page.evaluate(()=>__reader.goTo(1));assert.equal(await page.evaluate(()=>__reader.S.state),'idle');
  await touch('touchstart',[[85,400],[305,400]]);await touch('touchmove',[[145,400],[245,400]]);await touch('touchend',[]);
  assert.equal(await page.evaluate(()=>JournalReaderView.isZoomed()),false,'mobile pinch-out did not reach Fit Page');
  assert(await gesture('gesturestart',1),'Safari gesture was not claimed');await gesture('gesturechange',2);assert(await page.evaluate(()=>JournalReaderView.isZoomed()),'Safari gesture fallback did not zoom');await gesture('gestureend',2);

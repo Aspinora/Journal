@@ -36,7 +36,7 @@
   }
   function touchStart(e){
    stopMomentum();
-   if(nativeZoomed()){if(e.touches.length>1){blockedTouch=true;notify();}return;}
+   if(nativeZoomed()&&zoom<=1.01){if(e.touches.length>1){blockedTouch=true;notify();}return;}
    if(e.touches.length===1){pan=startPan(e.touches[0]);if(zoom>1.01)e.preventDefault();return;}
    if(e.touches.length<2)return;
    e.preventDefault();pan=null;blockedTouch=true;const p=midpoint(e.touches),r=scroll.getBoundingClientRect();
@@ -56,7 +56,7 @@
   }
   function touchEnd(e){
    if(e.touches.length<2)pinch=null;
-   if(!e.touches.length){if(e.type!=='touchcancel'&&!blockedTouch&&pan&&['vertical','free'].includes(pan.axis))glide(pan.vx,pan.vy);blockedTouch=false;pan=null;safariGesture=null;}
+   if(!e.touches.length){if(e.type!=='touchcancel'&&!blockedTouch&&pan&&['vertical','free'].includes(pan.axis))glide(pan.vx,pan.vy);blockedTouch=false;pan=null;safariGesture=null;pointers.clear();mouse=null;}
    else if(e.touches.length===1&&zoom>1.01)pan=startPan(e.touches[0]);notify();
   }
   // Safari also emits GestureEvents. Prevent browser zoom from competing with the reader,
@@ -65,9 +65,16 @@
   function gestureChange(e){if(nativeZoomed()&&!safariGesture)return;e.preventDefault();if(!pinch&&safariGesture)setZoom(safariGesture.zoom*e.scale,e.clientX||undefined,e.clientY||undefined);}
   function gestureEnd(e){if(nativeZoomed()&&!safariGesture)return;e.preventDefault();safariGesture=null;blockedTouch=!!pinch;notify();}
   function wheel(e){stopMomentum();if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();setZoom(zoom*Math.exp(-Math.max(-100,Math.min(100,e.deltaY))*.008),e.clientX,e.clientY);}
-  function down(e){if(e.pointerType!=='mouse'||e.button!==0||zoom<=1.01||e.target.closest('button,a,input,textarea'))return;e.preventDefault();mouse={id:e.pointerId,x:e.clientX,y:e.clientY,left:scroll.scrollLeft,top:scroll.scrollTop};scroll.setPointerCapture(e.pointerId);}
-  function move(e){if(!mouse||e.pointerId!==mouse.id)return;e.preventDefault();scroll.scrollLeft=mouse.left+mouse.x-e.clientX;scroll.scrollTop=mouse.top+mouse.y-e.clientY;}
-  function up(e){if(mouse&&e.pointerId===mouse.id){mouse=null;if(scroll.hasPointerCapture(e.pointerId))scroll.releasePointerCapture(e.pointerId);}}
+  const pointers=new Map();
+  function down(e){
+   if(e.pointerType==='touch')pointers.set(e.pointerId,e);
+   if(pointers.size>1){mouse=null;return;}
+   if((e.pointerType==='mouse'&&e.button!==0)||zoom<=1.01||e.target.closest('button,a,input,textarea'))return;
+   stopMomentum();if(e.pointerType==='mouse')e.preventDefault();
+   mouse={id:e.pointerId,x:e.clientX,y:e.clientY,left:scroll.scrollLeft,top:scroll.scrollTop};scroll.setPointerCapture(e.pointerId);
+  }
+  function move(e){if(pointers.size>1||pinch||!mouse||e.pointerId!==mouse.id)return;e.preventDefault();scroll.scrollLeft=mouse.left+mouse.x-e.clientX;scroll.scrollTop=mouse.top+mouse.y-e.clientY;}
+  function up(e){pointers.delete(e.pointerId);if(mouse&&e.pointerId===mouse.id){mouse=null;if(scroll.hasPointerCapture(e.pointerId))scroll.releasePointerCapture(e.pointerId);}}
   const handlers={gesturestart:gestureStart,gesturechange:gestureChange,gestureend:gestureEnd,touchstart:touchStart,touchmove:touchMove,touchend:touchEnd,touchcancel:touchEnd,wheel,pointerdown:down,pointermove:move,pointerup:up,pointercancel:up};
   for(const [type,handler]of Object.entries(handlers))scroll.addEventListener(type,handler,{passive:false});
   const observer=new ResizeObserver(schedule);observer.observe(scroll);observer.observe(content);
