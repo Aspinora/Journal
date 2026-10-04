@@ -37,7 +37,8 @@
   function touchStart(e){
    stopMomentum();
    if(nativeZoomed()&&zoom<=1.01){if(e.touches.length>1){blockedTouch=true;notify();}return;}
-   if(e.touches.length===1){pan=startPan(e.touches[0]);if(zoom>1.01)e.preventDefault();return;}
+   // At Fit Page the browser owns vertical scrolling and its native momentum.
+   if(e.touches.length===1){pan=zoom>1.01?startPan(e.touches[0]):null;if(pan)e.preventDefault();return;}
    if(e.touches.length<2)return;
    e.preventDefault();pan=null;blockedTouch=true;const p=midpoint(e.touches),r=scroll.getBoundingClientRect();
    pinch={distance:Math.max(1,distance(e.touches)),zoom,x:(scroll.scrollLeft+p.x-r.left)/zoom,y:(scroll.scrollTop+p.y-r.top)/zoom};notify();
