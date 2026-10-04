@@ -21,19 +21,19 @@
     const v=value||{}, src=safeSrc(v.src) ? v.src : fallbackSrc;
     if (!safeSrc(src)) return null;
     return {
-      id:ident(v.id),src,mode:modes.includes(v.mode)?v.mode:'block',
+      id:ident(v.id),src,mode:v.floating?(v.mode==='front'?'front':'behind'):(modes.includes(v.mode)?v.mode:'block'),
       align:['left','center','right'].includes(v.align)?v.align:'center',
       wrapSide:['left','right','both'].includes(v.wrapSide)?v.wrapSide:'both',
       wrapShape:v.wrapShape==='tight'?'tight':'square',
-      w:limit(v.w,5,100,30),ratio:limit(v.ratio,.15,6,1),aspect:v.aspect!==false,
-      x:limit(v.x,0,95,35),y:limit(v.y,-300,3000,0),rotation:limit(v.rotation,-180,180,0),
+      w:limit(v.w,1,100,30),ratio:limit(v.ratio,.01,100,1),aspect:v.aspect!==false,
+      x:limit(v.x,-100,100,35),y:limit(v.y,-10000,100000,0),rotation:limit(v.rotation,-180,180,0),
       opacity:limit(v.opacity,5,100,100),flipX:!!v.flipX,flipY:!!v.flipY,
       gap:limit(v.gap,0,64,16),wrapEnd:limit(v.wrapEnd,0,50,0),border:limit(v.border,0,8,0),
       borderColor:typeof v.borderColor==='string' && /^#[a-f0-9]{6}$/i.test(v.borderColor)?v.borderColor:'#8a7963',
       shadow:['none','soft','deep'].includes(v.shadow)?v.shadow:'none',locked:!!v.locked,
-      anchor:v.anchor==='page'?'page':'paragraph',anchorId:ident(v.anchorId),page:limit(v.page,1,100,1),
-      group:ident(v.group),z:limit(v.z,0,200,20),
-      placed:!!v.placed,offsetX:limit(v.offsetX,-100,100,0),offsetY:limit(v.offsetY,-300,3000,0)
+      anchor:v.anchor==='page'?'page':'paragraph',anchorId:ident(v.anchorId),page:Math.round(limit(v.page,1,1000,1)),
+      group:ident(v.group),z:limit(v.z,0,10000,20),
+      floating:!!v.floating,placed:!!v.placed,offsetX:limit(v.offsetX,-100,100,0),offsetY:limit(v.offsetY,-300,3000,0)
     };
   }
   function model(node) {
@@ -51,7 +51,7 @@
   }
   function classes(m) {
     const align=m.mode==='wrap' ? (m.wrapSide==='left'?'right':m.wrapSide==='right'?'left':m.x>50?'right':'left') : m.align;
-    return 'journal-element element-'+align+' je-'+m.mode+(m.mode==='wrap'?' element-wrap':'')+(m.locked?' je-locked':'')+(m.anchor==='page' && ['front','behind'].includes(m.mode)?' je-fixed':'');
+    return 'journal-element element-'+align+' je-'+m.mode+(m.mode==='wrap'?' element-wrap':'')+(m.floating?' je-free':'')+(m.locked?' je-locked':'')+(m.anchor==='page' && ['front','behind'].includes(m.mode)?' je-fixed':'');
   }
   function paint(node,m) {
     node.className=classes(m);
@@ -88,14 +88,16 @@
     const marker=Array.from(root.children).find(n=>n.classList.contains('journal-page-settings'));
     return layout(marker?parse(marker.getAttribute('data-layout')):{});
   }
-  function hydrate(root) {
-    if(!root)return;
-    if(!root.querySelector('.journal-element,figure.journal-page-settings')){root.classList.remove('je-document','je-grid');delete root.dataset.jeLayout;root.style.minHeight='';return;}
-    root.classList.add('je-document');
+  const liveLayouts=new WeakMap();
+  function hydrate(root,override) {
+    if(!root||root.closest('.je-canvas'))return;
+    if(override)liveLayouts.set(root,override);else override=liveLayouts.get(root);
+    if(!override&&!root.querySelector('.journal-element,figure.journal-page-settings')){root.classList.remove('je-document','je-grid','je-floating-document');delete root.dataset.jeLayout;root.style.minHeight='';return;}
+    root.classList.add('je-document');root.classList.toggle('je-floating-document',!!root.querySelector('.je-free'));
     root.querySelectorAll('[data-je-clear]').forEach(n=>n.removeAttribute('data-je-clear'));
     const textBlocks=Array.from(root.children).filter(n=>/^(P|H1|H2|BLOCKQUOTE|UL|OL)$/.test(n.tagName)||n.classList.contains('blk'));
     root.querySelectorAll('.journal-element').forEach(f=>{const m=model(f);if(m){paint(f,m);f.setAttribute('contenteditable','false');}if(m?.mode==='wrap' && m.wrapEnd>0){const start=textBlocks.findIndex(n=>n.getAttribute('data-pid')===m.anchorId);const end=textBlocks[start+Math.round(m.wrapEnd)];if(start>=0&&end)end.setAttribute('data-je-clear','true');}});
-    const l=settings(root),p=papers[l.paper],wide=l.orientation==='landscape'?p[1]:p[0],high=l.orientation==='landscape'?p[0]:p[1];
+    const l=override||settings(root),p=papers[l.paper],wide=l.orientation==='landscape'?p[1]:p[0],high=l.orientation==='landscape'?p[0]:p[1];
     root.dataset.jeLayout=l.mode;root.classList.toggle('je-grid',l.grid && root.id==='editor');
     root.style.setProperty('--je-paper-width',(wide*96/25.4)+'px');
     root.style.setProperty('--je-paper-ratio',high/wide);
@@ -117,6 +119,9 @@
     const cs=global.getComputedStyle(root),contentWidth=Math.max(1,root.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0));
     root.style.setProperty('--je-unit',contentWidth/100+'px');
     let extent=l.mode==='page'?pageHeight:0;
+    root.querySelectorAll('figure.journal-element.je-free').forEach(f=>{const m=model(f);if(!m)return;const target=m.anchor==='paragraph'?textBlocks.find(p=>p.getAttribute('data-pid')===m.anchorId):null;
+      f.style.setProperty('--je-free-width',contentWidth+'px');f.style.position='absolute';f.style.left=(parseFloat(cs.paddingLeft)||0)+'px';f.style.width=contentWidth+'px';f.style.top=target?(target.getBoundingClientRect().top-root.getBoundingClientRect().top)+'px':((m.page-1)*pageHeight+(parseFloat(cs.paddingTop)||0))+'px';
+    });
     const rootTop=root.getBoundingClientRect().top;
     root.querySelectorAll('figure.journal-element.je-front,figure.journal-element.je-behind').forEach(f=>{const img=f.querySelector('img');if(img)extent=Math.max(extent,img.getBoundingClientRect().bottom-rootTop);});
     if(extent>0)root.style.minHeight=Math.ceil(extent)+'px';
@@ -126,19 +131,20 @@
     if(pending)return;pending=true;
     (global.requestAnimationFrame || (fn=>global.setTimeout(fn,0)))(()=>{
       pending=false;const roots=new Set(global.document.querySelectorAll('.je-document'));
-      global.document.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(f=>roots.add(f.closest('#editor,#chBody,.article') || f.closest('.je-document') || f.parentElement));
-      roots.forEach(hydrate);
+      global.document.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(f=>{if(f.closest('.je-canvas'))return;roots.add(f.closest('#editor,#chBody,.article') || f.closest('.je-document') || f.parentElement);});
+      roots.forEach(root=>hydrate(root));
     });
   }
   if(global.document) {
     global.addEventListener('resize',refresh);
-    global.addEventListener('beforeprint',()=>{const root=Array.from(global.document.querySelectorAll('.je-document[data-je-layout=page]')).find(r=>r.getClientRects().length);if(!root)return;const l=settings(root),style=global.document.createElement('style');style.id='journal-demo-print';style.textContent='@page{size:'+l.paper+' '+l.orientation+';margin:0}';global.document.getElementById(style.id)?.remove();global.document.head.append(style);});
+    global.addEventListener('beforeprint',()=>{const root=Array.from(global.document.querySelectorAll('.je-document[data-je-layout=page]')).find(r=>r.getClientRects().length);if(!root||root.closest('.je-canvas'))return;
+    const l=liveLayouts.get(root)||settings(root),style=global.document.createElement('style');style.id='journal-demo-print';style.textContent='@page{size:'+l.paper+' '+l.orientation+';margin:0}';global.document.getElementById(style.id)?.remove();global.document.head.append(style);});
     global.addEventListener('afterprint',()=>global.document.getElementById('journal-demo-print')?.remove());
     global.document.addEventListener('DOMContentLoaded',()=>{
       new MutationObserver(changes=>{if(changes.some(c=>c.type==='childList'&&(c.target.closest?.('#editor,#chBody,.article,.je-document')||Array.from(c.addedNodes).some(n=>n.nodeType===1&&(n.matches('.journal-element,figure.journal-page-settings,.je-document')||n.querySelector('.journal-element,figure.journal-page-settings,.je-document'))))))refresh();}).observe(global.document.body,{childList:true,subtree:true});refresh();
       if(global.document.fonts)global.document.fonts.ready.then(refresh);
     });
-    global.document.addEventListener('load',e=>{if(e.target.tagName==='IMG'&&e.target.closest('.journal-element'))refresh();},true);
+    global.document.addEventListener('load',e=>{if(e.target.tagName==='IMG'&&e.target.closest('.journal-element')&&!e.target.closest('.je-canvas'))refresh();},true);
   }
   global.JournalElements=Object.freeze({catalog:Object.freeze(catalog),safeSrc,search,clean,model,normalize,make,paint,layout,makeLayout,settings,hydrate,refresh,papers,limit});
 })(window);

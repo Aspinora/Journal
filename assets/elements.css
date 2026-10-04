@@ -88,3 +88,23 @@ figure.journal-element.je-fixed{left:var(--je-page-inset,0px);top:calc(var(--je-
 
 
 span.journal-element.je-inline{left:calc(var(--je-offset-x,0) * var(--je-unit,1cqw));top:calc(var(--je-offset-y,0) * var(--je-unit,1cqw))}
+
+/* Editable text and decoration surfaces are siblings. No decoration occupies text flow. */
+.je-editor-host{isolation:isolate;position:relative}
+.je-editor-host #editor{position:relative;z-index:2;background-color:transparent!important}
+.je-canvas{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.je-canvas-back{z-index:1}.je-canvas-front{z-index:3}
+.je-canvas figure.journal-element{position:absolute!important;width:var(--je-object-width)!important;height:var(--je-object-height)!important;margin:0!important;float:none!important}
+.je-canvas figure.journal-element img{position:static!important;left:auto!important;top:auto!important;width:100%!important;height:100%!important;pointer-events:none!important}
+.je-hit-layer{position:absolute;inset:0;z-index:4;pointer-events:none}
+.je-hit{position:absolute;pointer-events:auto;touch-action:none;border:0;margin:0;padding:0;background:transparent;cursor:grab;-webkit-user-select:none;user-select:none}
+.je-hit:focus-visible{outline:2px solid var(--accent)}
+.je-selection{pointer-events:auto;touch-action:none;background:transparent;cursor:grab}
+.je-free{position:absolute!important;float:none!important;height:0!important;margin:0!important}
+@media print{.je-hit-layer{display:none!important}}
+
+.je-floating-document>p,.je-floating-document>h1,.je-floating-document>h2,.je-floating-document>blockquote,.je-floating-document>.blk,.je-floating-document>ul,.je-floating-document>ol{z-index:10001}
+.je-floating-document>figure.je-free.je-behind{z-index:calc(1 + var(--je-z,20))}
+.je-floating-document>figure.je-free.je-front{z-index:calc(20000 + var(--je-z,20))}
+
+.je-floating-document>figure.je-free{width:var(--je-free-width,100%)!important}

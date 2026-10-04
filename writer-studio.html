@@ -1399,16 +1399,16 @@ const Ed = {
     document.execCommand('defaultParagraphSeparator', false, 'p');
     this.el.append(Sanitize.toFragment(rec.html || '', { keepIds: true }));
     if (!this.el.firstChild) this.el.append(this.newBlock());
-    this.seq = rec.pidSeq || 0; this.used = new Set(); this.normalizeAll();
-    this.dirtyFlag = false; Elements.ensureIds(); Elements.syncLayout(); JournalElements.hydrate(this.el);
+    this.seq = rec.pidSeq || 0; this.used = new Set(); this.normalizeAll(true);
+    this.dirtyFlag = false; Elements.ensureIds(); Elements.load();
     this.updateCounts(); Gutter.reset();
   },
-  unload() { Elements.clear(); this.chapterId = null; if (this.el) this.el.replaceChildren(); },
+  unload() { Elements.dispose(); this.chapterId = null; if (this.el) this.el.replaceChildren(); },
   newBlock() { const p = document.createElement('p'); p.append(document.createElement('br')); return p; },
   nextPid() { let id; do { this.seq++; id = 'paragraph_' + String(this.seq).padStart(3, '0'); } while (this.used.has(id)); this.used.add(id); return id; },
   isEmptyBlock: b => !b.textContent.replace(/\u200B/g, '').length && !b.querySelector('img,figure'),
   /* ---- paragraph identity: permanent, unique, survives split / merge / retype */
-  normalizeAll() {
+  normalizeAll(skipTail = false) {
     const el = this.el; if (!el) return 0; let fixed = 0;
     for (const n of Array.from(el.childNodes)) {
       const isEl = n.nodeType === 1, t = isEl ? n.tagName : '';
@@ -1418,7 +1418,7 @@ const Ed = {
       const p = document.createElement('p'); n.replaceWith(p); p.append(n); fixed++;
     }
     if (!el.firstChild) el.append(this.newBlock());
-    if (el.lastElementChild && !/^(P|H1|H2|BLOCKQUOTE|UL|OL)$/.test(el.lastElementChild.tagName)) el.append(this.newBlock());
+    if (!skipTail && el.lastElementChild && !/^(P|H1|H2|BLOCKQUOTE|UL|OL)$/.test(el.lastElementChild.tagName)) el.append(this.newBlock());
     // Reserve existing IDs before assigning IDs to newly inserted decorations.
     this.used = new Set(Array.from(el.querySelectorAll(BLOCK_SEL)).map(b=>b.getAttribute('data-pid')).filter(Boolean));
     const seen = new Set(); let prev = null;
@@ -1472,6 +1472,7 @@ const Ed = {
   afterInput(kind) {
     if (this.needFix > 0) this.fixSpans();
     if (/^(insertFromPaste|insertFromDrop|history|format|delete(By|Content)(Cut|Drag)|insertReplacementText)/.test(kind) || kind === 'composition' || /Cut|Drag/.test(kind)) this.normalizeAll(); else this.normalizeLocal();
+    Elements.importPasted(); Elements.checkpoint(kind); Elements.render();
     raf('ed-post', () => { this.ensureCaretVisible(); Gutter.update(); this.countsSoon(); UI.syncToolbar(); });
   },
   fixSpans() {
@@ -1513,12 +1514,7 @@ const Ed = {
     this.tabFree = false;
   },
   /* ---- commands */
-  exec(cmd, val, css) {
-    document.execCommand('styleWithCSS', false, !!css);
-    const elements = /^(undo|redo)$/.test(cmd) ? Elements.figures() : [];
-    elements.forEach(f => f.setAttribute('contenteditable', 'true'));
-    try { return document.execCommand(cmd, false, val); } finally { elements.forEach(f => f.setAttribute('contenteditable', 'false')); }
-  },
+  exec(cmd, val, css) { document.execCommand('styleWithCSS', false, !!css); return document.execCommand(cmd, false, val); },
   withPids(fn) {
     const all0 = Array.from(this.el.querySelectorAll(BLOCK_SEL)), pids0 = all0.map(b => b.getAttribute('data-pid'));
     const sel = this.blocksInSelection().map(b => all0.indexOf(b)).filter(i => i >= 0); fn(); this.unwrapLists();
@@ -1533,7 +1529,9 @@ const Ed = {
     if (moved && a) { try { s.setBaseAndExtent(a[0], a[1], a[2], a[3]); } catch {} }
   },
   cmd(name, arg) {
-    if (!this.chapterId) return; this.focusForCommand();
+    if (!this.chapterId) return;
+    if (Elements.ready && (name === 'undo' || name === 'redo')) { Elements[name](); return; }
+    Elements.checkpoint('before'); this.focusForCommand();
     const collapsed = !!(this.sel() && this.sel().isCollapsed);
     switch (name) {
       case 'undo': this.exec('undo'); break; case 'redo': this.exec('redo'); break;
@@ -1574,7 +1572,7 @@ const Ed = {
   /* ---- state for toolbars */
   state() {
     const s = this.sel(); if (!s) return null; const st = {};
-    try { st.bold = document.queryCommandState('bold'); st.italic = document.queryCommandState('italic'); st.underline = document.queryCommandState('underline'); st.strike = document.queryCommandState('strikeThrough'); st.canUndo = document.queryCommandEnabled('undo'); st.canRedo = document.queryCommandEnabled('redo'); } catch {}
+    try { st.bold = document.queryCommandState('bold'); st.italic = document.queryCommandState('italic'); st.underline = document.queryCommandState('underline'); st.strike = document.queryCommandState('strikeThrough'); st.canUndo = document.queryCommandEnabled('undo'); st.canRedo = document.queryCommandEnabled('redo'); if (Elements.ready) { st.canUndo = Elements.historyIndex > 0; st.canRedo = Elements.historyIndex < Elements.history.length - 1; } } catch {}
     const n = s.focusNode, e = n.nodeType === 1 ? n : n.parentElement; if (!e) return st; const cs = getComputedStyle(e);
     st.size = Math.round(parseFloat(cs.fontSize)); st.fontName = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim(); st.color = cs.color;
     const b = this.blockOf(n); st.block = b ? b.tagName.toLowerCase() : 'p'; st.align = b ? getComputedStyle(b).textAlign : 'left'; st.list = e.closest('ul') ? 'ul' : e.closest('ol') ? 'ol' : ''; st.quote = !!e.closest('blockquote');
@@ -1600,6 +1598,7 @@ const Ed = {
   serialize() {
     this.normalizeAll();
     const copy = this.el.cloneNode(true);
+    Elements.exportTo(copy);
     copy.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(f => { const c=JournalElements.clean(f); if(c)f.replaceWith(c);else f.remove(); });
     copy.querySelectorAll('[data-je-transaction]').forEach(n=>{if(!n.textContent&&!n.querySelector('img'))n.remove();else n.removeAttribute('data-je-transaction');});
     copy.querySelectorAll('[data-je-clear]').forEach(n=>n.removeAttribute('data-je-clear'));
@@ -2304,7 +2303,7 @@ UI.setMode = function (m) {
   if (m === 'preview') { Elements.clear(); Ed.saveSel(); this.scrollTop = sc.scrollTop; Pop.close(); Dock.close(); this.renderPreview(); $('#writeArea').hidden = true; $('#preview').hidden = false; }
   else { $('#preview').hidden = true; $('#writeArea').hidden = false; sc.scrollTop = this.scrollTop || 0; if (!this.portrait) Ed.restoreFocus(); }
   this.mode = m; document.body.classList.toggle('previewing', m === 'preview'); $$('#modeSeg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.m === m))); this.syncCrumb();
-  if (m === 'write') raf('pv', () => { this.syncToolbar(); });
+  if (m === 'write') raf('pv', () => { Elements.render(); this.syncToolbar(); });
 };
 UI.renderPreview = function () {
   const f = Model.find(App.story, Ed.chapterId), s = App.story, pv = $('#preview');
