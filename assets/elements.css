@@ -110,7 +110,7 @@ span.journal-element.je-inline{left:calc(var(--je-offset-x,0) * var(--je-unit,1c
 .je-floating-document>figure.je-free{width:var(--je-free-width,100%)!important}
 
 /* Both editable canvases and Original layout use these exact text metrics. */
-.je-design.je-design{box-sizing:border-box!important;width:var(--je-canvas-width)!important;max-width:none!important;font-family:var(--je-canvas-font)!important;font-size:var(--je-canvas-size)!important;line-height:var(--je-canvas-line)!important;font-style:normal!important;text-align:start;white-space:normal;overflow-wrap:anywhere}
+.je-design.je-design{box-sizing:border-box!important;width:var(--je-canvas-width)!important;max-width:none!important;font-family:var(--je-canvas-font)!important;font-size:var(--je-canvas-size)!important;line-height:var(--je-canvas-line)!important;font-style:normal!important;text-align:var(--je-canvas-align,start);white-space:normal;overflow-wrap:anywhere}
 .je-design.je-design p,.je-design.je-design li{margin:0 0 var(--je-canvas-gap)}
 .je-design.je-design h1{font-size:1.85em;line-height:1.25;margin:1.1em 0 .5em;font-weight:700}
 .je-design.je-design h2{font-size:1.4em;line-height:1.3;margin:1em 0 .45em;font-weight:600}
@@ -118,11 +118,11 @@ span.journal-element.je-inline{left:calc(var(--je-offset-x,0) * var(--je-unit,1c
 .je-design.je-design ul,.je-design.je-design ol{margin:0 0 .9em;padding-left:1.6em}
 .je-design.je-design[data-je-layout=flow]{padding:0!important;border:0!important;box-shadow:none!important}
 .je-design-host.je-design-host{display:block!important;padding:0!important;min-height:0!important;text-align:start!important;font-style:normal!important}
-.je-design-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0;font:14px/1.4 system-ui}
-.je-design-controls button{min-height:40px;border:1px solid var(--line,var(--rule,#bbb));border-radius:8px;background:var(--paper,var(--bg,#fff));color:inherit;padding:6px 12px;cursor:pointer}
-.je-design-controls button[aria-pressed=true]{outline:2px solid var(--accent,#8a6b42);outline-offset:1px}
-.je-design-viewport{width:100%;overflow:auto;overscroll-behavior:contain;padding:0;touch-action:pan-x pan-y pinch-zoom}
-.je-design-stage{position:relative;min-width:0}
+.je-design-controls{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;align-items:center;margin:12px 0;font:13px/1.4 system-ui}
+.je-design-controls button{min-height:40px;border:0;border-radius:6px;background:transparent;color:inherit;padding:6px 10px;cursor:pointer}
+.je-design-controls button[aria-pressed=true]{background:var(--border,#8882);color:var(--accent,#8a6b42)}
+.je-design-viewport{width:100%;overflow:visible;padding:0;touch-action:pan-y pinch-zoom}
+.je-design-stage{position:relative;min-width:0;margin-inline:auto}
 .je-design-output{position:absolute!important;inset:0 auto auto 0;transform-origin:0 0;display:flow-root!important}
 .je-reading-output .journal-element,.je-reading-output .journal-page-settings{display:none!important}
 .je-reading-output{font-size:18px;line-height:1.8;overflow-wrap:anywhere}
@@ -137,3 +137,7 @@ span.journal-element.je-inline{left:calc(var(--je-offset-x,0) * var(--je-unit,1c
 
 body.design-editing #scroller{overflow-x:auto}
 .je-design.je-design p:not([style*="margin-bottom"]),.je-design.je-design li:not([style*="margin-bottom"]){margin:0 0 var(--je-canvas-gap)!important}
+
+.je-design-controls button:focus-visible{outline:2px solid var(--accent,#8a6b42);outline-offset:2px}
+.je-design-legacy-note{display:block;text-align:center;padding:8px 16px;font:12px/1.5 system-ui;color:var(--soft,#777)}
+.je-design.je-design[data-je-layout=page]{border:0;box-shadow:none}

@@ -46,9 +46,9 @@
   }
   function canvas(v){
     if(!v||typeof v!=='object')return null;
-    return {version:1,width:limit(v.width,280,1200,640),font:typeof v.font==='string'&&v.font.length<=160&&/^[a-zA-Z0-9\s,'"-]+$/.test(v.font)?v.font:'"Source Serif 4", serif',size:limit(v.size,8,96,19),line:limit(v.line,1,3,1.75),gap:limit(v.gap,0,4,.9)};
+    return {version:1,align:['left','right','center','justify','start','end'].includes(v.align)?v.align:null,width:limit(v.width,280,1200,640),font:typeof v.font==='string'&&v.font.length<=160&&/^[a-zA-Z0-9\s,'"-]+$/.test(v.font)?v.font:'"Source Serif 4", serif',size:limit(v.size,8,96,19),line:limit(v.line,1,3,1.75),gap:limit(v.gap,0,4,.9)};
   }
-  function applyCanvas(root,value){const c=canvas(value);root.classList.toggle('je-design',!!c);if(!c)return;root.style.setProperty('--je-canvas-width',c.width+'px');root.style.setProperty('--je-canvas-font',c.font);root.style.setProperty('--je-canvas-size',c.size+'px');root.style.setProperty('--je-canvas-line',c.line);root.style.setProperty('--je-canvas-gap',c.gap+'em');}
+  function applyCanvas(root,value){const c=canvas(value);root.classList.toggle('je-design',!!c);if(!c)return;root.style.setProperty('--je-canvas-align',c.align||'start');root.style.setProperty('--je-canvas-width',c.width+'px');root.style.setProperty('--je-canvas-font',c.font);root.style.setProperty('--je-canvas-size',c.size+'px');root.style.setProperty('--je-canvas-line',c.line);root.style.setProperty('--je-canvas-gap',c.gap+'em');}
   function layout(value) {
     const v=value||{};
     return {mode:v.mode==='page'?'page':'flow',paper:papers[v.paper]?v.paper:'A4',orientation:v.orientation==='landscape'?'landscape':'portrait',

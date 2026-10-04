@@ -7,7 +7,7 @@
     const uid=()=>global.crypto.randomUUID(),q=(s,r=doc)=>r?.querySelector(s),wrapAngle=a=>((a+180)%360+360)%360-180;
     const api={selected:new Set(),clipboard:[],items:new Map(),nodes:new Map(),layout:core.layout({}),gesture:null,panel:null,frame:null,tab:'position',units:'%',snap:true,grid:false,arranging:true,history:[],historyIndex:-1,restoring:false,ready:false,
       allowed(){return ['poetry','shayari','thought'].includes(App.story?.kind);},
-      ensureCanvas(){if(this.allowed()&&!this.layout.canvas){const st=getComputedStyle(Ed.el);this.layout=core.layout({...this.layout,canvas:{width:640,font:st.fontFamily,size:parseFloat(st.fontSize)||19,line:(parseFloat(st.lineHeight)||33.25)/(parseFloat(st.fontSize)||19),gap:0}});}},
+      ensureCanvas(){if(this.allowed()&&!this.layout.canvas){const st=getComputedStyle(Ed.el);this.layout=core.layout({...this.layout,canvas:{width:640,align:st.textAlign,font:st.fontFamily,size:parseFloat(st.fontSize)||19,line:(parseFloat(st.lineHeight)||33.25)/(parseFloat(st.fontSize)||19),gap:0}});}},
       writable(){const f=App.story&&Ed.chapterId&&Model.find(App.story,Ed.chapterId);return !!(Ed.el&&f&&UI.mode!=='preview'&&!App.locked(f.chapter));},
       figures(root){return root&&root!==Ed.el?Array.from(root.querySelectorAll('.journal-element')):Array.from(this.nodes.values());},
       chosen(){return this.figures().filter(f=>this.selected.has(model(f)?.id));},
@@ -39,10 +39,10 @@
         this.hits.addEventListener('pointerdown',e=>{const hit=e.target.closest('[data-je-id]');if(!hit||!this.writable())return;e.preventDefault();e.stopPropagation();const f=this.nodes.get(hit.dataset.jeId);this.select(f,e.shiftKey||e.ctrlKey||e.metaKey,false);if(this.selected.has(hit.dataset.jeId))this.begin(e,'move');});
       },
       load(){
-        const legacy=Array.from(Ed.el.querySelectorAll('.journal-element')),b=this.bounds();this.layout=core.settings(Ed.el);
+        const legacy=Array.from(Ed.el.querySelectorAll('.journal-element')),b=this.bounds();this.layout=core.settings(Ed.el);Ed.el.classList.remove('je-design');
         legacy.forEach(f=>{let m=model(f);if(!m)return;if(!m.floating){if(['front','behind'].includes(m.mode))m={...m,x:m.x+m.offsetX,y:m.y+m.offsetY};else {const blocks=this.textBlocks(),anchor=blocks.find(p=>p.getAttribute('data-pid')===m.anchorId)||blocks.filter(p=>p.compareDocumentPosition(f)&Node.DOCUMENT_POSITION_FOLLOWING).at(-1)||blocks[0];m={...m,mode:'behind',anchor:'paragraph',anchorId:anchor?.getAttribute('data-pid')||'',y:0};}}if(!m.id||this.items.has(m.id))m.id=uid();m=core.normalize({...m,floating:true,placed:false,offsetX:0,offsetY:0});this.items.set(m.id,m);});
         legacy.forEach(f=>f.remove());Ed.el.querySelectorAll('figure.journal-page-settings,[data-je-transaction]').forEach(n=>{if(n.hasAttribute('data-je-transaction')&&(n.textContent||n.querySelector('img')))n.removeAttribute('data-je-transaction');else n.remove();});
-        Ed.normalizeAll();const newCanvas=this.allowed()&&!this.layout.canvas;this.ensureCanvas();this.ready=true;this.arranging=true;this.render();this.checkpoint('load');if(newCanvas){Ed.dirtyFlag=true;Save.dirty();}
+        Ed.normalizeAll();const newCanvas=this.allowed()&&!this.layout.canvas;this.ensureCanvas();if(this.layout.canvas&&!this.layout.canvas.align)this.layout.canvas.align=getComputedStyle(Ed.el).textAlign;this.ready=true;this.arranging=true;this.render();this.checkpoint('load');if(newCanvas){Ed.dirtyFlag=true;Save.dirty();}
       },
       dispose(){
         this.clear();this.ready=false;this.resizeObserver?.disconnect();if(this.onResize){global.removeEventListener('resize',this.onResize);global.visualViewport?.removeEventListener('resize',this.onResize);}if(this.onScroll)global.removeEventListener('scroll',this.onScroll,true);

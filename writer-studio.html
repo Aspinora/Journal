@@ -370,10 +370,10 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 
 .inp.bad{border-color:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
 </style>
-<link rel="stylesheet" href="/assets/elements.css?v=20261004-design-2">
-<script src="/assets/elements.js?v=20261004-design-2"></script>
-<script src="/assets/elements-editor.js?v=20261004-design-2"></script>
-<script src="/assets/design-view.js?v=20261004-design-2"></script>
+<link rel="stylesheet" href="/assets/elements.css?v=20261004-reader-3">
+<script src="/assets/elements.js?v=20261004-reader-3"></script>
+<script src="/assets/elements-editor.js?v=20261004-reader-3"></script>
+<script src="/assets/design-view.js?v=20261004-reader-3"></script>
 <script src="/assets/writer-drafts.js"></script>
 </head>
 <body class="desk">
@@ -2340,9 +2340,9 @@ UI.renderPreview = function () {
   const kd = Kind.of(s), single = Kind.single(s), heading = single ? (s.title || 'Untitled') : (f.chapter.title || Model.cLabel(f.chapter));
   const head = Kind.storyLike(s) ? [h('div', { class: 'rk' }, [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · ')), h('div', { class: 'rk', style: { marginTop: '4px' } }, 'Chapter ' + f.chapter.number)] : [h('div', { class: 'rk' }, single ? KINDS[kd].one : [s.title || 'Untitled', f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · '))];
   const art = h('article', { class: 'reader ' + (this.previewWidth === 'desktop' ? '' : this.previewWidth) + (Kind.lineMode(s) ? ' line-mode' : '') + ' k-' + kd }, ...head, h('h3', { class: 'rt' }, Kind.storyLike(s) ? (f.chapter.title || 'Chapter ' + f.chapter.number) : heading), body);
-  const dev = (k, ic, l) => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(this.previewWidth === k), onclick: () => { this.previewWidth = k; art.className = 'reader ' + (k === 'desktop' ? '' : k); JournalDesign.refresh(body); $$('.pv-tools .chip', pv).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.k === k))); } }, l); 
+  const dev = (k, ic, l) => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(this.previewWidth === k), onclick: () => { this.previewWidth = k; art.className = 'reader ' + (k === 'desktop' ? '' : k) + (Kind.lineMode(s) ? ' line-mode' : '') + ' k-' + kd; JournalDesign.refresh(body); $$('.pv-tools .chip', pv).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.k === k))); } }, l);
   const tools = h('div', { class: 'pv-tools' }, ...[['phone', 'phone', 'Phone'], ['tablet', 'tablet', 'Tablet'], ['desktop', 'desk', 'Desktop']].map(([k, ic, l]) => { const b = dev(k, ic, l); b.dataset.k = k; return b; }));
-  pv.replaceChildren(tools, art); if(Elements.allowed())JournalDesign.mount(body);else JournalElements.hydrate(body); pv.scrollTop = 0;
+  pv.replaceChildren(tools, art); if(Elements.allowed())JournalDesign.mount(body,{defaultAlign:getComputedStyle(Ed.el).textAlign});else JournalElements.hydrate(body); pv.scrollTop = 0;
 };
 
 /* =====================================================================
