@@ -46,7 +46,7 @@
         if (!data.attrValue) data.keepAttr = false;
       }
       if (data.attrName === 'class') {
-        data.keepAttr = (node.tagName === 'HR' && data.attrValue === 'journal-page-break') || ['FIGURE','SPAN'].includes(node.tagName) && (data.attrValue === 'body-img-16x9' || (global.JournalElements && (data.attrValue.split(/\s+/).includes('journal-element') || data.attrValue === 'journal-page-settings')));
+        data.keepAttr = (node.tagName === 'HR' && ['journal-page-break','scene-break'].includes(data.attrValue)) || ['FIGURE','SPAN'].includes(node.tagName) && (data.attrValue === 'body-img-16x9' || (global.JournalElements && (data.attrValue.split(/\s+/).includes('journal-element') || data.attrValue === 'journal-page-settings')));
       }
       if (data.attrName === 'data-element' || data.attrName === 'data-layout') data.keepAttr = ['FIGURE','SPAN'].includes(node.tagName) && data.attrValue.length <= 3000 && !!global.JournalElements;
       if (data.attrName === 'dir') data.keepAttr = /^(auto|ltr|rtl)$/.test(data.attrValue);
@@ -84,4 +84,3 @@
   }
   global.JournalContent = Object.freeze({render, isHtml});
 })(window);
-

@@ -207,6 +207,7 @@ a.byline-link{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:
 </style>
 <link rel="stylesheet" href="/assets/elements.css">
 <script src="/assets/elements.js"></script>
+<script src="/assets/design-view.js"></script>
 </head>
 <body>
 <div class="app-shell" id="app">
@@ -795,6 +796,7 @@ function renderPost(post){
    '<div class="'+artClass+'" data-kind="'+post.kind+'">'+JournalContent.render(post.bodyMd, markdownToHtml)+'</div>'+
    '<div class="tags">'+post.tags.map(function(t){ return '<span class="tag">#'+esc(t)+'</span>'; }).join("")+'</div>'+
    socialHTML(post);
+  if(post.kind==="poem"||post.kind==="short")JournalDesign.mount(wrap.querySelector(".article"));
   applyDropCap(wrap.querySelector(".article"), post.kind);
   wireActions(wrap, post);
   return wrap;

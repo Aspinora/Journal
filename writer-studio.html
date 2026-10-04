@@ -373,6 +373,7 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 <link rel="stylesheet" href="/assets/elements.css">
 <script src="/assets/elements.js"></script>
 <script src="/assets/elements-editor.js"></script>
+<script src="/assets/design-view.js"></script>
 <script src="/assets/writer-drafts.js"></script>
 </head>
 <body class="desk">
@@ -1987,7 +1988,7 @@ const UI = {
     if (!b) return; b.textContent = f && f.chapter.status === 'published' ? 'Re-Publish' : 'Publish';
   },
   showChapter(f) {
-    $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; this.applyKind(); const st = App.story, kd = Kind.of(st); $('#chTitle').value = Kind.single(st) ? st.title : f.chapter.title; $('#chTitle').placeholder = ({ story: 'Chapter ' + f.chapter.number + ' title', journal: 'Entry title', article: 'Title', poetry: 'Title of the poem', shayari: 'Title (optional)', thought: 'Title' })[Kind.storyLike(st) ? 'story' : kd];
+    $('#emptyState').hidden = true; $('#writeArea').hidden = this.mode === 'preview'; this.applyKind(); $$('[aria-label=Elements]').forEach(b=>b.hidden=!Elements.allowed()); const st = App.story, kd = Kind.of(st); $('#chTitle').value = Kind.single(st) ? st.title : f.chapter.title; $('#chTitle').placeholder = ({ story: 'Chapter ' + f.chapter.number + ' title', journal: 'Entry title', article: 'Title', poetry: 'Title of the poem', shayari: 'Title (optional)', thought: 'Title' })[Kind.storyLike(st) ? 'story' : kd];
     const locked = App.locked(f.chapter); document.body.classList.toggle('locked-chapter', locked);
     if (Ed.el) Ed.el.contentEditable = locked ? 'false' : 'true'; $('#chTitle').disabled = locked;
     $('#toolbar').hidden = locked; $('#btnSaveDraft').hidden = locked; $('#btnPublish').hidden = false; $('#btnPublish').disabled = locked; this.syncPublishButton(); const dock = $('#dock'); if (dock) dock.hidden = locked;
@@ -2253,7 +2254,7 @@ const Tools = {
     const moreBtn = ibtn('more', 'More formatting', { onclick: () => Pop.open(moreBtn, this.moreItems({ done: () => Pop.close() }), { align: 'end', cls: '' }) });
     UI.syncFns.push(st => { fontLbl.textContent = Fonts.byName(st.fontName) ? st.fontName : 'Source Serif 4'; fontLbl.style.fontFamily = ''; if (Number.isFinite(Number(st.size))) Tools.lastSize = SIZES.reduce((best, x) => Math.abs(x - Number(st.size)) < Math.abs(best - Number(st.size)) ? x : best, SIZES[0]); sizeVal.textContent = Tools.lastSize; blockLbl.textContent = st.list ? (st.list === 'ul' ? 'Bulleted list' : 'Numbered list') : st.quote ? 'Quote' : (BLOCK_NAMES[st.block] || 'Normal'); const a = st.align === 'start' ? 'left' : st.align === 'end' ? 'right' : st.align; alignBtn.replaceChildren(icon(a === 'center' ? 'alignC' : a === 'right' ? 'alignR' : a === 'justify' ? 'alignJ' : 'alignL')); colorBar.style.background = st.color || 'var(--ink)'; });
     const g = (...k) => h('div', { class: 'tg' }, ...k), sep = () => h('span', { class: 'sep' });
-    tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn, h('button', { class: 'tsel', type: 'button', 'aria-label': 'Elements', 'aria-haspopup': 'dialog', onclick: e => Elements.open(e.currentTarget) }, 'Elements'));
+    tb.append(g(undo, redo), sep(), fontBtn, size, sep(), g(toggle('bold', 'Bold (Ctrl+B)', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic (Ctrl+I)', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline (Ctrl+U)', () => Ed.cmd('underline'), s => s.underline)), sep(), g(colorBtn, hlBtn), sep(), g(blockBtn, alignBtn), sep(), moreBtn, h('button', { class: 'tsel', type: 'button', 'aria-label': 'Elements', hidden:!Elements.allowed(), 'aria-haspopup': 'dialog', onclick: e => Elements.open(e.currentTarget) }, 'Elements'));
   },
   /* ---- portrait dock */
   buildDock() {
@@ -2262,7 +2263,7 @@ const Tools = {
     const undo = ibtn('undo', 'Undo', { onclick: () => Ed.cmd('undo') }), redo = ibtn('redo', 'Redo', { onclick: () => Ed.cmd('redo') }); UI.syncFns.push(st => { undo.disabled = !st.canUndo; redo.disabled = !st.canRedo; });
     const pbtn = (name, ic, label) => { const b = ibtn(ic, label, { onclick: () => Dock.toggle(name) }); b.setAttribute('aria-pressed', 'false'); Dock.btns[name] = b; return b; };
     const addP = ibtn('plus', 'Add paragraph', { onclick: () => { const b = Ed.topBlock(Ed.currentBlock()) || (Ed.saved && Ed.topBlock(Ed.blockOf(Ed.saved.endContainer))) || (Ed.el && Ed.el.lastElementChild); Ed.addParagraphAfter(b); } });
-    bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'), h('button', { class: 'ib', type: 'button', 'aria-label': 'Elements', title: 'Elements', onclick: e => Elements.open(e.currentTarget) }, '✦'));
+    bar.append(undo, redo, toggle('bold', 'Bold', () => Ed.cmd('bold'), s => s.bold), toggle('italic', 'Italic', () => Ed.cmd('italic'), s => s.italic), toggle('underline', 'Underline', () => Ed.cmd('underline'), s => s.underline), pbtn('color', 'color', 'Colours'), pbtn('block', 'heading', 'Paragraph style'), pbtn('text', 'aa', 'Font and spacing'), addP, pbtn('more', 'more', 'More'), h('button', { class: 'ib', type: 'button', 'aria-label': 'Elements', hidden:!Elements.allowed(), title: 'Elements', onclick: e => Elements.open(e.currentTarget) }, '✦'));
   },
 };
 /* Isolated decoration controls; no remote storage in this demo. */
@@ -2339,9 +2340,9 @@ UI.renderPreview = function () {
   const kd = Kind.of(s), single = Kind.single(s), heading = single ? (s.title || 'Untitled') : (f.chapter.title || Model.cLabel(f.chapter));
   const head = Kind.storyLike(s) ? [h('div', { class: 'rk' }, [s.title || 'Untitled story', Model.vLabel(f.volume), f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · ')), h('div', { class: 'rk', style: { marginTop: '4px' } }, 'Chapter ' + f.chapter.number)] : [h('div', { class: 'rk' }, single ? KINDS[kd].one : [s.title || 'Untitled', f.part ? Model.pLabel(f.part) : null].filter(Boolean).join(' · '))];
   const art = h('article', { class: 'reader ' + (this.previewWidth === 'desktop' ? '' : this.previewWidth) + (Kind.lineMode(s) ? ' line-mode' : '') + ' k-' + kd }, ...head, h('h3', { class: 'rt' }, Kind.storyLike(s) ? (f.chapter.title || 'Chapter ' + f.chapter.number) : heading), body);
-  const dev = (k, ic, l) => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(this.previewWidth === k), onclick: () => { this.previewWidth = k; art.className = 'reader ' + (k === 'desktop' ? '' : k); $$('.pv-tools .chip', pv).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.k === k))); } }, l); 
+  const dev = (k, ic, l) => h('button', { class: 'chip', type: 'button', 'aria-pressed': String(this.previewWidth === k), onclick: () => { this.previewWidth = k; art.className = 'reader ' + (k === 'desktop' ? '' : k); JournalDesign.refresh(body); $$('.pv-tools .chip', pv).forEach(c => c.setAttribute('aria-pressed', String(c.dataset.k === k))); } }, l); 
   const tools = h('div', { class: 'pv-tools' }, ...[['phone', 'phone', 'Phone'], ['tablet', 'tablet', 'Tablet'], ['desktop', 'desk', 'Desktop']].map(([k, ic, l]) => { const b = dev(k, ic, l); b.dataset.k = k; return b; }));
-  pv.replaceChildren(tools, art); pv.scrollTop = 0;
+  pv.replaceChildren(tools, art); if(Elements.allowed())JournalDesign.mount(body);else JournalElements.hydrate(body); pv.scrollTop = 0;
 };
 
 /* =====================================================================
