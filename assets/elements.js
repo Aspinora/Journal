@@ -32,12 +32,13 @@
       borderColor:typeof v.borderColor==='string' && /^#[a-f0-9]{6}$/i.test(v.borderColor)?v.borderColor:'#8a7963',
       shadow:['none','soft','deep'].includes(v.shadow)?v.shadow:'none',locked:!!v.locked,
       anchor:v.anchor==='page'?'page':'paragraph',anchorId:ident(v.anchorId),page:limit(v.page,1,100,1),
-      group:ident(v.group),z:limit(v.z,0,200,20)
+      group:ident(v.group),z:limit(v.z,0,200,20),
+      placed:!!v.placed,offsetX:limit(v.offsetX,-100,100,0),offsetY:limit(v.offsetY,-300,3000,0)
     };
   }
   function model(node) {
     const img=node && node.querySelector('img'); if (!img) return null;
-    const data=node.getAttribute('data-element');
+    const data=img.getAttribute('data-element')||node.getAttribute('data-element');
     if (data) return normalize(parse(data),img.getAttribute('src'));
     const align=['left','right','center'].find(x=>node.classList.contains('element-'+x))||'center';
     return normalize({src:img.getAttribute('src'),align,w:parseFloat(node.style.width)||30,
@@ -60,6 +61,10 @@
       '--je-rotate:'+m.rotation+'deg;--je-opacity:'+(m.opacity/100)+';--je-flip-x:'+(m.flipX?-1:1)+';--je-flip-y:'+(m.flipY?-1:1)+';'+
       '--je-gap:'+(m.gap/19)+'em;--je-border:'+m.border+'px;--je-border-color:'+m.borderColor+';'+
       '--je-shadow:'+(m.shadow==='deep'?'0 8px 18px #0005':m.shadow==='soft'?'0 3px 8px #0003':'none')+';--je-z:'+m.z+';'+
+      '--je-offset-x:'+m.offsetX+';--je-offset-y:'+m.offsetY+';'+
+      (m.placed&&m.mode==='block'?'margin-left:'+m.x+'%!important;margin-right:0!important;':'')+
+      (m.placed&&m.mode==='wrap'?(m.wrapSide==='left'?'margin-right:'+Math.max(0,100-m.w-m.x)+'%!important;':'margin-left:'+m.x+'%!important;'):'')+
+      (m.placed&&['block','wrap'].includes(m.mode)?'margin-top:calc('+m.offsetY+' * var(--je-unit,1cqw))!important;':'')+
       'shape-outside:'+(m.wrapShape==='tight'?'ellipse(50% 50%)':'inset(0)')+';';
   }
   function make(doc,value,pid) {
@@ -89,7 +94,7 @@
     root.classList.add('je-document');
     root.querySelectorAll('[data-je-clear]').forEach(n=>n.removeAttribute('data-je-clear'));
     const textBlocks=Array.from(root.children).filter(n=>/^(P|H1|H2|BLOCKQUOTE|UL|OL)$/.test(n.tagName)||n.classList.contains('blk'));
-    root.querySelectorAll('.journal-element').forEach(f=>{const m=model(f);if(m?.mode==='wrap' && m.wrapEnd>0){const start=textBlocks.findIndex(n=>n.getAttribute('data-pid')===m.anchorId);const end=textBlocks[start+Math.round(m.wrapEnd)];if(start>=0&&end)end.setAttribute('data-je-clear','true');}});
+    root.querySelectorAll('.journal-element').forEach(f=>{const m=model(f);if(m){paint(f,m);f.setAttribute('contenteditable','false');}if(m?.mode==='wrap' && m.wrapEnd>0){const start=textBlocks.findIndex(n=>n.getAttribute('data-pid')===m.anchorId);const end=textBlocks[start+Math.round(m.wrapEnd)];if(start>=0&&end)end.setAttribute('data-je-clear','true');}});
     const l=settings(root),p=papers[l.paper],wide=l.orientation==='landscape'?p[1]:p[0],high=l.orientation==='landscape'?p[0]:p[1];
     root.dataset.jeLayout=l.mode;root.classList.toggle('je-grid',l.grid && root.id==='editor');
     root.style.setProperty('--je-paper-width',(wide*96/25.4)+'px');
@@ -109,9 +114,11 @@
     } else {
       root.style.minHeight='';root.querySelectorAll('hr.journal-page-break').forEach(br=>br.style.height='');
     }
-    const cs=global.getComputedStyle(root),contentWidth=Math.max(1,width-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0));
+    const cs=global.getComputedStyle(root),contentWidth=Math.max(1,root.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0));
+    root.style.setProperty('--je-unit',contentWidth/100+'px');
     let extent=l.mode==='page'?pageHeight:0;
-    root.querySelectorAll('figure.journal-element.je-front,figure.journal-element.je-behind').forEach(f=>{const m=model(f);const base=m.anchor==='page'?(m.page-1)*pageHeight+parseFloat(root.style.getPropertyValue('--je-page-inset')):f.getBoundingClientRect().top-root.getBoundingClientRect().top;extent=Math.max(extent,base+(m.y+m.w*m.ratio)/100*contentWidth);});
+    const rootTop=root.getBoundingClientRect().top;
+    root.querySelectorAll('figure.journal-element.je-front,figure.journal-element.je-behind').forEach(f=>{const img=f.querySelector('img');if(img)extent=Math.max(extent,img.getBoundingClientRect().bottom-rootTop);});
     if(extent>0)root.style.minHeight=Math.ceil(extent)+'px';
   }
   let pending=false;
@@ -128,10 +135,11 @@
     global.addEventListener('beforeprint',()=>{const root=Array.from(global.document.querySelectorAll('.je-document[data-je-layout=page]')).find(r=>r.getClientRects().length);if(!root)return;const l=settings(root),style=global.document.createElement('style');style.id='journal-demo-print';style.textContent='@page{size:'+l.paper+' '+l.orientation+';margin:0}';global.document.getElementById(style.id)?.remove();global.document.head.append(style);});
     global.addEventListener('afterprint',()=>global.document.getElementById('journal-demo-print')?.remove());
     global.document.addEventListener('DOMContentLoaded',()=>{
-      new MutationObserver(changes=>{if(changes.some(c=>c.type==='childList'))refresh();}).observe(global.document.body,{childList:true,subtree:true});refresh();
+      new MutationObserver(changes=>{if(changes.some(c=>c.type==='childList'&&(c.target.closest?.('#editor,#chBody,.article,.je-document')||Array.from(c.addedNodes).some(n=>n.nodeType===1&&(n.matches('.journal-element,figure.journal-page-settings,.je-document')||n.querySelector('.journal-element,figure.journal-page-settings,.je-document'))))))refresh();}).observe(global.document.body,{childList:true,subtree:true});refresh();
       if(global.document.fonts)global.document.fonts.ready.then(refresh);
     });
-    global.document.addEventListener('load',e=>{if(e.target.tagName==='IMG')refresh();},true);
+    global.document.addEventListener('load',e=>{if(e.target.tagName==='IMG'&&e.target.closest('.journal-element'))refresh();},true);
   }
   global.JournalElements=Object.freeze({catalog:Object.freeze(catalog),safeSrc,search,clean,model,normalize,make,paint,layout,makeLayout,settings,hydrate,refresh,papers,limit});
 })(window);
+

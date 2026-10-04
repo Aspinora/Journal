@@ -1513,7 +1513,12 @@ const Ed = {
     this.tabFree = false;
   },
   /* ---- commands */
-  exec(cmd, val, css) { document.execCommand('styleWithCSS', false, !!css); return document.execCommand(cmd, false, val); },
+  exec(cmd, val, css) {
+    document.execCommand('styleWithCSS', false, !!css);
+    const elements = /^(undo|redo)$/.test(cmd) ? Elements.figures() : [];
+    elements.forEach(f => f.setAttribute('contenteditable', 'true'));
+    try { return document.execCommand(cmd, false, val); } finally { elements.forEach(f => f.setAttribute('contenteditable', 'false')); }
+  },
   withPids(fn) {
     const all0 = Array.from(this.el.querySelectorAll(BLOCK_SEL)), pids0 = all0.map(b => b.getAttribute('data-pid'));
     const sel = this.blocksInSelection().map(b => all0.indexOf(b)).filter(i => i >= 0); fn(); this.unwrapLists();
@@ -1588,7 +1593,7 @@ const Ed = {
   countsSoon: debounce(() => Ed.updateCounts(), 450),
   measure() {
     let words = 0, chars = 0; const add = t => { chars += t.length; let inw = false; for (let i = 0; i < t.length; i++) { const c = t.charCodeAt(i), sp = c <= 32 || c === 160 || c === 0x200B || c === 0x2003 || c === 0x2009; if (!sp && !inw) { words++; inw = true; } else if (sp) inw = false; } };
-    for (const c of this.el.children) { if (c.tagName === 'UL' || c.tagName === 'OL') for (const li of c.children) add(li.textContent); else if (c.tagName !== 'FIGURE' && c.tagName !== 'HR') add(c.textContent); }
+    for (const c of this.el.children) { if (c.hasAttribute('data-je-transaction') && !c.textContent) continue; if (c.tagName === 'UL' || c.tagName === 'OL') for (const li of c.children) add(li.textContent); else if (c.tagName !== 'FIGURE' && c.tagName !== 'HR') add(c.textContent); }
     return { words, chars };
   },
   updateCounts() { if (!this.el || !this.chapterId) return; const m = this.measure(); this.counts = m; UI.showCounts(m); },
@@ -1596,6 +1601,7 @@ const Ed = {
     this.normalizeAll();
     const copy = this.el.cloneNode(true);
     copy.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(f => { const c=JournalElements.clean(f); if(c)f.replaceWith(c);else f.remove(); });
+    copy.querySelectorAll('[data-je-transaction]').forEach(n=>{if(!n.textContent&&!n.querySelector('img'))n.remove();else n.removeAttribute('data-je-transaction');});
     copy.querySelectorAll('[data-je-clear]').forEach(n=>n.removeAttribute('data-je-clear'));
     copy.querySelectorAll('hr.journal-page-break').forEach(hr => hr.removeAttribute('style'));
     copy.querySelectorAll('img').forEach(img => { if (!img.closest('.journal-element') || !JournalElements.safeSrc(img.getAttribute('src'))) img.removeAttribute('src'); });
@@ -1694,7 +1700,12 @@ const Notes = {
 const App = {
   story: null, rec: null,
   locked(obj) { return Kind.isStory(this.story) && !!obj && obj.status === 'published'; },
-  async listStories() { return (await Store.all('stories')).sort((a, b) => b.updatedAt - a.updatedAt); },
+  async listStories(refresh = true) {
+    if (!refresh && this.libraryCache) return this.libraryCache;
+    if (this.libraryLoading) return this.libraryLoading;
+    this.libraryLoading = Store.all('stories').then(rows => this.libraryCache = rows.sort((a, b) => b.updatedAt - a.updatedAt));
+    try { return await this.libraryLoading; } finally { this.libraryLoading = null; }
+  },
   storyPersistSoon: debounce(() => App.persistStory().catch(e => { if (Date.now() - (App._lastPersistToast || 0) > 20000) { App._lastPersistToast = Date.now(); toast('Couldn\u2019t save the details: ' + e.message, 'err'); } }), 2500),
   async persistStory() { if (!App.story) return; simCheck('save'); App.story.updatedAt = Date.now(); await Store.put('stories', App.story); },
   async persistChapter(snap) {
@@ -1964,19 +1975,23 @@ const UI = {
   },
   async warmCovers() { const s = App.story; const ids = [s.coverImageId, ...s.volumes.flatMap(Model.coverIds)].filter(Boolean); await Promise.all(ids.map(i => Images.url(i))); },
   /* ---- library */
-  async renderLibrary() {
+  async renderLibrary(refresh = true) {
     const tok = this.libTok = (this.libTok || 0) + 1; this.buildKindBar(); const K = KINDS[this.kind]; $('#libNew').textContent = 'New ' + K.one.toLowerCase();
-    const stories = (await App.listStories()).filter(x => Kind.of(x) === this.kind), grid = $('#libGrid'); grid.replaceChildren();
-    await Promise.all(stories.map(s => Images.url(s.coverImageId))); if (tok !== this.libTok) return; /* a newer render (e.g. another section chip) won */
+    const rows = await App.listStories(refresh); if (tok !== this.libTok) return;
+    const stories = rows.filter(x => Kind.of(x) === this.kind), grid = $('#libGrid');
     grid.replaceChildren();
     grid.append(h('button', { class: 'card new', type: 'button', onclick: () => this.newStory() }, icon('plus'), h('b', null, 'New ' + K.one.toLowerCase()), h('span', { class: 'small muted' }, 'Cover, title, tags and visibility')));
     stories.forEach(s => {
       const url = s.coverImageId && (Images.urls.get(s.coverImageId) || (s.coverImageId.startsWith('__url:') ? s.coverImageId.slice(6) : (Images.cache.get(s.coverImageId) || {}).public_url)), chapters = Model.all(s).length, realVols = s.volumes.filter(v => !v.implicit).length;
       const menuBtn = ibtn('more', 'Story actions', { class: 'ib card__more', onclick: e => { e.stopPropagation(); showMenu(e.currentTarget, [{ label: 'Open', icon: 'book', onClick: () => App.openStory(s.id) }, { label: 'Delete story…', icon: 'trash', danger: true, onClick: () => App.deleteStory(s) }], { align: 'end' }); } });
-      grid.append(h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
+      const card = h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
         h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
-          h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${realVols} volume${realVols === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)))));
+          h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${realVols} volume${realVols === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt))));
+      grid.append(card);
+      if (s.coverImageId && !url) Images.url(s.coverImageId).then(resolved => {
+        if (resolved && tok === this.libTok && card.isConnected) card.querySelector('.cv').replaceChildren(h('img', {src: resolved, alt: ''}));
+      }).catch(() => {});
     });
   },
   copyrightInfo(anchor, cur) {
@@ -1984,7 +1999,7 @@ const UI = {
       COPYRIGHTS.map(([k, l, d]) => h('div', { class: 'cr-i' + (k === cur ? ' on' : '') }, h('b', null, l), h('div', { class: 'small muted' }, d)))), { role: 'dialog', maxH: 760 });
   },
   buildKindBar() { const bar = $('#kindBar'); bar.replaceChildren(...Object.keys(KINDS).map(k => h('button', { class: 'chip kind', type: 'button', role: 'tab', 'aria-selected': String(k === this.kind), 'aria-pressed': String(k === this.kind), onclick: () => this.setKind(k) }, KINDS[k].plural))); },
-  setKind(k) { this.kind = k; lsSet('sw_kind', k); this.renderLibrary(); },
+  setKind(k) { this.kind = k; lsSet('sw_kind', k); this.renderLibrary(false); },
   newStory() { this.newWork(this.kind); },
   newWork(kind) { const s = Model.newStory(); s.kind = kind; this.entityDialog({ kind: 'story', entity: s, isNew: true, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => (simCheck('save'), Store.put('stories', s)), after: async () => { toast(KINDS[kind].one + ' created'); await App.openStory(s.id); } } }); },
   /* ---- tree */
@@ -2319,3 +2334,4 @@ UI.renderPreview = function () {
 </script>
 </body>
 </html>
+
