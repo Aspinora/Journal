@@ -45,5 +45,10 @@ const root=path.join(__dirname,'..');
   if(size.width>size.height){assert(Math.abs(cover.h/cover.height-.4)<.01,'landscape cover not 40% height');assert.equal(cover.fit,'contain','cover text can be cropped');assert.notEqual(cover.bg,'none');assert(cover.blur.includes('blur('));assert.equal(cover.intrinsic,1.5);}else{assert(Math.abs(cover.w/cover.h-1.5)<.01);assert.equal(cover.bg,'none');}
   await page.screenshot({path:'/tmp/reader-'+(size.width>size.height?'landscape':'portrait')+'-'+(engine===webkit?'webkit':'chromium')+'.png'});
  }
+ for(const type of ['Journals','Stories','Articles']){
+  await page.evaluate(type=>{const post={...testPost,type,isTeaser:true,isOwn:false,following:false,teaserExcerpt:'Description',readWholeLabel:'Read whole work',slug:'test',commentCount:0};__reader.mountPage(document.querySelector('#pageFront'),post,'front');},type);
+  assert.equal(await page.locator('#pageFront [data-act="follow"]').count(),1,type+' missing follow');
+ }
  assert.equal(errors.length,0,errors.join('\n'));console.log((engine===webkit?'WebKit':'Chromium')+': mobile pinch, Safari fallback, panning, fit, scrolling and uncropped landscape covers passed');await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
+

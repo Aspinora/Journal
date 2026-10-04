@@ -808,6 +808,7 @@ function renderPost(post){
              '<div class="byline-sub">'+esc(post.date)+'</div>'+
            '</div>'+
          (profileHref?'</a>':'</div>')+
+         (post.isOwn?'':('<button class="followbtn '+(post.following?'following':'')+'" data-act="follow">'+(post.following?'Following':'Follow')+'</button>'))+
        '</div>'+
      '</div>'+
      '<div class="article teaser-article">'+JournalContent.render(post.teaserExcerpt, markdownToHtml)+'</div>'+
@@ -948,13 +949,15 @@ function wireActions(scope, post){
         followBtn.disabled = true;
         const was = post.following;
         try{
-          if (was) await supabaseClient.from('follows').delete().eq('follower_id', S.me.id).eq('following_id', post.authorId);
-          else await supabaseClient.from('follows').insert({ follower_id: S.me.id, following_id: post.authorId });
+          const result = was
+            ? await supabaseClient.from('follows').delete().eq('follower_id', S.me.id).eq('following_id', post.authorId)
+            : await supabaseClient.from('follows').insert({ follower_id: S.me.id, following_id: post.authorId });
+          if (result.error) throw result.error;
           post.following = !was;
           followBtn.classList.toggle("following", post.following);
           followBtn.textContent = post.following ? 'Following' : 'Follow';
           announce(post.following ? ('Following '+post.author) : ('Unfollowed '+post.author));
-        }catch(e){ console.error(e); }
+        }catch(e){ console.error(e); announce('Could not update follow. Please try again.'); }
         followBtn.disabled = false;
       });
     });
@@ -1400,3 +1403,4 @@ boot();
 </script>
 </body>
 </html>
+

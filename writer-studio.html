@@ -89,7 +89,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .ib[disabled]{opacity:.35;pointer-events:none}
 .muted{color:var(--muted)} .faint{color:var(--faint)} .small{font-size:12.5px}
 .pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;background:var(--line-2);color:var(--muted);font-weight:500}
-.pill.published,.pill.ongoing{background:var(--ok-soft);color:var(--ok)} .pill.draft{background:var(--line-2)} .pill.completed{background:var(--accent-soft);color:var(--accent-2)} .pill.hiatus{background:var(--warn-soft);color:var(--warn)}
+.pill.published,.pill.ongoing{background:var(--ok-soft);color:var(--ok)} .card__published{align-self:flex-end;margin-top:auto}.pill.draft{background:var(--line-2)} .pill.completed{background:var(--accent-soft);color:var(--accent-2)} .pill.hiatus{background:var(--warn-soft);color:var(--warn)}
 .sep{width:1px;height:22px;background:var(--line);margin:0 4px;flex:none}
 .spacer{flex:1}
 .spin{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;display:inline-block}
@@ -108,7 +108,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .card__more{position:absolute;top:6px;right:6px;background:rgba(10,14,18,.55);color:#fff;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
 .card__more:hover{background:rgba(10,14,18,.78)}
 .card__more[aria-expanded="true"]{background:rgba(10,14,18,.78)}
-.card .bd{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
+.card .bd{flex:1;padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px}
 .card .bd b{font-weight:600}
 .card.new{border-style:dashed;align-items:center;justify-content:center;min-height:220px;color:var(--accent-2);gap:8px;background:transparent}
 .empty{padding:48px 24px;text-align:center;color:var(--muted);max-width:420px;margin:0 auto}
@@ -372,9 +372,9 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 </style>
 <link rel="stylesheet" href="/assets/elements.css?v=20261004-reader-3">
 <script src="/assets/elements.js?v=20261004-reader-3"></script>
-<script src="/assets/elements-editor.js?v=20261004-reader-3"></script>
+<script src="/assets/elements-editor.js?v=20261005-editor-1"></script>
 <script src="/assets/design-view.js?v=20261004-reader-3"></script>
-<script src="/assets/writer-drafts.js"></script>
+<script src="/assets/writer-drafts.js?v=20261005-editor-1"></script>
 </head>
 <body class="desk">
 <div id="app">
@@ -586,7 +586,7 @@ function journalToStory(row) {
   const chapter = { id: row.id, number: 1, title: row.title || '', status: row.status, wordCount: wordCount(row.body_markdown), updatedAt: Date.parse(row.updated_at), publishedAt: row.published_at ? Date.parse(row.published_at) : null };
   return {
     kind, structure: kind === 'journal' ? 'single' : (kind === 'article' ? 'simple' : null),
-    visibility: row.visibility, allowImpressions: row.allow_comments !== false, copyright: null,
+    visibility: row.visibility, allowImpressions: row.allow_comments !== false, copyright: row.copyright || null,
     id: row.id, ownerId: row.author_id, title: row.title || '', description: row.subtitle || row.excerpt || '',
     category: null, tags: row.tags || [], status: row.status, coverImageId: row.cover_url ? '__url:' + row.cover_url : null,
     volumes: [{ id: 'v0-' + row.id, number: 0, title: '', description: '', status: 'draft', coverImageId: null, implicit: true, parts: [], chapters: [chapter] }],
@@ -723,7 +723,7 @@ const RemoteStore = {
            story-level record right after publishing wrote the stale 'draft' status back over it. */
         const ch0 = o.volumes && o.volumes[0] && o.volumes[0].chapters && o.volumes[0].chapters[0];
         if (ch0) o.status = ch0.status === 'published' ? 'published' : 'draft';
-        const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', excerpt: (o.description || '').trim() || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
+        const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', excerpt: (o.description || '').trim() || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, copyright: o.copyright || null, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
         const { error } = await sb.from('journals').upsert(row); if (error) throwDb(error);
       } else {
         const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
@@ -778,7 +778,7 @@ const Store = JournalWriterDrafts.create({remote: RemoteStore, owner: () => CONF
   }
 });
 RemoteStore.publishSingle = async (s, rec) => {
-  const row={title:s.title||'',excerpt:(s.description||'').trim()||null,tags:s.tags||[],visibility:s.visibility,allow_comments:s.allowImpressions!==false,cover_url:await resolveCoverUrl(s.coverImageId),body_markdown:rec.html||'',status:'published',published_at:new Date(rec.published.at).toISOString(),updated_at:new Date().toISOString()};
+  const row={title:s.title||'',excerpt:(s.description||'').trim()||null,tags:s.tags||[],visibility:s.visibility,allow_comments:s.allowImpressions!==false,copyright:s.copyright||null,cover_url:await resolveCoverUrl(s.coverImageId),body_markdown:rec.html||'',status:'published',published_at:new Date(rec.published.at).toISOString(),updated_at:new Date().toISOString()};
   const {error}=await sb.from('journals').update(row).eq('id',s.id).select('id').single();if(error)throwDb(error);
 };
 
@@ -1245,6 +1245,19 @@ const Fonts = {
   state: new Map(), subs: new Set(),
   stack: f => `"${f.n}", ${f.fb}`,
   byName: n => FONTS.find(f => f.n.toLowerCase() === String(n).toLowerCase()),
+  resolve(value) {
+    return String(value || '').split(',').map(n => this.byName(n.replace(/["']/g, '').trim())).find(Boolean);
+  },
+  normalize(root) {
+    const replaced = new Set();
+    root.querySelectorAll('[style]').forEach(node => {
+      const value = node.style.fontFamily; if (!value) return;
+      const font = this.resolve(value);
+      if (!font) replaced.add(value);
+      node.style.fontFamily = this.stack(font || FONTS[0]);
+    });
+    return replaced;
+  },
   sample: f => f.s || 'The quiet harbour woke before dawn',
   mark(f, v) { this.state.set(f.n, v); this.subs.forEach(fn => fn()); },
   load() {
@@ -1341,7 +1354,7 @@ const Sanitize = {
     const td = st.textDecorationLine || st.textDecoration || ''; if (/underline/.test(td)) fmt.u = 1; if (/line-through/.test(td)) fmt.s = 1;
     const c = st.color && this.color(st.color); if (c) css.push('color:' + c);
     const bg = st.backgroundColor && this.color(st.backgroundColor); if (bg) css.push('background-color:' + bg);
-    if (st.fontFamily) { const f = Fonts.byName(st.fontFamily.split(',')[0].replace(/["']/g, '').trim()); if (f) css.push('font-family:' + Fonts.stack(f)); }
+    if (st.fontFamily) { const f = Fonts.resolve(st.fontFamily) || FONTS[0]; if (f) css.push('font-family:' + Fonts.stack(f)); }
     if (st.fontSize) { let px = parseFloat(st.fontSize); if (/pt$/.test(st.fontSize)) px *= 1.333; if (/px$|pt$/.test(st.fontSize) && px >= 8 && px <= 96) css.push('font-size:' + Math.round(px * 10) / 10 + 'px'); }
     if (/^(P|H1|H2|BLOCKQUOTE|LI|DIV)$/.test(node.tagName)) {
       if (/^(left|right|center|justify)$/.test(st.textAlign)) css.push('text-align:' + st.textAlign);
@@ -1498,6 +1511,12 @@ const Ed = {
     raf('ed-post', () => { this.ensureCaretVisible(); Gutter.update(); this.countsSoon(); UI.syncToolbar(); });
   },
   fixSpans() {
+    // Replacing browser-generated FONT/span wrappers must not collapse the selection.
+    const selection = this.sel(), range = selection?.getRangeAt(0), offsets = range ? (() => {
+      const prefix = document.createRange(); prefix.selectNodeContents(this.el);
+      prefix.setEnd(range.startContainer, range.startOffset); const start = prefix.toString().length;
+      prefix.setEnd(range.endContainer, range.endOffset); return [start, prefix.toString().length];
+    })() : null;
     let hit = 0; /* execCommand may put the style on an existing <i>/<b>/<u>, not only on a <span>, so match any element */
     const applySize = f => {
       const s = document.createElement('span'); s.style.fontSize = this.pendingSize + 'px';
@@ -1514,6 +1533,15 @@ const Ed = {
       if (face) s.style.fontFamily = face; if (color) s.style.color = color;
       while (f.firstChild) s.append(f.firstChild); f.replaceWith(s); hit++;
     });
+    if (hit && offsets) {
+      const point = offset => {
+        const walk = document.createTreeWalker(this.el, NodeFilter.SHOW_TEXT); let node, last;
+        while ((node = walk.nextNode())) { last = node; if (offset <= node.length) return [node, offset]; offset -= node.length; }
+        return last ? [last, last.length] : [this.el, 0];
+      };
+      const restored = document.createRange(); restored.setStart(...point(offsets[0])); restored.setEnd(...point(offsets[1]));
+      selection.removeAllRanges(); selection.addRange(restored); this.saved = restored.cloneRange();
+    }
     this.needFix = hit ? 0 : this.needFix - 1;
   },
   onPaste(e) {
@@ -1523,7 +1551,7 @@ const Ed = {
     if (html) {
       const frag = Sanitize.toFragment(html, { keepIds: false }), box = document.createElement('div'); box.append(frag);
       if (box.children.length === 1 && box.firstElementChild.tagName === 'P') out = box.firstElementChild.innerHTML; else out = box.innerHTML;
-    } else { const lines = text.replace(/\r/g, '').split(this.lineMode ? /\n/ : /\n+/); out = lines.length === 1 ? escHtml(lines[0]) : lines.map(l => '<p>' + (escHtml(l) || '<br>') + '</p>').join(''); }
+    } else { const lines = text.replace(/\r/g, '').split(/\n/); out = lines.length === 1 ? escHtml(lines[0]) : lines.map(l => '<p>' + (escHtml(l) || '<br>') + '</p>').join(''); }
     if (out) document.execCommand('insertHTML', false, out);
   },
   onKey(e) {
@@ -1620,6 +1648,7 @@ const Ed = {
   serialize() {
     this.normalizeAll();
     const copy = this.el.cloneNode(true);
+    Fonts.normalize(copy);
     Elements.exportTo(copy);
     copy.querySelectorAll('.journal-element,figure.journal-page-settings').forEach(f => { const c=JournalElements.clean(f); if(c)f.replaceWith(c);else f.remove(); });
     copy.querySelectorAll('[data-je-transaction]').forEach(n=>{if(!n.textContent&&!n.querySelector('img'))n.remove();else n.removeAttribute('data-je-transaction');});
@@ -1790,9 +1819,9 @@ const App = {
     if (!copyrightOf(s.copyright)) add('fail', 'Copyright', 'Choose a copyright in the details before publishing.'); else add('ok', 'Copyright', copyrightOf(s.copyright)[1]);
     add('ok', 'Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)] + ' \u00b7 impressions ' + (Kind.impressions(s) ? 'allowed' : 'turned off'));
     const bad = new Set(), unavail = new Set();
-    Ed.el.querySelectorAll('[style*="font-family"]').forEach(e => { const n = e.style.fontFamily.split(',')[0].replace(/["']/g, '').trim(), fo = Fonts.byName(n); if (!fo) bad.add(n); else if (!Fonts.ok(fo)) unavail.add(n); });
+    Ed.el.querySelectorAll('[style]').forEach(e => { const n = e.style.fontFamily; if (!n) return; const fo = Fonts.resolve(n); if (!fo) bad.add(n); else if (!Fonts.ok(fo)) unavail.add(fo.n); });
     const strange = [...Ed.el.querySelectorAll('*')].filter(e => !Sanitize.ALLOWED.has(e.tagName.toLowerCase()) && e.tagName !== 'FONT').length;
-    if (bad.size || strange) add('fail', 'Formatting', (bad.size ? 'Unsupported fonts: ' + [...bad].join(', ') + '. ' : '') + (strange ? strange + ' unsupported elements.' : '')); else if (unavail.size) add('warn', 'Formatting', 'Fonts not currently available: ' + [...unavail].join(', ')); else add('ok', 'Formatting', 'All fonts and styles are supported');
+    if (strange) add('fail', 'Formatting', strange + ' unsupported elements.'); else if (bad.size || unavail.size) add('warn', 'Formatting', (bad.size ? 'Unrecognized fonts will use Source Serif 4 when saved: ' + [...bad].join(', ') + '. ' : '') + (unavail.size ? 'Fonts are still loading or unavailable; readers will use a fallback until loaded: ' + [...unavail].join(', ') : '')); else add('ok', 'Formatting', 'All fonts and styles are supported');
     const blocks = [...Ed.el.querySelectorAll(BLOCK_SEL)], ids = blocks.map(b => b.getAttribute('data-pid')); let run = 0, maxRun = 0; [...Ed.el.children].forEach(c => { if (/^(P)$/.test(c.tagName) && Ed.isEmptyBlock(c)) { run++; maxRun = Math.max(maxRun, run); } else run = 0; });
     if (ids.some(x => !x) || new Set(ids).size !== ids.length) add('fail', 'Paragraph structure', 'Some paragraphs are missing unique IDs.'); else if (maxRun > 3 && !Ed.lineMode) add('warn', 'Paragraph structure', 'There are ' + maxRun + ' empty paragraphs in a row. Use a scene break instead.'); else add('ok', 'Paragraph structure', ids.length.toLocaleString() + ' paragraphs, all with permanent IDs');
     return out;
@@ -2014,7 +2043,8 @@ const UI = {
       const card = h('div', { class: 'card', role: 'button', tabindex: 0, onclick: () => App.openStory(s.id), onkeydown: e => { if (e.key === 'Enter') App.openStory(s.id); }, style: { position: 'relative' } },
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
         h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
-          h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${realVols} volume${realVols === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt))));
+          h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${realVols} volume${realVols === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)),
+          (s._hasPublishedCopy || Model.all(s).some(x => x.chapter.status === 'published')) ? h('span', { class: 'pill published card__published' }, 'Published') : null));
       grid.append(card);
       if (s.coverImageId && !url) Images.url(s.coverImageId).then(resolved => {
         if (resolved && tok === this.libTok && card.isConnected) card.querySelector('.cv').replaceChildren(h('img', {src: resolved, alt: ''}));
@@ -2361,4 +2391,5 @@ UI.renderPreview = function () {
 </script>
 </body>
 </html>
+
 

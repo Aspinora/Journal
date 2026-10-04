@@ -33,9 +33,10 @@
         // Capture before awaiting; edits made during the network request remain device drafts.
         const snapshot=clone(s),storyEntry=await drafts.get('stories',s.id),records=[];
         for(const c of chapters(snapshot)){
+          if(!ids.includes(c.id))continue;
           const entry=await drafts.get('chapters',c.id),rec=entry?clone(entry.value):await remote.get('chapters',c.id);
-          if(!rec)continue;
-          if(ids.includes(c.id)||c.status==='published'){rec.published={html:rec.html,at:Date.now(),title:c.title};c.status='published';c.publishedAt=rec.published.at;}
+          if(!rec)throw Error('The selected chapter draft is not saved yet.');
+          if(ids.includes(c.id)){rec.published={html:rec.html,at:Date.now(),title:c.title};c.status='published';c.publishedAt=rec.published.at;}
           records.push({rec,entry});
         }
         if(chapters(snapshot).some(c=>c.status==='published'))snapshot.status=publicStatus(snapshot.status)?snapshot.status:'published';
@@ -61,3 +62,4 @@
   }
   global.JournalWriterDrafts=Object.freeze({create});
 })(window);
+

@@ -51,6 +51,9 @@
      ============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
+<script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
+<script src="/assets/work-content.js?v=20261005-feed-1"></script>
+<script src="/assets/feed-preview.js?v=20261005-feed-1"></script>
 
 <style>
 /* ============================================================
@@ -305,6 +308,7 @@ section{ padding:36px 0; }
 .j-owner-btn-danger:hover{ background:var(--danger,#c0392b); }
 .j-body{ padding:20px 20px 22px; display:flex; flex-direction:column; gap:14px; flex:1; }
 .j-body h3{ font-size:1.18rem; line-height:1.34; white-space:normal; }
+.j-rich-excerpt{max-height:18em;overflow:hidden}.j-rich-excerpt p{margin:0 0 .65em}.j-rich-excerpt p:last-child{margin-bottom:0}.j-rich-excerpt h1,.j-rich-excerpt h2{font-size:1.15em;margin:.5em 0}.j-rich-excerpt ul,.j-rich-excerpt ol{padding-left:1.4em}
 .j-excerpt{ color:var(--ink-soft); font-size:.9rem; line-height:1.7; margin:0; flex:1; white-space:pre-line; }
 /* Footer row: avatar/name/date pinned bottom-left, like/comment stats
    pinned bottom-right on the same line — was two separate stacked
@@ -3250,7 +3254,7 @@ function journalCardHTML(j){
     '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + ownerActions + '</div>' +
     '<div class="j-body">' +
       '<h3>' + escapeHtml(j.title) + '</h3>' +
-      '<p class="j-excerpt">' + inlineMd(escapeHtml(cardExcerpt(j.excerpt || j.body, 220))) + '</p>' +
+      '<div class="j-excerpt j-rich-excerpt">' + JournalFeedPreview.render(j, text => inlineMd(escapeHtml(text)).replace(/\r?\n/g, '<br>'), 220) + '</div>' +
       '<div class="j-card-footer">' +
         '<a class="j-meta" href="/portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarSpanHTML(j.author_id, authorName(j.author_id)) +
           '<div class="j-meta-text"><span class="author">' + escapeHtml(authorName(j.author_id)) + '</span>' +
@@ -4542,3 +4546,4 @@ else init();
      ================================================================== -->
 </body>
 </html>
+
