@@ -2340,12 +2340,17 @@ async function loadProfile(authUser){
 async function hydrateUserActivity(userId){
   if (DEMO_MODE || !supabaseClient) return;
   try{
-    const [likesRes, bookmarksRes, commentLikesRes] = await Promise.all([
+    const [likesRes, bookmarksRes, commentLikesRes, storyLikesRes] = await Promise.all([
       supabaseClient.from('journal_likes').select('journal_id').eq('user_id', userId),
       supabaseClient.from('bookmarks').select('journal_id').eq('user_id', userId),
-      supabaseClient.from('comment_likes').select('comment_id').eq('user_id', userId)
+      supabaseClient.from('comment_likes').select('comment_id').eq('user_id', userId),
+      supabaseClient.from('story_likes').select('story_id').eq('user_id', userId)
     ]);
-    if (likesRes.data) state.likedJournalIds = new Set(likesRes.data.map(function(r){ return r.journal_id; }));
+    if (likesRes.data){
+      state.likedJournalIds = new Set(likesRes.data.map(function(r){ return r.journal_id; }));
+      // Works (Stories / Articles / multipart Journals) are liked through their own table; ids never clash.
+      if (storyLikesRes && storyLikesRes.data) storyLikesRes.data.forEach(function(r){ state.likedJournalIds.add(r.story_id); });
+    }
     if (bookmarksRes.data) state.bookmarkedIds = new Set(bookmarksRes.data.map(function(r){ return r.journal_id; }));
     if (commentLikesRes.data) state.likedCommentIds = new Set(commentLikesRes.data.map(function(r){ return r.comment_id; }));
   }catch(e){ console.warn('Could not load saved activity:', e); }
@@ -2680,8 +2685,13 @@ function normalizeJournalRow(row){
    Story button itself; that only appears inside reader-demo.html), but
    keeping them on the row means a future "Story" badge or similar
    doesn't need another round-trip. */
+/* Ids of feed rows that are structured works (story_works: Stories, Articles, multipart Journals).
+   Their likes live in story_likes; a plain post's likes live in journal_likes. Only works carry a
+   chapter_count in the merged feed (it is null for rows from `journals`). */
+const WORK_IDS = new Set();
 function normalizeMergedFeedRow(row){
   if (!row) return null;
+  if (row.chapter_count !== null && row.chapter_count !== undefined) WORK_IDS.add(row.id);
   const reshaped = Object.assign({}, row, {
     profiles: { display_name: row.display_name, username: row.username, avatar_url: row.avatar_url }
   });
@@ -2960,10 +2970,12 @@ async function toggleJournalLike(journalId){
     // an unchecked error here would silently leave the optimistic like
     // showing with nothing actually saved server-side.
     let error;
+    const likeTable = WORK_IDS.has(journalId) ? 'story_likes' : 'journal_likes';
+    const likeKey = WORK_IDS.has(journalId) ? 'story_id' : 'journal_id';
     if (already){
-      ({ error } = await supabaseClient.from('journal_likes').delete().eq('journal_id', journalId).eq('user_id', state.currentUser.id));
+      ({ error } = await supabaseClient.from(likeTable).delete().eq(likeKey, journalId).eq('user_id', state.currentUser.id));
     } else {
-      ({ error } = await supabaseClient.from('journal_likes').insert({ journal_id: journalId, user_id: state.currentUser.id }));
+      ({ error } = await supabaseClient.from(likeTable).insert({ [likeKey]: journalId, user_id: state.currentUser.id }));
       // 👉 SUPABASE: creating the "someone appreciated your journal"
       // notification is best done with a database trigger on insert,
       // not from this frontend code.
@@ -3026,18 +3038,16 @@ document.addEventListener('dblclick', function(e){
    the wrong one's pending navigation; a WeakMap lets a re-rendered
    (removed) card's stale entry be garbage-collected instead of leaking. */
 const pendingCardOpens = new WeakMap();
-const CARD_CLICK_ARBITRATION_MS = 250;
-document.addEventListener('dblclick', function(e){
-  const card = e.target.closest('.j-card[data-open-journal]');
-  if (!card) return;
-  if (e.target.closest('a, button, input, textarea')) return; // don't hijack owner-action buttons/author link
-  const pending = pendingCardOpens.get(card);
-  if (pending){ clearTimeout(pending); pendingCardOpens.delete(card); }
-  e.preventDefault(); // stop double-click text-selection on the card's title/excerpt
+const CARD_CLICK_ARBITRATION_MS = 350;
+/* A second click/tap on the same card inside the arbitration window IS the double-tap. Detecting it from
+   the clicks themselves (instead of waiting for a 'dblclick' event) is what makes it work on touch
+   screens, where browsers often never send 'dblclick', and with normal-speed double clicks. */
+const recentCardDoubleLikes = new WeakMap();
+function likeCardViaDoubleTap(card, x, y){
+  recentCardDoubleLikes.set(card, Date.now());
   const journalId = card.getAttribute('data-open-journal');
-  likeJournalOnceViaDoubleClick(journalId, e.clientX, e.clientY, function(cached){
-    // Keep the new card-level like button (added for the "no like
-    // button on cards" fix) visually in sync with a like added this way.
+  likeJournalOnceViaDoubleClick(journalId, x, y, function(cached){
+    // Keep the card-level like button visually in sync with a like added this way.
     const likeBtn = card.querySelector('.j-like-btn');
     if (!likeBtn) return;
     likeBtn.classList.add('is-liked');
@@ -3047,6 +3057,10 @@ document.addEventListener('dblclick', function(e){
     if (cached){ countEl.textContent = cached.likes; }
     else { countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + 1; }
   });
+}
+// Stop the second click of a double-click from selecting the card's title/excerpt text.
+document.addEventListener('mousedown', function(e){
+  if (e.detail > 1 && e.target.closest('.j-card[data-open-journal]') && !e.target.closest('a, button, input, textarea')) e.preventDefault();
 });
 
 async function toggleBookmark(journalId){
@@ -4251,7 +4265,15 @@ document.addEventListener('click', function(e){
     // same as before.
     const card = openBtn.closest('.j-card');
     if (!card){ window.location.href = readerUrlFor(openBtn.getAttribute('data-open-journal'), openBtn.getAttribute('data-slug'), openBtn.getAttribute('data-author')); return; }
-    if (pendingCardOpens.has(card)) return; // a navigation is already queued for this card
+    const queued = pendingCardOpens.get(card);
+    if (queued){
+      // Second click/tap before the open fired: that is a double-tap — cancel the open and like instead.
+      clearTimeout(queued); pendingCardOpens.delete(card);
+      likeCardViaDoubleTap(card, e.clientX, e.clientY);
+      return;
+    }
+    // A third quick tap right after a double-tap must not open the post either.
+    if (Date.now() - (recentCardDoubleLikes.get(card) || 0) < 600) return;
     const journalId = openBtn.getAttribute('data-open-journal');
     const journalSlug = openBtn.getAttribute('data-slug');
     const journalAuthor = openBtn.getAttribute('data-author');
