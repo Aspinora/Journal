@@ -373,6 +373,7 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 <link rel="stylesheet" href="/assets/elements.css">
 <script src="/assets/elements.js"></script>
 <script src="/assets/elements-editor.js"></script>
+<script src="/assets/writer-drafts.js"></script>
 </head>
 <body class="desk">
 <div id="app">
@@ -663,7 +664,7 @@ async function persistTree(s) {
   const goneChapIds = (existingChaps || []).map(c => c.id).filter(id => !keepChapIds.has(id));
   if (goneChapIds.length) { const { error } = await sb.from('story_chapters').delete().in('id', goneChapIds); if (error) throwDb(error); }
 }
-const Store = {
+const RemoteStore = {
   mode: 'supabase',
   async open() {
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
@@ -763,6 +764,23 @@ const Store = {
   async clearAll() { /* not offered against a live account */ },
 };
 
+
+const Store = JournalWriterDrafts.create({remote: RemoteStore, owner: () => CONFIG.ownerId, story: () => App.story,
+  isSingle: s => Kind.single(s), chapters: s => Model.all(s).map(x => x.chapter), preparePublication: async s => {
+    for (const entity of [s,...s.volumes,...s.volumes.flatMap(v=>v.parts||[])]) {
+      if (!entity.coverImageId?.startsWith('__local:')) continue;
+      const local=await Store.drafts.get('images',entity.coverImageId);if(!local)throw Error('The draft cover is missing on this device. Choose it again before publishing.');
+      let rec=local.value.remoteId&&await Images.record(local.value.remoteId);
+      if(!rec){rec=await Images.upload({...local.value,forceRemote:true});local.value.remoteId=rec.id;await Store.drafts.put('images',entity.coverImageId,local.value);}
+      entity.coverImageId=rec.id;
+    }
+  }
+});
+RemoteStore.publishSingle = async (s, rec) => {
+  const row={title:s.title||'',excerpt:(s.description||'').trim()||null,tags:s.tags||[],visibility:s.visibility,allow_comments:s.allowImpressions!==false,cover_url:await resolveCoverUrl(s.coverImageId),body_markdown:rec.html||'',status:'published',published_at:new Date(rec.published.at).toISOString(),updated_at:new Date().toISOString()};
+  const {error}=await sb.from('journals').update(row).eq('id',s.id).select('id').single();if(error)throwDb(error);
+};
+
 function purposeFor(type) { return 'cover'; } // story_cover / volume_cover / part_cover all upload the same way
 async function uploadToR2(blob, purpose) {
   simCheck('upload');
@@ -803,11 +821,13 @@ const Images = {
   async record(id) {
     if (!id || id.startsWith('__url:')) return null;
     if (this.cache.has(id)) return this.cache.get(id);
+    if(id.startsWith('__local:')){const entry=await Store.drafts.get('images',id);if(!entry)return null;const rec={...entry.value,id,public_url:URL.createObjectURL(entry.value.blob)};this.cache.set(id,rec);return rec;}
     const { data } = await sb.from('story_images').select('*').eq('id', id).maybeSingle();
     if (data) this.cache.set(id, data);
     return data || null;
   },
-  async upload({ type, storyId, volumeId = null, partId = null, chapterId = null, blob, width, height, crop = null }) {
+  async upload({ type, storyId, volumeId = null, partId = null, chapterId = null, blob, width, height, crop = null, forceRemote = false }) {
+    if(!forceRemote&&Store.localMode(App.story)){const id='__local:'+uid(),rec={id,type,storyId,volumeId,partId,chapterId,blob,width,height,crop,owner_id:CONFIG.ownerId};await Store.drafts.put('images',id,rec);const preview={...rec,public_url:URL.createObjectURL(blob)};this.cache.set(id,preview);return preview;}
     const url = await uploadToR2(blob, purposeFor(type));
     const id = uid();
     const rec = { id, owner_id: CONFIG.ownerId, story_id: storyId, volume_id: volumeId, part_id: partId, chapter_id: chapterId, image_type: type, r2_key: url, public_url: url, width, height, file_size: blob.size, crop, created_at: new Date().toISOString() };
@@ -817,6 +837,7 @@ const Images = {
     return rec;
   },
   async remove(id) {
+    if(id?.startsWith('__local:')){await Store.drafts.remove('images',id);this.cache.delete(id);this.urls.delete(id);return true;}
     const rec = this.cache.get(id) || await this.record(id); if (!rec) return true;
     try { await deleteFromR2([rec.public_url]); await sb.from('story_images').delete().eq('id', id); this.cache.delete(id); this.urls.delete(id); return true; }
     catch (e) { return false; }
@@ -833,13 +854,13 @@ async function applyCoverChange({ entity, owner, type, staged, persist }) {
   try { await persist(); }
   catch (e) { entity.coverImageId = oldId; await Images.remove(rec.id); throw e; }
   Images.urls.set(rec.id, URL.createObjectURL(staged.blob));
-  if (oldId) Images.remove(oldId).then(ok => { if (!ok) toast('The previous image will be removed shortly.'); });
+  if (oldId && !Store.localMode(App.story)) Images.remove(oldId).then(ok => { if (!ok) toast('The previous image will be removed shortly.'); });
 }
 async function deleteCover({ entity, persist }) {
   const oldId = entity.coverImageId; if (!oldId) return true;
   entity.coverImageId = null;
   try { await persist(); } catch (e) { entity.coverImageId = oldId; throw e; }
-  const ok = await Images.remove(oldId);
+  const ok = Store.localMode(App.story) ? true : await Images.remove(oldId);
   if (!ok) toast('Image detached. Permanent deletion will retry automatically.');
   return true;
 }
@@ -1649,7 +1670,7 @@ const Save = {
     if (!this.maxTimer) this.maxTimer = setTimeout(() => this.flush(), CONFIG.autosaveMaxWaitMs); this.backupSoon();
   },
   backupSoon: debounce(() => Save.backupNow(), 2500),
-  backupNow() { if (Ed.chapterId && Ed.dirtyFlag) lsSet('sw_backup', { chapterId: Ed.chapterId, storyId: Ed.storyId, html: Ed.serialize(), pidSeq: Ed.seq, at: Date.now() }); },
+  backupNow() { if (Ed.chapterId && Ed.dirtyFlag) lsSet('sw_backup_' + CONFIG.ownerId, { chapterId: Ed.chapterId, storyId: Ed.storyId, html: Ed.serialize(), pidSeq: Ed.seq, ownerId:CONFIG.ownerId, at: Date.now() }); },
   async flush() {
     clearTimeout(this.timer); clearTimeout(this.maxTimer); this.maxTimer = null;
     while (this.inflight) await this.inflight;
@@ -1658,7 +1679,7 @@ const Save = {
     const p = (async () => {
       try {
         await App.persistChapter(snap); this.failed.delete(snap.chapterId); this.lastAt = Date.now();
-        if (!Ed.dirtyFlag) { this.setState('saved'); const b = lsGet('sw_backup', null); if (b && b.chapterId === snap.chapterId && b.at <= snap.at) lsDel('sw_backup'); }
+        if (!Ed.dirtyFlag) { this.setState('saved'); const b = lsGet('sw_backup_' + CONFIG.ownerId, null); if (b && b.chapterId === snap.chapterId && b.at <= snap.at) lsDel('sw_backup_' + CONFIG.ownerId); }
         return true;
       } catch (e) {
         if (Ed.chapterId === snap.chapterId) Ed.dirtyFlag = true; this.failed.set(snap.chapterId, snap); this.setState('error', e.message);
@@ -1675,7 +1696,8 @@ const Save = {
     this.state = s; const el = $('#saveStatus'); if (!el) return; clearInterval(this.tick);
     const paint = () => {
       el.className = s === 'error' ? 'err' : s === 'busy' ? 'busy' : '';
-      const t = s === 'busy' ? 'Saving…' : s === 'error' ? 'Not saved · retrying' : (Date.now() - this.lastAt < 9000 && this.lastAt ? 'Saved just now' : 'Saved');
+      const device=Store.localMode(App.story);
+      const t = s === 'busy' ? (device ? 'Saving on this device…' : 'Saving…') : s === 'error' ? 'Not saved · retrying' : (Date.now() - this.lastAt < 9000 && this.lastAt ? (device ? 'Draft saved on this device' : 'Saved just now') : (device ? 'Draft saved on this device' : 'Saved'));
       el.replaceChildren(h('span', { class: 'dot' }), h('span', null, t)); el.title = msg || (this.lastAt ? 'Last saved ' + new Date(this.lastAt).toLocaleTimeString() : '');
     };
     paint(); if (s === 'saved') this.tick = setInterval(() => { paint(); if (Date.now() - this.lastAt >= 9000) clearInterval(this.tick); }, 2000);
@@ -1698,7 +1720,7 @@ const Notes = {
    ===================================================================== */
 const App = {
   story: null, rec: null,
-  locked(obj) { return Kind.isStory(this.story) && !!obj && obj.status === 'published'; },
+  locked(obj) { return Kind.isStory(this.story) && !!obj && obj.status === 'published' && Array.isArray(obj.chapters); },
   async listStories(refresh = true) {
     if (!refresh && this.libraryCache) return this.libraryCache;
     if (this.libraryLoading) return this.libraryLoading;
@@ -1706,9 +1728,9 @@ const App = {
     try { return await this.libraryLoading; } finally { this.libraryLoading = null; }
   },
   storyPersistSoon: debounce(() => App.persistStory().catch(e => { if (Date.now() - (App._lastPersistToast || 0) > 20000) { App._lastPersistToast = Date.now(); toast('Couldn\u2019t save the details: ' + e.message, 'err'); } }), 2500),
-  async persistStory() { if (!App.story) return; simCheck('save'); App.story.updatedAt = Date.now(); await Store.put('stories', App.story); },
+  async persistStory() { if (!App.story) return; if(!Store.localMode(App.story))simCheck('save'); App.story.updatedAt = Date.now(); await Store.put('stories', App.story); },
   async persistChapter(snap) {
-    simCheck('save');
+    if(!Store.localMode(App.story))simCheck('save');
     const rec = (await Store.get('chapters', snap.chapterId)) || { id: snap.chapterId, storyId: snap.storyId, published: null };
     Object.assign(rec, { html: snap.html, pidSeq: snap.pidSeq, wordCount: snap.words, charCount: snap.chars, updatedAt: snap.at });
     await Store.put('chapters', rec); if (App.rec && App.rec.id === rec.id) App.rec = rec;
@@ -1727,7 +1749,7 @@ const App = {
     await Save.flush(); if (Ed.chapterId) await this.gcChapterImages(Ed.chapterId);
     const f = Model.find(App.story, id); if (!f) return;
     let rec = (await Store.get('chapters', id)) || { id, storyId: App.story.id, html: '', pidSeq: 0, published: null }, recovered = false;
-    const bk = lsGet('sw_backup', null); if (bk && bk.chapterId === id && bk.at > (rec.updatedAt || 0) + 500 && bk.html) { rec = Object.assign({}, rec, { html: bk.html, pidSeq: bk.pidSeq }); recovered = true; }
+    const bk = lsGet('sw_backup_' + CONFIG.ownerId, null); if (bk && bk.ownerId === CONFIG.ownerId && bk.chapterId === id && bk.at > (rec.updatedAt || 0) + 500 && bk.html) { rec = Object.assign({}, rec, { html: bk.html, pidSeq: bk.pidSeq }); recovered = true; }
     App.rec = rec; Ed.lineMode = Kind.lineMode(App.story); await Ed.load(rec);
     App.story.lastChapterId = id; this.storyPersistSoon();
     UI.showChapter(f); if (!opts.silentPane) UI.setPane('write'); else UI.setPane(UI.portrait ? 'contents' : 'write');
@@ -1736,6 +1758,7 @@ const App = {
     $('#scroller').scrollTop = 0;
   },
   async gcChapterImages(chapterId) {
+    if(Store.localMode(App.story))return;
     try {
       const rec = await Store.get('chapters', chapterId); const html = ((rec && rec.html) || '') + ((rec && rec.published && rec.published.html) || '');
       const used = new Set([...html.matchAll(/data-image-id="([^"]+)"/g)].map(m => m[1]));
@@ -1745,8 +1768,14 @@ const App = {
   },
   async saveDraft() {
     if (!Ed.chapterId) return; const fc = Model.find(App.story, Ed.chapterId); if (fc && this.locked(fc.chapter)) return;
-    const ok = await Save.flush(); await this.persistStory().catch(() => {});
-    if (ok) { toast('Draft saved'); this.gcChapterImages(Ed.chapterId); } else toast('Couldn’t save right now. Your text is safe and will retry.', 'err');
+    let ok = await Save.flush();try{await this.persistStory();}catch(e){ok=false;Save.setState('error',e.message);}
+    if (ok) { toast(Store.localMode(App.story) ? 'Draft saved on this device' : 'Draft saved'); this.gcChapterImages(Ed.chapterId); } else toast('Couldn’t save right now. Your text is safe and will retry.', 'err');
+  },
+  async downloadDraft() {
+    if(!await Save.flush())return toast('Save the draft before downloading a backup.','err');await this.persistStory();
+    const story=structuredClone(App.story),records=[];for(const c of Model.all(story))records.push(await Store.get('chapters',c.chapter.id));
+    const covers=[];for(const entity of [story,...story.volumes,...story.volumes.flatMap(v=>v.parts||[])])if(entity.coverImageId?.startsWith('__local:')){const entry=await Store.drafts.get('images',entity.coverImageId);if(entry){const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(entry.value.blob);});covers.push({id:entity.coverImageId,data,width:entry.value.width,height:entry.value.height,crop:entry.value.crop});}}
+    const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,story,chapters:records,covers},null,2)],{type:'application/json'})),a=h('a',{href:url,download:'journals-draft-backup.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   },
   /* ---- publishing */
   validate() {
@@ -1777,12 +1806,13 @@ const App = {
     if (next === st.status) return false; st.status = next; return true;
   },
   async publishChapter() {
-    const rec = await Store.get('chapters', Ed.chapterId); if (!rec) throw new Error('Chapter not saved yet.');
-    rec.published = { html: rec.html, at: Date.now(), title: Model.find(App.story, rec.id).chapter.title }; await Store.put('chapters', rec); App.rec = rec;
-    const f = Model.find(App.story, rec.id); f.chapter.status = 'published'; f.chapter.publishedAt = rec.published.at; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncPublishButton(); Panel.refresh();
+    if(!await Save.flush())throw Error('Save failed. Your draft is kept; try again before publishing.');
+    App.storyPersistSoon.cancel();await this.persistStory();
+    const published=await Store.publish(App.story,[Ed.chapterId]);App.story=published;Model.cur=published;
+    App.rec=await Store.get('chapters',Ed.chapterId);UI.renderTree();UI.syncPublishButton();Panel.refresh();
   },
   async unpublishChapter() {
-    const rec = await Store.get('chapters', Ed.chapterId); rec.published = null; await Store.put('chapters', rec); App.rec = rec;
+    if(!await Save.flush())throw Error('Save failed. Unpublishing was paused to keep your draft safe.');await Store.unpublish(App.story,Ed.chapterId);const rec=await Store.get('chapters',Ed.chapterId);App.rec=rec;
     const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncPublishButton(); Panel.refresh();
   },
   async publishContainer(kind, obj) {
@@ -1790,13 +1820,10 @@ const App = {
     const drafts = chapters.filter(c => c.status !== 'published'), name = kind === 'volume' ? Model.vLabel(obj) : Model.pLabel(obj);
     const body = drafts.length ? `“${name}” has ${drafts.length} unpublished chapter${drafts.length === 1 ? '' : 's'}. They will be published along with the ${kind}. Once published, the ${kind} can’t be edited or published again — only viewed and deleted.` : `“${name}” will be marked published. Once published, the ${kind} can’t be edited or published again — only viewed and deleted.`;
     if (!await confirmDialog({ title: `Publish this ${kind}?`, body, confirm: `Publish ${kind}` })) return;
-    for (const c of drafts) {
-      const rec = (await Store.get('chapters', c.id)) || { id: c.id, storyId: this.story.id, html: '', published: null };
-      rec.published = { html: rec.html, at: Date.now(), title: c.title }; await Store.put('chapters', rec); if (this.rec && this.rec.id === c.id) this.rec = rec;
-      c.status = 'published'; c.publishedAt = rec.published.at;
-    }
-    obj.status = 'published'; obj.publishedAt = Date.now();
-    this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncCrumb(); Panel.refresh(); toast('Published');
+    if(!await Save.flush())throw Error('Save failed. Publishing was paused.');
+    obj.status='published';obj.publishedAt=Date.now();App.storyPersistSoon.cancel();await this.persistStory();
+    App.story=await Store.publish(App.story,drafts.map(c=>c.id));Model.cur=App.story;App.rec=Ed.chapterId?await Store.get('chapters',Ed.chapterId):null;
+    UI.renderTree(); UI.syncCrumb(); Panel.refresh(); toast('Published');
   },
   async softDeleteChapter(f) {
     const words = f.chapter.wordCount || 0;
@@ -1828,7 +1855,7 @@ const App = {
     if (!ok) toast('Some files will be permanently removed shortly (retrying automatically).');
   },
   async deleteChapter(f) {
-    if (App.locked(f.chapter)) return this.softDeleteChapter(f);
+    if (Kind.isStory(this.story) && f.chapter.status === 'published') return this.softDeleteChapter(f);
     const words = f.chapter.wordCount || 0;
     if (!await confirmDialog({ title: 'Delete this chapter?', body: `“${Model.cLabel(f.chapter)}” (${words.toLocaleString()} words) and its notes will be permanently deleted. This can’t be undone.`, confirm: 'Delete chapter', danger: true })) return;
     const id = f.chapter.id, wasOpen = Ed.chapterId === id;
@@ -1886,7 +1913,7 @@ const UI = {
     $('#btnSaveDraft').addEventListener('click', () => App.saveDraft()); $('#btnPublish').addEventListener('click', () => this.publishDialog());
     $('#libBack').addEventListener('click', e => { try { const r = document.referrer && new URL(document.referrer); if (r && r.origin === location.origin && !/\/writer-studio(\.html)?$/.test(r.pathname) && history.length > 1) { e.preventDefault(); history.back(); } } catch (x) {} });
     $('#libNew').addEventListener('click', () => this.newStory());
-    const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; if (Kind.single(App.story)) App.story.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); App.storyPersistSoon(); });
+    const t = $('#chTitle'); t.addEventListener('input', () => { const f = App.story && Model.find(App.story, Ed.chapterId); if (!f) return; f.chapter.title = t.value; if (Kind.single(App.story)) App.story.title = t.value; this.updateTreeMeta(f.chapter); this.syncCrumb(); if(Store.localMode(App.story))App.persistStory().catch(e=>{Save.setState('error',e.message);});else App.storyPersistSoon(); });
     t.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); Ed.focusForCommand(); const first = Ed.el.firstElementChild; if (first) Ed.placeCaret(first, true); } });
     this.kind = lsGet('sw_kind', 'story'); if (!KINDS[this.kind]) this.kind = 'story'; $('#btnWork').replaceChildren(icon('edit')); $('#btnWork').addEventListener('click', () => this.editStory());
     Panel.init(); Tools.build();
@@ -2140,7 +2167,7 @@ const UI = {
     const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
     const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
     const already = f.chapter.status === 'published';
-    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), already ? ' Re-Publishing…' : ' Publishing…'); try { await Save.flush(); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast(already ? 'Re-Published' : 'Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Re-Publish' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
+    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), already ? ' Re-Publishing…' : ' Publishing…'); try { if(!await Save.flush())throw Error('Save failed. Your draft is kept.'); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast(already ? 'Re-Published' : 'Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Re-Publish' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
     const m = openModal({ title: already ? 'Ready to re-publish?' : 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
   },
   /* ---- developer tools */
@@ -2278,10 +2305,10 @@ const Panel = {
   refresh() { const body = $('#rBody'); if (!body || !App.story) return; body.replaceChildren(this.tab === 'info' ? this.renderInfo() : this.renderNotes()); },
   renderInfo() {
     const f = Ed.chapterId && Model.find(App.story, Ed.chapterId); if (!f) return h('div', { class: 'muted', style: { padding: '12px' } }, 'Open a chapter to see its details.');
-    const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec.updatedAt || 0) > pub.at + 1000;
-    const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Copyright', (copyrightOf(App.story.copyright) || [0, 'Not chosen'])[1]], ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
+    const m = Ed.counts || { words: f.chapter.wordCount || 0, chars: 0 }, rec = App.rec, pub = rec && rec.published, changed = pub && (rec._deviceDraft || App.story._deviceDraft || (rec.updatedAt || 0) > pub.at + 1000);
+    const kv = h('dl', { class: 'kv' }); [[Kind.storyLike(App.story) ? 'Chapter' : Kind.cfg(App.story).one, Model.cLabel(f.chapter)], ...(f.volume.implicit ? [] : [['Volume', Model.vLabel(f.volume)]]), ...(f.volume.implicit && !f.part ? [] : [[Kind.storyLike(App.story) ? 'Part' : 'Section', f.part ? Model.pLabel(f.part) : '—']]), ['Copyright', (copyrightOf(App.story.copyright) || [0, 'Not chosen'])[1]], ['Visibility', ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(App.story)]], ['Impressions', Kind.impressions(App.story) ? 'Allowed' : 'Off'], ['Draft storage', Store.localMode(App.story) ? 'This browser/device. Clearing browser data removes local drafts.' : 'Cloud'], ['Status', pub ? (changed ? 'Published · unpublished changes' : 'Published') : 'Draft'], ['Words', m.words.toLocaleString()], ['Characters', m.chars.toLocaleString()], ['Reading time', (m.words ? Math.max(1, Math.ceil(m.words / 230)) : 0) + ' min'], ['Paragraphs', Ed.el ? Ed.used.size.toLocaleString() : '—'], ['Last saved', Save.lastAt ? timeAgo(Save.lastAt) : (rec && rec.updatedAt ? timeAgo(rec.updatedAt) : '—')], ['Whole ' + Kind.cfg(App.story).one.toLowerCase(), Model.words(App.story).toLocaleString() + ' words']].forEach(([k, v]) => kv.append(h('dt', null, k), h('dd', null, v)));
     return h('div', { style: { padding: '6px 6px 16px' } }, kv, App.locked(f.chapter) ? h('div', { style: { marginTop: '16px' } }, h('div', { class: 'banner ok', style: { marginBottom: '10px' } }, icon('check'), 'Published — this ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + ' is locked for editing. Use Re-Publish to update the published copy, or delete it.'), h('button', { class: 'btn', type: 'button', onclick: () => App.deleteChapter(f) }, 'Delete ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit) + '…')) :
-      h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Re-Publish' : 'Publish…'),
+      h('div', { style: { display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' } }, Kind.hasTree(App.story) ? null : h('button', { class: 'btn', type: 'button', onclick: () => UI.editStory() }, 'Cover, tags & visibility…'), h('button', { class: 'btn', type: 'button', onclick: () => App.saveDraft() }, 'Save Draft'), h('button', { class: 'btn', type: 'button', onclick: () => App.downloadDraft() }, 'Download draft backup'), h('button', { class: 'btn primary', type: 'button', onclick: () => UI.publishDialog() }, pub ? 'Re-Publish' : 'Publish…'),
       pub ? h('button', { class: 'btn', type: 'button', onclick: async () => { if (await confirmDialog({ title: 'Unpublish this chapter?', body: 'Readers will no longer see it. Your draft is kept.', confirm: 'Unpublish' })) { await App.unpublishChapter(); toast('Unpublished'); } } }, 'Unpublish') : null));
   },
   renderNotes() {
