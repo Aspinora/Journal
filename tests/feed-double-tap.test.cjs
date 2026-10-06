@@ -56,7 +56,7 @@ async function open() {
     runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc,
     url: 'https://example.test/userpostlogin.html',
     beforeParse(w) {
-      for (const file of ['assets/vendor/dompurify-3.4.16.min.js','assets/work-content.js','assets/feed-preview.js']) w.eval(fs.readFileSync(path.join(__dirname,'..',file),'utf8'));
+      for (const file of ['assets/vendor/dompurify-3.4.16.min.js','assets/work-content.js','assets/feed-preview.js','assets/story-discovery.js']) w.eval(fs.readFileSync(path.join(__dirname,'..',file),'utf8'));
       w.JOURNAL_CONFIG = { SUPABASE_URL: 'https://x.test', SUPABASE_ANON_KEY: 'k' };
       w.supabase = { createClient: () => client };
       w.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} });

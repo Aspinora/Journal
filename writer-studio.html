@@ -374,7 +374,8 @@ body.portrait #sheet.k-shayari #editor{--doc-size:20px}
 <script src="/assets/elements.js?v=20261004-reader-3"></script>
 <script src="/assets/elements-editor.js?v=20261005-editor-1"></script>
 <script src="/assets/design-view.js?v=20261004-reader-3"></script>
-<script src="/assets/writer-drafts.js?v=20261005-editor-1"></script>
+<script src="/assets/story-discovery.js?v=20261006-1"></script>
+<script src="/assets/writer-drafts.js?v=20261006-1"></script>
 </head>
 <body class="desk">
 <div id="app">
@@ -456,9 +457,6 @@ const IMAGE_SPECS = {
   volume_cover: { type: 'volume_cover', label: 'Volume Cover', rw: 2, rh: 3, w: 1000, h: 1500, orient: 'portrait',  ratio: '2:3', hint: 'Recommended ratio: 2:3 · Best at 1000 × 1500 px' },
   part_cover:   { type: 'part_cover',   label: 'Part Cover',   rw: 2, rh: 3, w: 800,  h: 1200, orient: 'portrait',  ratio: '2:3', hint: 'Recommended ratio: 2:3 · Best at 800 × 1200 px' },
 };
-const CATEGORIES = ['Fantasy','Romance','Mystery & Thriller','Science Fiction','Literary Fiction','Historical','Horror','Adventure','Drama','Poetry','Non-fiction','Other'];
-const STORY_STATUSES = [['draft','Draft'],['ongoing','Ongoing'],['completed','Completed'],['hiatus','On hiatus']];
-const PUB_STATUSES = [['draft','Draft'],['published','Published']];
 
 /* =====================================================================
    2. UTILITIES
@@ -588,7 +586,7 @@ function journalToStory(row) {
     kind, structure: kind === 'journal' ? 'single' : (kind === 'article' ? 'simple' : null),
     visibility: row.visibility, allowImpressions: row.allow_comments !== false, copyright: row.copyright || null,
     id: row.id, ownerId: row.author_id, title: row.title || '', description: row.subtitle || row.excerpt || '',
-    category: null, tags: row.tags || [], status: row.status, coverImageId: row.cover_url ? '__url:' + row.cover_url : null,
+    readerMetadata: row.reader_metadata || {}, category: null, tags: row.tags || [], status: row.status, coverImageId: row.cover_url ? '__url:' + row.cover_url : null,
     volumes: [{ id: 'v0-' + row.id, number: 0, title: '', description: '', status: 'draft', coverImageId: null, implicit: true, parts: [], chapters: [chapter] }],
     createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at), lastChapterId: row.id,
   };
@@ -606,7 +604,7 @@ async function treeToStory(row) {
   for (const p of (parts || [])) (partsByVol[p.volume_id] ||= []).push(p);
   for (const c of (chaps || [])) (c.part_id ? (chapsByPart[c.part_id] ||= []) : (chapsByVol[c.volume_id] ||= [])).push(c);
   const volumes = (vols || []).map(v => ({
-    id: v.id, number: v.number, title: v.title || '', description: v.description || '', status: v.status,
+    id: v.id, number: v.number, title: v.title || '', description: v.description || '', status: v.status, publishedAt: v.published_at, seriesStatus: v.series_status,
     coverImageId: v.cover_url ? '__url:' + v.cover_url : null, implicit: v.is_implicit,
     parts: (partsByVol[v.id] || []).map(p => ({ id: p.id, number: p.number, title: p.title || '', description: p.description || '', coverImageId: p.cover_url ? '__url:' + p.cover_url : null, status: p.status, publishedAt: p.published_at ? Date.parse(p.published_at) : null, chapters: (chapsByPart[p.id] || []).map(chapterNodeFromRow) })),
     chapters: (chapsByVol[v.id] || []).map(chapterNodeFromRow),
@@ -615,7 +613,7 @@ async function treeToStory(row) {
     kind: row.kind, structure: row.kind === 'journal' ? 'multiple' : (row.kind === 'article' ? 'structured' : null),
     visibility: row.visibility, allowImpressions: row.allow_impressions, copyright: row.copyright,
     id: row.id, ownerId: row.author_id, title: row.title || '', description: row.description || '',
-    category: row.genre, tags: row.tags || [], status: row.status, coverImageId: row.cover_url ? '__url:' + row.cover_url : null,
+    genres: row.genres || [], seriesStatus: row.series_status, completedAt: row.completed_at, lastReleaseAt: row.last_release_at, readerMetadata: row.reader_metadata || {}, category: row.genre, tags: row.tags || [], status: row.status, coverImageId: row.cover_url ? '__url:' + row.cover_url : null,
     volumes, createdAt: Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at), lastChapterId: row.last_chapter_id,
   };
 }
@@ -638,7 +636,7 @@ async function resolveCoverUrl(id) {
    left off every payload here, so ON CONFLICT DO UPDATE never
    overwrites content, only structure (number/title/status). */
 async function persistTree(s) {
-  const volRows = await Promise.all(s.volumes.map(async v => ({ id: v.id, story_id: s.id, number: v.number, title: v.title || '', description: v.description || null, status: v.status, cover_url: await resolveCoverUrl(v.coverImageId), is_implicit: !!v.implicit })));
+  const volRows = await Promise.all(s.volumes.map(async v => ({ id: v.id, story_id: s.id, number: v.number, title: v.title || '', description: v.description || null, status: v.status, cover_url: await resolveCoverUrl(v.coverImageId), is_implicit: !!v.implicit, series_status: v.seriesStatus || null })));
   if (volRows.length) { const { error } = await sb.from('story_volumes').upsert(volRows); if (error) throwDb(error); }
   const { data: existingVols } = await sb.from('story_volumes').select('id').eq('story_id', s.id);
   const keepVolIds = new Set(s.volumes.map(v => v.id));
@@ -723,10 +721,10 @@ const RemoteStore = {
            story-level record right after publishing wrote the stale 'draft' status back over it. */
         const ch0 = o.volumes && o.volumes[0] && o.volumes[0].chapters && o.volumes[0].chapters[0];
         if (ch0) o.status = ch0.status === 'published' ? 'published' : 'draft';
-        const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', excerpt: (o.description || '').trim() || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, copyright: o.copyright || null, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
+        const row = { id: o.id, author_id: CONFIG.ownerId, title: o.title || '', excerpt: (o.description || '').trim() || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_comments: o.allowImpressions !== false, copyright: o.copyright || null, reader_metadata: o.readerMetadata || {}, category_id: KIND_TO_CATEGORY_ID[o.kind] || 1, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
         const { error } = await sb.from('journals').upsert(row); if (error) throwDb(error);
       } else {
-        const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
+        const row = { id: o.id, author_id: CONFIG.ownerId, kind: o.kind === 'journal' ? 'journal' : o.kind, title: o.title || '', description: o.description || null, genre: o.category || null, genres: o.genres || [], series_status: o.seriesStatus || null, reader_metadata: o.readerMetadata || {}, tags: o.tags || [], status: o.status, visibility: o.visibility, allow_impressions: o.allowImpressions !== false, copyright: o.copyright || null, cover_url: await resolveCoverUrl(o.coverImageId), updated_at: new Date().toISOString() };
         const { error } = await sb.from('story_works').upsert(row); if (error) throwDb(error);
         await persistTree(o);
         // The referenced chapter must exist before setting last_chapter_id.
@@ -778,8 +776,24 @@ const Store = JournalWriterDrafts.create({remote: RemoteStore, owner: () => CONF
   }
 });
 RemoteStore.publishSingle = async (s, rec) => {
-  const row={title:s.title||'',excerpt:(s.description||'').trim()||null,tags:s.tags||[],visibility:s.visibility,allow_comments:s.allowImpressions!==false,copyright:s.copyright||null,cover_url:await resolveCoverUrl(s.coverImageId),body_markdown:rec.html||'',status:'published',published_at:new Date(rec.published.at).toISOString(),updated_at:new Date().toISOString()};
+  const row={title:s.title||'',excerpt:(s.description||'').trim()||null,tags:s.tags||[],visibility:s.visibility,allow_comments:s.allowImpressions!==false,copyright:s.copyright||null,reader_metadata:s.readerMetadata||{},cover_url:await resolveCoverUrl(s.coverImageId),body_markdown:rec.html||'',status:'published',published_at:new Date(rec.published.at).toISOString(),updated_at:new Date().toISOString()};
   const {error}=await sb.from('journals').update(row).eq('id',s.id).select('id').single();if(error)throwDb(error);
+};
+
+RemoteStore.publishTree = async (s, records) => {
+  const volumes=[],parts=[],chapters=[];
+  for(const v of s.volumes){
+    volumes.push({id:v.id,number:v.number,title:v.title,description:v.description,cover_url:await resolveCoverUrl(v.coverImageId),is_implicit:!!v.implicit,series_status:v.seriesStatus||null});
+    for(const p of v.parts||[])parts.push({id:p.id,volume_id:v.id,number:p.number,title:p.title,description:p.description,cover_url:await resolveCoverUrl(p.coverImageId)});
+    for(const {chapter:c,part:p} of Model.all(s).filter(x=>x.volume.id===v.id))chapters.push({id:c.id,volume_id:v.id,part_id:p?.id||null,number:c.number,title:c.title});
+  }
+  const work={title:s.title,description:s.description,genres:s.genres||[],tags:s.tags||[],series_status:s.seriesStatus||'ongoing',reader_metadata:s.readerMetadata||{},visibility:s.visibility,allow_impressions:s.allowImpressions!==false,copyright:s.copyright,cover_url:await resolveCoverUrl(s.coverImageId)};
+  const releases=records.map(rec=>({id:rec.id,html:rec.html,word_count:wordCount(rec.html),char_count:(rec.html||'').replace(/<[^>]+>/g,'').length}));
+  const {data,error}=await sb.rpc('publish_story_batch',{p_story_id:s.id,p_work:work,p_volumes:volumes,p_parts:parts,p_chapters:chapters,p_releases:releases});if(error)throwDb(error);
+  s.status='published';s.seriesStatus=data.work.series_status;s.completedAt=data.work.completed_at;s.lastReleaseAt=data.work.last_release_at;
+  for(const row of data.volumes||[]){const v=s.volumes.find(x=>x.id===row.id);if(v){v.status=row.status;v.seriesStatus=row.series_status;v.publishedAt=row.published_at;}}
+  for(const row of data.parts||[]){const p=s.volumes.flatMap(v=>v.parts||[]).find(x=>x.id===row.id);if(p){p.status=row.status;p.publishedAt=row.published_at?Date.parse(row.published_at):null;}}
+  for(const c of data.chapters||[]){const f=Model.find(s,c.id);if(f)f.chapter.publishedAt=Date.parse(c.published_at);const rec=records.find(r=>r.id===c.id);if(rec?.published)rec.published.at=Date.parse(c.published_at);}
 };
 
 function purposeFor(type) { return 'cover'; } // story_cover / volume_cover / part_cover all upload the same way
@@ -1318,8 +1332,8 @@ const Kind = {
   isStory: s => Kind.of(s) === 'story',
 };
 const Model = {
-  newStory: () => ({ kind: 'story', structure: null, visibility: 'public', allowImpressions: true, copyright: null, id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: 'Fantasy', tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
-  newVolume: s => ({ id: uid(), number: (s.volumes.reduce((m, v) => Math.max(m, v.number), 0)) + 1, title: '', description: '', status: 'draft', coverImageId: null, chapters: [], parts: [] }),
+  newStory: () => ({ kind: 'story', structure: null, visibility: 'public', allowImpressions: true, copyright: null, id: uid(), ownerId: CONFIG.ownerId, title: '', description: '', category: null, genres: [], readerMetadata: {}, seriesStatus: null, tags: [], status: 'draft', coverImageId: null, volumes: [], createdAt: Date.now(), updatedAt: Date.now(), lastChapterId: null }),
+  newVolume: s => ({ seriesStatus: null, publishedAt: null, id: uid(), number: (s.volumes.reduce((m, v) => Math.max(m, v.number), 0)) + 1, title: '', description: '', status: 'draft', coverImageId: null, chapters: [], parts: [] }),
   newPart: v => ({ id: uid(), number: (v.parts.reduce((m, p) => Math.max(m, p.number), 0)) + 1, title: '', description: '', coverImageId: null, status: 'draft', publishedAt: null, chapters: [] }),
   newChapter(s) { const n = this.all(s).reduce((m, x) => Math.max(m, x.chapter.number), 0) + 1; return { id: uid(), number: n, title: '', status: 'draft', wordCount: 0, updatedAt: Date.now(), publishedAt: null }; },
   all(s) { const out = []; s.volumes.forEach(v => { if (v.deletedAt) return; v.chapters.forEach(c => { if (!c.deletedAt) out.push({ chapter: c, volume: v, part: null }); }); v.parts.forEach(p => { if (p.deletedAt) return; p.chapters.forEach(c => { if (!c.deletedAt) out.push({ chapter: c, volume: v, part: p }); }); }); }); return out; },
@@ -1811,6 +1825,7 @@ const App = {
   validate() {
     Ed.normalizeAll(); const out = [], f = Model.find(App.story, Ed.chapterId), m = Ed.measure(), s = App.story, add = (level, label, detail) => out.push({ level, label, detail });
     const isStory = Kind.of(s) === 'story', KN = Kind.cfg(s).one;
+    if (isStory && !JournalStoryDiscovery.valid(s.genres)) add('fail', 'Genres', 'Choose a primary genre and at least one subgenre in the work details.');
     if (!s.title.trim()) add('fail', KN + ' title', 'This needs a title.'); else add('ok', KN + ' title', s.title);
     if (!f.chapter.title.trim()) add('warn', 'Chapter title', 'Untitled — readers will see “Chapter ' + f.chapter.number + '”.'); else add('ok', 'Chapter title', f.chapter.title);
     if (!m.words) add('fail', 'Content', 'The chapter is empty.'); else if (m.words < 50) add('warn', 'Content', `Only ${m.words} words. Publishing a very short chapter is allowed.`); else add('ok', 'Content', m.words.toLocaleString() + ' words');
@@ -1841,6 +1856,14 @@ const App = {
     const published=await Store.publish(App.story,[Ed.chapterId]);App.story=published;Model.cur=published;
     App.rec=await Store.get('chapters',Ed.chapterId);UI.renderTree();UI.syncPublishButton();Panel.refresh();
   },
+  async publishWhole() {
+    if (!await Save.flush()) throw Error('Save failed. Your draft is kept.');
+    const ids=Model.all(App.story).filter(x=>x.chapter.status!=='published'&&!x.chapter.deletedAt).map(x=>x.chapter.id);
+    if(!ids.length)throw Error('There are no unpublished chapters. Use this chapter to re-publish an edit.');
+    App.storyPersistSoon.cancel();await this.persistStory();
+    App.story=await Store.publish(App.story,ids);Model.cur=App.story;
+    App.rec=await Store.get('chapters',Ed.chapterId);UI.renderTree();UI.syncPublishButton();Panel.refresh();
+  },
   async unpublishChapter() {
     if(!await Save.flush())throw Error('Save failed. Unpublishing was paused to keep your draft safe.');await Store.unpublish(App.story,Ed.chapterId);const rec=await Store.get('chapters',Ed.chapterId);App.rec=rec;
     const f = Model.find(App.story, rec.id); f.chapter.status = 'draft'; f.chapter.publishedAt = null; this.syncWorkStatus(); await this.persistStory(); UI.renderTree(); UI.syncPublishButton(); Panel.refresh();
@@ -1851,8 +1874,10 @@ const App = {
     const body = drafts.length ? `“${name}” has ${drafts.length} unpublished chapter${drafts.length === 1 ? '' : 's'}. They will be published along with the ${kind}. Once published, the ${kind} can’t be edited or published again — only viewed and deleted.` : `“${name}” will be marked published. Once published, the ${kind} can’t be edited or published again — only viewed and deleted.`;
     if (!await confirmDialog({ title: `Publish this ${kind}?`, body, confirm: `Publish ${kind}` })) return;
     if(!await Save.flush())throw Error('Save failed. Publishing was paused.');
-    obj.status='published';obj.publishedAt=Date.now();App.storyPersistSoon.cancel();await this.persistStory();
-    App.story=await Store.publish(App.story,drafts.map(c=>c.id));Model.cur=App.story;App.rec=Ed.chapterId?await Store.get('chapters',Ed.chapterId):null;
+    App.storyPersistSoon.cancel();await this.persistStory();
+    const snapshot=structuredClone(App.story),target=kind==='volume'?snapshot.volumes.find(v=>v.id===obj.id):snapshot.volumes.flatMap(v=>v.parts).find(p=>p.id===obj.id);
+    target.status='published';target.publishedAt=obj.publishedAt||Date.now();
+    App.story=await Store.publish(snapshot,(drafts.length?drafts:chapters).map(c=>c.id));Model.cur=App.story;App.rec=Ed.chapterId?await Store.get('chapters',Ed.chapterId):null;
     UI.renderTree(); UI.syncCrumb(); Panel.refresh(); toast('Published');
   },
   async softDeleteChapter(f) {
@@ -2044,6 +2069,7 @@ const UI = {
         h('div', { class: 'cv' }, url ? h('img', { src: url, alt: '' }) : null, url ? null : h('span', null, s.title || 'Untitled')), menuBtn,
         h('div', { class: 'bd' }, h('b', null, s.title || 'Untitled story'), h('div', null, h('span', { class: 'pill' }, ({ public: 'Public', unlisted: 'Unlisted', private: 'Private' })[Kind.visibility(s)])),
           h('span', { class: 'small muted' }, Kind.storyLike(s) ? `${realVols} volume${realVols === 1 ? '' : 's'} · ${chapters} chapter${chapters === 1 ? '' : 's'} · ${Model.words(s).toLocaleString()} words` : (Kind.hasTree(s) ? `${chapters} ${chapters === 1 ? 'item' : 'items'} · ` : '') + `${Model.words(s).toLocaleString()} words`), h('span', { class: 'small faint' }, 'Edited ' + timeAgo(s.updatedAt)),
+          !Kind.single(s) && s.seriesStatus ? h('span',{class:'pill'},JournalStoryDiscovery.label(s)) : null, !Kind.single(s) && JournalStoryDiscovery.dateLabel(s) ? h('span',{class:'small muted'},JournalStoryDiscovery.dateLabel(s)) : null,
           (s._hasPublishedCopy || Model.all(s).some(x => x.chapter.status === 'published')) ? h('span', { class: 'pill published card__published' }, 'Published') : null));
       grid.append(card);
       if (s.coverImageId && !url) Images.url(s.coverImageId).then(resolved => {
@@ -2084,7 +2110,7 @@ const UI = {
       if (v.deletedAt) return;
       const open = v.implicit || !this.collapsed.has(v.id), vcover = v.coverImageId && (Images.urls.get(v.coverImageId) || (v.coverImageId.startsWith('__url:') ? v.coverImageId.slice(6) : (Images.cache.get(v.coverImageId) || {}).public_url)), vLocked = App.locked(v);
       if (!v.implicit) host.append(this.row({ kind: 'vol', id: v.id, label: Model.vLabel(v), open, collapsible: true, status: Kind.isStory(s) ? v.status : null, menu: () => [
-        vLocked ? null : { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) },
+        vLocked ? {label:'Volume status…',icon:'info',onClick:()=>this.volumeStatusDialog(v)} : { label: 'Edit volume…', icon: 'edit', onClick: () => this.editVolume(v) }, { label: 'Add chapter', icon: 'file', onClick: () => this.addChapter(v, null) }, { label: 'Add part', icon: 'folder', onClick: () => this.addPart(v) },
         (!vLocked && Kind.isStory(s)) ? { label: 'Publish volume…', icon: 'check', onClick: () => App.publishContainer('volume', v) } : null, '-',
         { label: 'Move up', icon: 'up', disabled: vi === 0, onClick: () => App.move(s.volumes, vi, -1) }, { label: 'Move down', icon: 'down', disabled: vi === s.volumes.length - 1, onClick: () => App.move(s.volumes, vi, 1) }, '-',
         { label: 'Delete volume…', icon: 'trash', danger: true, onClick: () => App.deleteContainer('volume', v, s.volumes, vi) }] }));
@@ -2121,6 +2147,13 @@ const UI = {
   /* ---- entity creation / editing */
   editStory() { const s = App.story; this.entityDialog({ kind: 'story', entity: s, isNew: false, ctx: { owner: { storyId: s.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
   addVolume() { const s = App.story, v = Model.newVolume(s); this.entityDialog({ kind: 'volume', entity: v, isNew: true, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach: () => s.volumes.push(v), detach: () => { s.volumes = s.volumes.filter(x => x !== v); }, persist: () => App.persistStory(), after: () => { this.renderTree(); if (!Ed.chapterId) this.showEmpty(); } } }); },
+  volumeStatusDialog(v) {
+    const select=selectEl(Object.entries(JournalStoryDiscovery.statuses),v.seriesStatus||'ongoing'),error=h('div');
+    const save=h('button',{class:'btn primary',type:'button',onclick:async()=>{
+      save.disabled=true;try{const {error:failure}=await sb.from('story_volumes').update({series_status:select.value}).eq('id',v.id).select('id').single();if(failure)throwDb(failure);v.seriesStatus=select.value;await App.persistStory();m.close();UI.renderTree();}catch(e){save.disabled=false;error.replaceChildren(h('p',{class:'banner err'},e.message));}
+    }},'Save status');
+    const m=openModal({title:'Volume status',body:h('div',null,field('Status',select,'Applies to this volume only.'),error),footer:[h('button',{class:'btn',type:'button',onclick:()=>m.close()},'Cancel'),save]});
+  },
   editVolume(v) { if (App.locked(v)) return; const s = App.story; this.entityDialog({ kind: 'volume', entity: v, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
   addPart(v) { const s = App.story, p = Model.newPart(v); this.entityDialog({ kind: 'part', entity: p, isNew: true, ctx: { label: (Kind.labels(s).part || 'section').toLowerCase(), owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach: () => v.parts.push(p), detach: () => { v.parts = v.parts.filter(x => x !== p); }, persist: () => App.persistStory(), after: () => this.renderTree() } }); },
   editPart(p, v) { if (App.locked(p)) return; const s = App.story; this.entityDialog({ kind: 'part', entity: p, isNew: false, ctx: { owner: { storyId: s.id, volumeId: v.id, partId: p.id }, attach() {}, detach() {}, persist: () => App.persistStory(), after: () => { this.renderTree(); this.syncCrumb(); } } }); },
@@ -2134,16 +2167,22 @@ const UI = {
     if (spec) cover = CoverField({ spec, current: curRec, onDeleteSaved: () => deleteCover({ entity, persist: ctx.persist }) });
     const errHost = h('div');
     if (kind === 'story') {
-      const statusOpts = plain ? PUB_STATUSES : STORY_STATUSES, curStatus = statusOpts.some(x => x[0] === entity.status) ? entity.status : 'draft';
       const visHint = h('div', { class: 'hint' }, VIS_HINT[Kind.visibility(entity)]);
       const crHint = h('div', { class: 'hint' }, (copyrightOf(entity.copyright) || [0, 0, 'Choose how others may use your work.'])[2]);
       els.cr = selectEl([['', 'Select a copyright\u2026'], ...COPYRIGHTS.map(c => [c[0], c[1]])], entity.copyright || ''); els.cr.id = 'crSel'; els.cr.required = true; els.cr.setAttribute('aria-required', 'true');
       els.cr.addEventListener('change', () => { els.cr.classList.remove('bad'); els.cr.removeAttribute('aria-invalid'); crHint.textContent = (copyrightOf(els.cr.value) || [0, 0, 'Choose how others may use your work.'])[2]; });
       els.vis = selectEl(VISIBILITY, Kind.visibility(entity)); els.vis.addEventListener('change', () => { visHint.textContent = VIS_HINT[els.vis.value]; });
       els.imp = selectEl([['on', 'Allow impressions'], ['off', 'Turn off impressions']], Kind.impressions(entity) ? 'on' : 'off');
+      const meta=entity.readerMetadata||{};
+      els.language=h('input',{class:'inp',value:meta.language||'',placeholder:'e.g. English, Hindi, Hinglish',maxLength:80});
+      els.audience=selectEl([['','Not specified'],['general','General audience'],['teen','Teen audience'],['mature','Mature audience']],meta.audience||'');
+      els.warnings=h('div',null,JournalStoryDiscovery.warnings.map(w=>h('label',{style:{display:'block',margin:'5px 0'}},h('input',{type:'checkbox',value:w,checked:(meta.warnings||[]).includes(w)}),' '+w)));
+      if (!Kind.single(entity)) els.schedule=h('input',{class:'inp',value:meta.schedule||'',placeholder:'Optional, e.g. every Sunday',maxLength:140});
+      const isPublic=entity._hasPublishedCopy||Model.all(entity).some(x=>x.chapter.status==='published');
+      if (isPublic&&!Kind.single(entity)) els.series=selectEl(Object.entries(JournalStoryDiscovery.statuses),entity.seriesStatus||'ongoing');
       body.append(field(null, cover.el), field('Title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'The title of your ' + KN.one.toLowerCase(), maxLength: 140 })), field('Description', els.desc = h('textarea', { class: 'inp', value: entity.description, placeholder: 'What is this about?', maxLength: 2000 })),
         isNew && KN.structures ? field('Structure', els.structure = selectEl(KN.structures, KN.structures[0][0]), wk === 'journal' ? 'A journal can be one piece of writing or many entries.' : 'Sections are optional. Choose Simple if you only want one continuous article.') : '',
-        plain ? '' : field('Category', els.cat = selectEl(CATEGORIES.map(c => [c, c]), entity.category || 'Other')),
+        wk === 'story' ? field('Genres and subgenres', (els.genres = JournalStoryDiscovery.picker(entity.genres || [])).el, 'The first genre is primary. Tags are separate.') : '',
         field('Tags', (tags = tagsInput(entity.tags || [])).el, 'Press Enter to add each tag'),
         h('div', { class: 'field' }, h('div', { style: { display: 'flex', alignItems: 'center', gap: '4px' } }, h('label', { for: 'crSel' }, 'Copyright ', h('span', { style: { color: 'var(--danger)' }, title: 'Required' }, '*'), h('span', { class: 'small faint', style: { fontWeight: 400, marginLeft: '4px' } }, 'Required')), h('button', { class: 'ib', type: 'button', style: { width: '28px', height: '28px' }, title: 'What do these mean?', 'aria-label': 'What do the copyright options mean?', onclick: e => this.copyrightInfo(e.currentTarget, els.cr.value) }, icon('info'))), els.cr, crHint),
         h('div', { class: 'row2', style: { alignItems: 'start' } }, h('div', { class: 'field' }, h('label', null, 'Visibility'), els.vis, visHint), field('Impressions', els.imp, null)));
@@ -2158,6 +2197,8 @@ const UI = {
     } else {
       body.append(h('div', { class: 'row2' }, field('Chapter number', els.num = h('input', { class: 'inp', type: 'number', min: 1, value: entity.number })), field('Status', h('div', null, h('span', { class: 'pill ' + entity.status }, entity.status === 'published' ? 'Published' : 'Draft'), h('div', { class: 'hint', style: { marginTop: '4px' } }, 'Use Publish in the toolbar when the chapter is ready.')))), field('Chapter title', els.title = h('input', { class: 'inp', value: entity.title, placeholder: 'Optional', maxLength: 140 })));
     }
+    if (kind === 'story') body.append(field('Language (optional)',els.language),field('Audience rating (optional)',els.audience),field('Content warnings (optional)',els.warnings),els.schedule?field('Update schedule (optional)',els.schedule):'',els.series?field('Work status',els.series,'Applies to the whole work. Save publishes this status change immediately.'):h('p',{class:'hint'},'Choose Ongoing or Completed when you publish.'));
+    if (kind === 'volume' && entity.status === 'published') body.append(field('Volume status',els.series=selectEl(Object.entries(JournalStoryDiscovery.statuses),entity.seriesStatus||'ongoing')));
     body.append(errHost);
     const saveBtn = h('button', { class: 'btn primary', type: 'button' }, isNew ? 'Create' : 'Save'), cancelBtn = h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Cancel');
     const title = (isNew ? 'New ' : 'Edit ') + names[kind];
@@ -2167,7 +2208,10 @@ const UI = {
       if (els.title) vals.title = els.title.value.trim(); if (els.desc) vals.description = els.desc.value.trim(); if (els.num) vals.number = Math.max(1, parseInt(els.num.value, 10) || 1);
       if (els.cr) vals.copyright = els.cr.value;
       if (els.vis) { vals.visibility = els.vis.value; vals.allowImpressions = els.imp.value === 'on'; }
-      if (els.status) vals.status = els.status.value; if (els.cat) vals.category = els.cat.value; if (tags) vals.tags = [...tags.value];
+      if (els.genres) { vals.genres = els.genres.value; vals.category = vals.genres[0]?.genre || null; }
+      if (els.series) { vals.seriesStatus = els.series.value || null; if(kind==='story'&&vals.seriesStatus==='completed'&&Model.all(entity).some(x=>x.chapter.status!=='published'&&!x.chapter.deletedAt)){errHost.append(h('div',{class:'banner err'},'Publish the remaining chapters before marking this work completed.'));return;} }
+      if (els.language) vals.readerMetadata = {language: els.language.value.trim(), audience: els.audience.value, warnings: [...els.warnings.querySelectorAll('input:checked')].map(x => x.value), schedule: els.schedule?.value.trim() || ''}; if (tags) vals.tags = [...tags.value];
+      if (els.genres && !JournalStoryDiscovery.valid(vals.genres)) { errHost.append(h('div',{class:'banner err',role:'alert'},'Choose a primary genre and at least one subgenre for each selected genre.')); return; }
       if (kind === 'story' && !vals.title) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Your ' + KN.one.toLowerCase() + ' needs a title.')); els.title.focus(); return; }
       if (kind === 'story' && !vals.copyright) { errHost.append(h('div', { class: 'banner err' }, icon('alert'), 'Choose a copyright before saving.')); els.cr.classList.add('bad'); els.cr.setAttribute('aria-invalid', 'true'); els.cr.scrollIntoView({ block: 'center' }); els.cr.focus(); return; }
       saveBtn.disabled = true; cancelBtn.disabled = true; saveBtn.replaceChildren(h('span', { class: 'spin' }), ' Saving…'); m.setDismissable(false);
@@ -2181,6 +2225,8 @@ const UI = {
         }
         if (cover && cover.staged) await applyCoverChange({ entity, owner: ctx.owner, type: spec.type, staged: cover.staged, persist: ctx.persist }); else await ctx.persist();
         if (cover) cover.markSaved((await Images.record(entity.coverImageId)) || (entity.coverImageId ? { id: entity.coverImageId, public_url: await Images.url(entity.coverImageId), width: null, height: null, file_size: null } : null));
+        if (els.series && kind === 'story' && !Kind.single(entity)) { const {data,error}=await sb.from('story_works').update({series_status:entity.seriesStatus}).eq('id',entity.id).select('completed_at,last_release_at').single();if(error)throwDb(error);entity.completedAt=data.completed_at;entity.lastReleaseAt=data.last_release_at;await ctx.persist(); }
+        if (els.series && kind === 'volume') { const {error}=await sb.from('story_volumes').update({series_status:entity.seriesStatus}).eq('id',entity.id).select('id').single();if(error)throwDb(error); }
         m.setDismissable(true); m.close(); await ctx.after(entity);
       } catch (e) {
         const old = JSON.parse(snap); Object.keys(entity).forEach(k => delete entity[k]); Object.assign(entity, old); if (isNew) ctx.detach();
@@ -2192,14 +2238,25 @@ const UI = {
   /* ---- publish */
   async publishDialog() {
     if (!Ed.chapterId) return; if (this.mode === 'preview') this.setMode('write');
-    const fchk = Model.find(App.story, Ed.chapterId);
-    const okSave = await Save.flush(); if (!okSave) { toast('Save failed, so publishing is paused. Your text is safe; try again in a moment.', 'err'); return; }
-    const items = App.validate(), fails = items.filter(i => i.level === 'fail').length, warns = items.filter(i => i.level === 'warn').length, f = Model.find(App.story, Ed.chapterId);
-    const ic = { ok: ['check', 'var(--ok)'], warn: ['alert', 'var(--warn)'], fail: ['alert', 'var(--danger)'] };
-    const list = h('div', null, items.map(i => h('div', { style: { display: 'flex', gap: '10px', padding: '7px 0', borderBottom: '1px solid var(--line-2)' } }, h('span', { style: { color: ic[i.level][1], marginTop: '1px' } }, icon(ic[i.level][0])), h('div', null, h('b', null, i.label), h('div', { class: 'small muted' }, i.detail)))));
-    const already = f.chapter.status === 'published';
-    const go = h('button', { class: 'btn primary', type: 'button', disabled: fails > 0, onclick: async () => { go.disabled = true; go.replaceChildren(h('span', { class: 'spin' }), already ? ' Re-Publishing…' : ' Publishing…'); try { if(!await Save.flush())throw Error('Save failed. Your draft is kept.'); await App.publishChapter(); m.close(); const href = await readerLinkFor(App.story.id); toast(already ? 'Re-Published' : 'Published', null, href ? { label: 'View', href } : null); } catch (e) { go.disabled = false; go.textContent = 'Retry'; toast('Couldn’t publish: ' + e.message, 'err'); } } }, already ? 'Re-Publish' : 'Publish ' + (Kind.storyLike(App.story) ? 'chapter' : Kind.cfg(App.story).unit));
-    const m = openModal({ title: already ? 'Ready to re-publish?' : 'Ready to publish?', body: h('div', null, h('p', { class: 'muted', style: { margin: '2px 0 8px' } }, Model.cLabel(f.chapter)), fails ? h('div', { class: 'banner err' }, icon('alert'), fails + ' thing' + (fails > 1 ? 's' : '') + ' must be fixed before you can publish.') : (warns ? h('div', { class: 'banner warn' }, icon('alert'), 'You can publish, but check the notes below.') : h('div', { class: 'banner ok' }, icon('check'), 'Everything looks good.')), list), footer: [h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Not yet'), go] });
+    if (!await Save.flush()) { toast('Save failed. Your draft is kept.', 'err'); return; }
+    const items=App.validate(),f=Model.find(App.story,Ed.chapterId),already=f.chapter.status==='published';
+    const body=h('div'),errors=h('div');
+    const mode=Kind.hasTree(App.story)?selectEl([['chapter','This '+(Kind.isStory(App.story)?'chapter':'entry')],['all','Whole work — all unpublished chapters and volumes']],'chapter'):null;
+    const status=Kind.hasTree(App.story)?selectEl([['ongoing','Ongoing'],['completed','Completed'],...(App.story._hasPublishedCopy?[['hiatus','On hiatus']]:[])],App.story.seriesStatus||'ongoing'):null;
+    if(mode)body.append(field('Publish',mode));if(status)body.append(field('Work status',status,'Choose Completed when the whole work is finished.'));
+    body.append(h('div',null,items.map(i=>h('p',{class:i.level==='fail'?'banner err':'small muted'},i.label+': '+i.detail))),errors);
+    const go=h('button',{class:'btn primary',type:'button',onclick:async()=>{
+      go.disabled=true;errors.replaceChildren();const previous=App.story.seriesStatus;
+      try {
+        if(!await Save.flush())throw Error('Save failed. Your draft is kept.');
+        const failed=App.validate().filter(i=>i.level==='fail' && !(mode?.value==='all'&&i.label==='Content'));
+        if(failed.length)throw Error(failed.map(x=>x.detail).join(' '));
+        if(status)App.story.seriesStatus=status.value;
+        if(mode?.value==='all')await App.publishWhole();else await App.publishChapter();
+        m.close();const href=await readerLinkFor(App.story.id);toast(already?'Re-Published':'Published',null,href?{ label: 'View', href }:null);
+      }catch(e){App.story.seriesStatus=previous;await App.persistStory().catch(()=>{});errors.append(h('div',{class:'banner err',role:'alert'},'Couldn’t publish: '+e.message));go.disabled=false;}
+    }},already?'Re-Publish':'Publish');
+    const m=openModal({title:'Publishing settings',body,footer:[h('button',{class:'btn',type:'button',onclick:()=>m.close()},'Cancel'),go]});
   },
   /* ---- developer tools */
   devMenu(anchor) {
@@ -2391,5 +2448,3 @@ UI.renderPreview = function () {
 </script>
 </body>
 </html>
-
-

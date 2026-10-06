@@ -51,6 +51,7 @@
      ============================================================ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
+<script src="/assets/story-discovery.js?v=20261006-1"></script>
 <script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
 <script src="/assets/work-content.js?v=20261005-feed-1"></script>
 <script src="/assets/feed-preview.js?v=20261005-feed-1"></script>
@@ -2671,6 +2672,7 @@ function normalizeJournalRow(row){
     visibility: row.visibility,
     allow_comments: row.allow_comments,
     content_note: row.content_note,
+    readerMetadata: row.reader_metadata || {},
     published_at: row.published_at,
     reading_time: readingTimeMinutes(words),
     likes: row.like_count || 0,
@@ -2705,7 +2707,7 @@ function normalizeMergedFeedRow(row){
   return out;
 }
 
-const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, cover_thumb_url, category_id, script, tags, published_at, allow_comments, content_note, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
+const JOURNAL_CARD_FIELDS = 'id, slug, title, subtitle, excerpt, body_markdown, cover_url, cover_thumb_url, category_id, script, tags, published_at, allow_comments, content_note, reader_metadata, like_count, comment_count, read_count, featured, author_id, status, visibility, profiles!journals_author_id_fkey(display_name, username, avatar_url)';
 
 
 async function fetchLatestJournals(opts){
@@ -2743,7 +2745,7 @@ async function fetchLatestJournals(opts){
     });
     if (error) throw error;
     const total = (data && data.length) ? data[0].total_count : 0;
-    return { rows: (data || []).map(normalizeMergedFeedRow), total };
+    const rows=(data||[]).map(normalizeMergedFeedRow);await JournalStoryDiscovery.hydrate(supabaseClient,rows);return {rows,total};
   }
   // 👉 SUPABASE: range-based pagination, never a single unlimited select.
   let query = supabaseClient
@@ -3253,7 +3255,7 @@ function journalCardHTML(j){
   return '<article class="j-card" data-open-journal="' + j.id + '" data-slug="' + escapeHtml(j.slug||'') + '" data-author="' + escapeHtml(authorUsername(j.author_id)||'') + '">' +
     '<div class="j-cover">' + coverHTML(j.category, j.cover_url) + ownerActions + '</div>' +
     '<div class="j-body">' +
-      '<h3>' + escapeHtml(j.title) + '</h3>' +
+      '<h3>' + escapeHtml(j.title) + '</h3>' + JournalStoryDiscovery.cardHTML(j.storyMeta,escapeHtml) +
       '<div class="j-excerpt j-rich-excerpt">' + JournalFeedPreview.render(j, text => inlineMd(escapeHtml(text)).replace(/\r?\n/g, '<br>'), 220) + '</div>' +
       '<div class="j-card-footer">' +
         '<a class="j-meta" href="/portfolio.html?u=' + encodeURIComponent(authorUsername(j.author_id) || '') + '" onclick="event.stopPropagation();">' + avatarSpanHTML(j.author_id, authorName(j.author_id)) +
@@ -3552,7 +3554,7 @@ async function renderNotificationsView(){
   list.innerHTML = rows.map(function(n){
     const copyFn = NOTIF_COPY[n.type] || function(){ return n.message ? escapeHtml(n.message) : 'You have a new update.'; };
     const actorUsername = n.actor_id ? authorUsername(n.actor_id) : '';
-    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-type="' + escapeHtml(n.type || '') + '" data-notif-journal="' + (n.journal_id||'') + '" data-notif-username="' + escapeHtml(actorUsername) + '">' +
+    return '<div class="notif-item' + (!n.read_at ? ' is-unread' : '') + '" data-notif-type="' + escapeHtml(n.type || '') + '" data-notif-story="' + (n.story_id||'') + '" data-notif-chapter="' + (n.chapter_id||'') + '" data-notif-journal="' + (n.journal_id||'') + '" data-notif-username="' + escapeHtml(actorUsername) + '">' +
       (n.actor_id ? avatarHTML(n.actor_id, authorName(n.actor_id)) : '<span class="avatar" style="background:#F1751B;color:#fff;font-weight:700">A</span>') +
       '<div><div class="n-msg">' + copyFn(n) + '</div><div class="n-time">' + formatRelativeTime(n.created_at) + '</div></div>' +
       (!n.read_at ? '<span class="notif-dot"></span>' : '') +
@@ -3563,6 +3565,8 @@ async function renderNotificationsView(){
     el.onclick = function(e){
       if (e.target.closest('.avatar-link, .author-name-link')) return;
       if (this.getAttribute('data-notif-type') === 'moderator_invite'){ openModeratorInviteModal(); return; }
+      const storyId=this.getAttribute('data-notif-story'),chapterId=this.getAttribute('data-notif-chapter');
+      if(storyId){window.location.href='/reader-studio.html?id='+encodeURIComponent(storyId)+(chapterId?'#/read/'+encodeURIComponent(chapterId):'');return;}
       const jid = this.getAttribute('data-notif-journal');
       const username = this.getAttribute('data-notif-username');
       if (jid) navigateTo('read', { journalId: jid });

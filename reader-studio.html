@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=Literata:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
+<script src="/assets/story-discovery.js?v=20261006-1"></script>
 <style>
 /* =========================================================
    JOURNALS · READER STUDIO
@@ -1100,11 +1101,11 @@ async function loadRealWork(){
     const { data:pr } = await supabaseClient.from('story_parts').select('*').in('volume_id', volIds).order('number');
     partRows = pr || [];
   }
-  const chapterShape = function(c){ return { id:c.id, number:c.number, title:c.title, wordCount:c.word_count, status:c.status }; };
+  const chapterShape = function(c){ return { id:c.id, number:c.number, title:c.title, wordCount:c.word_count, status:c.status, publishedAt:c.published_at }; };
   const byNum = function(a,b){ return a.number - b.number; };
   const volumes = (volRows || []).slice().sort(byNum).map(function(v){
     return {
-      id: v.id, number: v.number, title: v.title, description: v.description || '', coverImageId: v.cover_url, implicit: !!v.is_implicit,
+      id: v.id, number: v.number, title: v.title, description: v.description || '', publishedAt:v.published_at, seriesStatus:v.series_status, coverImageId: v.cover_url, implicit: !!v.is_implicit,
       chapters: (chRows || []).filter(function(c){ return c.volume_id === v.id && !c.part_id; }).sort(byNum).map(chapterShape),
       parts: partRows.filter(function(p){ return p.volume_id === v.id; }).sort(byNum).map(function(p){
         return {
@@ -1117,7 +1118,7 @@ async function loadRealWork(){
   return {
     id: row.id, title: row.title, description: row.description || '',
     kind: row.kind, structure: row.kind === 'journal' ? 'multiple' : 'structured', category: row.kind === 'journal' ? 'Journal' : (row.kind === 'article' ? 'Article' : 'Story'),
-    tags: row.tags || [], status: row.status, visibility: row.visibility,
+    genres:row.genres||[], readerMetadata:row.reader_metadata||{}, seriesStatus:row.series_status, completedAt:row.completed_at, lastReleaseAt:row.last_release_at, tags: row.tags || [], status: row.status, visibility: row.visibility,
     allowImpressions: row.allow_impressions !== false, ownerId: row.author_id,
     coverImageId: row.cover_url, volumes: volumes
   };
@@ -1131,14 +1132,14 @@ function loadWork(work){
   const storyLike=work.kind==='story'||(work.kind==='article'&&work.structure==='structured')||(work.kind==='journal'&&work.structure==='multiple');
   const author=api.getAuthor(work.ownerId);
   const S={id:work.id,kind:work.kind||'story',title:(work.title||'').trim()||'Untitled',description:work.description||'',category:work.category||'',tags:work.tags||[],
-    status:work.status,allowImpressions:work.allowImpressions!==false,ownerId:work.ownerId,authorName:author?author.name:'',cover:cover(work.coverImageId),
+    genres:work.genres||[],readerMetadata:work.readerMetadata||{},seriesStatus:work.seriesStatus,completedAt:work.completedAt,lastReleaseAt:work.lastReleaseAt,status:work.status,allowImpressions:work.allowImpressions!==false,ownerId:work.ownerId,authorName:author?author.name:'',cover:cover(work.coverImageId),
     single:!storyLike,unavailable:null,volumes:[],savedToLibrary:false};
   if(S.kind==='story'&&work.status==='draft')S.unavailable='draft';
   else if(work.visibility==='private'&&work.ownerId!==ME.id)S.unavailable='private';
   FLAT=[];byId={};let idx=0;
   (work.volumes||[]).forEach(v=>{
-    const vol={id:v.id,number:v.number,title:(v.title||'').trim(),description:v.description||'',cover:cover(v.coverImageId),implicit:!!v.implicit,direct:[],parts:[],chapters:[]};
-    const mk=(c,part)=>({id:c.id,number:c.number,title:(c.title||'').trim(),wordCount:c.wordCount||0,mins:Math.max(1,Math.ceil((c.wordCount||0)/230)),vol,part});
+    const vol={id:v.id,number:v.number,title:(v.title||'').trim(),description:v.description||'',publishedAt:v.publishedAt,seriesStatus:v.seriesStatus,cover:cover(v.coverImageId),implicit:!!v.implicit,direct:[],parts:[],chapters:[]};
+    const mk=(c,part)=>({id:c.id,number:c.number,title:(c.title||'').trim(),wordCount:c.wordCount||0,publishedAt:c.publishedAt,mins:Math.max(1,Math.ceil((c.wordCount||0)/230)),vol,part});
     (v.chapters||[]).filter(isPub).forEach(c=>vol.direct.push(mk(c,null)));
     (v.parts||[]).forEach(p=>{
       const part={id:p.id,number:p.number,title:(p.title||'').trim(),chapters:[]};
@@ -1355,7 +1356,7 @@ function chRow(c,cur){
   const sr=st==='done'?`Completed ${doneOn}. `:st==='current'?`In progress, ${pct} percent. `:'Not started. ';
   return`<a class="ch ch--${st}${isCur?' is-current':''}" href="#/read/${c.id}"${isCur?' aria-current="true"':''} data-ch="${c.id}">
     <span class="ch__st">${statusIcon(st,pct)}</span>
-    <span class="ch__main">${c.title?`<span class="ch__no">${unitLabel()} ${c.number}</span>`:''}<span class="ch__title"><span class="sr-only">${sr}</span>${esc(chName(c))}</span>${st==='current'?`<span class="ch__bar" aria-hidden="true"><i style="width:${pct}%"></i></span>`:''}</span>
+    <span class="ch__main">${c.title?`<span class="ch__no">${unitLabel()} ${c.number}</span>`:''}<span class="ch__title"><span class="sr-only">${sr}</span>${esc(chName(c))}</span>${c.publishedAt?'<span class="ch__no">Published '+esc(JournalStoryDiscovery.date(c.publishedAt))+'</span>':''}${st==='current'?`<span class="ch__bar" aria-hidden="true"><i style="width:${pct}%"></i></span>`:''}</span>
     <span class="ch__meta">${bm?`<span title="Bookmarked">${ic('bookmark')}<span class="sr-only">Bookmarked</span></span>`:''}${meta}</span></a>`;
 }
 function partHTML(p,cur){
@@ -1374,6 +1375,7 @@ function volumeHTML(v,cur){
   return`<section class="vol" aria-labelledby="${v.id}-t">
     <div class="vol__cover">${coverHTML(v.cover,'cover--port',`${volLabel(v)} cover${v.title?': '+v.title:''}`,ph)}</div>
     <div class="vol__head"><p class="vol__no">${volLabel(v)}</p>${v.title?`<h2 class="vol__title" id="${v.id}-t">${esc(v.title)}</h2>`:`<h2 class="sr-only" id="${v.id}-t">${volLabel(v)}</h2>`}
+      ${v.publishedAt?'<p class="vol__desc">Published '+esc(JournalStoryDiscovery.date(v.publishedAt))+(v.seriesStatus?' · '+esc(JournalStoryDiscovery.statuses[v.seriesStatus]):'')+'</p>':''}
       ${v.description?`<p class="vol__desc">${esc(v.description)}</p>`:''}
       <div class="vol__meta">${v.parts.length?`<span>${v.parts.length} ${STORY.kind==='journal'?(v.parts.length===1?'section':'sections'):(v.parts.length===1?'part':'parts')}</span>`:''}<span>${chs.length} ${unitLabel(chs.length!==1,true)}</span><span>${fmtMins(mins)}</span>
         <span class="vol__prog"><span class="bar" aria-hidden="true"><i style="width:${Math.round(vp*100)}%"></i></span>${done} of ${chs.length} read</span>
@@ -1390,7 +1392,7 @@ function heroHTML(cur,tgt){
     btn=`<a class="btn" href="#/read/${c.id}">Continue Reading ${ic('next')}</a>`;
     where=`<b>${c.title?`${unitLabel()} ${c.number} · ${esc(c.title)}`:`${unitLabel()} ${c.number}`}</b>${st==='current'?'Pick up where you left off':'Up next'}`;
     alt=`<a class="link-btn" href="#/read/${FLAT[0].id}">Start from the beginning</a>`}
-  const statusL={ongoing:'Ongoing',completed:'Completed',hiatus:'On hiatus'}[STORY.status];
+  const statusL=JournalStoryDiscovery.label(STORY);
   const kicker=[STORY.category,statusL].filter(Boolean).join(' · ');
   const phS=`<span class="ph__t">${esc(STORY.title)}</span><span class="ph__a">${esc(STORY.authorName)}</span>`;
   return`<section class="hero" aria-labelledby="viewTitle">
@@ -1399,6 +1401,7 @@ function heroHTML(cur,tgt){
       ${kicker?`<p class="kicker">${esc(kicker)}</p>`:''}
       <h1 class="h-title" id="viewTitle" tabindex="-1">${esc(STORY.title)}</h1>
       ${STORY.authorName?`<p class="byline">by <b>${esc(STORY.authorName)}</b></p>`:''}
+      ${JournalStoryDiscovery.detailsHTML(STORY,esc)}
       ${STORY.description?`<p class="summary">${esc(STORY.description)}</p>`:''}
       ${STORY.tags.length?`<ul class="tags" aria-label="Tags">${STORY.tags.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}
       <ul class="facts">${STORY.kind==='journal'&&STORY.volumes.every(v=>v.implicit)?'':`<li><b>${STORY.volumes.length}</b><span>${STORY.volumes.length===1?'Volume':'Volumes'}</span></li>`}${nParts?`<li><b>${nParts}</b><span>${STORY.kind==='journal'?(nParts===1?'Section':'Sections'):(nParts===1?'Part':'Parts')}</span></li>`:''}<li><b>${FLAT.length}</b><span>${unitLabel(FLAT.length!==1)}</span></li><li><b>${fmtMins(mins).replace(' min','')}</b><span>${mins<60?'min read':'read'}</span></li></ul>
@@ -1406,9 +1409,34 @@ function heroHTML(cur,tgt){
         <div class="bar bar--lg" role="progressbar" aria-labelledby="pl" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
         <p class="prog__sub">${sp.done} of ${sp.total} ${unitLabel(true,true)} completed</p>
         <div class="cta">${btn}<p class="cta__where">${where}</p></div>${alt?`<div class="cta__alt">${alt}</div>`:''}
+        ${subscriptionHTML()}
         ${ME.id?`<button class="btn btn--ghost" style="margin-top:10px" data-action="toggle-save" aria-pressed="${STORY.savedToLibrary}">${STORY.savedToLibrary?'Saved to Library':'Save to Library'}</button>`:''}</div>
     </div></section>`;
 }
+let STORY_SUBSCRIPTION=null;
+function subscriptionHTML(){
+  if(STORY.single)return '';
+  if(!ME.id)return '<a class="link-btn" href="/index.html?next='+encodeURIComponent(location.pathname+location.search)+'">Sign in to follow updates</a>';
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"><button class="btn btn--ghost" data-action="story-follow" aria-pressed="'+!!STORY_SUBSCRIPTION+'">'+(STORY_SUBSCRIPTION?'Unfollow work':'Follow / Notify me')+'</button>'+(STORY_SUBSCRIPTION?'<button class="btn btn--ghost" data-action="story-mute">'+(STORY_SUBSCRIPTION.muted?'Enable notifications':'Mute notifications')+'</button>':'')+'</div>';
+}
+async function loadStorySubscription(){
+  if(!ME.id||!STORY)return;
+  const {data,error}=await supabaseClient.from('story_subscriptions').select('muted').eq('story_id',STORY.id).eq('user_id',ME.id).maybeSingle();
+  if(error){console.warn('Subscriptions unavailable',error);return;}STORY_SUBSCRIPTION=data;
+}
+document.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-action="story-follow"],[data-action="story-mute"]');
+  if(!button||!ME.id||button.disabled)return;
+  button.disabled=true;
+  try{
+    let result;
+    if(button.dataset.action==='story-mute')result=await supabaseClient.from('story_subscriptions').update({muted:!STORY_SUBSCRIPTION.muted}).eq('story_id',STORY.id).eq('user_id',ME.id).select('story_id').single();
+    else if(STORY_SUBSCRIPTION)result=await supabaseClient.from('story_subscriptions').delete().eq('story_id',STORY.id).eq('user_id',ME.id);
+    else result=await supabaseClient.from('story_subscriptions').insert({story_id:STORY.id,user_id:ME.id});
+    if(result.error)throw result.error;
+    await loadStorySubscription();render();
+  }catch(e){button.disabled=false;button.textContent='Couldn’t save. Tap to retry.';console.error(e);}
+});
 let LAST_READ=null;
 function unavailableHTML(){
   const why=STORY.unavailable==='private'?'This work is private.':STORY.unavailable==='draft'?'This story hasn’t been published yet.':'There’s nothing to read here yet.';
@@ -1490,14 +1518,14 @@ function openerHTML(c){
   const vol=STORY.kind==='journal'&&c.vol.implicit?'':`${volLabel(c.vol)}${c.vol.title?' · '+esc(c.vol.title):''}`;
   const part=c.part?`<p class="opener__part">${partLabel(c.part)}${c.part.title?' — '+esc(c.part.title):''}</p>`:'';
   return`<header class="opener">${vol?`<p class="opener__vol">${vol}</p>`:''}${part}<div class="opener__rule"></div>
-    ${c.title?`<p class="opener__no">${unitLabel()} ${c.number}</p>`:''}<h1 class="opener__title" id="chTitle" tabindex="-1">${esc(chName(c))}</h1><p class="opener__meta">${mins}</p></header>`;
+    ${c.title?`<p class="opener__no">${unitLabel()} ${c.number}</p>`:''}<h1 class="opener__title" id="chTitle" tabindex="-1">${esc(chName(c))}</h1><p class="opener__meta">${mins}${c.publishedAt?" · Published "+esc(JournalStoryDiscovery.date(c.publishedAt)):""}</p></header>`;
 }
 function endHTML(c){
   const last=c.index===FLAT.length-1,done=chStatus(c.id)==='done',nx=FLAT[c.index+1],sp=storyProgress();
   const fin=STORY.single;
   return`<section class="end${done?' is-done':''}" id="endBox" aria-labelledby="endT">
     <svg class="end__ring" viewBox="0 0 58 58" aria-hidden="true"><circle cx="29" cy="29" r="27"/><circle class="rg" cx="29" cy="29" r="27"/><path d="M19 30l7 7 13-14"/></svg>
-    <p class="end__label">${fin||last?'The End':unitLabel()+' complete'}</p>
+    <p class="end__label">${fin?'The End':last?(STORY.seriesStatus==='completed'?'The End':'End of available chapters'):unitLabel()+' complete'}</p>
     <h2 class="end__title" id="endT">${fin?'Thanks for reading':last?'You have reached the last page':unitLabel()+' '+c.number+' completed'}</h2>
     ${fin?'':`<div class="bar end__bar" aria-hidden="true"><i id="endBar" style="width:${Math.round(sp.pct*100)}%"></i></div><p class="end__sub" id="endSub">${storySub()}</p>`}
     ${fin?`<button class="btn" data-action="exit">Back</button>`:last?`<a class="btn" href="#/">Back to contents</a>`:`<a class="btn" href="#/read/${nx.id}">Next ${unitLabel(false,true)} ${ic('next')}</a>`}</section>`;
@@ -2018,6 +2046,7 @@ async function boot(){
   loadWork(work);
   initState();
   await loadLibrarySaveState();
+  await loadStorySubscription();
   applyPrefs();setTheme(prefs.theme,{instant:true});
   render();
 }

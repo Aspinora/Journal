@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
 <script src="/config.js"></script>
+<script src="/assets/story-discovery.js?v=20261006-1"></script>
 <script src="/assets/vendor/dompurify-3.4.16.min.js"></script>
 <script src="/assets/work-content.js?v=20261004-reader-3"></script>
 <style>
@@ -580,8 +581,16 @@ async function fetchCommentsTree(targetId, ctx){
   });
   return roots;
 }
+function storyFollowHTML(post){
+  if(!post.storyMeta)return '';
+  return '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0"><button type="button" class="follow-btn" data-act="story-follow" aria-pressed="'+!!post.storySubscription+'">'+(post.storySubscription?'Unfollow work':'Follow / Notify me')+'</button><button type="button" class="follow-btn" data-act="story-mute" '+(!post.storySubscription?'hidden':'')+'>'+(post.storySubscription?.muted?'Enable notifications':'Mute notifications')+'</button></div>';
+}
 async function normalizePost(row){
   const cat = categoryById(row.category_id);
+  let storyMeta=null;
+  if(row.kind==='story'||row.is_multipart===true){const {data}=await supabaseClient.from('story_works').select('id,genres,series_status,completed_at,last_release_at,reader_metadata').eq('id',row.id).maybeSingle();storyMeta=data;}
+  let storySubscription=null;
+  if(storyMeta&&S.me){const {data}=await supabaseClient.from('story_subscriptions').select('muted').eq('story_id',row.id).eq('user_id',S.me.id).maybeSingle();storySubscription=data;}
   const authorName = (row.profiles && row.profiles.display_name) || 'Aspinora Member';
   const authorUsername = (row.profiles && row.profiles.username) || '';
   const authorAvatarUrl = (row.profiles && row.profiles.avatar_url) || null;
@@ -596,7 +605,7 @@ async function normalizePost(row){
   const isStructuredPreview = row.is_multipart === true || (row.kind === 'story' && (row.chapter_count || 0) > 1);
   if (isStructuredPreview){
     const post = {
-      id: row.id, slug: row.slug, authorId: row.author_id,
+      storySubscription:storySubscription,readerMetadata:row.reader_metadata||{},storyMeta:storyMeta, id: row.id, slug: row.slug, authorId: row.author_id,
       type: cat.name, title: row.title,
       author: authorName, username: authorUsername, avatarColorHex: avatarColor(row.author_id), avatarUrl: authorAvatarUrl,
       date: formatDateShort(row.published_at), publishedAt: row.published_at,
@@ -623,7 +632,7 @@ async function normalizePost(row){
   const words = wordCount(row.body_markdown || '');
   const kind = cat.name === 'Poetry' ? 'poem' : (cat.name === 'Shayari' || cat.name === 'Thoughts') ? 'short' : 'long';
   const post = {
-    id: row.id, slug: row.slug, authorId: row.author_id,
+    storySubscription:storySubscription,readerMetadata:row.reader_metadata||{},storyMeta:storyMeta, id: row.id, slug: row.slug, authorId: row.author_id,
     type: cat.name, title: row.title, subtitle: row.subtitle || '',
     author: authorName, username: authorUsername, avatarColorHex: avatarColor(row.author_id), avatarUrl: authorAvatarUrl,
     date: formatDateShort(row.published_at), publishedAt: row.published_at, read: readingTimeMinutes(words) + ' min',
@@ -797,7 +806,7 @@ function renderPost(post){
      '<div class="cover"><span class="type-chip">'+esc(post.type)+'</span>'+coverInner+'</div>'+
      '<div class="ribbon"></div>'+
      '<div class="meta">'+
-       '<h1 class="title">'+esc(post.title)+'</h1>'+
+       '<h1 class="title">'+esc(post.title)+'</h1>'+JournalStoryDiscovery.detailsHTML(post.storyMeta||post,esc)+storyFollowHTML(post)+
        '<div class="meta-divider"></div>'+
        '<div class="byline">'+
          (profileHref?('<a class="byline-link" href="'+profileHref+'">'):'<div class="byline-link">')+
@@ -826,7 +835,7 @@ function renderPost(post){
    '<div class="cover"><span class="type-chip">'+esc(post.type)+'</span>'+coverInner+'</div>'+
    '<div class="ribbon"></div>'+
    '<div class="meta">'+
-     '<h1 class="title">'+esc(post.title)+'</h1>'+
+     '<h1 class="title">'+esc(post.title)+'</h1>'+JournalStoryDiscovery.detailsHTML(post.storyMeta||post,esc)+storyFollowHTML(post)+
      (post.subtitle?('<p class="subtitle">'+esc(post.subtitle)+'</p>'):'')+
      '<div class="meta-divider"></div>'+
      '<div class="byline">'+
@@ -937,6 +946,19 @@ function wireActions(scope, post){
     try{ await navigator.clipboard.writeText(url); announce("Link copied"); }
     catch(e){ announce("Copy this link: " + url); }
   }
+  scope.querySelectorAll('[data-act="story-follow"],[data-act="story-mute"]').forEach(button=>button.addEventListener('click',()=>guardAuth(async()=>{
+    if(button.disabled)return;button.disabled=true;
+    try{
+      let result;
+      if(button.dataset.act==='story-mute')result=await supabaseClient.from('story_subscriptions').update({muted:!post.storySubscription.muted}).eq('story_id',post.id).eq('user_id',S.me.id).select('story_id').single();
+      else if(post.storySubscription)result=await supabaseClient.from('story_subscriptions').delete().eq('story_id',post.id).eq('user_id',S.me.id);
+      else result=await supabaseClient.from('story_subscriptions').insert({story_id:post.id,user_id:S.me.id});
+      if(result.error)throw result.error;
+      post.storySubscription=button.dataset.act==='story-mute'?{muted:!post.storySubscription.muted}:post.storySubscription?null:{muted:false};
+      const follow=scope.querySelector('[data-act="story-follow"]'),mute=scope.querySelector('[data-act="story-mute"]');
+      follow.textContent=post.storySubscription?'Unfollow work':'Follow / Notify me';follow.setAttribute('aria-pressed',!!post.storySubscription);mute.hidden=!post.storySubscription;mute.textContent=post.storySubscription?.muted?'Enable notifications':'Mute notifications';
+    }catch(e){console.error(e);announce('Couldn’t save notification preference. Please retry.');}finally{button.disabled=false;}
+  })));
   scope.querySelectorAll('[data-act="save"]').forEach(function(b){ b.addEventListener("click", function(){ doSave(); closeMore(scope); }); });
   scope.querySelectorAll('[data-act="share"]').forEach(function(b){ b.addEventListener("click", function(){ doShare(); closeMore(scope); }); });
   scope.querySelector('[data-act="comment"]').addEventListener("click", function(){
